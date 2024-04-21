@@ -1,4 +1,4 @@
-interface NamespaceList {
+interface NamespaceUnit {
   kind: string;
   apiVersion: string;
   metadata: Metadata;
