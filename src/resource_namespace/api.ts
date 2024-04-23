@@ -1,22 +1,11 @@
 import axios from 'axios';
 import { useQuery } from 'react-query';
-import fs from 'fs';
 
 export const useGetNamespaceUnit = <T>() => {
-  const url = process.env.REACT_APP_BACKEND_URL ? `${process.env.REACT_APP_BACKEND_URL}/namespace` : '/namespace';
-
-  const cacert = fs.readFileSync('~/.minikube/ca.crt', 'utf8');
-  const clientcrt = fs.readFileSync('~/.minikube/client.crt', 'utf8');
-  const clientKey = fs.readFileSync('~/.minikube/client.key', 'utf8');
+  const url = import.meta.env.VITE_APP_BACKEND_URL ? `${import.meta.env.VITE_APP_BACKEND_URL}/namespace` : '/namespace';
 
   const service = async () => {
-    return await axios.get<T>(url, {
-      httpsAgent: {
-        ca: cacert,
-        cert: clientcrt,
-        key: clientKey,
-      },
-    });
+    return await axios.get<T>(url);
   };
 
   return useQuery('getNamespaceList', service);
