@@ -1,60 +1,24 @@
-interface Deployment {
-  initialDelaySeconds: number;
-  timeoutSeconds: number;
-  periodSeconds: number;
-  successThreshold: number;
-  failureThreshold: number;
-  readinessProbe: ReadinessProbe;
-  terminationMessagePath: string;
-  terminationMessagePolicy: string;
-  imagePullPolicy: string;
-  securityContext: SecurityContext;
-  restartPolicy: string;
-  terminationGracePeriodSeconds: number;
-  dnsPolicy: string;
-  serviceAccountName: string;
-  serviceAccount: string;
-  schedulerName: string;
-  strategy: Strategy;
-  revisionHistoryLimit: number;
-  progressDeadlineSeconds: number;
+export interface DeploymentList {
+  kind: string;
+  apiVersion: string;
+  metadata: Metadata;
+  items: DeploymentSummary[];
 }
 
-interface ReadinessProbe {
-  grpc: Grpc;
-  initialDelaySeconds: number;
-  timeoutSeconds: number;
-  periodSeconds: number;
-  successThreshold: number;
-  failureThreshold: number;
+export interface Metadata {
+  resourceVersion: string;
 }
 
-interface Grpc {
-  port: number;
-  service: string;
+export interface DeploymentSummary {
+  metadata: ItemMetadata;
 }
 
-interface SecurityContext {
-  capabilities: Capabilities;
-  privileged: boolean;
-  readOnlyRootFilesystem: boolean;
-  allowPrivilegeEscalation: boolean;
-  runAsUser?: number;
-  runAsGroup?: number;
-  runAsNonRoot?: boolean;
-  fsGroup?: number;
-}
-
-interface Capabilities {
-  drop: string[];
-}
-
-interface Strategy {
-  type: string;
-  rollingUpdate: RollingUpdate;
-}
-
-interface RollingUpdate {
-  maxUnavailable: string;
-  maxSurge: string;
+export interface ItemMetadata {
+  name: string;
+  namespace: string;
+  uid: string;
+  resourceVersion: string;
+  generation: number;
+  creationTimestamp: string;
+  managedFields: ManagedField[];
 }

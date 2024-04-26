@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { useGetNamespaceUnit } from "./api";
 import { Grid } from "@mui/material";
+
+import { useGetNamespaceUnit } from "./api";
 
 const placeholder: NamespaceUnit = {
   kind: "",
@@ -13,9 +14,8 @@ const placeholder: NamespaceUnit = {
 
 export function NamespaceListPage() {
   const { data, isFetched } = useGetNamespaceUnit<NamespaceUnit>();
-  console.log(`data: ${JSON.stringify(data)}`);
-
   const [namespaceUnit, setNamespaceUnit] = useState<NamespaceUnit>(placeholder);
+
   useEffect(() => {
     if (isFetched) {
       setNamespaceUnit(data?.data || placeholder);
