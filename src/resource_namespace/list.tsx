@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Grid } from "@mui/material";
+import { Grid, List, ListItem, ListItemText } from "@mui/material";
 
 import { useGetNamespaceUnit } from "./api";
 
@@ -24,13 +24,13 @@ export function NamespaceListPage() {
 
   return (
     <Grid container spacing={3}>
-      {namespaceUnit.items.map((item) => {
-        return (
-          <Grid item xs={12} key={item.metadata.uid}>
-            {item.metadata.name}
-          </Grid>
-        );
-      })}
+      <List sx={{ bgcolor: 'background.paper' }}>
+        {namespaceUnit.items.map((item) => (
+          <ListItem key={item.metadata.uid}>
+            <ListItemText primary={item.metadata.name} />
+          </ListItem>
+        ))}
+      </List>
     </Grid>
   );
 }
