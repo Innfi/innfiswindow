@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
-import { Grid } from "@mui/material";
+import { useNavigate } from "react-router";
+import { Grid, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
 
-import { DeploymentList, DeploymentSummary } from "./entity";
+import { DeploymentSummary } from "./entity";
 import { useGetDeploymentsByNamespace } from "./api";
 
 export function DeploymentListPage() {
-  const { data, isFetched } = useGetDeploymentsByNamespace<DeploymentList>("default");
+  // TODO: store namespace in recoil state
+  const { data, isFetched } = useGetDeploymentsByNamespace("default");
   const [deployments, setDeployments] = useState<DeploymentSummary[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isFetched) {
@@ -14,15 +17,36 @@ export function DeploymentListPage() {
     }
   });
 
+  function onClickDeployment(name: string) {
+    navigate(`/deployment/${name}`);
+  }
+
   return (
     <Grid container spacing={3}>
-      {deployments.map((deployment) => {
-        return (
-          <Grid item xs={12} key={deployment.metadata.uid}>
-            {deployment.metadata.name}
-          </Grid>
-        );
-      })}
+      <Grid item xs={12}>
+        <Stack>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Uid</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {deployments.map((deployment) => {
+                  return (
+                    <TableRow key={deployment.metadata.uid} onClick={() => onClickDeployment(deployment.metadata.name)}>
+                      <TableCell>{deployment.metadata.name}</TableCell>
+                      <TableCell>{deployment.metadata.uid}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Stack>
+      </Grid>
     </Grid>
   );
 }

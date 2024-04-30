@@ -1,3 +1,4 @@
+// DeploymentList
 export interface DeploymentList {
   kind: string;
   apiVersion: string;
@@ -21,4 +22,32 @@ export interface ItemMetadata {
   generation: number;
   creationTimestamp: string;
   managedFields: ManagedField[];
+}
+
+// DeploymentDetail
+export interface DeploymentDetail {
+  kind: string;
+  apiVersion: string;
+  metadata: DeploymentDetailMetadata;
+  spec: DeploymentDetailSpec;
+  status: DeploymentDetailStatus;
+}
+
+export interface DeploymentDetailMetadata {
+  name: string;
+  namespace: string;
+  uid: string;
+  labels: { [key: string]: string };
+}
+
+export interface DeploymentDetailSpec {
+  replicas: number;
+  //TODO
+}
+
+export interface DeploymentDetailStatus {
+  replicas: number;
+  updatedReplicas: number;
+  readyReplicas: number;
+  availableReplicas: number;
 }
