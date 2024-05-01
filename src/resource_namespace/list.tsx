@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
-import { Grid, List, ListItem, ListItemText } from "@mui/material";
+import { useEffect, useState } from 'react';
+import { Grid, List, ListItem, ListItemText } from '@mui/material';
 
-import { useGetNamespaceUnit } from "./api";
+import { useGetNamespaceUnit } from './api';
 
 const placeholder: NamespaceUnit = {
-  kind: "",
-  apiVersion: "",
+  kind: '',
+  apiVersion: '',
   metadata: {
-    resourceVersion: "",
+    resourceVersion: '',
   },
   items: [],
 };
@@ -20,7 +20,7 @@ export function NamespaceListPage() {
     if (isFetched) {
       setNamespaceUnit(data?.data || placeholder);
     }
-  });
+  }, [isFetched, data?.data]);
 
   return (
     <Grid container spacing={3}>

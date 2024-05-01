@@ -1,13 +1,23 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
-import { Grid, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
+import {
+  Grid,
+  Paper,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from '@mui/material';
 
-import { DeploymentSummary } from "./entity";
-import { useGetDeploymentsByNamespace } from "./api";
+import { DeploymentSummary } from './entity';
+import { useGetDeploymentsByNamespace } from './api';
 
 export function DeploymentListPage() {
   // TODO: store namespace in recoil state
-  const { data, isFetched } = useGetDeploymentsByNamespace("default");
+  const { data, isFetched } = useGetDeploymentsByNamespace('default');
   const [deployments, setDeployments] = useState<DeploymentSummary[]>([]);
   const navigate = useNavigate();
 
@@ -15,7 +25,7 @@ export function DeploymentListPage() {
     if (isFetched) {
       setDeployments(data?.data.items || []);
     }
-  });
+  }, [isFetched, data?.data.items]);
 
   function onClickDeployment(name: string) {
     navigate(`/deployment/${name}`);
@@ -36,7 +46,10 @@ export function DeploymentListPage() {
               <TableBody>
                 {deployments.map((deployment) => {
                   return (
-                    <TableRow key={deployment.metadata.uid} onClick={() => onClickDeployment(deployment.metadata.name)}>
+                    <TableRow
+                      key={deployment.metadata.uid}
+                      onClick={() => onClickDeployment(deployment.metadata.name)}
+                    >
                       <TableCell>{deployment.metadata.name}</TableCell>
                       <TableCell>{deployment.metadata.uid}</TableCell>
                     </TableRow>

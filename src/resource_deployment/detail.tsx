@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 
-import { useGetDeploymentDetail } from "./api";
-import { DeploymentDetail } from "./entity";
+import { useGetDeploymentDetail } from './api';
+import { DeploymentDetail } from './entity';
 
 export function DeploymentDetailPage() {
-  const [ detail, setDetail ] = useState<DeploymentDetail | null>(null);
+  const [detail, setDetail] = useState<DeploymentDetail | null>(null);
   const { name } = useParams();
 
   console.log(`name: ${name}`);
-  const { data, refetch } = useGetDeploymentDetail("default", name!);
+  const { data, refetch } = useGetDeploymentDetail('default', name!);
 
   useEffect(() => {
     if (data) {
@@ -17,9 +17,5 @@ export function DeploymentDetailPage() {
     }
   }, [name, data]);
 
-  return (
-    <div>
-      deployment detail 
-    </div>
-  );
+  return <div>deployment detail</div>;
 }
