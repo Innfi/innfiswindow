@@ -21,3 +21,8 @@ export interface ServiceItem {
     type: string;
   };
 }
+
+// ServiceDetail
+export interface ServiceDetail {
+  // TODO
+}
