@@ -4,7 +4,7 @@ import { NamespaceListPage } from './list';
 
 export const nsRoutes: RouteObject[] = [
   {
-    path: '/namespace',
+    path: '/namespaces',
     element: <NamespaceListPage />,
   },
 ];

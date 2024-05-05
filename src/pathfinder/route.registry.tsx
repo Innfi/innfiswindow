@@ -1,5 +1,7 @@
 import { RouteObject, useRoutes } from 'react-router';
 
+import { Sidebar } from '../common/sidebar';
+import { dashboardRoutes } from '../dashboard/routes';
 import { nsRoutes } from '../resource_namespace/routes';
 import { deploymentRoutes } from '../resource_deployment/routes';
 import { serviceRoutes } from '../resource_service/routes';
@@ -7,8 +9,8 @@ import { serviceRoutes } from '../resource_service/routes';
 const routes: RouteObject[] = [
   {
     path: '/',
-    // TODO
-    children: [...nsRoutes, ...deploymentRoutes, ...serviceRoutes],
+    element: <Sidebar />,
+    children: [...dashboardRoutes, ...nsRoutes, ...deploymentRoutes, ...serviceRoutes],
   },
 ];
 
