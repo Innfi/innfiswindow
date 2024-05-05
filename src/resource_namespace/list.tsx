@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Grid, List, ListItem, ListItemText } from '@mui/material';
 
+import { NamespaceUnit } from './entity';
 import { useGetNamespaceUnit } from './api';
 
 const placeholder: NamespaceUnit = {

@@ -1,12 +1,14 @@
-import { useNavigate } from 'react-router';
+import { Outlet, useNavigate } from 'react-router';
 import {
   Box,
+  CssBaseline,
   Drawer,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Toolbar,
 } from '@mui/material';
 
 import { DrawerItem } from './drawer.item';
@@ -23,6 +25,7 @@ export function Sidebar() {
   return (
     <div>
       <Box sx={{ display: 'flex' }}>
+        <CssBaseline />
         <Drawer
           sx={{
             width: 240,
@@ -48,6 +51,10 @@ export function Sidebar() {
             ))}
           </List>
         </Drawer>
+        <Box component="main" sx={{ flexGrow: 1, bgcolor: 'background.default', p: 3 }}>
+          <Toolbar />
+          <Outlet />
+        </Box>
       </Box>
     </div>
   );

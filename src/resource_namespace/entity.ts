@@ -1,4 +1,4 @@
-interface NamespaceUnit {
+export interface NamespaceUnit {
   kind: string;
   apiVersion: string;
   metadata: Metadata;
