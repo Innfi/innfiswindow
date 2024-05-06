@@ -1,7 +1,6 @@
 import { Outlet, useNavigate } from 'react-router';
 import {
   Box,
-  CssBaseline,
   Drawer,
   List,
   ListItem,
@@ -25,7 +24,6 @@ export function Sidebar() {
   return (
     <div>
       <Box sx={{ display: 'flex' }}>
-        <CssBaseline />
         <Drawer
           sx={{
             width: 240,
