@@ -40,7 +40,8 @@ export function DeploymentListPage() {
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
-                  <TableCell>Uid</TableCell>
+                  <TableCell>Replicas</TableCell>
+                  <TableCell>CreatedAt</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -52,7 +53,8 @@ export function DeploymentListPage() {
                       sx={{ marginBottom: "2px" }}
                     >
                       <TableCell>{deployment.metadata.name}</TableCell>
-                      <TableCell>{deployment.metadata.uid}</TableCell>
+                      <TableCell>{deployment.spec.replicas}</TableCell>
+                      <TableCell>{deployment.metadata.creationTimestamp}</TableCell>
                     </TableRow>
                   );
                 })}
