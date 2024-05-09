@@ -3,19 +3,26 @@ import { useParams } from 'react-router-dom';
 
 import { useGetDeploymentDetail } from './api';
 import { DeploymentDetail } from './entity';
+import { Grid, TextField } from '@mui/material';
 
 export function DeploymentDetailPage() {
-  const [detail, setDetail] = useState<DeploymentDetail | null>(null);
   const { name } = useParams();
+  if (!name) return (<div>empty deployment name</div>);
 
-  console.log(`name: ${name}`);
-  const { data, refetch } = useGetDeploymentDetail('default', name!);
+  const [detail, setDetail] = useState<DeploymentDetail | null>(null);
+  const { data, isFetched } = useGetDeploymentDetail('default', name);
 
   useEffect(() => {
     if (data) {
       setDetail(data.data);
     }
-  }, [name, data]);
+  }, [data, isFetched]);
 
-  return <div>deployment detail</div>;
+  return (
+    <Grid container xs={12} direction="column" sx={{ width: 400 }}>
+      <TextField label="name" sx={{ marginBottom: "10px" }} />
+      <TextField label="replicas" sx={{ marginBottom: "10px" }}  />
+      <TextField label="status" sx={{ marginBottom: "10px" }}  />
+    </Grid>
+  );
 }

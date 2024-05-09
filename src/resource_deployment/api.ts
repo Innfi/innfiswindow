@@ -16,7 +16,7 @@ export const useGetDeploymentsByNamespace = (namespace: string) => {
 
 export const useGetDeploymentDetail = (namespace: string, name: string) => {
   const url = import.meta.env.VITE_APP_BACKEND_URL
-    ? `${import.meta.env.VITE_APP_BACKEND_URL}/apis/apps/v1/namespaces/${namespace}/deployment/${name}`
+    ? `${import.meta.env.VITE_APP_BACKEND_URL}/apis/apps/v1/namespaces/${namespace}/deployments/${name}`
     : `/deployment/${name}`;
 
   const service = async () => {
