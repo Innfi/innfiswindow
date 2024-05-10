@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { Grid, TextField } from '@mui/material';
 
 import { useGetDeploymentDetail } from './api';
 import { DeploymentDetail } from './entity';
-import { Grid, TextField } from '@mui/material';
 
 export function DeploymentDetailPage() {
   const { name } = useParams();
@@ -20,9 +20,27 @@ export function DeploymentDetailPage() {
 
   return (
     <Grid container xs={12} direction="column" sx={{ width: 400 }}>
-      <TextField label="name" sx={{ marginBottom: "10px" }} />
-      <TextField label="replicas" sx={{ marginBottom: "10px" }}  />
-      <TextField label="status" sx={{ marginBottom: "10px" }}  />
+      <TextField 
+        label="name" 
+        sx={{ marginBottom: "10px" }} 
+        value={detail?.metadata.name}
+      />
+      <TextField 
+        label="replicas" 
+        sx={{ marginBottom: "10px" }} 
+        value={detail?.spec.replicas}
+      />
+      <TextField 
+        label="status" 
+        sx={{ marginBottom: "10px" }}
+        rows={4}
+        value={detail?.status}
+      />
+      <TextField 
+        label="image" 
+        sx={{ marginBottom: "10px" }} 
+        value={detail?.spec.template.spec.containers[0].image} 
+      />
     </Grid>
   );
 }

@@ -36,6 +36,16 @@ export interface DeploymentContainerDetail {
     nodePort: number | undefined;
     protocol: string;
   }[];
+  resources: {
+    limits?: {
+      cpu?: string;
+      memory?: string;
+    };
+    requests?: {
+      cpu?: string;
+      memory?: string;
+    };
+  };
 }
 
 export interface ItemMetadata {
@@ -66,7 +76,17 @@ export interface DeploymentDetailMetadata {
 
 export interface DeploymentDetailSpec {
   replicas: number;
-  //TODO
+    selector: {
+      matchLabels: { [id: string]: string };
+    };
+    template: {
+      spec: {
+        containers: DeploymentContainerDetail[];
+
+        restartPolicy: string;
+        dnsPolicy: string;
+      }
+    };
 }
 
 export interface DeploymentDetailStatus {
