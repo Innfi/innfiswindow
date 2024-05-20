@@ -50,7 +50,7 @@ export function DeploymentListPage() {
                     <TableRow
                       key={deployment.metadata.uid}
                       onClick={() => onClickDeployment(deployment.metadata.name)}
-                      sx={{ marginBottom: "2px" }}
+                      sx={{ marginBottom: '2px' }}
                     >
                       <TableCell>{deployment.metadata.name}</TableCell>
                       <TableCell>{deployment.spec.replicas}</TableCell>

@@ -4,11 +4,11 @@ export interface DeploymentList {
   apiVersion: string;
   metadata: Metadata;
   items: DeploymentSummary[];
-};
+}
 
 export interface Metadata {
   resourceVersion: string;
-};
+}
 
 export interface DeploymentSummary {
   metadata: ItemMetadata;
@@ -23,16 +23,16 @@ export interface DeploymentSummary {
 
         restartPolicy: string;
         dnsPolicy: string;
-      }
+      };
     };
   };
-};
+}
 
 export interface DeploymentContainerDetail {
   name: string;
   image: string;
-  ports: { 
-    containerPort: number | undefined; 
+  ports: {
+    containerPort: number | undefined;
     nodePort: number | undefined;
     protocol: string;
   }[];
@@ -76,17 +76,17 @@ export interface DeploymentDetailMetadata {
 
 export interface DeploymentDetailSpec {
   replicas: number;
-    selector: {
-      matchLabels: { [id: string]: string };
-    };
-    template: {
-      spec: {
-        containers: DeploymentContainerDetail[];
+  selector: {
+    matchLabels: { [id: string]: string };
+  };
+  template: {
+    spec: {
+      containers: DeploymentContainerDetail[];
 
-        restartPolicy: string;
-        dnsPolicy: string;
-      }
+      restartPolicy: string;
+      dnsPolicy: string;
     };
+  };
 }
 
 export interface DeploymentDetailStatus {

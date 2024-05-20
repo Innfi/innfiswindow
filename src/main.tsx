@@ -4,8 +4,8 @@ import { QueryClientProvider } from 'react-query';
 import { RecoilRoot } from 'recoil';
 
 import { queryClient } from './common/query.client.ts';
-import { App } from './App.tsx';
 import './index.css';
+import { App } from './App.tsx';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

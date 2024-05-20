@@ -1,4 +1,4 @@
-import { RouteObject, useRoutes } from 'react-router';
+import { RouteObject, useRoutes } from 'react-router-dom';
 
 import { Sidebar } from '../common/sidebar';
 import { dashboardRoutes } from '../dashboard/routes';

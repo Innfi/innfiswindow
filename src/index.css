@@ -11,6 +11,13 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  padding-left: 10px;
+}
+
+:editor {
+  width: 100%;
+  background-color: #1a1a1a;
+  padding-left: 20px;
 }
 
 a {
@@ -25,7 +32,7 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: left;
+  place-items: center;
   min-width: 320px;
   min-height: 100vh;
 }

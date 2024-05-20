@@ -7,7 +7,7 @@ import { DeploymentDetail } from './entity';
 
 export function DeploymentDetailPage() {
   const { name } = useParams();
-  if (!name) return (<div>empty deployment name</div>);
+  if (!name) return <div>empty deployment name</div>;
 
   const [detail, setDetail] = useState<DeploymentDetail | null>(null);
   const { data, isFetched } = useGetDeploymentDetail('default', name);
@@ -20,26 +20,13 @@ export function DeploymentDetailPage() {
 
   return (
     <Grid container xs={12} direction="column" sx={{ width: 400 }}>
-      <TextField 
-        label="name" 
-        sx={{ marginBottom: "10px" }} 
-        value={detail?.metadata.name}
-      />
-      <TextField 
-        label="replicas" 
-        sx={{ marginBottom: "10px" }} 
-        value={detail?.spec.replicas}
-      />
-      <TextField 
-        label="status" 
-        sx={{ marginBottom: "10px" }}
-        rows={4}
-        value={detail?.status}
-      />
-      <TextField 
-        label="image" 
-        sx={{ marginBottom: "10px" }} 
-        value={detail?.spec.template.spec.containers[0].image} 
+      <TextField label="name" sx={{ marginBottom: '10px' }} value={detail?.metadata.name} />
+      <TextField label="replicas" sx={{ marginBottom: '10px' }} value={detail?.spec.replicas} />
+      <TextField label="status" sx={{ marginBottom: '10px' }} rows={4} value={detail?.status} />
+      <TextField
+        label="image"
+        sx={{ marginBottom: '10px' }}
+        value={detail?.spec.template.spec.containers[0].image}
       />
     </Grid>
   );
