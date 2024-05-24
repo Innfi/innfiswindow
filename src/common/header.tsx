@@ -11,7 +11,9 @@ export function HeaderPage() {
       }}
     >
       <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>InnfisWindow</Typography>
+        <Typography variant="h6" sx={{ flexGrow: 1 }}>
+          InnfisWindow
+        </Typography>
         <NamespaceSelectorPage />
       </Toolbar>
     </AppBar>
