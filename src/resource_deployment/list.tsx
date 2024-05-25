@@ -11,13 +11,16 @@ import {
   TableHead,
   TableRow,
 } from '@mui/material';
+import { useRecoilValue } from 'recoil';
 
+import { toStateNamespace } from '../appstate/atom';
 import { DeploymentSummary } from './entity';
 import { useGetDeploymentsByNamespace } from './api';
 
 export function DeploymentListPage() {
-  // TODO: store namespace in recoil state
-  const { data, isFetched } = useGetDeploymentsByNamespace('default');
+  const namespace = useRecoilValue(toStateNamespace);
+
+  const { data, isFetched } = useGetDeploymentsByNamespace(namespace);
   const [deployments, setDeployments] = useState<DeploymentSummary[]>([]);
   const navigate = useNavigate();
 
