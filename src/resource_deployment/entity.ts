@@ -55,7 +55,7 @@ export interface ItemMetadata {
   resourceVersion: string;
   generation: number;
   creationTimestamp: string;
-  managedFields: any;
+  managedFields: object;
 }
 
 // DeploymentDetail

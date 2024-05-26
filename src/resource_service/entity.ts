@@ -8,6 +8,10 @@ export interface ServiceList {
 
 // ServiceItem
 export interface ServiceItem {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
   spec: {
     ports: [
       {

@@ -34,7 +34,7 @@ interface ManagedField {
   apiVersion: string;
   time: string;
   fieldsType: string;
-  fieldsV1: any;
+  fieldsV1: object;
 }
 
 interface Spec {

@@ -6,11 +6,10 @@ import { useGetDeploymentDetail } from './api';
 import { DeploymentDetail } from './entity';
 
 export function DeploymentDetailPage() {
-  const { name } = useParams();
-  if (!name) return <div>empty deployment name</div>;
-
   const [detail, setDetail] = useState<DeploymentDetail | null>(null);
-  const { data, isFetched } = useGetDeploymentDetail('default', name);
+
+  const { name } = useParams();
+  const { data, isFetched } = useGetDeploymentDetail('default', name ? name : '');
 
   useEffect(() => {
     if (data) {

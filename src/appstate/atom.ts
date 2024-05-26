@@ -15,7 +15,7 @@ export const initialAppState = atom<AppState>({
 
 export const toStateNamespace = selector({
   key: 'AppState',
-  get: ({get}) => {
+  get: ({ get }) => {
     const appState = get(initialAppState);
 
     return appState.namespace;
