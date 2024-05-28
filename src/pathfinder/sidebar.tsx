@@ -1,4 +1,5 @@
 import { Outlet, useNavigate } from 'react-router-dom';
+import { ErrorBoundary } from 'react-error-boundary';
 import {
   Box,
   Drawer,
@@ -60,7 +61,9 @@ export function Sidebar() {
         }}
       >
         <Toolbar />
+        <ErrorBoundary fallback={<div>error page</div>}>
         <Outlet />
+        </ErrorBoundary>
       </Box>
     </Box>
   );

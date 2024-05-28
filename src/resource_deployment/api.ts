@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useQuery } from 'react-query';
+
 import { DeploymentDetail, DeploymentList } from './entity';
 
 export const useGetDeploymentsByNamespace = (namespace: string) => {
