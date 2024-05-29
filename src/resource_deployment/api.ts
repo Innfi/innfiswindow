@@ -1,27 +1,32 @@
-import axios from 'axios';
 import { useQuery } from 'react-query';
 
+import { axiosInstance } from '../common/axios.client';
 import { DeploymentDetail, DeploymentList } from './entity';
+import { AxiosError } from 'axios';
 
 export const useGetDeploymentsByNamespace = (namespace: string) => {
-  const url = import.meta.env.VITE_APP_BACKEND_URL
-    ? `${import.meta.env.VITE_APP_BACKEND_URL}/apis/apps/v1/namespaces/${namespace}/deployments`
-    : '/deployments';
+  const url = `/apis/apps/v1/namespaces/${namespace}/deployments`;
 
   const service = async () => {
-    return await axios.get<DeploymentList>(url);
+    const response = await axiosInstance.get<DeploymentList>(url);
+
+    return response;
   };
 
-  return useQuery('getDeploymentsByNamespace', service);
+  return useQuery('getDeploymentsByNamespace', service, {
+    onError: (err: AxiosError) => {
+      console.log(`useQuery error: ${err.code}`);
+
+      return [];
+    },
+  });
 };
 
 export const useGetDeploymentDetail = (namespace: string, name: string) => {
-  const url = import.meta.env.VITE_APP_BACKEND_URL
-    ? `${import.meta.env.VITE_APP_BACKEND_URL}/apis/apps/v1/namespaces/${namespace}/deployments/${name}`
-    : `/deployment/${name}`;
+  const url = `/apis/apps/v1/namespaces/${namespace}/deployments/${name}`;
 
   const service = async () => {
-    return await axios.get<DeploymentDetail>(url);
+    return await axiosInstance.get<DeploymentDetail>(url);
   };
 
   return useQuery(`getDeploymentDetail-${name}`, service);

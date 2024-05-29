@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
 import {
@@ -13,6 +14,7 @@ import {
 
 import { DrawerItem } from './drawer.item';
 import { menuItems } from './menus';
+import { CommonErrorFallback } from '../common/fallback.render';
 
 export function Sidebar() {
   const navigate = useNavigate();
@@ -61,9 +63,11 @@ export function Sidebar() {
         }}
       >
         <Toolbar />
-        <ErrorBoundary fallback={<div>error page</div>}>
-        <Outlet />
-        </ErrorBoundary>
+        <Suspense fallback={<div>Loading...</div>}>
+          <ErrorBoundary fallbackRender={CommonErrorFallback}>
+            <Outlet />
+          </ErrorBoundary>
+        </Suspense>
       </Box>
     </Box>
   );

@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 
@@ -13,7 +12,6 @@ const darkTheme = createTheme({
 
 export function App() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
       <ThemeProvider theme={darkTheme}>
         <CssBaseline />
         <HeaderPage />
@@ -21,6 +19,5 @@ export function App() {
           <RenderRouter />
         </BrowserRouter>
       </ThemeProvider>
-    </Suspense>
   );
 }

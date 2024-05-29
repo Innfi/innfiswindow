@@ -1,16 +1,11 @@
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { useSetRecoilState } from 'recoil';
 
 import { initialAppState } from '../appstate/atom';
 
 export function NamespaceSelectorPage() {
-  const appState = useRecoilValue(initialAppState);
-  console.log(`appState: ${appState.namespace}`);
-
   const setAppState = useSetRecoilState(initialAppState);
   const setNamespace = (newNs: string) => {
-    console.log(`setNamespace] newNs: ${newNs}`);
-
     setAppState((currentVal) => {
       return {
         namespace: newNs,
@@ -23,7 +18,7 @@ export function NamespaceSelectorPage() {
       <InputLabel>Namespace</InputLabel>
       <Select
         label="clusterNamespace"
-        defaultValue=""
+        defaultValue="default"
         onChange={(e) => setNamespace(e.target.value)}
       >
         <MenuItem value="default">default</MenuItem>
