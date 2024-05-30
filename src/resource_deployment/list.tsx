@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import {
   Grid,
   Paper,
@@ -36,7 +36,7 @@ export function DeploymentListPage() {
 
   if (isError) {
     console.log(`isError: ${(error as Error).message}`);
-    return (<div>default page</div>);
+    return <div>default page</div>;
   }
 
   return (

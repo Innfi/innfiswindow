@@ -9,6 +9,7 @@ export interface ServiceList {
 // ServiceItem
 export interface ServiceItem {
   metadata: {
+    uid: string;
     name: string;
     namespace: string;
   };

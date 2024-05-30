@@ -12,12 +12,12 @@ const darkTheme = createTheme({
 
 export function App() {
   return (
-      <ThemeProvider theme={darkTheme}>
-        <CssBaseline />
-        <HeaderPage />
-        <BrowserRouter>
-          <RenderRouter />
-        </BrowserRouter>
-      </ThemeProvider>
+    <ThemeProvider theme={darkTheme}>
+      <CssBaseline />
+      <HeaderPage />
+      <BrowserRouter>
+        <RenderRouter />
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }

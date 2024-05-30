@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useRecoilValue } from 'recoil';
 import {
   Grid,
   Paper,
@@ -11,18 +13,26 @@ import {
   TableRow,
 } from '@mui/material';
 
+import { toStateNamespace } from '../appstate/atom';
 import { ServiceItem } from './entity';
 import { useGetServicesByNamespace } from './api';
 
 export function ServiceListPage() {
-  const { data, isFetched } = useGetServicesByNamespace('default');
+  const namespace = useRecoilValue(toStateNamespace);
+
+  const { data, isFetched } = useGetServicesByNamespace(namespace);
   const [services, setServices] = useState<ServiceItem[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isFetched) {
       setServices(data?.data.items || []);
     }
   }, [isFetched, data?.data.items]);
+
+  function onClickService(name: string) {
+    navigate(`/service/${name}`);
+  }
 
   return (
     <Grid container spacing={3}>
@@ -40,7 +50,11 @@ export function ServiceListPage() {
               <TableBody>
                 {services.map((service) => {
                   return (
-                    <TableRow>
+                    <TableRow
+                      key={service.metadata.uid}
+                      onClick={() => onClickService(service.metadata.name)}
+                      sx={{ marginBottom: '2px' }}
+                    >
                       <TableCell>{service.metadata.name}</TableCell>
                       <TableCell>{service.spec.type}</TableCell>
                       <TableCell>{service.spec.clusterIP}</TableCell>

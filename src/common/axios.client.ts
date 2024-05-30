@@ -1,4 +1,4 @@
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError } from 'axios';
 
 export const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_APP_BACKEND_URL,
@@ -11,5 +11,5 @@ axiosInstance.interceptors.response.use(
     console.log(`err status: ${err.code}`);
 
     return err;
-  },
+  }
 );
