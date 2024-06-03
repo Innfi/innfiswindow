@@ -2,7 +2,6 @@ import { useQuery } from 'react-query';
 
 import { axiosInstance } from '../common/axios.client';
 import { DeploymentDetail, DeploymentList } from './entity';
-import { AxiosError } from 'axios';
 
 export const useGetDeploymentsByNamespace = (namespace: string) => {
   const url = `/apis/apps/v1/namespaces/${namespace}/deployments`;
@@ -13,13 +12,7 @@ export const useGetDeploymentsByNamespace = (namespace: string) => {
     return response;
   };
 
-  return useQuery('getDeploymentsByNamespace', service, {
-    onError: (err: AxiosError) => {
-      console.log(`useQuery error: ${err.code}`);
-
-      return [];
-    },
-  });
+  return useQuery('getDeploymentsByNamespace', service);
 };
 
 export const useGetDeploymentDetail = (namespace: string, name: string) => {

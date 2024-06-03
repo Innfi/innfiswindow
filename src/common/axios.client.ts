@@ -8,7 +8,7 @@ export const axiosInstance = axios.create({
 axiosInstance.interceptors.response.use(
   (res) => res.data,
   (err: AxiosError) => {
-    console.log(`err status: ${err.code}`);
+    console.log(`axios interceptor] err: ${err.code}`);
 
     return err;
   }

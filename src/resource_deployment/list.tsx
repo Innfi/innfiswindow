@@ -20,23 +20,18 @@ import { useGetDeploymentsByNamespace } from './api';
 export function DeploymentListPage() {
   const namespace = useRecoilValue(toStateNamespace);
 
-  const { data, isFetched, isError, error } = useGetDeploymentsByNamespace(namespace);
+  const { data, isFetched, isError } = useGetDeploymentsByNamespace(namespace);
   const [deployments, setDeployments] = useState<DeploymentSummary[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isFetched) {
+    if (isFetched && !isError && data && data.data && data.data.items) {
       setDeployments(data?.data.items || []);
     }
-  }, [isFetched, data?.data.items]);
+  }, [isError, isFetched, data]);
 
   function onClickDeployment(name: string) {
     navigate(`/deployment/${name}`);
-  }
-
-  if (isError) {
-    console.log(`isError: ${(error as Error).message}`);
-    return <div>default page</div>;
   }
 
   return (
