@@ -16,19 +16,27 @@ import { useRecoilValue } from 'recoil';
 import { toStateNamespace } from '../appstate/atom';
 import { DeploymentSummary } from './entity';
 import { useGetDeploymentsByNamespace } from './api';
+import { AxiosError } from 'axios';
 
 export function DeploymentListPage() {
   const namespace = useRecoilValue(toStateNamespace);
 
-  const { data, isFetched, isError } = useGetDeploymentsByNamespace(namespace);
+  const { data: response, isFetched } = useGetDeploymentsByNamespace(namespace);
   const [deployments, setDeployments] = useState<DeploymentSummary[]>([]);
   const navigate = useNavigate();
 
+
   useEffect(() => {
-    if (isFetched && !isError && data && data.data && data.data.items) {
-      setDeployments(data?.data.items || []);
+    if (response instanceof AxiosError) {
+      console.log(`axiosError: ${response.code}`); // grab the error and express
+      return;
     }
-  }, [isError, isFetched, data]);
+
+    if (response?.data?.items) {
+      setDeployments(response?.data.items? response?.data.items : []);
+    }
+  }, [isFetched, response]);
+
 
   function onClickDeployment(name: string) {
     navigate(`/deployment/${name}`);
