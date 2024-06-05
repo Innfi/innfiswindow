@@ -12,11 +12,11 @@ import {
   TableRow,
 } from '@mui/material';
 import { useRecoilValue } from 'recoil';
+import { AxiosError } from 'axios';
 
 import { toStateNamespace } from '../appstate/atom';
 import { DeploymentSummary } from './entity';
 import { useGetDeploymentsByNamespace } from './api';
-import { AxiosError } from 'axios';
 
 export function DeploymentListPage() {
   const namespace = useRecoilValue(toStateNamespace);
@@ -25,7 +25,6 @@ export function DeploymentListPage() {
   const [deployments, setDeployments] = useState<DeploymentSummary[]>([]);
   const navigate = useNavigate();
 
-
   useEffect(() => {
     if (response instanceof AxiosError) {
       console.log(`axiosError: ${response.code}`); // grab the error and express
@@ -33,10 +32,9 @@ export function DeploymentListPage() {
     }
 
     if (response?.data?.items) {
-      setDeployments(response?.data.items? response?.data.items : []);
+      setDeployments(response?.data.items ? response?.data.items : []);
     }
   }, [isFetched, response]);
-
 
   function onClickDeployment(name: string) {
     navigate(`/deployment/${name}`);

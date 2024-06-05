@@ -58,7 +58,7 @@ export function Sidebar() {
           overflow: 'auto',
           bgcolor: 'background.default',
           marginLeft: '10px',
-          marginTop: '10px'
+          marginTop: '10px',
         }}
       >
         <Toolbar />

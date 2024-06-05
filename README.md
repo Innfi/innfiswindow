@@ -5,6 +5,7 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 # TODO
 ---
 - recoil
+  - check atom persistency 
   - let resource page refresh itself when the namespace is changed
   - handle react query error (which is invoked by axios error)
 - authentications
