@@ -2,8 +2,8 @@
 
 a monitoring tool for cloud env (mainly on AWS / EKS)
 
-# TODO
----
+## TODO
+
 - recoil
   - check atom persistency 
   - let resource page refresh itself when the namespace is changed
@@ -18,8 +18,8 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
     - external resources (maybe for health check)
     - custom metrics
 
-# DONE
----
+## DONE
+
 - plans
   - deploy a simplest settings to access k8s api
   - handle authentication / CORS issues
