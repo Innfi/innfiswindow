@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AxiosError } from 'axios';
 import { Grid, List, ListItem, ListItemText } from '@mui/material';
 
 import { NamespaceUnit } from './entity';
@@ -14,14 +15,18 @@ const placeholder: NamespaceUnit = {
 };
 
 export function NamespaceListPage() {
-  const { data, isFetched } = useGetNamespaceUnit<NamespaceUnit>();
+  const { data: response, isFetched } = useGetNamespaceUnit<NamespaceUnit>();
   const [namespaceUnit, setNamespaceUnit] = useState<NamespaceUnit>(placeholder);
 
   useEffect(() => {
-    if (isFetched) {
-      setNamespaceUnit(data?.data || placeholder);
+    if (response instanceof AxiosError) {
+      return;
     }
-  }, [isFetched, data?.data]);
+
+    if (response?.data?.items) {
+      setNamespaceUnit(response?.data ? response?.data : placeholder);
+    }
+  }, [isFetched, response]);
 
   return (
     <Grid container spacing={3}>

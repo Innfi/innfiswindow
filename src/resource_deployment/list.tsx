@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useRecoilValue } from 'recoil';
 import { useNavigate } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import {
   Grid,
   Paper,
@@ -11,8 +13,6 @@ import {
   TableHead,
   TableRow,
 } from '@mui/material';
-import { useRecoilValue } from 'recoil';
-import { AxiosError } from 'axios';
 
 import { toStateNamespace } from '../appstate/atom';
 import { DeploymentSummary } from './entity';
@@ -32,7 +32,7 @@ export function DeploymentListPage() {
     }
 
     if (response?.data?.items) {
-      setDeployments(response?.data.items ? response?.data.items : []);
+      setDeployments(response?.data?.items ? response?.data.items : []);
     }
   }, [isFetched, response]);
 
