@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { useRecoilState } from 'recoil';
 import { Outlet, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -11,14 +12,18 @@ import {
   Toolbar,
 } from '@mui/material';
 
+import { initialHeaderState } from '../appstate/atom';
 import { DrawerItem } from './drawer.item';
 import { menuItems } from './menus';
 
 export function Sidebar() {
+  const [_header, setHeader] = useRecoilState(initialHeaderState);
+
   const navigate = useNavigate();
   const items = menuItems;
 
   const handleClick = (item: DrawerItem) => {
+    setHeader(item.text);
     navigate({ pathname: item.path });
   };
 

@@ -1,8 +1,19 @@
+import { useEffect, useState } from 'react';
+import { useRecoilState } from 'recoil';
 import { AppBar, Toolbar, Typography } from '@mui/material';
 
+import { initialHeaderState } from '../appstate/atom';
 import { NamespaceSelectorPage } from './namespace.selector';
 
 export function HeaderPage() {
+  const [header, _setHeader] = useRecoilState(initialHeaderState);
+  const [effectiveHeader, setEffectiveHeader] = useState('');
+
+  useEffect(() => {
+    if (header) setEffectiveHeader(`InnfisWindow - ${header}`);
+    else setEffectiveHeader('InnfisWindow');
+  }, [header]);
+
   return (
     <AppBar
       position="fixed"
@@ -12,7 +23,7 @@ export function HeaderPage() {
     >
       <Toolbar>
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          InnfisWindow
+          {effectiveHeader}
         </Typography>
         <NamespaceSelectorPage />
       </Toolbar>
