@@ -6,7 +6,7 @@ import { initialHeaderState } from '../appstate/atom';
 import { NamespaceSelectorPage } from './namespace.selector';
 
 export function HeaderPage() {
-  const [header, _setHeader] = useRecoilState(initialHeaderState);
+  const [header] = useRecoilState(initialHeaderState);
   const [effectiveHeader, setEffectiveHeader] = useState('');
 
   useEffect(() => {

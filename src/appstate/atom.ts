@@ -26,12 +26,3 @@ export const initialHeaderState = atom<string>({
   key: 'HeaderState',
   default: '',
 });
-
-// export const toHeaderState = selector({
-//   key: 'HeaderState',
-//   get: ({ get }) => {
-//     const headerState = get(initialHeaderState);
-// 
-//     return headerState;
-//   },
-// });

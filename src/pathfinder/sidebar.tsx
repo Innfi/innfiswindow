@@ -17,7 +17,7 @@ import { DrawerItem } from './drawer.item';
 import { menuItems } from './menus';
 
 export function Sidebar() {
-  const [_header, setHeader] = useRecoilState(initialHeaderState);
+  const [, setHeader] = useRecoilState(initialHeaderState); // what the?
 
   const navigate = useNavigate();
   const items = menuItems;
