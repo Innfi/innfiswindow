@@ -21,20 +21,26 @@ import { useGetDeploymentsByNamespace } from './api';
 export function DeploymentListPage() {
   const namespace = useRecoilValue(toStateNamespace);
 
-  const { data: response, isFetched } = useGetDeploymentsByNamespace(namespace);
+  const { data: response, isFetched, isFetchedAfterMount, refetch} = useGetDeploymentsByNamespace(namespace);
   const [deployments, setDeployments] = useState<DeploymentSummary[]>([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    console.log(`namespace: ${namespace}`);
+    refetch();
+  }, [namespace, refetch]);
 
   useEffect(() => {
     if (response instanceof AxiosError) {
       console.log(`axiosError: ${response.code}`); // grab the error and express
       return;
     }
-
+    console.log(`useEffect2: ${JSON.stringify(response?.data?.items)}`);
     if (response?.data?.items) {
+      console.log(`useEffect2] before setDeployments`);
       setDeployments(response?.data?.items ? response?.data.items : []);
     }
-  }, [isFetched, response]);
+  }, [isFetched, isFetchedAfterMount, response]);
 
   function onClickDeployment(name: string) {
     navigate(`/deployment/${name}`);

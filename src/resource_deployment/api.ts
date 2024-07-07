@@ -12,7 +12,7 @@ export const useGetDeploymentsByNamespace = (namespace: string) => {
     return response;
   };
 
-  return useQuery('getDeploymentsByNamespace', service);
+  return useQuery(`getDeploymentsByNamespace-${namespace}`, service);
 };
 
 export const useGetDeploymentDetail = (namespace: string, name: string) => {
