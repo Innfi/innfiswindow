@@ -14,6 +14,7 @@ const placeholder: NamespaceUnit = {
   items: [],
 };
 
+// is namespace list page necessary in the first place?
 export function NamespaceListPage() {
   const { data: response, isFetched } = useGetNamespaceUnit<NamespaceUnit>();
   const [namespaceUnit, setNamespaceUnit] = useState<NamespaceUnit>(placeholder);
@@ -30,13 +31,15 @@ export function NamespaceListPage() {
 
   return (
     <Grid container spacing={3}>
-      <List sx={{ bgcolor: 'background.paper' }}>
-        {namespaceUnit.items.map((item) => (
-          <ListItem key={item.metadata.uid}>
-            <ListItemText primary={item.metadata.name} />
-          </ListItem>
-        ))}
-      </List>
+      <Grid item xs={12}>
+        <List sx={{ bgcolor: 'background.paper' }}>
+          {namespaceUnit.items.map((item) => (
+            <ListItem key={item.metadata.uid}>
+              <ListItemText primary={item.metadata.name} />
+            </ListItem>
+          ))}
+        </List>
+      </Grid>
     </Grid>
   );
 }

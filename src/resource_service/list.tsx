@@ -14,12 +14,14 @@ import {
   TableRow,
 } from '@mui/material';
 
-import { toStateNamespace } from '../appstate/atom';
+// import { toStateNamespace } from '../appstate/atom';
+import { initialNamespace } from '../appstate/atom';
 import { ServiceItem } from './entity';
 import { useGetServicesByNamespace } from './api';
 
 export function ServiceListPage() {
-  const namespace = useRecoilValue(toStateNamespace);
+  // const namespace = useRecoilValue(toStateNamespace);
+  const [namespace] = useRecoilValue(initialNamespace);
 
   const { data: response, isFetched } = useGetServicesByNamespace(namespace);
   const [services, setServices] = useState<ServiceItem[]>([]);

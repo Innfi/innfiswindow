@@ -3,12 +3,14 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Grid, TextField } from '@mui/material';
 
-import { toStateNamespace } from '../appstate/atom';
+// import { toStateNamespace } from '../appstate/atom';
+import { initialNamespace } from '../appstate/atom';
 import { useGetDeploymentDetail } from './api';
 import { DeploymentDetail } from './entity';
 
 export function DeploymentDetailPage() {
-  const namespace = useRecoilValue(toStateNamespace);
+  // const namespace = useRecoilValue(toStateNamespace);
+  const namespace = useRecoilValue(initialNamespace);
   const [detail, setDetail] = useState<DeploymentDetail | null>(null);
 
   const { name } = useParams();

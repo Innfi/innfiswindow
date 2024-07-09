@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import { useNavigate } from 'react-router-dom';
-import { AxiosError } from 'axios';
+import { AxiosError, AxiosResponse } from 'axios';
 import {
   Grid,
   Paper,
@@ -14,14 +13,13 @@ import {
   TableRow,
 } from '@mui/material';
 
-import { toStateNamespace } from '../appstate/atom';
-import { DeploymentSummary } from './entity';
+import { toCurrentNamespace } from '../appstate/state.local';
+import { DeploymentList, DeploymentSummary } from './entity';
 import { useGetDeploymentsByNamespace } from './api';
 
 export function DeploymentListPage() {
-  const namespace = useRecoilValue(toStateNamespace);
-
-  const { data: response, isFetched, isFetchedAfterMount, refetch} = useGetDeploymentsByNamespace(namespace);
+  const namespace = toCurrentNamespace();
+  const { data, isFetched, isFetchedAfterMount, refetch} = useGetDeploymentsByNamespace(namespace);
   const [deployments, setDeployments] = useState<DeploymentSummary[]>([]);
   const navigate = useNavigate();
 
@@ -31,16 +29,18 @@ export function DeploymentListPage() {
   }, [namespace, refetch]);
 
   useEffect(() => {
-    if (response instanceof AxiosError) {
-      console.log(`axiosError: ${response.code}`); // grab the error and express
+    if (data instanceof AxiosError) {
+      console.log(`axiosError: ${data.code}`); // grab the error and express
       return;
     }
-    console.log(`useEffect2: ${JSON.stringify(response?.data?.items)}`);
-    if (response?.data?.items) {
-      console.log(`useEffect2] before setDeployments`);
-      setDeployments(response?.data?.items ? response?.data.items : []);
-    }
-  }, [isFetched, isFetchedAfterMount, response]);
+    const response = data as AxiosResponse<DeploymentList>;
+    console.log(`useEffect2: ${JSON.stringify(response.data)}`);
+
+    // if (data?.data?.items) {
+    //   console.log(`useEffect2] before setDeployments`);
+    //   setDeployments(data?.data?.items ? data?.data.items : []);
+    // }
+  }, [isFetched, isFetchedAfterMount, data]);
 
   function onClickDeployment(name: string) {
     navigate(`/deployment/${name}`);
