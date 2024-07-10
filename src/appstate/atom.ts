@@ -1,30 +1,15 @@
-import { atom, selector } from 'recoil';
+import { atom } from 'recoil';
+import { recoilPersist } from 'recoil-persist';
 
-//export interface AppState {
-//  namespace: string;
-//  placeholder: string[]; // FIXME
-//}
-//
-//export const initialAppState = atom<AppState>({
-//  key: 'AppState',
-//  default: {
-//    namespace: 'default',
-//    placeholder: [],
-//  },
-//});
-//
-//export const toStateNamespace = selector({
-//  key: 'AppStateNamespace',
-//  get: ({ get }) => {
-//    const appState = get(initialAppState);
-//
-//    return appState.namespace;
-//  },
-//});
+const { persistAtom } = recoilPersist({
+  key: 'recoil-persist',
+  storage: sessionStorage,
+});
 
 export const initialNamespace = atom<string>({
-  key: 'CurrentNamespace',
+  key: 'currentNamespace',
   default: 'default',
+  effects_UNSTABLE: [persistAtom],
 });
 
 export const initialHeaderState = atom<string>({

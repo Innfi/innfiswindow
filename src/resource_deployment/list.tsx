@@ -13,20 +13,22 @@ import {
   TableRow,
 } from '@mui/material';
 
-import { toCurrentNamespace } from '../appstate/state.local';
+import { initialNamespace } from '../appstate/atom';
 import { DeploymentList, DeploymentSummary } from './entity';
 import { useGetDeploymentsByNamespace } from './api';
+import { useRecoilState } from 'recoil';
 
 export function DeploymentListPage() {
-  const namespace = toCurrentNamespace();
-  const { data, isFetched, isFetchedAfterMount, refetch} = useGetDeploymentsByNamespace(namespace);
+  const [currentNamespace] = useRecoilState(initialNamespace);
+
+  const { data, isFetched, isFetchedAfterMount, refetch} = useGetDeploymentsByNamespace(currentNamespace);
   const [deployments, setDeployments] = useState<DeploymentSummary[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log(`namespace: ${namespace}`);
+    console.log(`namespace: ${currentNamespace}`);
     refetch();
-  }, [namespace, refetch]);
+  }, [currentNamespace, refetch]);
 
   useEffect(() => {
     if (data instanceof AxiosError) {
