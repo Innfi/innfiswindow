@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { AppBar, Toolbar, Typography } from '@mui/material';
 
-import { initialHeaderState } from '../appstate/atom';
+import { initialHeaderState } from '../../appstate/atom';
 import { NamespaceSelectorPage } from './namespace.selector';
 
 export function HeaderPage() {

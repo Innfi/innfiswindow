@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
+import { useRecoilState } from 'recoil';
 import { AxiosError } from 'axios';
 import {
   Grid,
@@ -14,28 +14,30 @@ import {
   TableRow,
 } from '@mui/material';
 
-// import { toStateNamespace } from '../appstate/atom';
 import { initialNamespace } from '../appstate/atom';
 import { ServiceItem } from './entity';
 import { useGetServicesByNamespace } from './api';
 
 export function ServiceListPage() {
-  // const namespace = useRecoilValue(toStateNamespace);
-  const [namespace] = useRecoilValue(initialNamespace);
+  const [currentNamespace] = useRecoilState(initialNamespace);
 
-  const { data: response, isFetched } = useGetServicesByNamespace(namespace);
+  const { data, isFetched, refetch } = useGetServicesByNamespace(currentNamespace);
   const [services, setServices] = useState<ServiceItem[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (response instanceof AxiosError) {
+    refetch();
+  }, [currentNamespace, refetch]);
+
+  useEffect(() => {
+    if (data instanceof AxiosError) {
       return;
     }
 
-    if (response?.data?.items) {
-      setServices(response?.data?.items ? response?.data?.items : []);
+    if (data?.data?.items) {
+      setServices(data?.data?.items ? data?.data?.items : []);
     }
-  }, [isFetched, response]);
+  }, [isFetched, data]);
 
   function onClickService(name: string) {
     navigate(`/service/${name}`);

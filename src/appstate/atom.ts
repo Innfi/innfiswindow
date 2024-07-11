@@ -16,3 +16,8 @@ export const initialHeaderState = atom<string>({
   key: 'HeaderState',
   default: '',
 });
+
+export const initialErrorMessage = atom<string>({
+  key: 'ErrorMessage',
+  default: '',
+});

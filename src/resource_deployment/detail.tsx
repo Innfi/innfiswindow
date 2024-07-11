@@ -1,20 +1,18 @@
-import { useRecoilValue } from 'recoil';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useRecoilState } from 'recoil';
 import { Grid, TextField } from '@mui/material';
 
-// import { toStateNamespace } from '../appstate/atom';
 import { initialNamespace } from '../appstate/atom';
 import { useGetDeploymentDetail } from './api';
 import { DeploymentDetail } from './entity';
 
 export function DeploymentDetailPage() {
-  // const namespace = useRecoilValue(toStateNamespace);
-  const namespace = useRecoilValue(initialNamespace);
+  const [currentNamespace] = useRecoilState(initialNamespace);
   const [detail, setDetail] = useState<DeploymentDetail | null>(null);
 
   const { name } = useParams();
-  const { data, isFetched } = useGetDeploymentDetail(namespace, name ? name : '');
+  const { data, isFetched } = useGetDeploymentDetail(currentNamespace, name ? name : '');
 
   useEffect(() => {
     if (data) {

@@ -4,11 +4,7 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 
 ## TODO
 
-- recoil
-  - let resource page refresh itself when the namespace is changed
-
 - refactoring
-  - invert the referencing from pathfinder to each page routes
   - common ui to visualize error
 
 - list information
@@ -47,3 +43,7 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 - recoil
   - check atom persistency 
   - handle react query error (which is invoked by axios error)
+  - let resource page refresh itself when the namespace is changed
+
+- refactoring
+  - invert the referencing from pathfinder to each page routes (unavailable)

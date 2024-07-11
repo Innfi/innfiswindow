@@ -1,18 +1,24 @@
 import { useRecoilState } from 'recoil';
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 
-import { initialNamespace } from '../appstate/atom';
+import { initialNamespace } from '../../appstate/atom';
 
 export function NamespaceSelectorPage() {
   const [currentNamespace, setCurrentNamespace] = useRecoilState(initialNamespace);
+
+  const onChangeNamespace = (newNs: string) => {
+    if (newNs === currentNamespace) return;
+
+    setCurrentNamespace(newNs);
+  };
 
   return (
     <FormControl variant="standard" sx={{ m: 1, minWidth: 120 }}>
       <InputLabel>Namespace</InputLabel>
       <Select
         label="clusterNamespace"
-        defaultValue={currentNamespace}
-        onChange={(e) => setCurrentNamespace(e.target.value)}
+        value={currentNamespace}
+        onChange={(e) => onChangeNamespace(e.target.value)}
       >
         <MenuItem value="default">default</MenuItem>
         <MenuItem value="kube-system">kube-system</MenuItem>
