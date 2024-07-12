@@ -12,12 +12,13 @@ import {
   Toolbar,
 } from '@mui/material';
 
+import { ErrorDisplaySnackbar } from '../common/components/error.display';
 import { initialHeaderState } from '../appstate/atom';
 import { DrawerItem } from './drawer.item';
 import { menuItems } from './menus';
 
 export function Sidebar() {
-  const [, setHeader] = useRecoilState(initialHeaderState); // what the?
+  const [, setHeader] = useRecoilState(initialHeaderState);
 
   const navigate = useNavigate();
   const items = menuItems;
@@ -71,6 +72,7 @@ export function Sidebar() {
           <Outlet />
         </Suspense>
       </Box>
+      <ErrorDisplaySnackbar />
     </Box>
   );
 }

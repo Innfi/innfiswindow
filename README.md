@@ -13,6 +13,9 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
   - service] type / cluter ip / ports / status 
   - ingress] name / loadbalancers rules age
 
+- refactoring
+  - merge each recoil atoms with selector
+
 - authentications
   - how to handle auth problems when accesssing eks, or other aws-based resources?
 

@@ -14,12 +14,13 @@ import {
   TableRow,
 } from '@mui/material';
 
-import { initialNamespace } from '../appstate/atom';
+import { initialErrorMessage, initialNamespace } from '../appstate/atom';
 import { DeploymentSummary } from './entity';
 import { useGetDeploymentsByNamespace } from './api';
 
 export function DeploymentListPage() {
   const [currentNamespace] = useRecoilState(initialNamespace);
+  const [, setErrMsg] = useRecoilState(initialErrorMessage);
 
   const { data, isFetched, refetch } = useGetDeploymentsByNamespace(currentNamespace);
   const [deployments, setDeployments] = useState<DeploymentSummary[]>([]);
@@ -31,7 +32,8 @@ export function DeploymentListPage() {
 
   useEffect(() => {
     if (data instanceof AxiosError) {
-      console.log(`axiosError: ${data.code}`); // grab the error and express
+      // console.log(`axiosError: ${data.code}`); // grab the error and express
+      setErrMsg(`DeploymentListPage] ${data.code}`);
       return;
     }
 
