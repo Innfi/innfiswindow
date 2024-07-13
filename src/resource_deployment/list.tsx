@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState } from 'recoil';
-import { AxiosError } from 'axios';
 import {
   Grid,
   Paper,
@@ -14,6 +13,7 @@ import {
   TableRow,
 } from '@mui/material';
 
+import { ApiError } from '../common/axios.client';
 import { initialErrorMessage, initialNamespace } from '../appstate/atom';
 import { DeploymentSummary } from './entity';
 import { useGetDeploymentsByNamespace } from './api';
@@ -31,16 +31,15 @@ export function DeploymentListPage() {
   }, [currentNamespace, refetch]);
 
   useEffect(() => {
-    if (data instanceof AxiosError) {
-      // console.log(`axiosError: ${data.code}`); // grab the error and express
-      setErrMsg(`DeploymentListPage] ${data.code}`);
+    if (data instanceof ApiError) {
+      setErrMsg(`DeploymentListPage] ${data.errMsg}`);
       return;
     }
 
     if (data?.data?.items) {
       setDeployments(data?.data?.items ? data?.data.items : []);
     }
-  }, [isFetched, data]);
+  }, [isFetched, data, setErrMsg]);
 
   function onClickDeployment(name: string) {
     navigate(`/deployment/${name}`);

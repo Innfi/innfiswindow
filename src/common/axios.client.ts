@@ -8,6 +8,14 @@ export const axiosInstance = axios.create({
 axiosInstance.interceptors.response.use(
   (res) => res,
   (err: AxiosError) => {
-    return err;
+    return new ApiError(err.code);
   }
 );
+
+export class ApiError {
+  errMsg: string | undefined;
+
+  constructor(msg: string | undefined) {
+    this.errMsg = msg;
+  }
+}

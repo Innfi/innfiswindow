@@ -1,28 +1,26 @@
-import axios from 'axios';
 import { useQuery } from 'react-query';
 
+import { axiosInstance } from '../common/axios.client';
 import { ServiceDetail, ServiceList } from './entity';
 
 export const useGetServicesByNamespace = (namespace: string) => {
-  const url = import.meta.env.VITE_APP_BACKEND_URL
-    ? `${import.meta.env.VITE_APP_BACKEND_URL}/api/v1/namespaces/${namespace}/services`
-    : '/services';
+  const url = `/apis/apps/v1/namespaces/${namespace}/services`;
 
   const service = async () => {
-    return await axios.get<ServiceList>(url);
+    const response = await axiosInstance.get<ServiceList>(url);
+
+    return response;
   };
 
-  return useQuery('getServicesByNamespace', service);
+  return useQuery(`getServicesByNamespace-${namespace}`, service);
 };
 
 export const useGetServiceDetail = (namespace: string, name: string) => {
-  const url = import.meta.env.VITE_APP_BACKEND_URL
-    ? `${import.meta.env.VITE_APP_BACKEND_URL}/api/v1/namespaces/${namespace}/services/${name}`
-    : '/services';
+  const url = `/apis/apps/v1/namespaces/${namespace}/services/${name}`;
 
   const service = async () => {
-    return await axios.get<ServiceDetail>(url);
+    return await axiosInstance.get<ServiceDetail>(url);
   };
 
-  return useQuery('getServiceDetail', service);
+  return useQuery(`getServiceDetail-${namespace}-${name}`, service);
 };

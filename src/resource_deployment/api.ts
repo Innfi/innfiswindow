@@ -22,5 +22,5 @@ export const useGetDeploymentDetail = (namespace: string, name: string) => {
     return await axiosInstance.get<DeploymentDetail>(url);
   };
 
-  return useQuery(`getDeploymentDetail-${name}`, service);
+  return useQuery(`getDeploymentDetail-${namespace}-${name}`, service);
 };

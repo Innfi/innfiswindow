@@ -4,9 +4,6 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 
 ## TODO
 
-- refactoring
-  - common ui to visualize error
-
 - list information
   - pod] name / invoked resource (replcaset / daemonset) / age / status 
   - deployment] pods count / replicas count  / age status
@@ -50,3 +47,4 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 
 - refactoring
   - invert the referencing from pathfinder to each page routes (unavailable)
+  - common ui to visualize error

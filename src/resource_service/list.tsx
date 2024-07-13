@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState } from 'recoil';
-import { AxiosError } from 'axios';
 import {
   Grid,
   Paper,
@@ -14,12 +13,14 @@ import {
   TableRow,
 } from '@mui/material';
 
-import { initialNamespace } from '../appstate/atom';
+import { ApiError } from '../common/axios.client';
+import { initialErrorMessage, initialNamespace } from '../appstate/atom';
 import { ServiceItem } from './entity';
 import { useGetServicesByNamespace } from './api';
 
 export function ServiceListPage() {
   const [currentNamespace] = useRecoilState(initialNamespace);
+  const [, setErrMsg] = useRecoilState(initialErrorMessage);
 
   const { data, isFetched, refetch } = useGetServicesByNamespace(currentNamespace);
   const [services, setServices] = useState<ServiceItem[]>([]);
@@ -30,14 +31,15 @@ export function ServiceListPage() {
   }, [currentNamespace, refetch]);
 
   useEffect(() => {
-    if (data instanceof AxiosError) {
+    if (data instanceof ApiError) {
+      setErrMsg(`DeploymentListPage] ${data.errMsg}`);
       return;
     }
 
     if (data?.data?.items) {
       setServices(data?.data?.items ? data?.data?.items : []);
     }
-  }, [isFetched, data]);
+  }, [isFetched, data, setErrMsg]);
 
   function onClickService(name: string) {
     navigate(`/service/${name}`);
