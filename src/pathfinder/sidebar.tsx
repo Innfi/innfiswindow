@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 
 import { ErrorDisplaySnackbar } from '../common/components/error.display';
-import { initialHeaderState } from '../appstate/atom';
+import { initialHeaderState } from '../common/app.state';
 import { DrawerItem } from './drawer.item';
 import { menuItems } from './menus';
 

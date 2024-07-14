@@ -1,7 +1,7 @@
 import { useRecoilState } from 'recoil';
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 
-import { initialNamespace } from '../../appstate/atom';
+import { initialNamespace } from '../app.state';
 
 export function NamespaceSelectorPage() {
   const [currentNamespace, setCurrentNamespace] = useRecoilState(initialNamespace);

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { Alert, Snackbar } from '@mui/material';
 
-import { initialErrorMessage } from '../../appstate/atom';
+import { initialErrorMessage } from '../app.state';
 
 export function ErrorDisplaySnackbar() {
   const [open, setOpen] = useState(false);

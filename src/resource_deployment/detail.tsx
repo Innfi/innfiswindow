@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useRecoilState } from 'recoil';
 import { Grid, TextField } from '@mui/material';
 
-import { initialNamespace } from '../appstate/atom';
+import { initialNamespace } from '../common/app.state';
 import { useGetDeploymentDetail } from './api';
 import { DeploymentDetail } from './entity';
 

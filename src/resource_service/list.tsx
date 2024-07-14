@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 
 import { ApiError } from '../common/axios.client';
-import { initialErrorMessage, initialNamespace } from '../appstate/atom';
+import { initialErrorMessage, initialNamespace } from '../common/app.state';
 import { ServiceItem } from './entity';
 import { useGetServicesByNamespace } from './api';
 
