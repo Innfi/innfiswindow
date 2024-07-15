@@ -59,7 +59,7 @@ export function PodListPage() {
                     <TableRow key={pod.metadata.uid} sx={{ marginBottom: '2px' }}>
                       <TableCell>{pod.metadata.name}</TableCell>
                       <TableCell>{pod.metadata.ownerReferences[0].kind}</TableCell>
-                      <TableCell>{pod.status.startTime.toISOString()}</TableCell>
+                      <TableCell>{pod.status.startTime}</TableCell>
                       <TableCell>{pod.status.phase}</TableCell>
                     </TableRow>
                   );

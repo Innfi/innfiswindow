@@ -17,6 +17,6 @@ export interface PodSummary {
   };
   status: {
     phase: string;
-    startTime: Date;
+    startTime: string;
   };
 }
