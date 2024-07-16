@@ -5,16 +5,20 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 ## TODO
 
 - list information
-  - pod] name / invoked resource (replcaset / daemonset) / age / status 
-  - deployment] pods count / replicas count  / age status
   - service] type / cluter ip / ports / status 
   - ingress] name / loadbalancers rules age
+  - workloads other than deployments
+  - configMap
+  - events
 
 - refactoring
   - merge each recoil atoms with selector
 
 - authentications
   - how to handle auth problems when accesssing eks, or other aws-based resources?
+
+- refactoring
+  - remove duplicating table settings
 
 - plans
   - show relations among ingress - service - workloads
@@ -48,3 +52,7 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 - refactoring
   - invert the referencing from pathfinder to each page routes (unavailable)
   - common ui to visualize error
+
+- list information
+  - pod] name / invoked resource (replcaset / daemonset) / age / status 
+  - deployment] name / pods count / replicas count  / age status

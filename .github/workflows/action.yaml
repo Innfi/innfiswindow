@@ -1,9 +1,6 @@
 name: action.ci
 on:
   push:
-    branches:
-      - dev
-      - release
     paths:
       - "src/**"
       - .github/workflows/action.yaml

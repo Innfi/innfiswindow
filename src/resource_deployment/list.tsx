@@ -18,6 +18,24 @@ import { initialErrorMessage, initialNamespace } from '../common/app.state';
 import { DeploymentSummary } from './entity';
 import { useGetDeploymentsByNamespace } from './api';
 
+function toPodsCount(summary: Readonly<DeploymentSummary>): string {
+  if (!summary || !summary.status) return '';
+
+  const { replicas, availableReplicas } = summary.status;
+  if (!replicas || !availableReplicas) return '';
+
+  return `${availableReplicas} / ${replicas}`;
+}
+
+function toLastStatus(summary: Readonly<DeploymentSummary>): string {
+  if (!summary || !summary.status) return '';
+
+  const { conditions } = summary.status;
+  if (!conditions || conditions.length <= 0) return 'unknown';
+
+  return conditions[conditions.length - 1].type;
+}
+
 export function DeploymentListPage() {
   const [currentNamespace] = useRecoilState(initialNamespace);
   const [, setErrMsg] = useRecoilState(initialErrorMessage);
@@ -54,8 +72,10 @@ export function DeploymentListPage() {
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
+                  <TableCell>Pod Count</TableCell>
                   <TableCell>Replicas</TableCell>
                   <TableCell>CreatedAt</TableCell>
+                  <TableCell>Status</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -67,8 +87,10 @@ export function DeploymentListPage() {
                       sx={{ marginBottom: '2px' }}
                     >
                       <TableCell>{deployment.metadata.name}</TableCell>
+                      <TableCell>{toPodsCount(deployment)}</TableCell>
                       <TableCell>{deployment.spec.replicas}</TableCell>
                       <TableCell>{deployment.metadata.creationTimestamp}</TableCell>
+                      <TableCell>{toLastStatus(deployment)}</TableCell>
                     </TableRow>
                   );
                 })}

@@ -2,16 +2,16 @@
 export interface DeploymentList {
   kind: string;
   apiVersion: string;
-  metadata: Metadata;
   items: DeploymentSummary[];
 }
 
-export interface Metadata {
-  resourceVersion: string;
-}
-
 export interface DeploymentSummary {
-  metadata: ItemMetadata;
+  metadata: {
+    name: string;
+    namespace: string;
+    uid: string;
+    creationTimestamp: string;
+  };
   spec: {
     replicas: number;
     selector: {
@@ -25,6 +25,16 @@ export interface DeploymentSummary {
         dnsPolicy: string;
       };
     };
+  };
+  status: {
+    replicas: number;
+    availableReplicas: number;
+    conditions: {
+      type: string;
+      status: string;
+      lastUpdateTime: string;
+      lastTransitionTime: string;
+    }[];
   };
 }
 
@@ -46,16 +56,6 @@ export interface DeploymentContainerDetail {
       memory?: string;
     };
   };
-}
-
-export interface ItemMetadata {
-  name: string;
-  namespace: string;
-  uid: string;
-  resourceVersion: string;
-  generation: number;
-  creationTimestamp: string;
-  managedFields: object;
 }
 
 // DeploymentDetail
