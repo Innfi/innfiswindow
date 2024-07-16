@@ -1,3 +1,5 @@
+[![action.ci](https://github.com/Innfi/innfiswindow/actions/workflows/action.yaml/badge.svg)](https://github.com/Innfi/innfiswindow/actions/workflows/action.yaml)
+
 # innfiswindow
 
 a monitoring tool for cloud env (mainly on AWS / EKS)
