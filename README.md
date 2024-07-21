@@ -7,7 +7,6 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 ## TODO
 
 - list information
-  - service] type / cluter ip / ports / status 
   - ingress] name / loadbalancers rules age
   - workloads other than deployments
   - configMap
@@ -15,6 +14,7 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 
 - refactoring
   - merge each recoil atoms with selector
+  - replace list table with material react table
 
 - authentications
   - how to handle auth problems when accesssing eks, or other aws-based resources?
@@ -58,3 +58,4 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 - list information
   - pod] name / invoked resource (replcaset / daemonset) / age / status 
   - deployment] name / pods count / replicas count  / age status
+  - service] type / cluter ip / ports / (status unavailable)

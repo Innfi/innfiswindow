@@ -15,15 +15,26 @@ import {
 
 import { ApiError } from '../common/axios.client';
 import { initialErrorMessage, initialNamespace } from '../common/app.state';
-import { ServiceItem } from './entity';
+import { ServicePortDetail, ServiceSummary } from './entity';
 import { useGetServicesByNamespace } from './api';
+
+const toPortsOneline = (ports: Readonly<ServicePortDetail>[]): string => {
+  if (!ports) return '';
+
+  return ports
+    .map((portUnit) => {
+      const { protocol, port, targetPort } = portUnit;
+      return `${port}:${targetPort}/${protocol}`;
+    })
+    .join(',');
+};
 
 export function ServiceListPage() {
   const [currentNamespace] = useRecoilState(initialNamespace);
   const [, setErrMsg] = useRecoilState(initialErrorMessage);
 
   const { data, isFetched, refetch } = useGetServicesByNamespace(currentNamespace);
-  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [services, setServices] = useState<ServiceSummary[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -55,7 +66,9 @@ export function ServiceListPage() {
                 <TableRow>
                   <TableCell>Name</TableCell>
                   <TableCell>Type</TableCell>
-                  <TableCell>clusterIP</TableCell>
+                  <TableCell>ClusterIP</TableCell>
+                  <TableCell>Ports</TableCell>
+                  <TableCell>CreatedAt</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -69,6 +82,8 @@ export function ServiceListPage() {
                       <TableCell>{service.metadata.name}</TableCell>
                       <TableCell>{service.spec.type}</TableCell>
                       <TableCell>{service.spec.clusterIP}</TableCell>
+                      <TableCell>{toPortsOneline(service.spec.ports)}</TableCell>
+                      <TableCell>{service.metadata.creationTimestamp}</TableCell>
                     </TableRow>
                   );
                 })}
