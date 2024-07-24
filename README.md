@@ -7,9 +7,6 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 ## TODO
 
 - list information
-  - ingress] name / loadbalancers rules age
-  - workloads other than deployments
-  - configMap
   - events
 
 - refactoring
@@ -59,3 +56,4 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
   - pod] name / invoked resource (replcaset / daemonset) / age / status 
   - deployment] name / pods count / replicas count  / age status
   - service] type / cluter ip / ports / (status unavailable)
+  - ingress] name / loadbalancers rules age
