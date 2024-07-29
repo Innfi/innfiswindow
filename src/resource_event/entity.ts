@@ -6,7 +6,7 @@ export interface EventList {
   metadata: {
     continue: string;
     remainingItemCount: number;
-  }
+  };
 
   items: EventSummary[];
 }

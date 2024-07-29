@@ -6,6 +6,7 @@ import { deploymentRoutes } from '../resource_deployment/routes';
 import { serviceRoutes } from '../resource_service/routes';
 import { podRoutes } from '../resource_pod/routes';
 import { ingressRoutes } from '../resource_ingress/routes';
+import { eventRoutes } from '../resource_event/routes';
 import { Sidebar } from './sidebar';
 
 const routes: RouteObject[] = [
@@ -19,6 +20,7 @@ const routes: RouteObject[] = [
       ...serviceRoutes,
       ...podRoutes,
       ...ingressRoutes,
+      ...eventRoutes,
     ],
   },
 ];
