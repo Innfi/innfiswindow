@@ -1,11 +1,21 @@
-import { useEffect, useState } from "react";
-import { useRecoilState } from "recoil";
-import { Grid, Paper, Stack, Table, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
+import { useEffect, useState } from 'react';
+import { useRecoilState } from 'recoil';
+import {
+  Grid,
+  Paper,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from '@mui/material';
 
-import { initialErrorMessage } from "../common/app.state";
-import { ApiError } from "../common/axios.client";
-import { useGetAllEvents } from "./api";
-import { EventSummary } from "./entity";
+import { initialErrorMessage } from '../common/app.state';
+import { ApiError } from '../common/axios.client';
+import { useGetAllEvents } from './api';
+import { EventSummary } from './entity';
 
 const FETCH_EVENT_COUNT = 10;
 
@@ -13,7 +23,7 @@ export function EventListPage() {
   const [, setErrMsg] = useRecoilState(initialErrorMessage);
   const [continueKey, setContinueKey] = useState('');
 
-  const { data, isFetched, refetch } = useGetAllEvents(FETCH_EVENT_COUNT, continueKey);
+  const { data, isFetched } = useGetAllEvents(FETCH_EVENT_COUNT, continueKey);
   const [events, setEvents] = useState<EventSummary[]>([]);
 
   useEffect(() => {
@@ -21,10 +31,14 @@ export function EventListPage() {
       setErrMsg(`EventListPage] ${data.errMsg}`);
     }
 
+    if (data?.data?.metadata.continue) {
+      setContinueKey(data?.data?.metadata.continue);
+    }
+
     if (data?.data?.items) {
       setEvents(data?.data?.items ? data?.data?.items : []);
     }
-  }, [isFetched, data, setErrMsg]);
+  }, [isFetched, data, setErrMsg, setContinueKey]);
 
   return (
     <Grid container spacing={3}>
@@ -41,6 +55,19 @@ export function EventListPage() {
                   <TableCell>Namespace</TableCell>
                 </TableRow>
               </TableHead>
+              <TableBody>
+                {events.map((eventSummary) => {
+                  return (
+                    <TableRow key={eventSummary.regarding.uid} sx={{ marginBottom: '2px' }}>
+                      <TableCell>{eventSummary.type}</TableCell>
+                      <TableCell>{eventSummary.regarding.kind}</TableCell>
+                      <TableCell>{eventSummary.note}</TableCell>
+                      <TableCell>{eventSummary.regarding.name}</TableCell>
+                      <TableCell>{eventSummary.regarding.namespace}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
             </Table>
           </TableContainer>
         </Stack>

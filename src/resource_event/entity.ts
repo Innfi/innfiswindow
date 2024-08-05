@@ -18,5 +18,6 @@ export interface EventSummary {
     kind: string;
     namespace: string;
     name: string;
+    uid: string;
   };
 }

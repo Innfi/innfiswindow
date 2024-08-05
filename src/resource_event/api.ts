@@ -3,6 +3,8 @@ import { useQuery } from 'react-query';
 import { axiosInstance } from '../common/axios.client';
 import { EventList } from './entity';
 
+const REFETCH_INTERVAL = 10000;
+
 export const useGetAllEvents = (limit: number, continueKey?: string) => {
   let url = `/apis/events.k8s.io/v1/events?limit=${limit}`;
   if (continueKey && continueKey.length > 0) {
@@ -15,5 +17,5 @@ export const useGetAllEvents = (limit: number, continueKey?: string) => {
     return response;
   };
 
-  return useQuery('getEvents', service);
+  return useQuery('getEvents', service, { refetchInterval: REFETCH_INTERVAL });
 };
