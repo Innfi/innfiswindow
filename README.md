@@ -6,18 +6,12 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 
 ## TODO
 
-- list information
-  - events
-
 - refactoring
   - merge each recoil atoms with selector
   - replace list table with material react table
 
 - authentications
   - how to handle auth problems when accesssing eks, or other aws-based resources?
-
-- refactoring
-  - remove duplicating table settings
 
 - plans
   - show relations among ingress - service - workloads
@@ -57,3 +51,4 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
   - deployment] name / pods count / replicas count  / age status
   - service] type / cluter ip / ports / (status unavailable)
   - ingress] name / loadbalancers rules age
+  - events
