@@ -13,12 +13,12 @@ import {
 } from '@mui/material';
 
 import { ErrorDisplaySnackbar } from '../common/components/error.display';
-import { initialHeaderState } from '../common/app.state';
+import { headerSelector } from '../common/app.state';
 import { DrawerItem } from './drawer.item';
 import { menuItems } from './menus';
 
 export function Sidebar() {
-  const [, setHeader] = useRecoilState(initialHeaderState);
+  const [, setHeader] = useRecoilState(headerSelector);
 
   const navigate = useNavigate();
   const items = menuItems;

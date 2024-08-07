@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import { AppBar, Toolbar, Typography } from '@mui/material';
 
-import { initialHeaderState } from '../app.state';
+// import { initialHeaderState } from '../app.state';
+import { headerSelector } from '../app.state';
 import { NamespaceSelectorPage } from './namespace.selector';
 
 export function HeaderPage() {
-  const [header] = useRecoilState(initialHeaderState);
+  const header = useRecoilValue(headerSelector);
   const [effectiveHeader, setEffectiveHeader] = useState('');
 
   useEffect(() => {

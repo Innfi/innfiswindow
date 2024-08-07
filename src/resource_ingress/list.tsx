@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import {
   Grid,
   Paper,
@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@mui/material';
 
-import { initialErrorMessage, initialNamespace } from '../common/app.state';
+import { errMsgSelector, namespaceSelector } from '../common/app.state';
 import { ApiError } from '../common/axios.client';
 import { useGetIngressesByNamespace } from './api';
 import { IngressSummary } from './entity';
@@ -34,8 +34,8 @@ const toLoadBalancerRules = (ingress: Readonly<IngressSummary>): string => {
 };
 
 export function IngressListPage() {
-  const [currentNamespace] = useRecoilState(initialNamespace);
-  const [, setErrMsg] = useRecoilState(initialErrorMessage);
+  const currentNamespace = useRecoilValue(namespaceSelector);
+  const [, setErrMsg] = useRecoilState(errMsgSelector);
 
   const { data, isFetched, refetch } = useGetIngressesByNamespace(currentNamespace);
   // TODO: ingresses

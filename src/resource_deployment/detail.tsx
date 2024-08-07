@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useRecoilState } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import { Grid, TextField } from '@mui/material';
 
-import { initialNamespace } from '../common/app.state';
+import { namespaceSelector } from '../common/app.state';
 import { useGetDeploymentDetail } from './api';
 import { DeploymentDetail } from './entity';
 
 export function DeploymentDetailPage() {
-  const [currentNamespace] = useRecoilState(initialNamespace);
+  const currentNamespace = useRecoilValue(namespaceSelector);
   const [detail, setDetail] = useState<DeploymentDetail | null>(null);
 
   const { name } = useParams();

@@ -12,7 +12,7 @@ import {
   TableRow,
 } from '@mui/material';
 
-import { initialErrorMessage } from '../common/app.state';
+import { errMsgSelector } from '../common/app.state';
 import { ApiError } from '../common/axios.client';
 import { useGetAllEvents } from './api';
 import { EventSummary } from './entity';
@@ -20,7 +20,7 @@ import { EventSummary } from './entity';
 const FETCH_EVENT_COUNT = 10;
 
 export function EventListPage() {
-  const [, setErrMsg] = useRecoilState(initialErrorMessage);
+  const [, setErrMsg] = useRecoilState(errMsgSelector);
   const [continueKey, setContinueKey] = useState('');
 
   const { data, isFetched } = useGetAllEvents(FETCH_EVENT_COUNT, continueKey);

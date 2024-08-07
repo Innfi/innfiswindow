@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import {
   Grid,
   Paper,
@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 
 import { ApiError } from '../common/axios.client';
-import { initialErrorMessage, initialNamespace } from '../common/app.state';
+import { errMsgSelector, namespaceSelector } from '../common/app.state';
 import { ServicePortDetail, ServiceSummary } from './entity';
 import { useGetServicesByNamespace } from './api';
 
@@ -30,8 +30,8 @@ const toPortsOneline = (ports: Readonly<ServicePortDetail>[]): string => {
 };
 
 export function ServiceListPage() {
-  const [currentNamespace] = useRecoilState(initialNamespace);
-  const [, setErrMsg] = useRecoilState(initialErrorMessage);
+  const currentNamespace = useRecoilValue(namespaceSelector);
+  const [, setErrMsg] = useRecoilState(errMsgSelector);
 
   const { data, isFetched, refetch } = useGetServicesByNamespace(currentNamespace);
   const [services, setServices] = useState<ServiceSummary[]>([]);

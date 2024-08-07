@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import {
   Grid,
   Paper,
@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 
 import { ApiError } from '../common/axios.client';
-import { initialErrorMessage, initialNamespace } from '../common/app.state';
+import { errMsgSelector, namespaceSelector } from '../common/app.state';
 import { DeploymentSummary } from './entity';
 import { useGetDeploymentsByNamespace } from './api';
 
@@ -37,8 +37,8 @@ function toLastStatus(summary: Readonly<DeploymentSummary>): string {
 }
 
 export function DeploymentListPage() {
-  const [currentNamespace] = useRecoilState(initialNamespace);
-  const [, setErrMsg] = useRecoilState(initialErrorMessage);
+  const currentNamespace = useRecoilValue(namespaceSelector);
+  const [, setErrMsg] = useRecoilState(errMsgSelector);
 
   const { data, isFetched, refetch } = useGetDeploymentsByNamespace(currentNamespace);
   const [deployments, setDeployments] = useState<DeploymentSummary[]>([]);

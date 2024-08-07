@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import {
   Grid,
   Paper,
@@ -13,13 +13,14 @@ import {
 } from '@mui/material';
 
 import { ApiError } from '../common/axios.client';
-import { initialErrorMessage, initialNamespace } from '../common/app.state';
+import { errMsgSelector, namespaceSelector } from '../common/app.state';
 import { PodSummary } from './entity';
 import { useGetPodsByNamespace } from './api';
 
 export function PodListPage() {
-  const [currentNamespace] = useRecoilState(initialNamespace);
-  const [, setErrMsg] = useRecoilState(initialErrorMessage);
+  // const [currentNamespace] = useRecoilState(initialNamespace);
+  const currentNamespace = useRecoilValue(namespaceSelector);
+  const [, setErrMsg] = useRecoilState(errMsgSelector);
 
   const { data, isFetched, refetch } = useGetPodsByNamespace(currentNamespace);
   const [pods, setPods] = useState<PodSummary[]>([]);

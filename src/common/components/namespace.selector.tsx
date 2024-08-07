@@ -1,10 +1,10 @@
 import { useRecoilState } from 'recoil';
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 
-import { initialNamespace } from '../app.state';
+import { namespaceSelector } from '../app.state';
 
 export function NamespaceSelectorPage() {
-  const [currentNamespace, setCurrentNamespace] = useRecoilState(initialNamespace);
+  const [currentNamespace, setCurrentNamespace] = useRecoilState(namespaceSelector);
 
   const onChangeNamespace = (newNs: string) => {
     if (newNs === currentNamespace) return;

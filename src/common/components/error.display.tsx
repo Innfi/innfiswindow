@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { Alert, Snackbar } from '@mui/material';
 
-import { initialErrorMessage } from '../app.state';
+import { errMsgSelector } from '../app.state';
 
 export function ErrorDisplaySnackbar() {
   const [open, setOpen] = useState(false);
-  const [errMsg, setErrMsg] = useRecoilState(initialErrorMessage);
+  const [errMsg, setErrMsg] = useRecoilState(errMsgSelector);
 
   const handleClose = () => {
     setOpen(false);
