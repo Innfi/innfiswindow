@@ -4,7 +4,8 @@ import { axiosInstance } from '../common/axios.client';
 import { ServiceDetail, ServiceList } from './entity';
 
 export const useGetServicesByNamespace = (namespace: string) => {
-  const url = `/apis/apps/v1/namespaces/${namespace}/services`;
+  const url = `/api/v1/namespaces/${namespace}/services`;
+  console.log(`url: ${url}`);
 
   const service = async () => {
     const response = await axiosInstance.get<ServiceList>(url);
@@ -16,7 +17,7 @@ export const useGetServicesByNamespace = (namespace: string) => {
 };
 
 export const useGetServiceDetail = (namespace: string, name: string) => {
-  const url = `/apis/apps/v1/namespaces/${namespace}/services/${name}`;
+  const url = `/api/v1/namespaces/${namespace}/services/${name}`;
 
   const service = async () => {
     return await axiosInstance.get<ServiceDetail>(url);

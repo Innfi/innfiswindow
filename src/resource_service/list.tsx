@@ -43,7 +43,7 @@ export function ServiceListPage() {
 
   useEffect(() => {
     if (data instanceof ApiError) {
-      setErrMsg(`DeploymentListPage] ${data.errMsg}`);
+      setErrMsg(`ServiceListPage] ${data.errMsg}`);
       return;
     }
 

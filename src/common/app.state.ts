@@ -34,7 +34,7 @@ export const namespaceSelector = selector({
 
     return set(commonAtom, {
       ...data,
-      headerString: newNamespace instanceof DefaultValue ? data.currentNamespace : newNamespace,
+      currentNamespace: newNamespace instanceof DefaultValue ? data.currentNamespace : newNamespace,
     });
   },
 });

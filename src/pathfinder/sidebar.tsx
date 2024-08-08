@@ -15,7 +15,7 @@ import {
 import { ErrorDisplaySnackbar } from '../common/components/error.display';
 import { headerSelector } from '../common/app.state';
 import { DrawerItem } from './drawer.item';
-import { menuItems } from './menus';
+import { menuItems } from './menu.registry';
 
 export function Sidebar() {
   const [, setHeader] = useRecoilState(headerSelector);

@@ -7,7 +7,6 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 ## TODO
 
 - refactoring
-  - merge each recoil atoms with selector
   - replace list table with material react table
 
 - authentications
@@ -52,3 +51,6 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
   - service] type / cluter ip / ports / (status unavailable)
   - ingress] name / loadbalancers rules age
   - events
+
+- refactoring
+  - merge each recoil atoms with selector

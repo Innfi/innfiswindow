@@ -17,5 +17,6 @@ export const useGetAllEvents = (limit: number, continueKey?: string) => {
     return response;
   };
 
+  // FIXME: query key needs to be unique
   return useQuery('getEvents', service, { refetchInterval: REFETCH_INTERVAL });
 };
