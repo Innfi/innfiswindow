@@ -18,7 +18,6 @@ import { PodSummary } from './entity';
 import { useGetPodsByNamespace } from './api';
 
 export function PodListPage() {
-  // const [currentNamespace] = useRecoilState(initialNamespace);
   const currentNamespace = useRecoilValue(namespaceSelector);
   const [, setErrMsg] = useRecoilState(errMsgSelector);
 
