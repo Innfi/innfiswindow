@@ -1,16 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import {
-  Grid,
-  Paper,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
+import { MaterialReactTable, MRT_ColumnDef, useMaterialReactTable } from 'material-react-table';
 
 import { ApiError } from '../common/axios.client';
 import { errMsgSelector, namespaceSelector } from '../common/app.state';
@@ -39,36 +29,32 @@ export function PodListPage() {
     }
   }, [isFetched, data, setErrMsg]);
 
-  return (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Stack>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Invoked Workload</TableCell>
-                  <TableCell>CreatedAt</TableCell>
-                  <TableCell>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {pods.map((pod) => {
-                  return (
-                    <TableRow key={pod.metadata.uid} sx={{ marginBottom: '2px' }}>
-                      <TableCell>{pod.metadata.name}</TableCell>
-                      <TableCell>{pod.metadata.ownerReferences[0].kind}</TableCell>
-                      <TableCell>{pod.status.startTime}</TableCell>
-                      <TableCell>{pod.status.phase}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Stack>
-      </Grid>
-    </Grid>
+  const columns = useMemo<MRT_ColumnDef<PodSummary>[]>(
+    () => [
+      { accessorFn: (row) => row.metadata.name, header: 'Name' },
+      {
+        accessorFn: (row) => {
+          if (!row.metadata.ownerReferences) return '';
+          return row.metadata.ownerReferences.map((v) => v.kind).join(', ');
+        },
+        header: 'Workload',
+      },
+      { accessorFn: (row) => row.status.startTime, header: 'CreatedAt' },
+      { accessorFn: (row) => row.status.phase, header: 'Status' },
+    ],
+    []
   );
+
+  const table = useMaterialReactTable({
+    columns,
+    data: pods,
+    muiTableBodyRowProps: ({ row }) => ({
+      onClick: () => {
+        console.log(`onClick: ${row.id}, ${row.original.metadata.name}`);
+      },
+      sx: { cursor: 'pointer' },
+    }),
+  });
+
+  return <MaterialReactTable table={table} />;
 }

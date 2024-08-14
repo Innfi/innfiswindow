@@ -1,15 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import {
-  Grid,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
+import { MaterialReactTable, MRT_ColumnDef, useMaterialReactTable } from 'material-react-table';
 
 import { errMsgSelector, namespaceSelector } from '../common/app.state';
 import { ApiError } from '../common/axios.client';
@@ -39,7 +30,7 @@ export function IngressListPage() {
 
   const { data, isFetched, refetch } = useGetIngressesByNamespace(currentNamespace);
   // TODO: ingresses
-  const [summary, setSummary] = useState<IngressSummary[]>([]);
+  const [ingresses, setIngresses] = useState<IngressSummary[]>([]);
 
   useEffect(() => {
     refetch();
@@ -52,38 +43,30 @@ export function IngressListPage() {
     }
 
     if (data?.data?.items) {
-      setSummary(data?.data?.items ? data?.data?.items : []);
+      setIngresses(data?.data?.items ? data?.data?.items : []);
     }
   }, [isFetched, data, setErrMsg]);
 
-  return (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>LoadBalancer</TableCell>
-                <TableCell>Rules</TableCell>
-                <TableCell>CreatedAt</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {summary.map((summary) => {
-                return (
-                  <TableRow>
-                    <TableCell>{summary.metadata.name}</TableCell>
-                    <TableCell>{toLoadBalancerName(summary)}</TableCell>
-                    <TableCell>{toLoadBalancerRules(summary)}</TableCell>
-                    <TableCell>{summary.metadata.creationTimestamp}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Grid>
-    </Grid>
+  const columns = useMemo<MRT_ColumnDef<IngressSummary>[]>(
+    () => [
+      { accessorFn: (row) => row.metadata.name, header: 'Name' },
+      { accessorFn: (row) => toLoadBalancerName(row), header: 'Loadbalancer' },
+      { accessorFn: (row) => toLoadBalancerRules(row), header: 'Rules' },
+      { accessorFn: (row) => row.metadata.creationTimestamp, header: 'CreatedAt' },
+    ],
+    []
   );
+
+  const table = useMaterialReactTable({
+    columns,
+    data: ingresses,
+    muiTableBodyRowProps: ({ row }) => ({
+      onClick: () => {
+        console.log(`onClick: ${row.original.metadata.name}`);
+      },
+      sx: { cursor: 'pointer' },
+    }),
+  });
+
+  return <MaterialReactTable table={table} />;
 }

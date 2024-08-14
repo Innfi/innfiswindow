@@ -1,17 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import {
-  Grid,
-  Paper,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
+import { MaterialReactTable, MRT_ColumnDef, useMaterialReactTable } from 'material-react-table';
 
 import { ApiError } from '../common/axios.client';
 import { errMsgSelector, namespaceSelector } from '../common/app.state';
@@ -63,42 +53,27 @@ export function DeploymentListPage() {
     navigate(`/deployment/${name}`);
   }
 
-  return (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Stack>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Pod Count</TableCell>
-                  <TableCell>Replicas</TableCell>
-                  <TableCell>CreatedAt</TableCell>
-                  <TableCell>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {deployments.map((deployment) => {
-                  return (
-                    <TableRow
-                      key={deployment.metadata.uid}
-                      onClick={() => onClickDeployment(deployment.metadata.name)}
-                      sx={{ marginBottom: '2px' }}
-                    >
-                      <TableCell>{deployment.metadata.name}</TableCell>
-                      <TableCell>{toPodsCount(deployment)}</TableCell>
-                      <TableCell>{deployment.spec.replicas}</TableCell>
-                      <TableCell>{deployment.metadata.creationTimestamp}</TableCell>
-                      <TableCell>{toLastStatus(deployment)}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Stack>
-      </Grid>
-    </Grid>
+  const columns = useMemo<MRT_ColumnDef<DeploymentSummary>[]>(
+    () => [
+      { accessorFn: (row) => row.metadata.name, header: 'Name' },
+      { accessorFn: (row) => toPodsCount(row), header: 'Pod Count' },
+      { accessorFn: (row) => row.spec.replicas, header: 'Replicas' },
+      { accessorFn: (row) => toLastStatus(row), header: 'Status' },
+      { accessorFn: (row) => row.metadata.creationTimestamp, header: 'CreatedAt' },
+    ],
+    []
   );
+
+  const table = useMaterialReactTable({
+    columns,
+    data: deployments,
+    muiTableBodyRowProps: ({ row }) => ({
+      onClick: () => {
+        onClickDeployment(row.original.metadata.name);
+      },
+      sx: { cursor: 'pointer' },
+    }),
+  });
+
+  return <MaterialReactTable table={table} />;
 }

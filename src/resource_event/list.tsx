@@ -1,16 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import {
-  Grid,
-  Paper,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
+import { MaterialReactTable, MRT_ColumnDef, useMaterialReactTable } from 'material-react-table';
 
 import { errMsgSelector } from '../common/app.state';
 import { ApiError } from '../common/axios.client';
@@ -40,38 +30,27 @@ export function EventListPage() {
     }
   }, [isFetched, data, setErrMsg, setContinueKey]);
 
-  return (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Stack>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Kind</TableCell>
-                  <TableCell>Note</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Namespace</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {events.map((eventSummary) => {
-                  return (
-                    <TableRow key={eventSummary.regarding.uid} sx={{ marginBottom: '2px' }}>
-                      <TableCell>{eventSummary.type}</TableCell>
-                      <TableCell>{eventSummary.regarding.kind}</TableCell>
-                      <TableCell>{eventSummary.note}</TableCell>
-                      <TableCell>{eventSummary.regarding.name}</TableCell>
-                      <TableCell>{eventSummary.regarding.namespace}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Stack>
-      </Grid>
-    </Grid>
+  const columns = useMemo<MRT_ColumnDef<EventSummary>[]>(
+    () => [
+      { accessorFn: (row) => row.type, header: 'Type' },
+      { accessorFn: (row) => row.regarding.kind, header: 'Kind' },
+      { accessorFn: (row) => row.note, header: 'Note' },
+      { accessorFn: (row) => row.regarding.name, header: 'Name' },
+      { accessorFn: (row) => row.regarding.namespace, header: 'Namespace' },
+    ],
+    []
   );
+
+  const table = useMaterialReactTable({
+    columns,
+    data: events,
+    muiTableBodyRowProps: ({ row }) => ({
+      onClick: () => {
+        console.log(`onClick: ${row.original.regarding.name}`);
+      },
+      sx: { cursor: 'pointer' },
+    }),
+  });
+
+  return <MaterialReactTable table={table} />;
 }

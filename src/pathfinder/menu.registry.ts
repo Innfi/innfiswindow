@@ -5,7 +5,6 @@ import { deploymentMenu } from '../resource_deployment/menu';
 import { podMenu } from '../resource_pod/menu';
 import { ingressMenu } from '../resource_ingress/menu';
 import { eventMenu } from '../resource_event/menu';
-import { testMenu } from '../resource_test/menu';
 import { DrawerItem } from './drawer.item';
 
 export const menuItems: DrawerItem[] = [
@@ -16,5 +15,4 @@ export const menuItems: DrawerItem[] = [
   ...podMenu,
   ...ingressMenu,
   ...eventMenu,
-  ...testMenu,
 ];
