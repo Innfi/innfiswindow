@@ -32,7 +32,13 @@ export function TestListPage() {
   const columns = useMemo<MRT_ColumnDef<PodSummary>[]>(
     () => [
       { accessorFn: (row) => row.metadata.name, header: 'Name' },
-      { accessorFn: (row) => row.metadata.ownerReferences[0].kind, header: 'Workload' },
+      {
+        accessorFn: (row) => {
+          if (!row.metadata.ownerReferences) return '';
+          return row.metadata.ownerReferences.map((v) => v.kind).join(', ');
+        },
+        header: 'Workload',
+      },
       { accessorFn: (row) => row.status.startTime, header: 'CreatedAt' },
       { accessorFn: (row) => row.status.phase, header: 'Status' },
     ],
@@ -42,6 +48,12 @@ export function TestListPage() {
   const table = useMaterialReactTable({
     columns,
     data: pods,
+    muiTableBodyRowProps: ({ row }) => ({
+      onClick: () => {
+        console.log(`onClick: ${row.id}, ${row.original.metadata.name}`);
+      },
+      sx: { cursor: 'pointer' },
+    }),
   });
 
   return <MaterialReactTable table={table} />;
