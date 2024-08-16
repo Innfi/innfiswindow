@@ -6,8 +6,9 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 
 ## TODO
 
-- refactoring
-  - replace list table with material react table
+- monitoring aws resources
+  - retrieve logs from cloudwatch
+  - metrics from ec2?
 
 - authentications
   - how to handle auth problems when accesssing eks, or other aws-based resources?
@@ -54,3 +55,4 @@ a monitoring tool for cloud env (mainly on AWS / EKS)
 
 - refactoring
   - merge each recoil atoms with selector
+  - replace list table with material react table
