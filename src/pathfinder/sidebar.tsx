@@ -21,7 +21,6 @@ export function Sidebar() {
   const [, setHeader] = useRecoilState(headerSelector);
 
   const navigate = useNavigate();
-  const items = menuItems;
 
   const handleClick = (item: DrawerItem) => {
     setHeader(item.text);
@@ -44,7 +43,7 @@ export function Sidebar() {
       >
         <Toolbar />
         <List>
-          {items.map((item: DrawerItem) => (
+          {menuItems.map((item: DrawerItem) => (
             <ListItem key={item.text} disablePadding onClick={() => handleClick(item)}>
               <ListItemButton>
                 <ListItemIcon>

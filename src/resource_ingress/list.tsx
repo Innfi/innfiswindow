@@ -29,7 +29,6 @@ export function IngressListPage() {
   const [, setErrMsg] = useRecoilState(errMsgSelector);
 
   const { data, isFetched, refetch } = useGetIngressesByNamespace(currentNamespace);
-  // TODO: ingresses
   const [ingresses, setIngresses] = useState<IngressSummary[]>([]);
 
   useEffect(() => {

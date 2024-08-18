@@ -5,7 +5,6 @@ import { ServiceDetail, ServiceList } from './entity';
 
 export const useGetServicesByNamespace = (namespace: string) => {
   const url = `/api/v1/namespaces/${namespace}/services`;
-  console.log(`url: ${url}`);
 
   const service = async () => {
     const response = await axiosInstance.get<ServiceList>(url);
