@@ -52,6 +52,14 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     }
 
   echo ""
+  echo "--- Build guardrail: running electron-vite build ---"
+  if ! npx electron-vite build; then
+    echo "=== BUILD FAILED after story $next_story. Stopping loop. ==="
+    exit 1
+  fi
+  echo "--- Build guardrail passed ---"
+
+  echo ""
   echo "--- Iteration $i complete ---"
 done
 

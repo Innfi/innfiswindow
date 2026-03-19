@@ -70,7 +70,7 @@
     {
       "id": "S02",
       "title": "Kubeconfig reader and k8s API client in main process",
-      "status": "incomplete",
+      "status": "complete",
       "description": "In the Electron main process, implement reading ~/.kube/config using @kubernetes/client-node KubeConfig. Create API client instances (CoreV1Api, AppsV1Api). Expose IPC handlers that the renderer can call. Also expose a handler to list available contexts and the current context.",
       "acceptance_criteria": [
         "Main process reads ~/.kube/config on startup",
@@ -84,7 +84,7 @@
     {
       "id": "S03",
       "title": "App layout shell: tree view panel + resource panel",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Implement the main application layout using Tailwind CSS. Use a full-height flex container: (1) a fixed-width left sidebar div (w-60, h-full, border-r) for the tree view, (2) a flex-1 main content area for the resource view. Add a top bar (h-12, border-b, flex items-center px-4) showing the app name 'Innfiswindow' on the left and current k8s context on the right as a small badge. Use Zustand store at src/renderer/store/app.store.ts with fields: selectedResourceType (string | null) and selectedItem (object | null).",
       "acceptance_criteria": [
         "Left sidebar is visible at w-60 (240px)",

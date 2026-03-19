@@ -1,6 +1,16 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { KubeConfig, CoreV1Api, AppsV1Api } from '@kubernetes/client-node'
+
+const kc = new KubeConfig()
+kc.loadFromDefault()
+
+const coreV1Api = kc.makeApiClient(CoreV1Api)
+const appsV1Api = kc.makeApiClient(AppsV1Api)
+
+// Export for use in other modules if needed
+export { kc, coreV1Api, appsV1Api }
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -43,6 +53,14 @@ app.whenReady().then(() => {
   })
 
   ipcMain.on('ping', () => console.log('pong'))
+
+  ipcMain.handle('k8s:contexts:list', () => {
+    return kc.getContexts().map((ctx) => ({ name: ctx.name, cluster: ctx.cluster, user: ctx.user }))
+  })
+
+  ipcMain.handle('k8s:context:current', () => {
+    return kc.getCurrentContext()
+  })
 
   createWindow()
 
