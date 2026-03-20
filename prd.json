@@ -97,7 +97,7 @@
     {
       "id": "S04",
       "title": "Tree view navigation for k8s resource types",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Implement the left sidebar tree view using @radix-ui/react-collapsible. Build two collapsible groups: 'Cluster' containing [Namespaces, Nodes] and 'Workloads' containing [Deployments, Pods]. Each group header has a chevron icon (lucide-react ChevronDown/ChevronRight) that toggles collapse. Each leaf item is a div with hover:bg-accent styling. Clicking a leaf sets selectedResourceType in the Zustand store. The active item gets bg-accent font-medium styling.",
       "acceptance_criteria": [
         "Tree shows groups: Cluster > [Namespaces, Nodes], Workloads > [Deployments, Pods]",
@@ -110,7 +110,7 @@
     {
       "id": "S05",
       "title": "Namespace resource: list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Implement namespace resource support. In main process: add IPC handler 'k8s:namespaces:list' using CoreV1Api.listNamespace(). In renderer: when selectedResourceType is 'Namespaces', show a table (use shadcn Table component — copy src/renderer/components/ui/table.tsx manually from shadcn source) with columns [Name, Status, Age]. Clicking a row sets selectedItem and shows a right detail panel (slide-in div or shadcn Sheet) with full namespace metadata: labels, annotations, creation timestamp, status phase.",
       "acceptance_criteria": [
         "IPC handler 'k8s:namespaces:list' returns namespace list",
@@ -123,7 +123,7 @@
     {
       "id": "S06",
       "title": "Node resource: list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Implement node resource support. In main process: add IPC handler 'k8s:nodes:list' using CoreV1Api.listNode(). In renderer: when selectedResourceType is 'Nodes', show a shadcn Table with columns [Name, Status, Roles, Age, Version]. Roles are derived by filtering node labels for keys starting with 'node-role.kubernetes.io/' and joining the suffixes. Clicking a row shows detail panel with capacity, allocatable resources, conditions, and labels.",
       "acceptance_criteria": [
         "IPC handler 'k8s:nodes:list' returns node list",
@@ -136,7 +136,7 @@
     {
       "id": "S07",
       "title": "Deployment resource: list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Implement deployment resource support. In main process: add IPC handler 'k8s:deployments:list' using AppsV1Api.listDeploymentForAllNamespaces(). In renderer: when selectedResourceType is 'Deployments', show a shadcn Table with columns [Name, Namespace, Ready (readyReplicas/replicas), Up-to-date, Available, Age]. Clicking a row shows detail panel with replicas, strategy, selector labels, container images, and conditions.",
       "acceptance_criteria": [
         "IPC handler 'k8s:deployments:list' returns deployments across all namespaces",
@@ -148,7 +148,7 @@
     {
       "id": "S08",
       "title": "Pod resource: list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Implement pod resource support. In main process: add IPC handler 'k8s:pods:list' using CoreV1Api.listPodForAllNamespaces(). In renderer: when selectedResourceType is 'Pods', show a shadcn Table with columns [Name, Namespace, Deployment (from ownerReferences: find kind=ReplicaSet, strip trailing -<hash> to get deployment name), App (metadata.labels.app), Status (phase), Restarts (sum of all container restartCounts), Age]. Clicking a row shows detail panel with containers, node name, and status conditions.",
       "acceptance_criteria": [
         "IPC handler 'k8s:pods:list' returns pods across all namespaces",
@@ -161,7 +161,7 @@
     {
       "id": "S09",
       "title": "EKS and AKS managed cluster authentication support",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Detect when the current kubeconfig context points to an EKS or AKS cluster (by examining cluster server URL or exec credential plugin command). For EKS: server URL contains 'eks.amazonaws.com' or exec command is 'aws'. For AKS: server URL contains 'azmk8s.io' or exec command is 'az'. The @kubernetes/client-node KubeConfig already supports exec credential plugins natively — ensure exec auth is not disabled. Show a badge in the top bar: 'EKS', 'AKS', or 'Local' deincomplete on detected cluster type.",
       "acceptance_criteria": [
         "App detects EKS cluster (server URL contains 'eks.amazonaws.com' or exec uses 'aws')",

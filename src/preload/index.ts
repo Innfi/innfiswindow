@@ -5,7 +5,12 @@ import { electronAPI } from '@electron-toolkit/preload'
 const api = {
   k8s: {
     listContexts: () => ipcRenderer.invoke('k8s:contexts:list'),
-    getCurrentContext: () => ipcRenderer.invoke('k8s:context:current')
+    getCurrentContext: () => ipcRenderer.invoke('k8s:context:current'),
+    listNamespaces: () => ipcRenderer.invoke('k8s:namespaces:list'),
+    listNodes: () => ipcRenderer.invoke('k8s:nodes:list'),
+    listDeployments: () => ipcRenderer.invoke('k8s:deployments:list'),
+    listPods: () => ipcRenderer.invoke('k8s:pods:list'),
+    getClusterType: () => ipcRenderer.invoke('k8s:cluster:type')
   }
 }
 
