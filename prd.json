@@ -170,6 +170,78 @@
         "@kubernetes/client-node exec credential plugin auth works without manual token handling"
       ],
       "dependencies": ["S02"]
+    },
+    {
+      "id": "S10",
+      "title": "ReplicaSet resource: list view and detail view",
+      "status": "incomplete",
+      "description": "Implement ReplicaSet resource support. In main process: add IPC handler 'k8s:replicasets:list' using AppsV1Api.listReplicaSetForAllNamespaces(). In renderer: add 'ReplicaSets' as a leaf item under the 'Workloads' tree group (between Deployments and Pods). When selectedResourceType is 'ReplicaSets', show a shadcn Table with columns [Name, Namespace, Desired (spec.replicas), Current (status.replicas), Ready (status.readyReplicas), Age]. Clicking a row sets selectedItem and shows a detail panel with: selector labels, container images, owner references (the parent Deployment name/kind), and pod template labels.",
+      "acceptance_criteria": [
+        "IPC handler 'k8s:replicasets:list' returns ReplicaSets across all namespaces using AppsV1Api",
+        "Tree view Workloads group includes 'ReplicaSets' leaf item",
+        "Table shows Name, Namespace, Desired, Current, Ready, Age columns",
+        "Detail panel shows selector labels, container images, owner references, and pod template labels"
+      ],
+      "dependencies": ["S04"],
+      "ipc_handlers": ["k8s:replicasets:list"]
+    },
+    {
+      "id": "S11",
+      "title": "StatefulSet resource: list view and detail view",
+      "status": "incomplete",
+      "description": "Implement StatefulSet resource support. In main process: add IPC handler 'k8s:statefulsets:list' using AppsV1Api.listStatefulSetForAllNamespaces(). In renderer: add 'StatefulSets' as a leaf item under the 'Workloads' tree group. When selectedResourceType is 'StatefulSets', show a shadcn Table with columns [Name, Namespace, Ready (readyReplicas/replicas), Age, Service (spec.serviceName)]. Clicking a row sets selectedItem and shows a detail panel with: replicas, update strategy (spec.updateStrategy.type), service name, volume claim templates (names and storage requests), selector labels, and container images.",
+      "acceptance_criteria": [
+        "IPC handler 'k8s:statefulsets:list' returns StatefulSets across all namespaces using AppsV1Api",
+        "Tree view Workloads group includes 'StatefulSets' leaf item",
+        "Table shows Name, Namespace, Ready, Age, Service columns",
+        "Detail panel shows replicas, update strategy, service name, volume claim templates, selector labels, container images"
+      ],
+      "dependencies": ["S04"],
+      "ipc_handlers": ["k8s:statefulsets:list"]
+    },
+    {
+      "id": "S12",
+      "title": "DaemonSet resource: list view and detail view",
+      "status": "incomplete",
+      "description": "Implement DaemonSet resource support. In main process: add IPC handler 'k8s:daemonsets:list' using AppsV1Api.listDaemonSetForAllNamespaces(). In renderer: add 'DaemonSets' as a leaf item under the 'Workloads' tree group. When selectedResourceType is 'DaemonSets', show a shadcn Table with columns [Name, Namespace, Desired (status.desiredNumberScheduled), Current (status.currentNumberScheduled), Ready (status.numberReady), Up-to-date (status.updatedNumberScheduled), Available (status.numberAvailable), Age]. Clicking a row sets selectedItem and shows a detail panel with: node selector, update strategy (spec.updateStrategy.type), selector labels, container images, and tolerations.",
+      "acceptance_criteria": [
+        "IPC handler 'k8s:daemonsets:list' returns DaemonSets across all namespaces using AppsV1Api",
+        "Tree view Workloads group includes 'DaemonSets' leaf item",
+        "Table shows Name, Namespace, Desired, Current, Ready, Up-to-date, Available, Age columns",
+        "Detail panel shows node selector, update strategy, selector labels, container images, tolerations"
+      ],
+      "dependencies": ["S04"],
+      "ipc_handlers": ["k8s:daemonsets:list"]
+    },
+    {
+      "id": "S13",
+      "title": "ConfigMap resource: list view and detail view",
+      "status": "incomplete",
+      "description": "Implement ConfigMap resource support. In main process: add IPC handler 'k8s:configmaps:list' using CoreV1Api.listConfigMapForAllNamespaces(). In renderer: add a new collapsible tree group 'Configuration' (after 'Workloads') containing leaf items [ConfigMaps, Secrets]. When selectedResourceType is 'ConfigMaps', show a shadcn Table with columns [Name, Namespace, Keys (comma-separated list of keys in data and binaryData), Age]. Clicking a row sets selectedItem and shows a detail panel with: all key-value pairs from data rendered as a scrollable key/value list (each key in monospace bold, value in a pre/code block), binary data keys listed with size in bytes (values not rendered), labels, and annotations.",
+      "acceptance_criteria": [
+        "IPC handler 'k8s:configmaps:list' returns ConfigMaps across all namespaces using CoreV1Api",
+        "Tree view has new 'Configuration' group with 'ConfigMaps' and 'Secrets' leaf items",
+        "Table shows Name, Namespace, Keys, Age columns",
+        "Detail panel shows all data key-value pairs in a readable key/value layout, binary data keys with byte sizes, labels, and annotations"
+      ],
+      "dependencies": ["S04"],
+      "ipc_handlers": ["k8s:configmaps:list"]
+    },
+    {
+      "id": "S14",
+      "title": "Secret resource: list view and detail view",
+      "status": "incomplete",
+      "description": "Implement Secret resource support. In main process: add IPC handler 'k8s:secrets:list' using CoreV1Api.listSecretForAllNamespaces(). Secret data values are base64-encoded in the API response — do NOT decode them in the main process; send the raw base64 strings to the renderer. In renderer: when selectedResourceType is 'Secrets', show a shadcn Table with columns [Name, Namespace, Type (secret type e.g. Opaque, kubernetes.io/tls), Keys (comma-separated list of keys in data), Age]. Clicking a row shows a detail panel with: secret type, a key/value list where each key is shown in monospace bold and its value is masked as '••••••••' by default with a toggle eye icon button (lucide-react Eye/EyeOff) per key to reveal the base64-encoded value. Also show labels and annotations. IMPORTANT: values must be masked by default to avoid accidental exposure.",
+      "acceptance_criteria": [
+        "IPC handler 'k8s:secrets:list' returns Secrets across all namespaces using CoreV1Api",
+        "Tree view 'Configuration' group includes 'Secrets' leaf item (added in S13)",
+        "Table shows Name, Namespace, Type, Keys, Age columns",
+        "Detail panel masks all secret values as '••••••••' by default",
+        "Each key has an eye icon toggle to reveal/hide its base64 value",
+        "Detail panel shows secret type, labels, and annotations"
+      ],
+      "dependencies": ["S13"],
+      "ipc_handlers": ["k8s:secrets:list"]
     }
   ]
 }
