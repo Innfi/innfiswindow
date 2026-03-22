@@ -85,12 +85,36 @@ export interface K8sPod {
   conditions: K8sPodCondition[]
 }
 
+export interface K8sOwnerRef {
+  kind: string
+  name: string
+}
+
+export interface K8sReplicaSetContainer {
+  name: string
+  image: string
+}
+
+export interface K8sReplicaSet {
+  name: string
+  namespace: string
+  desiredReplicas: number
+  currentReplicas: number
+  readyReplicas: number
+  creationTimestamp: string
+  selector: Record<string, string>
+  containers: K8sReplicaSetContainer[]
+  ownerReferences: K8sOwnerRef[]
+  podTemplateLabels: Record<string, string>
+}
+
 export interface K8sAPI {
   listContexts: () => Promise<K8sContext[]>
   getCurrentContext: () => Promise<string>
   listNamespaces: () => Promise<K8sNamespace[]>
   listNodes: () => Promise<K8sNode[]>
   listDeployments: () => Promise<K8sDeployment[]>
+  listReplicaSets: () => Promise<K8sReplicaSet[]>
   listPods: () => Promise<K8sPod[]>
   getClusterType: () => Promise<'EKS' | 'AKS' | 'Local'>
 }

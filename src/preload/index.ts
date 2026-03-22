@@ -9,6 +9,7 @@ const api = {
     listNamespaces: () => ipcRenderer.invoke('k8s:namespaces:list'),
     listNodes: () => ipcRenderer.invoke('k8s:nodes:list'),
     listDeployments: () => ipcRenderer.invoke('k8s:deployments:list'),
+    listReplicaSets: () => ipcRenderer.invoke('k8s:replicasets:list'),
     listPods: () => ipcRenderer.invoke('k8s:pods:list'),
     getClusterType: () => ipcRenderer.invoke('k8s:cluster:type')
   }

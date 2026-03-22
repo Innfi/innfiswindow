@@ -174,7 +174,7 @@
     {
       "id": "S10",
       "title": "ReplicaSet resource: list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Implement ReplicaSet resource support. In main process: add IPC handler 'k8s:replicasets:list' using AppsV1Api.listReplicaSetForAllNamespaces(). In renderer: add 'ReplicaSets' as a leaf item under the 'Workloads' tree group (between Deployments and Pods). When selectedResourceType is 'ReplicaSets', show a shadcn Table with columns [Name, Namespace, Desired (spec.replicas), Current (status.replicas), Ready (status.readyReplicas), Age]. Clicking a row sets selectedItem and shows a detail panel with: selector labels, container images, owner references (the parent Deployment name/kind), and pod template labels.",
       "acceptance_criteria": [
         "IPC handler 'k8s:replicasets:list' returns ReplicaSets across all namespaces using AppsV1Api",

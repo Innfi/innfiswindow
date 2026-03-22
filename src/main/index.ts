@@ -108,6 +108,28 @@ app.whenReady().then(() => {
     }))
   })
 
+  ipcMain.handle('k8s:replicasets:list', async () => {
+    const res = await appsV1Api.listReplicaSetForAllNamespaces()
+    return res.items.map((rs) => ({
+      name: rs.metadata?.name ?? '',
+      namespace: rs.metadata?.namespace ?? '',
+      desiredReplicas: rs.spec?.replicas ?? 0,
+      currentReplicas: rs.status?.replicas ?? 0,
+      readyReplicas: rs.status?.readyReplicas ?? 0,
+      creationTimestamp: rs.metadata?.creationTimestamp?.toISOString() ?? '',
+      selector: rs.spec?.selector?.matchLabels ?? {},
+      containers: (rs.spec?.template?.spec?.containers ?? []).map((c) => ({
+        name: c.name,
+        image: c.image ?? ''
+      })),
+      ownerReferences: (rs.metadata?.ownerReferences ?? []).map((o) => ({
+        kind: o.kind,
+        name: o.name
+      })),
+      podTemplateLabels: rs.spec?.template?.metadata?.labels ?? {}
+    }))
+  })
+
   ipcMain.handle('k8s:pods:list', async () => {
     const res = await coreV1Api.listPodForAllNamespaces()
     return res.items.map((pod) => {
