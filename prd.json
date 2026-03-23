@@ -188,7 +188,7 @@
     {
       "id": "S11",
       "title": "StatefulSet resource: list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Implement StatefulSet resource support. In main process: add IPC handler 'k8s:statefulsets:list' using AppsV1Api.listStatefulSetForAllNamespaces(). In renderer: add 'StatefulSets' as a leaf item under the 'Workloads' tree group. When selectedResourceType is 'StatefulSets', show a shadcn Table with columns [Name, Namespace, Ready (readyReplicas/replicas), Age, Service (spec.serviceName)]. Clicking a row sets selectedItem and shows a detail panel with: replicas, update strategy (spec.updateStrategy.type), service name, volume claim templates (names and storage requests), selector labels, and container images.",
       "acceptance_criteria": [
         "IPC handler 'k8s:statefulsets:list' returns StatefulSets across all namespaces using AppsV1Api",

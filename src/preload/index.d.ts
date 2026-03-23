@@ -108,6 +108,29 @@ export interface K8sReplicaSet {
   podTemplateLabels: Record<string, string>
 }
 
+export interface K8sStatefulSetContainer {
+  name: string
+  image: string
+}
+
+export interface K8sStatefulSetVolumeClaimTemplate {
+  name: string
+  storage: string
+}
+
+export interface K8sStatefulSet {
+  name: string
+  namespace: string
+  replicas: number
+  readyReplicas: number
+  creationTimestamp: string
+  serviceName: string
+  updateStrategy: string
+  selector: Record<string, string>
+  containers: K8sStatefulSetContainer[]
+  volumeClaimTemplates: K8sStatefulSetVolumeClaimTemplate[]
+}
+
 export interface K8sAPI {
   listContexts: () => Promise<K8sContext[]>
   getCurrentContext: () => Promise<string>
@@ -115,6 +138,7 @@ export interface K8sAPI {
   listNodes: () => Promise<K8sNode[]>
   listDeployments: () => Promise<K8sDeployment[]>
   listReplicaSets: () => Promise<K8sReplicaSet[]>
+  listStatefulSets: () => Promise<K8sStatefulSet[]>
   listPods: () => Promise<K8sPod[]>
   getClusterType: () => Promise<'EKS' | 'AKS' | 'Local'>
 }

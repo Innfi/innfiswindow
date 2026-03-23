@@ -165,6 +165,28 @@ app.whenReady().then(() => {
     })
   })
 
+  ipcMain.handle('k8s:statefulsets:list', async () => {
+    const res = await appsV1Api.listStatefulSetForAllNamespaces()
+    return res.items.map((ss) => ({
+      name: ss.metadata?.name ?? '',
+      namespace: ss.metadata?.namespace ?? '',
+      replicas: ss.spec?.replicas ?? 0,
+      readyReplicas: ss.status?.readyReplicas ?? 0,
+      creationTimestamp: ss.metadata?.creationTimestamp?.toISOString() ?? '',
+      serviceName: ss.spec?.serviceName ?? '',
+      updateStrategy: ss.spec?.updateStrategy?.type ?? '',
+      selector: ss.spec?.selector?.matchLabels ?? {},
+      containers: (ss.spec?.template?.spec?.containers ?? []).map((c) => ({
+        name: c.name,
+        image: c.image ?? ''
+      })),
+      volumeClaimTemplates: (ss.spec?.volumeClaimTemplates ?? []).map((vct) => ({
+        name: vct.metadata?.name ?? '',
+        storage: vct.spec?.resources?.requests?.['storage'] ?? ''
+      }))
+    }))
+  })
+
   ipcMain.handle('k8s:nodes:list', async () => {
     const res = await coreV1Api.listNode()
     return res.items.map((node) => {
