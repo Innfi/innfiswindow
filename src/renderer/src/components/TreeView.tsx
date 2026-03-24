@@ -6,7 +6,7 @@ import { cn } from '../../lib/utils'
 
 const groups = [
   { label: 'Cluster', items: ['Namespaces', 'Nodes'] },
-  { label: 'Workloads', items: ['Deployments', 'ReplicaSets', 'StatefulSets', 'Pods'] }
+  { label: 'Workloads', items: ['Deployments', 'ReplicaSets', 'StatefulSets', 'DaemonSets', 'Pods'] }
 ]
 
 export function TreeView(): JSX.Element {

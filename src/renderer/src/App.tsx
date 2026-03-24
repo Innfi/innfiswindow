@@ -6,6 +6,7 @@ import { DeploymentsView } from "./components/DeploymentsView";
 import { PodsView } from "./components/PodsView";
 import { ReplicaSetsView } from "./components/ReplicaSetsView";
 import { StatefulSetsView } from "./components/StatefulSetsView";
+import { DaemonSetsView } from "./components/DaemonSetsView";
 import { useAppStore } from "../store/app.store";
 
 function App(): JSX.Element {
@@ -53,6 +54,7 @@ function App(): JSX.Element {
           {selectedResourceType === "Deployments" && <DeploymentsView />}
           {selectedResourceType === "ReplicaSets" && <ReplicaSetsView />}
           {selectedResourceType === "StatefulSets" && <StatefulSetsView />}
+          {selectedResourceType === "DaemonSets" && <DaemonSetsView />}
           {selectedResourceType === "Pods" && <PodsView />}
         </div>
       </div>

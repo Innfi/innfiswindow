@@ -61,8 +61,6 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
 
   echo ""
   echo "--- Iteration $i complete ---"
-
-  exit 0
 done
 
 echo "=== Reached MAX_ITERATIONS=$MAX_ITERATIONS. Check prd.json for remaining stories. ==="

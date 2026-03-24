@@ -202,7 +202,7 @@
     {
       "id": "S12",
       "title": "DaemonSet resource: list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Implement DaemonSet resource support. In main process: add IPC handler 'k8s:daemonsets:list' using AppsV1Api.listDaemonSetForAllNamespaces(). In renderer: add 'DaemonSets' as a leaf item under the 'Workloads' tree group. When selectedResourceType is 'DaemonSets', show a shadcn Table with columns [Name, Namespace, Desired (status.desiredNumberScheduled), Current (status.currentNumberScheduled), Ready (status.numberReady), Up-to-date (status.updatedNumberScheduled), Available (status.numberAvailable), Age]. Clicking a row sets selectedItem and shows a detail panel with: node selector, update strategy (spec.updateStrategy.type), selector labels, container images, and tolerations.",
       "acceptance_criteria": [
         "IPC handler 'k8s:daemonsets:list' returns DaemonSets across all namespaces using AppsV1Api",

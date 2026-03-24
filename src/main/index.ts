@@ -165,6 +165,33 @@ app.whenReady().then(() => {
     })
   })
 
+  ipcMain.handle('k8s:daemonsets:list', async () => {
+    const res = await appsV1Api.listDaemonSetForAllNamespaces()
+    return res.items.map((ds) => ({
+      name: ds.metadata?.name ?? '',
+      namespace: ds.metadata?.namespace ?? '',
+      desiredNumberScheduled: ds.status?.desiredNumberScheduled ?? 0,
+      currentNumberScheduled: ds.status?.currentNumberScheduled ?? 0,
+      numberReady: ds.status?.numberReady ?? 0,
+      updatedNumberScheduled: ds.status?.updatedNumberScheduled ?? 0,
+      numberAvailable: ds.status?.numberAvailable ?? 0,
+      creationTimestamp: ds.metadata?.creationTimestamp?.toISOString() ?? '',
+      updateStrategy: ds.spec?.updateStrategy?.type ?? '',
+      selector: ds.spec?.selector?.matchLabels ?? {},
+      nodeSelector: ds.spec?.template?.spec?.nodeSelector ?? {},
+      containers: (ds.spec?.template?.spec?.containers ?? []).map((c) => ({
+        name: c.name,
+        image: c.image ?? ''
+      })),
+      tolerations: (ds.spec?.template?.spec?.tolerations ?? []).map((t) => ({
+        key: t.key ?? '',
+        operator: t.operator ?? '',
+        value: t.value ?? '',
+        effect: t.effect ?? ''
+      }))
+    }))
+  })
+
   ipcMain.handle('k8s:statefulsets:list', async () => {
     const res = await appsV1Api.listStatefulSetForAllNamespaces()
     return res.items.map((ss) => ({

@@ -118,6 +118,34 @@ export interface K8sStatefulSetVolumeClaimTemplate {
   storage: string
 }
 
+export interface K8sDaemonSetContainer {
+  name: string
+  image: string
+}
+
+export interface K8sDaemonSetToleration {
+  key: string
+  operator: string
+  value: string
+  effect: string
+}
+
+export interface K8sDaemonSet {
+  name: string
+  namespace: string
+  desiredNumberScheduled: number
+  currentNumberScheduled: number
+  numberReady: number
+  updatedNumberScheduled: number
+  numberAvailable: number
+  creationTimestamp: string
+  updateStrategy: string
+  selector: Record<string, string>
+  nodeSelector: Record<string, string>
+  containers: K8sDaemonSetContainer[]
+  tolerations: K8sDaemonSetToleration[]
+}
+
 export interface K8sStatefulSet {
   name: string
   namespace: string
@@ -139,6 +167,7 @@ export interface K8sAPI {
   listDeployments: () => Promise<K8sDeployment[]>
   listReplicaSets: () => Promise<K8sReplicaSet[]>
   listStatefulSets: () => Promise<K8sStatefulSet[]>
+  listDaemonSets: () => Promise<K8sDaemonSet[]>
   listPods: () => Promise<K8sPod[]>
   getClusterType: () => Promise<'EKS' | 'AKS' | 'Local'>
 }
