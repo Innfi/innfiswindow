@@ -242,6 +242,51 @@
       ],
       "dependencies": ["S13"],
       "ipc_handlers": ["k8s:secrets:list"]
+    },
+    {
+      "id": "S15",
+      "title": "kind cluster setup script and test fixture manifests",
+      "status": "incomplete",
+      "description": "Create a local testing environment using kind (Kubernetes IN Docker). Provide: (1) a shell script `scripts/setup-kind.sh` that creates a kind cluster named 'innfiswindow-test', waits for it to be ready, and applies test fixture manifests. (2) A directory `scripts/fixtures/` containing YAML manifests that exercise every resource type the app supports: at least 2 namespaces (test-ns-1, test-ns-2), 1 deployment (nginx, 2 replicas), 1 statefulset (a simple single-replica postgres-like app), 1 daemonset (a log-collector DaemonSet using a pause image with tolerations), 2 configmaps (one with multiple keys including a multi-line value), 1 secret (Opaque type with 2 keys), and 1 node (kind provides this automatically — no manifest needed). (3) A teardown script `scripts/teardown-kind.sh` that deletes the cluster. The setup script must be idempotent: if the cluster already exists, it skips creation. Include a `scripts/README.md` explaining prerequisites (kind, kubectl), how to run setup/teardown, and how to point the app at the kind context (`kind-innfiswindow-test`).",
+      "acceptance_criteria": [
+        "scripts/setup-kind.sh creates a kind cluster named 'innfiswindow-test' (idempotent)",
+        "scripts/fixtures/ contains manifests covering: namespaces, deployment, statefulset, daemonset, configmaps, secrets",
+        "After running setup, kubectl get all -A shows all fixture workloads running",
+        "scripts/teardown-kind.sh deletes the kind cluster cleanly",
+        "scripts/README.md documents prerequisites and usage"
+      ],
+      "dependencies": [],
+      "notes": "kind config should set a single control-plane node. Use lightweight images (nginx:alpine, pause:3.9, busybox) to keep pull times short. All fixture manifests go into namespace test-ns-1 or test-ns-2 except cluster-scoped resources."
+    },
+    {
+      "id": "S16",
+      "title": "IPC handler integration tests against kind cluster",
+      "status": "incomplete",
+      "description": "Write integration tests for every IPC handler in the main process, executed against the kind cluster created in S15. Use Vitest (already a dev dep via electron-vite) with a test file at `src/main/__tests__/k8s-handlers.integration.test.ts`. Each test should: import and call the handler function directly (not via IPC), pointing KubeConfig at the 'kind-innfiswindow-test' context. Test file must check the KUBECONFIG env var or default kubeconfig for the kind context — if not found, skip all tests with `test.skipIf`. Handlers to test: k8s:contexts:list, k8s:context:current, k8s:namespaces:list, k8s:nodes:list, k8s:deployments:list, k8s:pods:list, k8s:replicasets:list, k8s:statefulsets:list, k8s:daemonsets:list, k8s:configmaps:list, k8s:secrets:list. For each: assert the result is an array, verify at least one item from the fixture manifests appears (check by name), and assert required fields are present on each item.",
+      "acceptance_criteria": [
+        "Test file at src/main/__tests__/k8s-handlers.integration.test.ts",
+        "All 11 IPC handlers have at least one integration test",
+        "Tests skip gracefully when kind context 'kind-innfiswindow-test' is not available",
+        "Each test asserts: result is an array, expected fixture resource appears by name, required fields are non-null",
+        "npm run test (or npx vitest run) executes the tests without hanging"
+      ],
+      "dependencies": ["S15", "S14"],
+      "notes": "Refactor main-process handler logic into exported functions so tests can import them directly without spinning up the full Electron app. Tests run in Node environment (not jsdom). Add a vitest.config.ts or configure in package.json if not already present."
+    },
+    {
+      "id": "S17",
+      "title": "End-to-end UI smoke test with Playwright against kind cluster",
+      "status": "incomplete",
+      "description": "Write an end-to-end smoke test using Playwright + the electron playwright integration (`playwright` + `electron` from `playwright-electron` or via `@playwright/test` with the Electron launch helper). Test file at `e2e/smoke.test.ts`. The test should: (1) launch the built Electron app pointed at the kind-innfiswindow-test kubeconfig context, (2) verify the top bar shows 'Innfiswindow' and a context badge containing 'innfiswindow-test', (3) click 'Namespaces' in the tree view and assert the table contains 'test-ns-1', (4) click 'Deployments' and assert the table contains the nginx deployment row, (5) click the nginx row and assert the detail panel opens with container image information visible. Add an `e2e/` directory with a `playwright.config.ts`. Add a `test:e2e` script to package.json. Tests must skip if the kind cluster is not reachable.",
+      "acceptance_criteria": [
+        "e2e/smoke.test.ts exists with Playwright tests covering: app launch, context badge, Namespaces table, Deployments table, detail panel",
+        "playwright.config.ts configures Electron app launch and sets testDir to e2e/",
+        "package.json has a 'test:e2e' script",
+        "Tests skip gracefully if kind cluster context is not available",
+        "Running npm run test:e2e against a running kind cluster passes all assertions"
+      ],
+      "dependencies": ["S15", "S03", "S04", "S05", "S07"],
+      "notes": "Use 'playwright' package with Electron's built-in Playwright support. Build the app with `npm run build` before running e2e tests, or use `electron-vite dev` in the background. Capture a screenshot on test failure for debugging."
     }
   ]
 }
