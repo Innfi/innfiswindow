@@ -6,13 +6,15 @@ import { cn } from '../../lib/utils'
 
 const groups = [
   { label: 'Cluster', items: ['Namespaces', 'Nodes'] },
-  { label: 'Workloads', items: ['Deployments', 'ReplicaSets', 'StatefulSets', 'DaemonSets', 'Pods'] }
+  { label: 'Workloads', items: ['Deployments', 'ReplicaSets', 'StatefulSets', 'DaemonSets', 'Pods'] },
+  { label: 'Configuration', items: ['ConfigMaps', 'Secrets'] }
 ]
 
 export function TreeView(): JSX.Element {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     Cluster: true,
-    Workloads: true
+    Workloads: true,
+    Configuration: true
   })
   const selectedResourceType = useAppStore((s) => s.selectedResourceType)
   const setSelectedResourceType = useAppStore((s) => s.setSelectedResourceType)

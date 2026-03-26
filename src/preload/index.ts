@@ -12,6 +12,8 @@ const api = {
     listReplicaSets: () => ipcRenderer.invoke('k8s:replicasets:list'),
     listStatefulSets: () => ipcRenderer.invoke('k8s:statefulsets:list'),
     listDaemonSets: () => ipcRenderer.invoke('k8s:daemonsets:list'),
+    listConfigMaps: () => ipcRenderer.invoke('k8s:configmaps:list'),
+    listSecrets: () => ipcRenderer.invoke('k8s:secrets:list'),
     listPods: () => ipcRenderer.invoke('k8s:pods:list'),
     getClusterType: () => ipcRenderer.invoke('k8s:cluster:type')
   }

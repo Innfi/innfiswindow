@@ -159,6 +159,28 @@ export interface K8sStatefulSet {
   volumeClaimTemplates: K8sStatefulSetVolumeClaimTemplate[]
 }
 
+export interface K8sConfigMap {
+  name: string
+  namespace: string
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+  data: Record<string, string>
+  binaryData: Record<string, number>
+  keys: string[]
+}
+
+export interface K8sSecret {
+  name: string
+  namespace: string
+  type: string
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+  data: Record<string, string>
+  keys: string[]
+}
+
 export interface K8sAPI {
   listContexts: () => Promise<K8sContext[]>
   getCurrentContext: () => Promise<string>
@@ -168,6 +190,8 @@ export interface K8sAPI {
   listReplicaSets: () => Promise<K8sReplicaSet[]>
   listStatefulSets: () => Promise<K8sStatefulSet[]>
   listDaemonSets: () => Promise<K8sDaemonSet[]>
+  listConfigMaps: () => Promise<K8sConfigMap[]>
+  listSecrets: () => Promise<K8sSecret[]>
   listPods: () => Promise<K8sPod[]>
   getClusterType: () => Promise<'EKS' | 'AKS' | 'Local'>
 }

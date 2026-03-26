@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-ns-1
+  labels:
+    app.kubernetes.io/managed-by: innfiswindow-test
+    env: test
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-ns-2
+  labels:
+    app.kubernetes.io/managed-by: innfiswindow-test
+    env: staging

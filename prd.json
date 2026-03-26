@@ -216,7 +216,7 @@
     {
       "id": "S13",
       "title": "ConfigMap resource: list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Implement ConfigMap resource support. In main process: add IPC handler 'k8s:configmaps:list' using CoreV1Api.listConfigMapForAllNamespaces(). In renderer: add a new collapsible tree group 'Configuration' (after 'Workloads') containing leaf items [ConfigMaps, Secrets]. When selectedResourceType is 'ConfigMaps', show a shadcn Table with columns [Name, Namespace, Keys (comma-separated list of keys in data and binaryData), Age]. Clicking a row sets selectedItem and shows a detail panel with: all key-value pairs from data rendered as a scrollable key/value list (each key in monospace bold, value in a pre/code block), binary data keys listed with size in bytes (values not rendered), labels, and annotations.",
       "acceptance_criteria": [
         "IPC handler 'k8s:configmaps:list' returns ConfigMaps across all namespaces using CoreV1Api",
@@ -230,7 +230,7 @@
     {
       "id": "S14",
       "title": "Secret resource: list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Implement Secret resource support. In main process: add IPC handler 'k8s:secrets:list' using CoreV1Api.listSecretForAllNamespaces(). Secret data values are base64-encoded in the API response — do NOT decode them in the main process; send the raw base64 strings to the renderer. In renderer: when selectedResourceType is 'Secrets', show a shadcn Table with columns [Name, Namespace, Type (secret type e.g. Opaque, kubernetes.io/tls), Keys (comma-separated list of keys in data), Age]. Clicking a row shows a detail panel with: secret type, a key/value list where each key is shown in monospace bold and its value is masked as '••••••••' by default with a toggle eye icon button (lucide-react Eye/EyeOff) per key to reveal the base64-encoded value. Also show labels and annotations. IMPORTANT: values must be masked by default to avoid accidental exposure.",
       "acceptance_criteria": [
         "IPC handler 'k8s:secrets:list' returns Secrets across all namespaces using CoreV1Api",
@@ -246,7 +246,7 @@
     {
       "id": "S15",
       "title": "kind cluster setup script and test fixture manifests",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Create a local testing environment using kind (Kubernetes IN Docker). Provide: (1) a shell script `scripts/setup-kind.sh` that creates a kind cluster named 'innfiswindow-test', waits for it to be ready, and applies test fixture manifests. (2) A directory `scripts/fixtures/` containing YAML manifests that exercise every resource type the app supports: at least 2 namespaces (test-ns-1, test-ns-2), 1 deployment (nginx, 2 replicas), 1 statefulset (a simple single-replica postgres-like app), 1 daemonset (a log-collector DaemonSet using a pause image with tolerations), 2 configmaps (one with multiple keys including a multi-line value), 1 secret (Opaque type with 2 keys), and 1 node (kind provides this automatically — no manifest needed). (3) A teardown script `scripts/teardown-kind.sh` that deletes the cluster. The setup script must be idempotent: if the cluster already exists, it skips creation. Include a `scripts/README.md` explaining prerequisites (kind, kubectl), how to run setup/teardown, and how to point the app at the kind context (`kind-innfiswindow-test`).",
       "acceptance_criteria": [
         "scripts/setup-kind.sh creates a kind cluster named 'innfiswindow-test' (idempotent)",
@@ -261,7 +261,7 @@
     {
       "id": "S16",
       "title": "IPC handler integration tests against kind cluster",
-      "status": "incomplete",
+      "status": "pending",
       "description": "Write integration tests for every IPC handler in the main process, executed against the kind cluster created in S15. Use Vitest (already a dev dep via electron-vite) with a test file at `src/main/__tests__/k8s-handlers.integration.test.ts`. Each test should: import and call the handler function directly (not via IPC), pointing KubeConfig at the 'kind-innfiswindow-test' context. Test file must check the KUBECONFIG env var or default kubeconfig for the kind context — if not found, skip all tests with `test.skipIf`. Handlers to test: k8s:contexts:list, k8s:context:current, k8s:namespaces:list, k8s:nodes:list, k8s:deployments:list, k8s:pods:list, k8s:replicasets:list, k8s:statefulsets:list, k8s:daemonsets:list, k8s:configmaps:list, k8s:secrets:list. For each: assert the result is an array, verify at least one item from the fixture manifests appears (check by name), and assert required fields are present on each item.",
       "acceptance_criteria": [
         "Test file at src/main/__tests__/k8s-handlers.integration.test.ts",
@@ -276,7 +276,7 @@
     {
       "id": "S17",
       "title": "End-to-end UI smoke test with Playwright against kind cluster",
-      "status": "incomplete",
+      "status": "pending",
       "description": "Write an end-to-end smoke test using Playwright + the electron playwright integration (`playwright` + `electron` from `playwright-electron` or via `@playwright/test` with the Electron launch helper). Test file at `e2e/smoke.test.ts`. The test should: (1) launch the built Electron app pointed at the kind-innfiswindow-test kubeconfig context, (2) verify the top bar shows 'Innfiswindow' and a context badge containing 'innfiswindow-test', (3) click 'Namespaces' in the tree view and assert the table contains 'test-ns-1', (4) click 'Deployments' and assert the table contains the nginx deployment row, (5) click the nginx row and assert the detail panel opens with container image information visible. Add an `e2e/` directory with a `playwright.config.ts`. Add a `test:e2e` script to package.json. Tests must skip if the kind cluster is not reachable.",
       "acceptance_criteria": [
         "e2e/smoke.test.ts exists with Playwright tests covering: app launch, context badge, Namespaces table, Deployments table, detail panel",

@@ -214,6 +214,43 @@ app.whenReady().then(() => {
     }))
   })
 
+  ipcMain.handle('k8s:configmaps:list', async () => {
+    const res = await coreV1Api.listConfigMapForAllNamespaces()
+    return res.items.map((cm) => {
+      const dataKeys = Object.keys(cm.data ?? {})
+      const binaryDataKeys = Object.keys(cm.binaryData ?? {})
+      return {
+        name: cm.metadata?.name ?? '',
+        namespace: cm.metadata?.namespace ?? '',
+        creationTimestamp: cm.metadata?.creationTimestamp?.toISOString() ?? '',
+        labels: cm.metadata?.labels ?? {},
+        annotations: cm.metadata?.annotations ?? {},
+        data: cm.data ?? {},
+        binaryData: Object.fromEntries(
+          Object.entries(cm.binaryData ?? {}).map(([k, v]) => [k, v ? v.length : 0])
+        ),
+        keys: [...dataKeys, ...binaryDataKeys]
+      }
+    })
+  })
+
+  ipcMain.handle('k8s:secrets:list', async () => {
+    const res = await coreV1Api.listSecretForAllNamespaces()
+    return res.items.map((secret) => {
+      const dataKeys = Object.keys(secret.data ?? {})
+      return {
+        name: secret.metadata?.name ?? '',
+        namespace: secret.metadata?.namespace ?? '',
+        type: secret.type ?? 'Opaque',
+        creationTimestamp: secret.metadata?.creationTimestamp?.toISOString() ?? '',
+        labels: secret.metadata?.labels ?? {},
+        annotations: secret.metadata?.annotations ?? {},
+        data: secret.data ?? {},
+        keys: dataKeys
+      }
+    })
+  })
+
   ipcMain.handle('k8s:nodes:list', async () => {
     const res = await coreV1Api.listNode()
     return res.items.map((node) => {
