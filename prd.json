@@ -261,7 +261,7 @@
     {
       "id": "S16",
       "title": "IPC handler integration tests against kind cluster",
-      "status": "pending",
+      "status": "complete",
       "description": "Write integration tests for every IPC handler in the main process, executed against the kind cluster created in S15. Use Vitest (already a dev dep via electron-vite) with a test file at `src/main/__tests__/k8s-handlers.integration.test.ts`. Each test should: import and call the handler function directly (not via IPC), pointing KubeConfig at the 'kind-innfiswindow-test' context. Test file must check the KUBECONFIG env var or default kubeconfig for the kind context — if not found, skip all tests with `test.skipIf`. Handlers to test: k8s:contexts:list, k8s:context:current, k8s:namespaces:list, k8s:nodes:list, k8s:deployments:list, k8s:pods:list, k8s:replicasets:list, k8s:statefulsets:list, k8s:daemonsets:list, k8s:configmaps:list, k8s:secrets:list. For each: assert the result is an array, verify at least one item from the fixture manifests appears (check by name), and assert required fields are present on each item.",
       "acceptance_criteria": [
         "Test file at src/main/__tests__/k8s-handlers.integration.test.ts",
