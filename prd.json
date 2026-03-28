@@ -287,6 +287,45 @@
       ],
       "dependencies": ["S15", "S03", "S04", "S05", "S07"],
       "notes": "Use 'playwright' package with Electron's built-in Playwright support. Build the app with `npm run build` before running e2e tests, or use `electron-vite dev` in the background. Capture a screenshot on test failure for debugging."
+    },
+    {
+      "id": "S18",
+      "title": "Create, update, and delete deployments",
+      "status": "incomplete",
+      "description": "Add full CRUD support for Deployments. Users can create a new deployment via a form dialog, edit an existing deployment's replica count and container image via an edit dialog, and delete a deployment with a confirmation prompt. All mutations go through IPC handlers in the main process using AppsV1Api. The Deployments list refreshes automatically after any mutation.",
+      "acceptance_criteria": [
+        "IPC handler `k8s:deployment:create` accepts namespace, name, image, and replicas; creates the deployment and returns the created object",
+        "IPC handler `k8s:deployment:update` accepts namespace, name, image, and replicas; patches the deployment and returns the updated object",
+        "IPC handler `k8s:deployment:delete` accepts namespace and name; deletes the deployment and returns a success status",
+        "A 'New Deployment' button in the Deployments list view opens a modal form with fields: name, namespace (dropdown from loaded namespaces), image, replicas",
+        "Each row in the Deployments table has an Edit button that opens a pre-filled edit dialog for image and replicas",
+        "Each row in the Deployments table has a Delete button that shows a confirmation dialog before deleting",
+        "After create, update, or delete the deployment list re-fetches and the UI updates",
+        "Errors from the k8s API are surfaced to the user in the dialog (not silently swallowed)"
+      ],
+      "dependencies": ["S07", "S03"],
+      "ipc_handlers": [
+        "k8s:deployment:create",
+        "k8s:deployment:update",
+        "k8s:deployment:delete"
+      ],
+      "notes": "Use `appsV1Api.createNamespacedDeployment` for create, `appsV1Api.patchNamespacedDeployment` with a strategic merge patch for update, and `appsV1Api.deleteNamespacedDeployment` for delete. Dialogs should use shadcn Dialog + Form components. Keep the form minimal — name, namespace, image, replicas are sufficient."
+    },
+    {
+      "id": "S19",
+      "title": "Architecture audit and refactoring plan",
+      "status": "incomplete",
+      "description": "Analyse the current codebase structure, measure key architectural health signals, and produce a written refactoring plan. The output is a markdown report at `docs/architecture-refactor-plan.md`. The agent must read every file under `src/` (main, preload, renderer), measure the signals listed below, identify the top pain-points, and propose concrete, prioritised refactoring actions — each with rationale, affected files, and estimated complexity (S/M/L). No production code is changed in this story.",
+      "acceptance_criteria": [
+        "File `docs/architecture-refactor-plan.md` exists and is committed",
+        "Report section 'Current State' lists: total file count, lines of code per layer (main / preload / renderer), number of IPC handlers, number of Zustand store slices, number of React components, and any files exceeding 300 LOC",
+        "Report section 'Pain Points' identifies at least 5 concrete issues (e.g. handler co-location, missing error boundary layer, store shape, component granularity, test coverage gaps, IPC type-safety)",
+        "Report section 'Refactoring Plan' contains prioritised actions (P1/P2/P3), each with: description, motivation, affected files or directories, and complexity estimate",
+        "Report section 'Proposed Directory Layout' shows a tree of the recommended future `src/` structure after refactoring",
+        "Report is written in clear technical prose — no vague recommendations like 'improve code quality'; every suggestion names specific files or patterns"
+      ],
+      "dependencies": ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S12", "S13"],
+      "notes": "This is an analysis-only story. The agent should use Read/Glob/Grep tools to gather metrics, then Write the report. Do not refactor any code. Complexity estimates: S = hours, M = 1-2 days, L = 3+ days. The plan should be actionable enough that another agent can pick up any P1 item and implement it without further design work."
     }
   ]
 }
