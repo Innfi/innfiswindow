@@ -276,7 +276,7 @@
     {
       "id": "S17",
       "title": "End-to-end UI smoke test with Playwright against kind cluster",
-      "status": "pending",
+      "status": "complete",
       "description": "Write an end-to-end smoke test using Playwright + the electron playwright integration (`playwright` + `electron` from `playwright-electron` or via `@playwright/test` with the Electron launch helper). Test file at `e2e/smoke.test.ts`. The test should: (1) launch the built Electron app pointed at the kind-innfiswindow-test kubeconfig context, (2) verify the top bar shows 'Innfiswindow' and a context badge containing 'innfiswindow-test', (3) click 'Namespaces' in the tree view and assert the table contains 'test-ns-1', (4) click 'Deployments' and assert the table contains the nginx deployment row, (5) click the nginx row and assert the detail panel opens with container image information visible. Add an `e2e/` directory with a `playwright.config.ts`. Add a `test:e2e` script to package.json. Tests must skip if the kind cluster is not reachable.",
       "acceptance_criteria": [
         "e2e/smoke.test.ts exists with Playwright tests covering: app launch, context badge, Namespaces table, Deployments table, detail panel",
@@ -291,7 +291,7 @@
     {
       "id": "S18",
       "title": "Create, update, and delete deployments",
-      "status": "incomplete",
+      "status": "pending",
       "description": "Add full CRUD support for Deployments. Users can create a new deployment via a form dialog, edit an existing deployment's replica count and container image via an edit dialog, and delete a deployment with a confirmation prompt. All mutations go through IPC handlers in the main process using AppsV1Api. The Deployments list refreshes automatically after any mutation.",
       "acceptance_criteria": [
         "IPC handler `k8s:deployment:create` accepts namespace, name, image, and replicas; creates the deployment and returns the created object",
@@ -314,7 +314,7 @@
     {
       "id": "S19",
       "title": "Architecture audit and refactoring plan",
-      "status": "incomplete",
+      "status": "pending",
       "description": "Analyse the current codebase structure, measure key architectural health signals, and produce a written refactoring plan. The output is a markdown report at `docs/architecture-refactor-plan.md`. The agent must read every file under `src/` (main, preload, renderer), measure the signals listed below, identify the top pain-points, and propose concrete, prioritised refactoring actions — each with rationale, affected files, and estimated complexity (S/M/L). No production code is changed in this story.",
       "acceptance_criteria": [
         "File `docs/architecture-refactor-plan.md` exists and is committed",
@@ -324,7 +324,21 @@
         "Report section 'Proposed Directory Layout' shows a tree of the recommended future `src/` structure after refactoring",
         "Report is written in clear technical prose — no vague recommendations like 'improve code quality'; every suggestion names specific files or patterns"
       ],
-      "dependencies": ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S12", "S13"],
+      "dependencies": [
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06",
+        "S07",
+        "S08",
+        "S09",
+        "S10",
+        "S11",
+        "S12",
+        "S13"
+      ],
       "notes": "This is an analysis-only story. The agent should use Read/Glob/Grep tools to gather metrics, then Write the report. Do not refactor any code. Complexity estimates: S = hours, M = 1-2 days, L = 3+ days. The plan should be actionable enough that another agent can pick up any P1 item and implement it without further design work."
     }
   ]
