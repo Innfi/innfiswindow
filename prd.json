@@ -312,6 +312,52 @@
       "notes": "Use `appsV1Api.createNamespacedDeployment` for create, `appsV1Api.patchNamespacedDeployment` with a strategic merge patch for update, and `appsV1Api.deleteNamespacedDeployment` for delete. Dialogs should use shadcn Dialog + Form components. Keep the form minimal — name, namespace, image, replicas are sufficient."
     },
     {
+      "id": "S20",
+      "title": "Create, update, and delete StatefulSets",
+      "status": "pending",
+      "description": "Add full CRUD support for StatefulSets. Users can create a new StatefulSet via a form dialog, edit an existing StatefulSet's replica count and container image via an edit dialog, and delete a StatefulSet with a confirmation prompt. All mutations go through IPC handlers in the main process using AppsV1Api. The StatefulSets list refreshes automatically after any mutation.",
+      "acceptance_criteria": [
+        "IPC handler `k8s:statefulset:create` accepts namespace, name, image, replicas, and serviceName; creates the StatefulSet and returns the created object",
+        "IPC handler `k8s:statefulset:update` accepts namespace, name, image, and replicas; patches the StatefulSet and returns the updated object",
+        "IPC handler `k8s:statefulset:delete` accepts namespace and name; deletes the StatefulSet and returns a success status",
+        "A 'New StatefulSet' button in the StatefulSets list view opens a modal form with fields: name, namespace (dropdown from loaded namespaces), image, replicas, serviceName",
+        "Each row in the StatefulSets table has an Edit button that opens a pre-filled edit dialog for image and replicas",
+        "Each row in the StatefulSets table has a Delete button that shows a confirmation dialog before deleting",
+        "After create, update, or delete the StatefulSet list re-fetches and the UI updates",
+        "Errors from the k8s API are surfaced to the user in the dialog (not silently swallowed)"
+      ],
+      "dependencies": ["S11", "S03"],
+      "ipc_handlers": [
+        "k8s:statefulset:create",
+        "k8s:statefulset:update",
+        "k8s:statefulset:delete"
+      ],
+      "notes": "Use `appsV1Api.createNamespacedStatefulSet` for create, `appsV1Api.patchNamespacedStatefulSet` with a strategic merge patch for update, and `appsV1Api.deleteNamespacedStatefulSet` for delete. The `serviceName` field is required by the StatefulSet spec and must be included in the create form (it references a headless Service). Dialogs should use shadcn Dialog + Form components."
+    },
+    {
+      "id": "S21",
+      "title": "Create, update, and delete DaemonSets",
+      "status": "pending",
+      "description": "Add full CRUD support for DaemonSets. Users can create a new DaemonSet via a form dialog, edit an existing DaemonSet's container image via an edit dialog, and delete a DaemonSet with a confirmation prompt. DaemonSets do not have a replica count — they run one pod per eligible node. All mutations go through IPC handlers in the main process using AppsV1Api. The DaemonSets list refreshes automatically after any mutation.",
+      "acceptance_criteria": [
+        "IPC handler `k8s:daemonset:create` accepts namespace, name, and image; creates the DaemonSet and returns the created object",
+        "IPC handler `k8s:daemonset:update` accepts namespace, name, and image; patches the DaemonSet container image and returns the updated object",
+        "IPC handler `k8s:daemonset:delete` accepts namespace and name; deletes the DaemonSet and returns a success status",
+        "A 'New DaemonSet' button in the DaemonSets list view opens a modal form with fields: name, namespace (dropdown from loaded namespaces), image",
+        "Each row in the DaemonSets table has an Edit button that opens a pre-filled edit dialog for image",
+        "Each row in the DaemonSets table has a Delete button that shows a confirmation dialog before deleting",
+        "After create, update, or delete the DaemonSet list re-fetches and the UI updates",
+        "Errors from the k8s API are surfaced to the user in the dialog (not silently swallowed)"
+      ],
+      "dependencies": ["S12", "S03"],
+      "ipc_handlers": [
+        "k8s:daemonset:create",
+        "k8s:daemonset:update",
+        "k8s:daemonset:delete"
+      ],
+      "notes": "Use `appsV1Api.createNamespacedDaemonSet` for create, `appsV1Api.patchNamespacedDaemonSet` with a strategic merge patch for update, and `appsV1Api.deleteNamespacedDaemonSet` for delete. DaemonSets have no `replicas` field — omit it from forms and patch payloads. Dialogs should use shadcn Dialog + Form components."
+    },
+    {
       "id": "S19",
       "title": "Architecture audit and refactoring plan",
       "status": "pending",
