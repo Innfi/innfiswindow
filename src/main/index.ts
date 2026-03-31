@@ -14,7 +14,10 @@ import {
   listDaemonSets,
   listPods,
   listConfigMaps,
-  listSecrets
+  listSecrets,
+  createDeployment,
+  updateDeployment,
+  deleteDeployment
 } from './k8s-handlers'
 
 const kc = new KubeConfig()
@@ -80,6 +83,19 @@ app.whenReady().then(() => {
   ipcMain.handle('k8s:configmaps:list', () => listConfigMaps(coreV1Api))
   ipcMain.handle('k8s:secrets:list', () => listSecrets(coreV1Api))
   ipcMain.handle('k8s:nodes:list', () => listNodes(coreV1Api))
+  ipcMain.handle(
+    'k8s:deployment:create',
+    (_e, namespace: string, name: string, image: string, replicas: number) =>
+      createDeployment(appsV1Api, namespace, name, image, replicas)
+  )
+  ipcMain.handle(
+    'k8s:deployment:update',
+    (_e, namespace: string, name: string, image: string, replicas: number) =>
+      updateDeployment(appsV1Api, namespace, name, image, replicas)
+  )
+  ipcMain.handle('k8s:deployment:delete', (_e, namespace: string, name: string) =>
+    deleteDeployment(appsV1Api, namespace, name)
+  )
 
   createWindow()
 

@@ -291,7 +291,7 @@
     {
       "id": "S18",
       "title": "Create, update, and delete deployments",
-      "status": "pending",
+      "status": "complete",
       "description": "Add full CRUD support for Deployments. Users can create a new deployment via a form dialog, edit an existing deployment's replica count and container image via an edit dialog, and delete a deployment with a confirmation prompt. All mutations go through IPC handlers in the main process using AppsV1Api. The Deployments list refreshes automatically after any mutation.",
       "acceptance_criteria": [
         "IPC handler `k8s:deployment:create` accepts namespace, name, image, and replicas; creates the deployment and returns the created object",

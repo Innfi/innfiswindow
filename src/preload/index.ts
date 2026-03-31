@@ -15,7 +15,13 @@ const api = {
     listConfigMaps: () => ipcRenderer.invoke('k8s:configmaps:list'),
     listSecrets: () => ipcRenderer.invoke('k8s:secrets:list'),
     listPods: () => ipcRenderer.invoke('k8s:pods:list'),
-    getClusterType: () => ipcRenderer.invoke('k8s:cluster:type')
+    getClusterType: () => ipcRenderer.invoke('k8s:cluster:type'),
+    createDeployment: (namespace: string, name: string, image: string, replicas: number) =>
+      ipcRenderer.invoke('k8s:deployment:create', namespace, name, image, replicas),
+    updateDeployment: (namespace: string, name: string, image: string, replicas: number) =>
+      ipcRenderer.invoke('k8s:deployment:update', namespace, name, image, replicas),
+    deleteDeployment: (namespace: string, name: string) =>
+      ipcRenderer.invoke('k8s:deployment:delete', namespace, name)
   }
 }
 

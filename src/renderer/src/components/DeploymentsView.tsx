@@ -8,7 +8,19 @@ import {
   TableHead,
   TableCell
 } from '../../components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '../../components/ui/dialog'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
 import { cn } from '../../lib/utils'
+import { Pencil, Trash2, Plus } from 'lucide-react'
 
 interface K8sDeploymentCondition {
   type: string
@@ -136,14 +148,274 @@ function DetailPanel({ deployment }: { deployment: K8sDeployment }): JSX.Element
   )
 }
 
+interface CreateDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  namespaces: string[]
+  onCreated: () => void
+}
+
+function CreateDialog({ open, onOpenChange, namespaces, onCreated }: CreateDialogProps): JSX.Element {
+  const [name, setName] = useState('')
+  const [namespace, setNamespace] = useState(namespaces[0] ?? 'default')
+  const [image, setImage] = useState('')
+  const [replicas, setReplicas] = useState(1)
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  // reset when opened
+  useEffect(() => {
+    if (open) {
+      setName('')
+      setNamespace(namespaces[0] ?? 'default')
+      setImage('')
+      setReplicas(1)
+      setError(null)
+    }
+  }, [open, namespaces])
+
+  async function handleSubmit(): Promise<void> {
+    if (!name.trim() || !image.trim()) {
+      setError('Name and image are required.')
+      return
+    }
+    setSubmitting(true)
+    setError(null)
+    try {
+      await window.api.k8s.createDeployment(namespace, name.trim(), image.trim(), replicas)
+      onCreated()
+      onOpenChange(false)
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent onClose={() => onOpenChange(false)}>
+        <DialogHeader>
+          <DialogTitle>New Deployment</DialogTitle>
+          <DialogDescription>Create a new Kubernetes Deployment.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="create-name">Name</Label>
+            <Input
+              id="create-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="my-deployment"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="create-namespace">Namespace</Label>
+            <select
+              id="create-namespace"
+              value={namespace}
+              onChange={(e) => setNamespace(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {namespaces.map((ns) => (
+                <option key={ns} value={ns}>
+                  {ns}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="create-image">Image</Label>
+            <Input
+              id="create-image"
+              value={image}
+              onChange={(e) => setImage(e.target.value)}
+              placeholder="nginx:latest"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="create-replicas">Replicas</Label>
+            <Input
+              id="create-replicas"
+              type="number"
+              min={0}
+              value={replicas}
+              onChange={(e) => setReplicas(Number(e.target.value))}
+            />
+          </div>
+          {error && <p className="text-sm text-red-500">{error}</p>}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={submitting}>
+            {submitting ? 'Creating…' : 'Create'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface EditDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  deployment: K8sDeployment | null
+  onUpdated: () => void
+}
+
+function EditDialog({ open, onOpenChange, deployment, onUpdated }: EditDialogProps): JSX.Element {
+  const [image, setImage] = useState('')
+  const [replicas, setReplicas] = useState(1)
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (open && deployment) {
+      setImage(deployment.containers[0]?.image ?? '')
+      setReplicas(deployment.replicas)
+      setError(null)
+    }
+  }, [open, deployment])
+
+  async function handleSubmit(): Promise<void> {
+    if (!deployment) return
+    if (!image.trim()) {
+      setError('Image is required.')
+      return
+    }
+    setSubmitting(true)
+    setError(null)
+    try {
+      await window.api.k8s.updateDeployment(
+        deployment.namespace,
+        deployment.name,
+        image.trim(),
+        replicas
+      )
+      onUpdated()
+      onOpenChange(false)
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent onClose={() => onOpenChange(false)}>
+        <DialogHeader>
+          <DialogTitle>Edit Deployment</DialogTitle>
+          <DialogDescription>
+            {deployment ? `${deployment.namespace}/${deployment.name}` : ''}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="edit-image">Image</Label>
+            <Input
+              id="edit-image"
+              value={image}
+              onChange={(e) => setImage(e.target.value)}
+              placeholder="nginx:latest"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-replicas">Replicas</Label>
+            <Input
+              id="edit-replicas"
+              type="number"
+              min={0}
+              value={replicas}
+              onChange={(e) => setReplicas(Number(e.target.value))}
+            />
+          </div>
+          {error && <p className="text-sm text-red-500">{error}</p>}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={submitting}>
+            {submitting ? 'Saving…' : 'Save'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface DeleteDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  deployment: K8sDeployment | null
+  onDeleted: () => void
+}
+
+function DeleteDialog({ open, onOpenChange, deployment, onDeleted }: DeleteDialogProps): JSX.Element {
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (open) setError(null)
+  }, [open])
+
+  async function handleDelete(): Promise<void> {
+    if (!deployment) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      await window.api.k8s.deleteDeployment(deployment.namespace, deployment.name)
+      onDeleted()
+      onOpenChange(false)
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent onClose={() => onOpenChange(false)}>
+        <DialogHeader>
+          <DialogTitle>Delete Deployment</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete{' '}
+            <strong>{deployment ? `${deployment.namespace}/${deployment.name}` : ''}</strong>? This
+            action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        {error && <p className="text-sm text-red-500">{error}</p>}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
+            {submitting ? 'Deleting…' : 'Delete'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function DeploymentsView(): JSX.Element {
   const [deployments, setDeployments] = useState<K8sDeployment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [namespaces, setNamespaces] = useState<string[]>([])
+
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editTarget, setEditTarget] = useState<K8sDeployment | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<K8sDeployment | null>(null)
+
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sDeployment | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
 
-  useEffect(() => {
+  function fetchDeployments(): void {
     setLoading(true)
     setError(null)
     window.api.k8s
@@ -156,12 +428,26 @@ export function DeploymentsView(): JSX.Element {
         setError(String(err))
         setLoading(false)
       })
+  }
+
+  useEffect(() => {
+    fetchDeployments()
+    window.api.k8s
+      .listNamespaces()
+      .then((data) => setNamespaces(data.map((ns) => ns.name)))
+      .catch(() => setNamespaces(['default']))
   }, [])
 
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
-        <h1 className="text-lg font-semibold mb-4">Deployments</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-lg font-semibold">Deployments</h1>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" />
+            New Deployment
+          </Button>
+        </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
         {!loading && !error && (
@@ -174,6 +460,7 @@ export function DeploymentsView(): JSX.Element {
                 <TableHead>Up-to-date</TableHead>
                 <TableHead>Available</TableHead>
                 <TableHead>Age</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -194,6 +481,26 @@ export function DeploymentsView(): JSX.Element {
                   <TableCell>{d.updatedReplicas}</TableCell>
                   <TableCell>{d.availableReplicas}</TableCell>
                   <TableCell>{formatAge(d.creationTimestamp)}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Edit"
+                        onClick={() => setEditTarget(d)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Delete"
+                        onClick={() => setDeleteTarget(d)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -204,6 +511,36 @@ export function DeploymentsView(): JSX.Element {
       {selectedItem && selectedItem.namespace !== undefined && (
         <DetailPanel deployment={selectedItem} />
       )}
+
+      <CreateDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        namespaces={namespaces.length > 0 ? namespaces : ['default']}
+        onCreated={() => {
+          fetchDeployments()
+          setSelectedItem(null)
+        }}
+      />
+
+      <EditDialog
+        open={editTarget !== null}
+        onOpenChange={(open) => { if (!open) setEditTarget(null) }}
+        deployment={editTarget}
+        onUpdated={() => {
+          fetchDeployments()
+          setSelectedItem(null)
+        }}
+      />
+
+      <DeleteDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
+        deployment={deleteTarget}
+        onDeleted={() => {
+          fetchDeployments()
+          setSelectedItem(null)
+        }}
+      />
     </div>
   )
 }

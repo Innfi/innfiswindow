@@ -194,6 +194,19 @@ export interface K8sAPI {
   listSecrets: () => Promise<K8sSecret[]>
   listPods: () => Promise<K8sPod[]>
   getClusterType: () => Promise<'EKS' | 'AKS' | 'Local'>
+  createDeployment: (
+    namespace: string,
+    name: string,
+    image: string,
+    replicas: number
+  ) => Promise<{ name: string; namespace: string }>
+  updateDeployment: (
+    namespace: string,
+    name: string,
+    image: string,
+    replicas: number
+  ) => Promise<{ name: string; namespace: string }>
+  deleteDeployment: (namespace: string, name: string) => Promise<{ success: boolean; name: string; namespace: string }>
 }
 
 export interface API {

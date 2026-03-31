@@ -223,3 +223,63 @@ export async function listSecrets(api: CoreV1Api) {
     }
   })
 }
+
+export async function createDeployment(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+  image: string,
+  replicas: number
+) {
+  const body = {
+    apiVersion: 'apps/v1',
+    kind: 'Deployment',
+    metadata: { name, namespace },
+    spec: {
+      replicas,
+      selector: { matchLabels: { app: name } },
+      template: {
+        metadata: { labels: { app: name } },
+        spec: { containers: [{ name, image }] }
+      }
+    }
+  }
+  const res = await api.createNamespacedDeployment({ namespace, body })
+  return {
+    name: res.metadata?.name ?? '',
+    namespace: res.metadata?.namespace ?? ''
+  }
+}
+
+export async function updateDeployment(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+  image: string,
+  replicas: number
+) {
+  const body = {
+    spec: {
+      replicas,
+      template: {
+        spec: {
+          containers: [{ name, image }]
+        }
+      }
+    }
+  }
+  const res = await api.patchNamespacedDeployment({
+    name,
+    namespace,
+    body
+  })
+  return {
+    name: res.metadata?.name ?? '',
+    namespace: res.metadata?.namespace ?? ''
+  }
+}
+
+export async function deleteDeployment(api: AppsV1Api, namespace: string, name: string) {
+  await api.deleteNamespacedDeployment({ name, namespace })
+  return { success: true, name, namespace }
+}
