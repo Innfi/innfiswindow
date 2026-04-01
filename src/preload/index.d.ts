@@ -207,6 +207,20 @@ export interface K8sAPI {
     replicas: number
   ) => Promise<{ name: string; namespace: string }>
   deleteDeployment: (namespace: string, name: string) => Promise<{ success: boolean; name: string; namespace: string }>
+  createStatefulSet: (
+    namespace: string,
+    name: string,
+    image: string,
+    replicas: number,
+    serviceName: string
+  ) => Promise<{ name: string; namespace: string }>
+  updateStatefulSet: (
+    namespace: string,
+    name: string,
+    image: string,
+    replicas: number
+  ) => Promise<{ name: string; namespace: string }>
+  deleteStatefulSet: (namespace: string, name: string) => Promise<{ success: boolean; name: string; namespace: string }>
 }
 
 export interface API {

@@ -314,7 +314,7 @@
     {
       "id": "S20",
       "title": "Create, update, and delete StatefulSets",
-      "status": "pending",
+      "status": "complete",
       "description": "Add full CRUD support for StatefulSets. Users can create a new StatefulSet via a form dialog, edit an existing StatefulSet's replica count and container image via an edit dialog, and delete a StatefulSet with a confirmation prompt. All mutations go through IPC handlers in the main process using AppsV1Api. The StatefulSets list refreshes automatically after any mutation.",
       "acceptance_criteria": [
         "IPC handler `k8s:statefulset:create` accepts namespace, name, image, replicas, and serviceName; creates the StatefulSet and returns the created object",

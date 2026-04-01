@@ -17,7 +17,10 @@ import {
   listSecrets,
   createDeployment,
   updateDeployment,
-  deleteDeployment
+  deleteDeployment,
+  createStatefulSet,
+  updateStatefulSet,
+  deleteStatefulSet
 } from './k8s-handlers'
 
 const kc = new KubeConfig()
@@ -95,6 +98,19 @@ app.whenReady().then(() => {
   )
   ipcMain.handle('k8s:deployment:delete', (_e, namespace: string, name: string) =>
     deleteDeployment(appsV1Api, namespace, name)
+  )
+  ipcMain.handle(
+    'k8s:statefulset:create',
+    (_e, namespace: string, name: string, image: string, replicas: number, serviceName: string) =>
+      createStatefulSet(appsV1Api, namespace, name, image, replicas, serviceName)
+  )
+  ipcMain.handle(
+    'k8s:statefulset:update',
+    (_e, namespace: string, name: string, image: string, replicas: number) =>
+      updateStatefulSet(appsV1Api, namespace, name, image, replicas)
+  )
+  ipcMain.handle('k8s:statefulset:delete', (_e, namespace: string, name: string) =>
+    deleteStatefulSet(appsV1Api, namespace, name)
   )
 
   createWindow()

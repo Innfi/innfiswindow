@@ -283,3 +283,61 @@ export async function deleteDeployment(api: AppsV1Api, namespace: string, name: 
   await api.deleteNamespacedDeployment({ name, namespace })
   return { success: true, name, namespace }
 }
+
+export async function createStatefulSet(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+  image: string,
+  replicas: number,
+  serviceName: string
+) {
+  const body = {
+    apiVersion: 'apps/v1',
+    kind: 'StatefulSet',
+    metadata: { name, namespace },
+    spec: {
+      replicas,
+      serviceName,
+      selector: { matchLabels: { app: name } },
+      template: {
+        metadata: { labels: { app: name } },
+        spec: { containers: [{ name, image }] }
+      }
+    }
+  }
+  const res = await api.createNamespacedStatefulSet({ namespace, body })
+  return {
+    name: res.metadata?.name ?? '',
+    namespace: res.metadata?.namespace ?? ''
+  }
+}
+
+export async function updateStatefulSet(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+  image: string,
+  replicas: number
+) {
+  const body = {
+    spec: {
+      replicas,
+      template: {
+        spec: {
+          containers: [{ name, image }]
+        }
+      }
+    }
+  }
+  const res = await api.patchNamespacedStatefulSet({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? '',
+    namespace: res.metadata?.namespace ?? ''
+  }
+}
+
+export async function deleteStatefulSet(api: AppsV1Api, namespace: string, name: string) {
+  await api.deleteNamespacedStatefulSet({ name, namespace })
+  return { success: true, name, namespace }
+}

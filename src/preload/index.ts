@@ -21,7 +21,18 @@ const api = {
     updateDeployment: (namespace: string, name: string, image: string, replicas: number) =>
       ipcRenderer.invoke('k8s:deployment:update', namespace, name, image, replicas),
     deleteDeployment: (namespace: string, name: string) =>
-      ipcRenderer.invoke('k8s:deployment:delete', namespace, name)
+      ipcRenderer.invoke('k8s:deployment:delete', namespace, name),
+    createStatefulSet: (
+      namespace: string,
+      name: string,
+      image: string,
+      replicas: number,
+      serviceName: string
+    ) => ipcRenderer.invoke('k8s:statefulset:create', namespace, name, image, replicas, serviceName),
+    updateStatefulSet: (namespace: string, name: string, image: string, replicas: number) =>
+      ipcRenderer.invoke('k8s:statefulset:update', namespace, name, image, replicas),
+    deleteStatefulSet: (namespace: string, name: string) =>
+      ipcRenderer.invoke('k8s:statefulset:delete', namespace, name)
   }
 }
 
