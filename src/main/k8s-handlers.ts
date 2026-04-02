@@ -341,3 +341,55 @@ export async function deleteStatefulSet(api: AppsV1Api, namespace: string, name:
   await api.deleteNamespacedStatefulSet({ name, namespace })
   return { success: true, name, namespace }
 }
+
+export async function createDaemonSet(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+  image: string
+) {
+  const body = {
+    apiVersion: 'apps/v1',
+    kind: 'DaemonSet',
+    metadata: { name, namespace },
+    spec: {
+      selector: { matchLabels: { app: name } },
+      template: {
+        metadata: { labels: { app: name } },
+        spec: { containers: [{ name, image }] }
+      }
+    }
+  }
+  const res = await api.createNamespacedDaemonSet({ namespace, body })
+  return {
+    name: res.metadata?.name ?? '',
+    namespace: res.metadata?.namespace ?? ''
+  }
+}
+
+export async function updateDaemonSet(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+  image: string
+) {
+  const body = {
+    spec: {
+      template: {
+        spec: {
+          containers: [{ name, image }]
+        }
+      }
+    }
+  }
+  const res = await api.patchNamespacedDaemonSet({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? '',
+    namespace: res.metadata?.namespace ?? ''
+  }
+}
+
+export async function deleteDaemonSet(api: AppsV1Api, namespace: string, name: string) {
+  await api.deleteNamespacedDaemonSet({ name, namespace })
+  return { success: true, name, namespace }
+}

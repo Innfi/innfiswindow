@@ -337,7 +337,7 @@
     {
       "id": "S21",
       "title": "Create, update, and delete DaemonSets",
-      "status": "pending",
+      "status": "complete",
       "description": "Add full CRUD support for DaemonSets. Users can create a new DaemonSet via a form dialog, edit an existing DaemonSet's container image via an edit dialog, and delete a DaemonSet with a confirmation prompt. DaemonSets do not have a replica count — they run one pod per eligible node. All mutations go through IPC handlers in the main process using AppsV1Api. The DaemonSets list refreshes automatically after any mutation.",
       "acceptance_criteria": [
         "IPC handler `k8s:daemonset:create` accepts namespace, name, and image; creates the DaemonSet and returns the created object",

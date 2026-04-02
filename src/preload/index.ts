@@ -32,7 +32,13 @@ const api = {
     updateStatefulSet: (namespace: string, name: string, image: string, replicas: number) =>
       ipcRenderer.invoke('k8s:statefulset:update', namespace, name, image, replicas),
     deleteStatefulSet: (namespace: string, name: string) =>
-      ipcRenderer.invoke('k8s:statefulset:delete', namespace, name)
+      ipcRenderer.invoke('k8s:statefulset:delete', namespace, name),
+    createDaemonSet: (namespace: string, name: string, image: string) =>
+      ipcRenderer.invoke('k8s:daemonset:create', namespace, name, image),
+    updateDaemonSet: (namespace: string, name: string, image: string) =>
+      ipcRenderer.invoke('k8s:daemonset:update', namespace, name, image),
+    deleteDaemonSet: (namespace: string, name: string) =>
+      ipcRenderer.invoke('k8s:daemonset:delete', namespace, name)
   }
 }
 

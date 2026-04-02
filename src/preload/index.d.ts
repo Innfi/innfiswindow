@@ -221,6 +221,17 @@ export interface K8sAPI {
     replicas: number
   ) => Promise<{ name: string; namespace: string }>
   deleteStatefulSet: (namespace: string, name: string) => Promise<{ success: boolean; name: string; namespace: string }>
+  createDaemonSet: (
+    namespace: string,
+    name: string,
+    image: string
+  ) => Promise<{ name: string; namespace: string }>
+  updateDaemonSet: (
+    namespace: string,
+    name: string,
+    image: string
+  ) => Promise<{ name: string; namespace: string }>
+  deleteDaemonSet: (namespace: string, name: string) => Promise<{ success: boolean; name: string; namespace: string }>
 }
 
 export interface API {

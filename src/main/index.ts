@@ -20,7 +20,10 @@ import {
   deleteDeployment,
   createStatefulSet,
   updateStatefulSet,
-  deleteStatefulSet
+  deleteStatefulSet,
+  createDaemonSet,
+  updateDaemonSet,
+  deleteDaemonSet
 } from './k8s-handlers'
 
 const kc = new KubeConfig()
@@ -111,6 +114,19 @@ app.whenReady().then(() => {
   )
   ipcMain.handle('k8s:statefulset:delete', (_e, namespace: string, name: string) =>
     deleteStatefulSet(appsV1Api, namespace, name)
+  )
+  ipcMain.handle(
+    'k8s:daemonset:create',
+    (_e, namespace: string, name: string, image: string) =>
+      createDaemonSet(appsV1Api, namespace, name, image)
+  )
+  ipcMain.handle(
+    'k8s:daemonset:update',
+    (_e, namespace: string, name: string, image: string) =>
+      updateDaemonSet(appsV1Api, namespace, name, image)
+  )
+  ipcMain.handle('k8s:daemonset:delete', (_e, namespace: string, name: string) =>
+    deleteDaemonSet(appsV1Api, namespace, name)
   )
 
   createWindow()
