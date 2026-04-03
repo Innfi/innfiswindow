@@ -360,7 +360,7 @@
     {
       "id": "S19",
       "title": "Architecture audit and refactoring plan",
-      "status": "pending",
+      "status": "complete",
       "description": "Analyse the current codebase structure, measure key architectural health signals, and produce a written refactoring plan. The output is a markdown report at `docs/architecture-refactor-plan.md`. The agent must read every file under `src/` (main, preload, renderer), measure the signals listed below, identify the top pain-points, and propose concrete, prioritised refactoring actions — each with rationale, affected files, and estimated complexity (S/M/L). No production code is changed in this story.",
       "acceptance_criteria": [
         "File `docs/architecture-refactor-plan.md` exists and is committed",
