@@ -358,6 +358,85 @@
       "notes": "Use `appsV1Api.createNamespacedDaemonSet` for create, `appsV1Api.patchNamespacedDaemonSet` with a strategic merge patch for update, and `appsV1Api.deleteNamespacedDaemonSet` for delete. DaemonSets have no `replicas` field — omit it from forms and patch payloads. Dialogs should use shadcn Dialog + Form components."
     },
     {
+      "id": "S22",
+      "title": "Service resource: list view and detail view",
+      "status": "incomplete",
+      "description": "Implement Service resource support. In main process: add IPC handler 'k8s:services:list' using CoreV1Api.listServiceForAllNamespaces(). In renderer: add a new collapsible tree group 'Networking' (after 'Configuration') containing leaf items [Services, Ingresses]. When selectedResourceType is 'Services', show a shadcn Table with columns [Name, Namespace, Type (spec.type), ClusterIP, External IP (status.loadBalancer.ingress[0].ip or hostname, or spec.externalIPs[0]), Ports (formatted as port/protocol e.g. 80/TCP), Age]. Clicking a row sets selectedItem and shows a detail panel with: type, clusterIP, externalIPs, full port list (name, protocol, port, targetPort, nodePort), selector labels, labels, and annotations.",
+      "acceptance_criteria": [
+        "IPC handler 'k8s:services:list' returns Services across all namespaces using CoreV1Api",
+        "Tree view has new 'Networking' group with 'Services' and 'Ingresses' leaf items",
+        "Table shows Name, Namespace, Type, ClusterIP, External IP, Ports, Age columns",
+        "Detail panel shows type, clusterIP, externalIPs, all ports (name, protocol, port, targetPort, nodePort), selector, labels, annotations",
+        "Ports column displays a comma-separated list of port/protocol strings",
+        "External IP column is blank for ClusterIP-type services"
+      ],
+      "dependencies": ["S04"],
+      "ipc_handlers": ["k8s:services:list"]
+    },
+    {
+      "id": "S23",
+      "title": "Ingress resource: list view and detail view",
+      "status": "incomplete",
+      "description": "Implement Ingress resource support. In main process: add IPC handler 'k8s:ingresses:list' using NetworkingV1Api.listIngressForAllNamespaces(). In renderer: add 'Ingresses' as a leaf item under the 'Networking' tree group (created in S22). When selectedResourceType is 'Ingresses', show a shadcn Table with columns [Name, Namespace, Class (spec.ingressClassName), Hosts (comma-separated list of hosts from spec.rules), Address (status.loadBalancer.ingress[0].ip or hostname), Ports (80, or 80/443 if TLS is configured), Age]. Clicking a row sets selectedItem and shows a detail panel with: ingress class, TLS section (secret name + covered hosts), rules table (host, path, pathType, backend service name and port), labels, and annotations.",
+      "acceptance_criteria": [
+        "IPC handler 'k8s:ingresses:list' returns Ingresses across all namespaces using NetworkingV1Api",
+        "Tree view 'Networking' group includes 'Ingresses' leaf item",
+        "Table shows Name, Namespace, Class, Hosts, Address, Ports, Age columns",
+        "Detail panel shows ingress class, TLS configuration, rules (host/path/service/port), labels, annotations",
+        "Hosts column lists all unique hosts from spec.rules, or '*' if no host is specified",
+        "Ports column shows '80' for HTTP-only or '80, 443' when TLS entries exist"
+      ],
+      "dependencies": ["S22"],
+      "ipc_handlers": ["k8s:ingresses:list"],
+      "notes": "Use NetworkingV1Api (not the deprecated ExtensionsV1beta1Api). Import it from @kubernetes/client-node. The API method is listIngressForAllNamespaces()."
+    },
+    {
+      "id": "S24",
+      "title": "Create, update, and delete Services",
+      "status": "incomplete",
+      "description": "Add full CRUD support for Services. Users can create a new Service via a form dialog, edit an existing Service's type and ports via an edit dialog, and delete a Service with a confirmation prompt. All mutations go through IPC handlers in the main process using CoreV1Api. The Services list refreshes automatically after any mutation.",
+      "acceptance_criteria": [
+        "IPC handler `k8s:service:create` accepts namespace, name, type (ClusterIP/NodePort/LoadBalancer), ports (array of {protocol, port, targetPort}), and selector (key-value map); creates the Service and returns the created object",
+        "IPC handler `k8s:service:update` accepts namespace, name, type, and ports; patches the Service and returns the updated object",
+        "IPC handler `k8s:service:delete` accepts namespace and name; deletes the Service and returns a success status",
+        "A 'New Service' button in the Services list view opens a modal form with fields: name, namespace (dropdown), type (select: ClusterIP/NodePort/LoadBalancer), at least one port entry (protocol, port, targetPort), and selector (free-form key=value pairs)",
+        "Each row in the Services table has an Edit button that opens a pre-filled edit dialog for type and ports",
+        "Each row in the Services table has a Delete button that shows a confirmation dialog before deleting",
+        "After create, update, or delete the Service list re-fetches and the UI updates",
+        "Errors from the k8s API are surfaced to the user in the dialog (not silently swallowed)"
+      ],
+      "dependencies": ["S22"],
+      "ipc_handlers": [
+        "k8s:service:create",
+        "k8s:service:update",
+        "k8s:service:delete"
+      ],
+      "notes": "Use `coreV1Api.createNamespacedService` for create, `coreV1Api.patchNamespacedService` with a strategic merge patch for update (patch only spec.type and spec.ports), and `coreV1Api.deleteNamespacedService` for delete. NodePort is auto-assigned by k8s when not specified — do not require it in the create form. Selector should be a dynamic list of key/value pair inputs (add/remove rows). Dialogs should use shadcn Dialog + Form components."
+    },
+    {
+      "id": "S25",
+      "title": "Create, update, and delete Ingresses",
+      "status": "incomplete",
+      "description": "Add full CRUD support for Ingresses. Users can create a new Ingress via a form dialog, edit an existing Ingress's rules via an edit dialog, and delete an Ingress with a confirmation prompt. All mutations go through IPC handlers in the main process using NetworkingV1Api. The Ingresses list refreshes automatically after any mutation.",
+      "acceptance_criteria": [
+        "IPC handler `k8s:ingress:create` accepts namespace, name, ingressClassName, rules (array of {host, path, pathType, serviceName, servicePort}), and optional tls (array of {hosts, secretName}); creates the Ingress and returns the created object",
+        "IPC handler `k8s:ingress:update` accepts namespace, name, ingressClassName, rules, and tls; patches the Ingress and returns the updated object",
+        "IPC handler `k8s:ingress:delete` accepts namespace and name; deletes the Ingress and returns a success status",
+        "A 'New Ingress' button in the Ingresses list view opens a modal form with fields: name, namespace (dropdown), ingressClassName, at least one rule (host, path, pathType dropdown [Prefix/Exact/ImplementationSpecific], backend service name, backend service port)",
+        "Each row in the Ingresses table has an Edit button that opens a pre-filled edit dialog for ingressClassName and rules",
+        "Each row in the Ingresses table has a Delete button that shows a confirmation dialog before deleting",
+        "After create, update, or delete the Ingress list re-fetches and the UI updates",
+        "Errors from the k8s API are surfaced to the user in the dialog (not silently swallowed)"
+      ],
+      "dependencies": ["S23"],
+      "ipc_handlers": [
+        "k8s:ingress:create",
+        "k8s:ingress:update",
+        "k8s:ingress:delete"
+      ],
+      "notes": "Use `networkingV1Api.createNamespacedIngress` for create, `networkingV1Api.patchNamespacedIngress` with a strategic merge patch for update, and `networkingV1Api.deleteNamespacedIngress` for delete. The rules form should support adding/removing multiple rule rows. pathType must be one of 'Prefix', 'Exact', or 'ImplementationSpecific'. servicePort in the rule backend can be a number (port number) — use `{number: portValue}` in the IntOrString field. Dialogs should use shadcn Dialog + Form components."
+    },
+    {
       "id": "S19",
       "title": "Architecture audit and refactoring plan",
       "status": "complete",
