@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react'
-import { useAppStore } from '../../store/app.store'
+import { useEffect, useState } from "react"
+import { useAppStore } from "../../store/app.store"
 import {
   Table,
   TableHeader,
   TableBody,
   TableRow,
   TableHead,
-  TableCell
-} from '../../components/ui/table'
-import { cn } from '../../lib/utils'
+  TableCell,
+} from "../../components/ui/table"
+import { cn } from "../../lib/utils"
 
 interface K8sNamespace {
   name: string
@@ -19,7 +19,7 @@ interface K8sNamespace {
 }
 
 function formatAge(isoTimestamp: string): string {
-  if (!isoTimestamp) return '-'
+  if (!isoTimestamp) return "-"
   const diffMs = Date.now() - new Date(isoTimestamp).getTime()
   const diffSecs = Math.floor(diffMs / 1000)
   if (diffSecs < 60) return `${diffSecs}s`
@@ -31,10 +31,18 @@ function formatAge(isoTimestamp: string): string {
   return `${diffDays}d`
 }
 
-function MetaEntry({ label, value }: { label: string; value: string }): JSX.Element {
+function MetaEntry({
+  label,
+  value,
+}: {
+  label: string
+  value: string
+}): JSX.Element {
   return (
     <div className="flex gap-2 text-sm">
-      <span className="shrink-0 font-medium text-muted-foreground w-32">{label}</span>
+      <span className="shrink-0 font-medium text-muted-foreground w-32">
+        {label}
+      </span>
       <span className="break-all">{value}</span>
     </div>
   )
@@ -50,8 +58,10 @@ function DetailPanel({ ns }: { ns: K8sNamespace }): JSX.Element {
         <h2 className="font-semibold text-base mb-1">{ns.name}</h2>
         <span
           className={cn(
-            'inline-block rounded px-2 py-0.5 text-xs font-medium',
-            ns.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+            "inline-block rounded px-2 py-0.5 text-xs font-medium",
+            ns.status === "Active"
+              ? "bg-green-100 text-green-800"
+              : "bg-yellow-100 text-yellow-800",
           )}
         >
           {ns.status}
@@ -62,7 +72,10 @@ function DetailPanel({ ns }: { ns: K8sNamespace }): JSX.Element {
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
           Metadata
         </h3>
-        <MetaEntry label="Created" value={new Date(ns.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(ns.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {labelEntries.length > 0 && (
@@ -132,8 +145,8 @@ export function NamespacesView(): JSX.Element {
                 <TableRow
                   key={ns.name}
                   className={cn(
-                    'cursor-pointer',
-                    selectedItem?.name === ns.name && 'bg-muted'
+                    "cursor-pointer",
+                    selectedItem?.name === ns.name && "bg-muted",
                   )}
                   onClick={() => setSelectedItem(ns)}
                 >

@@ -1,4 +1,4 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
+import { ElectronAPI } from "@electron-toolkit/preload"
 
 export interface K8sContext {
   name: string
@@ -170,6 +170,27 @@ export interface K8sConfigMap {
   keys: string[]
 }
 
+export interface K8sServicePort {
+  name: string
+  protocol: string
+  port: number
+  targetPort: string
+  nodePort: number | null
+}
+
+export interface K8sService {
+  name: string
+  namespace: string
+  type: string
+  clusterIP: string
+  externalIP: string
+  ports: K8sServicePort[]
+  creationTimestamp: string
+  selector: Record<string, string>
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 export interface K8sSecret {
   name: string
   namespace: string
@@ -193,45 +214,55 @@ export interface K8sAPI {
   listConfigMaps: () => Promise<K8sConfigMap[]>
   listSecrets: () => Promise<K8sSecret[]>
   listPods: () => Promise<K8sPod[]>
-  getClusterType: () => Promise<'EKS' | 'AKS' | 'Local'>
+  listServices: () => Promise<K8sService[]>
+  getClusterType: () => Promise<"EKS" | "AKS" | "Local">
   createDeployment: (
     namespace: string,
     name: string,
     image: string,
-    replicas: number
+    replicas: number,
   ) => Promise<{ name: string; namespace: string }>
   updateDeployment: (
     namespace: string,
     name: string,
     image: string,
-    replicas: number
+    replicas: number,
   ) => Promise<{ name: string; namespace: string }>
-  deleteDeployment: (namespace: string, name: string) => Promise<{ success: boolean; name: string; namespace: string }>
+  deleteDeployment: (
+    namespace: string,
+    name: string,
+  ) => Promise<{ success: boolean; name: string; namespace: string }>
   createStatefulSet: (
     namespace: string,
     name: string,
     image: string,
     replicas: number,
-    serviceName: string
+    serviceName: string,
   ) => Promise<{ name: string; namespace: string }>
   updateStatefulSet: (
     namespace: string,
     name: string,
     image: string,
-    replicas: number
+    replicas: number,
   ) => Promise<{ name: string; namespace: string }>
-  deleteStatefulSet: (namespace: string, name: string) => Promise<{ success: boolean; name: string; namespace: string }>
+  deleteStatefulSet: (
+    namespace: string,
+    name: string,
+  ) => Promise<{ success: boolean; name: string; namespace: string }>
   createDaemonSet: (
     namespace: string,
     name: string,
-    image: string
+    image: string,
   ) => Promise<{ name: string; namespace: string }>
   updateDaemonSet: (
     namespace: string,
     name: string,
-    image: string
+    image: string,
   ) => Promise<{ name: string; namespace: string }>
-  deleteDaemonSet: (namespace: string, name: string) => Promise<{ success: boolean; name: string; namespace: string }>
+  deleteDaemonSet: (
+    namespace: string,
+    name: string,
+  ) => Promise<{ success: boolean; name: string; namespace: string }>
 }
 
 export interface API {

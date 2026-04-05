@@ -1,26 +1,26 @@
-import { useEffect, useState } from 'react'
-import { useAppStore } from '../../store/app.store'
+import { useEffect, useState } from "react"
+import { useAppStore } from "../../store/app.store"
 import {
   Table,
   TableHeader,
   TableBody,
   TableRow,
   TableHead,
-  TableCell
-} from '../../components/ui/table'
+  TableCell,
+} from "../../components/ui/table"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter
-} from '../../components/ui/dialog'
-import { Button } from '../../components/ui/button'
-import { Input } from '../../components/ui/input'
-import { Label } from '../../components/ui/label'
-import { cn } from '../../lib/utils'
-import { Pencil, Trash2, Plus } from 'lucide-react'
+  DialogFooter,
+} from "../../components/ui/dialog"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Label } from "../../components/ui/label"
+import { cn } from "../../lib/utils"
+import { Pencil, Trash2, Plus } from "lucide-react"
 
 interface K8sStatefulSetContainer {
   name: string
@@ -46,7 +46,7 @@ interface K8sStatefulSet {
 }
 
 function formatAge(isoTimestamp: string): string {
-  if (!isoTimestamp) return '-'
+  if (!isoTimestamp) return "-"
   const diffMs = Date.now() - new Date(isoTimestamp).getTime()
   const diffSecs = Math.floor(diffMs / 1000)
   if (diffSecs < 60) return `${diffSecs}s`
@@ -58,10 +58,18 @@ function formatAge(isoTimestamp: string): string {
   return `${diffDays}d`
 }
 
-function MetaEntry({ label, value }: { label: string; value: string }): JSX.Element {
+function MetaEntry({
+  label,
+  value,
+}: {
+  label: string
+  value: string
+}): JSX.Element {
   return (
     <div className="flex gap-2 text-sm">
-      <span className="shrink-0 font-medium text-muted-foreground w-32">{label}</span>
+      <span className="shrink-0 font-medium text-muted-foreground w-32">
+        {label}
+      </span>
       <span className="break-all">{value}</span>
     </div>
   )
@@ -83,7 +91,10 @@ function DetailPanel({ ss }: { ss: K8sStatefulSet }): JSX.Element {
         </h3>
         <MetaEntry label="Desired" value={String(ss.replicas)} />
         <MetaEntry label="Ready" value={String(ss.readyReplicas)} />
-        <MetaEntry label="Created" value={new Date(ss.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(ss.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       <div className="space-y-1">
@@ -111,9 +122,14 @@ function DetailPanel({ ss }: { ss: K8sStatefulSet }): JSX.Element {
             Containers
           </h3>
           {ss.containers.map((c) => (
-            <div key={c.name} className="text-sm border rounded p-2 space-y-0.5">
+            <div
+              key={c.name}
+              className="text-sm border rounded p-2 space-y-0.5"
+            >
               <div className="font-medium">{c.name}</div>
-              <div className="text-xs text-muted-foreground break-all">{c.image}</div>
+              <div className="text-xs text-muted-foreground break-all">
+                {c.image}
+              </div>
             </div>
           ))}
         </div>
@@ -125,7 +141,10 @@ function DetailPanel({ ss }: { ss: K8sStatefulSet }): JSX.Element {
             Volume Claim Templates
           </h3>
           {ss.volumeClaimTemplates.map((vct) => (
-            <div key={vct.name} className="text-sm border rounded p-2 space-y-0.5">
+            <div
+              key={vct.name}
+              className="text-sm border rounded p-2 space-y-0.5"
+            >
               <div className="font-medium">{vct.name}</div>
               <div className="text-xs text-muted-foreground">{vct.storage}</div>
             </div>
@@ -143,29 +162,34 @@ interface CreateDialogProps {
   onCreated: () => void
 }
 
-function CreateDialog({ open, onOpenChange, namespaces, onCreated }: CreateDialogProps): JSX.Element {
-  const [name, setName] = useState('')
-  const [namespace, setNamespace] = useState(namespaces[0] ?? 'default')
-  const [image, setImage] = useState('')
+function CreateDialog({
+  open,
+  onOpenChange,
+  namespaces,
+  onCreated,
+}: CreateDialogProps): JSX.Element {
+  const [name, setName] = useState("")
+  const [namespace, setNamespace] = useState(namespaces[0] ?? "default")
+  const [image, setImage] = useState("")
   const [replicas, setReplicas] = useState(1)
-  const [serviceName, setServiceName] = useState('')
+  const [serviceName, setServiceName] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (open) {
-      setName('')
-      setNamespace(namespaces[0] ?? 'default')
-      setImage('')
+      setName("")
+      setNamespace(namespaces[0] ?? "default")
+      setImage("")
       setReplicas(1)
-      setServiceName('')
+      setServiceName("")
       setError(null)
     }
   }, [open, namespaces])
 
   async function handleSubmit(): Promise<void> {
     if (!name.trim() || !image.trim() || !serviceName.trim()) {
-      setError('Name, image, and service name are required.')
+      setError("Name, image, and service name are required.")
       return
     }
     setSubmitting(true)
@@ -176,7 +200,7 @@ function CreateDialog({ open, onOpenChange, namespaces, onCreated }: CreateDialo
         name.trim(),
         image.trim(),
         replicas,
-        serviceName.trim()
+        serviceName.trim(),
       )
       onCreated()
       onOpenChange(false)
@@ -192,7 +216,9 @@ function CreateDialog({ open, onOpenChange, namespaces, onCreated }: CreateDialo
       <DialogContent onClose={() => onOpenChange(false)}>
         <DialogHeader>
           <DialogTitle>New StatefulSet</DialogTitle>
-          <DialogDescription>Create a new Kubernetes StatefulSet.</DialogDescription>
+          <DialogDescription>
+            Create a new Kubernetes StatefulSet.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">
@@ -250,11 +276,15 @@ function CreateDialog({ open, onOpenChange, namespaces, onCreated }: CreateDialo
           {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'Creating…' : 'Create'}
+            {submitting ? "Creating…" : "Create"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -269,15 +299,20 @@ interface EditDialogProps {
   onUpdated: () => void
 }
 
-function EditDialog({ open, onOpenChange, statefulSet, onUpdated }: EditDialogProps): JSX.Element {
-  const [image, setImage] = useState('')
+function EditDialog({
+  open,
+  onOpenChange,
+  statefulSet,
+  onUpdated,
+}: EditDialogProps): JSX.Element {
+  const [image, setImage] = useState("")
   const [replicas, setReplicas] = useState(1)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (open && statefulSet) {
-      setImage(statefulSet.containers[0]?.image ?? '')
+      setImage(statefulSet.containers[0]?.image ?? "")
       setReplicas(statefulSet.replicas)
       setError(null)
     }
@@ -286,7 +321,7 @@ function EditDialog({ open, onOpenChange, statefulSet, onUpdated }: EditDialogPr
   async function handleSubmit(): Promise<void> {
     if (!statefulSet) return
     if (!image.trim()) {
-      setError('Image is required.')
+      setError("Image is required.")
       return
     }
     setSubmitting(true)
@@ -296,7 +331,7 @@ function EditDialog({ open, onOpenChange, statefulSet, onUpdated }: EditDialogPr
         statefulSet.namespace,
         statefulSet.name,
         image.trim(),
-        replicas
+        replicas,
       )
       onUpdated()
       onOpenChange(false)
@@ -313,7 +348,7 @@ function EditDialog({ open, onOpenChange, statefulSet, onUpdated }: EditDialogPr
         <DialogHeader>
           <DialogTitle>Edit StatefulSet</DialogTitle>
           <DialogDescription>
-            {statefulSet ? `${statefulSet.namespace}/${statefulSet.name}` : ''}
+            {statefulSet ? `${statefulSet.namespace}/${statefulSet.name}` : ""}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -339,11 +374,15 @@ function EditDialog({ open, onOpenChange, statefulSet, onUpdated }: EditDialogPr
           {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'Saving…' : 'Save'}
+            {submitting ? "Saving…" : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -358,7 +397,12 @@ interface DeleteDialogProps {
   onDeleted: () => void
 }
 
-function DeleteDialog({ open, onOpenChange, statefulSet, onDeleted }: DeleteDialogProps): JSX.Element {
+function DeleteDialog({
+  open,
+  onOpenChange,
+  statefulSet,
+  onDeleted,
+}: DeleteDialogProps): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -371,7 +415,10 @@ function DeleteDialog({ open, onOpenChange, statefulSet, onDeleted }: DeleteDial
     setSubmitting(true)
     setError(null)
     try {
-      await window.api.k8s.deleteStatefulSet(statefulSet.namespace, statefulSet.name)
+      await window.api.k8s.deleteStatefulSet(
+        statefulSet.namespace,
+        statefulSet.name,
+      )
       onDeleted()
       onOpenChange(false)
     } catch (e) {
@@ -387,18 +434,30 @@ function DeleteDialog({ open, onOpenChange, statefulSet, onDeleted }: DeleteDial
         <DialogHeader>
           <DialogTitle>Delete StatefulSet</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete{' '}
-            <strong>{statefulSet ? `${statefulSet.namespace}/${statefulSet.name}` : ''}</strong>? This
-            action cannot be undone.
+            Are you sure you want to delete{" "}
+            <strong>
+              {statefulSet
+                ? `${statefulSet.namespace}/${statefulSet.name}`
+                : ""}
+            </strong>
+            ? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         {error && <p className="text-sm text-red-500">{error}</p>}
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
-            {submitting ? 'Deleting…' : 'Delete'}
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={submitting}
+          >
+            {submitting ? "Deleting…" : "Delete"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -416,7 +475,9 @@ export function StatefulSetsView(): JSX.Element {
   const [editTarget, setEditTarget] = useState<K8sStatefulSet | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<K8sStatefulSet | null>(null)
 
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sStatefulSet | null
+  const selectedItem = useAppStore(
+    (s) => s.selectedItem,
+  ) as K8sStatefulSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
 
   function fetchStatefulSets(): void {
@@ -439,7 +500,7 @@ export function StatefulSetsView(): JSX.Element {
     window.api.k8s
       .listNamespaces()
       .then((data) => setNamespaces(data.map((ns) => ns.name)))
-      .catch(() => setNamespaces(['default']))
+      .catch(() => setNamespaces(["default"]))
   }, [])
 
   return (
@@ -471,20 +532,25 @@ export function StatefulSetsView(): JSX.Element {
                 <TableRow
                   key={`${ss.namespace}/${ss.name}`}
                   className={cn(
-                    'cursor-pointer',
+                    "cursor-pointer",
                     selectedItem?.name === ss.name &&
                       selectedItem?.namespace === ss.namespace &&
-                      'bg-muted'
+                      "bg-muted",
                   )}
                   onClick={() => setSelectedItem(ss)}
                 >
                   <TableCell>{ss.name}</TableCell>
                   <TableCell>{ss.namespace}</TableCell>
-                  <TableCell>{ss.readyReplicas}/{ss.replicas}</TableCell>
+                  <TableCell>
+                    {ss.readyReplicas}/{ss.replicas}
+                  </TableCell>
                   <TableCell>{formatAge(ss.creationTimestamp)}</TableCell>
                   <TableCell>{ss.serviceName}</TableCell>
                   <TableCell>
-                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="flex gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Button
                         variant="ghost"
                         size="icon"
@@ -517,7 +583,7 @@ export function StatefulSetsView(): JSX.Element {
       <CreateDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        namespaces={namespaces.length > 0 ? namespaces : ['default']}
+        namespaces={namespaces.length > 0 ? namespaces : ["default"]}
         onCreated={() => {
           fetchStatefulSets()
           setSelectedItem(null)
@@ -526,7 +592,9 @@ export function StatefulSetsView(): JSX.Element {
 
       <EditDialog
         open={editTarget !== null}
-        onOpenChange={(open) => { if (!open) setEditTarget(null) }}
+        onOpenChange={(open) => {
+          if (!open) setEditTarget(null)
+        }}
         statefulSet={editTarget}
         onUpdated={() => {
           fetchStatefulSets()
@@ -536,7 +604,9 @@ export function StatefulSetsView(): JSX.Element {
 
       <DeleteDialog
         open={deleteTarget !== null}
-        onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
         statefulSet={deleteTarget}
         onDeleted={() => {
           fetchStatefulSets()

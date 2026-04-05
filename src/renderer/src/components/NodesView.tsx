@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react'
-import { useAppStore } from '../../store/app.store'
+import { useEffect, useState } from "react"
+import { useAppStore } from "../../store/app.store"
 import {
   Table,
   TableHeader,
   TableBody,
   TableRow,
   TableHead,
-  TableCell
-} from '../../components/ui/table'
-import { cn } from '../../lib/utils'
+  TableCell,
+} from "../../components/ui/table"
+import { cn } from "../../lib/utils"
 
 interface K8sNodeCondition {
   type: string
@@ -30,7 +30,7 @@ interface K8sNode {
 }
 
 function formatAge(isoTimestamp: string): string {
-  if (!isoTimestamp) return '-'
+  if (!isoTimestamp) return "-"
   const diffMs = Date.now() - new Date(isoTimestamp).getTime()
   const diffSecs = Math.floor(diffMs / 1000)
   if (diffSecs < 60) return `${diffSecs}s`
@@ -42,10 +42,18 @@ function formatAge(isoTimestamp: string): string {
   return `${diffDays}d`
 }
 
-function MetaEntry({ label, value }: { label: string; value: string }): JSX.Element {
+function MetaEntry({
+  label,
+  value,
+}: {
+  label: string
+  value: string
+}): JSX.Element {
   return (
     <div className="flex gap-2 text-sm">
-      <span className="shrink-0 font-medium text-muted-foreground w-32">{label}</span>
+      <span className="shrink-0 font-medium text-muted-foreground w-32">
+        {label}
+      </span>
       <span className="break-all">{value}</span>
     </div>
   )
@@ -62,10 +70,10 @@ function DetailPanel({ node }: { node: K8sNode }): JSX.Element {
         <h2 className="font-semibold text-base mb-1">{node.name}</h2>
         <span
           className={cn(
-            'inline-block rounded px-2 py-0.5 text-xs font-medium',
-            node.status === 'Ready'
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800'
+            "inline-block rounded px-2 py-0.5 text-xs font-medium",
+            node.status === "Ready"
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800",
           )}
         >
           {node.status}
@@ -76,7 +84,10 @@ function DetailPanel({ node }: { node: K8sNode }): JSX.Element {
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
           Metadata
         </h3>
-        <MetaEntry label="Created" value={new Date(node.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(node.creationTimestamp).toLocaleString()}
+        />
         <MetaEntry label="Roles" value={node.roles} />
         <MetaEntry label="Version" value={node.version} />
       </div>
@@ -109,15 +120,18 @@ function DetailPanel({ node }: { node: K8sNode }): JSX.Element {
             Conditions
           </h3>
           {node.conditions.map((c) => (
-            <div key={c.type} className="text-sm space-y-0.5 border rounded p-2">
+            <div
+              key={c.type}
+              className="text-sm space-y-0.5 border rounded p-2"
+            >
               <div className="flex items-center gap-2">
                 <span className="font-medium">{c.type}</span>
                 <span
                   className={cn(
-                    'rounded px-1.5 py-0.5 text-xs',
-                    c.status === 'True'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
+                    "rounded px-1.5 py-0.5 text-xs",
+                    c.status === "True"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-yellow-100 text-yellow-800",
                   )}
                 >
                   {c.status}
@@ -189,8 +203,8 @@ export function NodesView(): JSX.Element {
                 <TableRow
                   key={node.name}
                   className={cn(
-                    'cursor-pointer',
-                    selectedItem?.name === node.name && 'bg-muted'
+                    "cursor-pointer",
+                    selectedItem?.name === node.name && "bg-muted",
                   )}
                   onClick={() => setSelectedItem(node)}
                 >

@@ -1,20 +1,25 @@
-import { useState } from 'react'
-import * as Collapsible from '@radix-ui/react-collapsible'
-import { ChevronDown, ChevronRight } from 'lucide-react'
-import { useAppStore } from '../../store/app.store'
-import { cn } from '../../lib/utils'
+import { useState } from "react"
+import * as Collapsible from "@radix-ui/react-collapsible"
+import { ChevronDown, ChevronRight } from "lucide-react"
+import { useAppStore } from "../../store/app.store"
+import { cn } from "../../lib/utils"
 
 const groups = [
-  { label: 'Cluster', items: ['Namespaces', 'Nodes'] },
-  { label: 'Workloads', items: ['Deployments', 'ReplicaSets', 'StatefulSets', 'DaemonSets', 'Pods'] },
-  { label: 'Configuration', items: ['ConfigMaps', 'Secrets'] }
+  { label: "Cluster", items: ["Namespaces", "Nodes"] },
+  {
+    label: "Workloads",
+    items: ["Deployments", "ReplicaSets", "StatefulSets", "DaemonSets", "Pods"],
+  },
+  { label: "Configuration", items: ["ConfigMaps", "Secrets"] },
+  { label: "Networking", items: ["Services", "Ingresses"] },
 ]
 
 export function TreeView(): JSX.Element {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     Cluster: true,
     Workloads: true,
-    Configuration: true
+    Configuration: true,
+    Networking: true,
   })
   const selectedResourceType = useAppStore((s) => s.selectedResourceType)
   const setSelectedResourceType = useAppStore((s) => s.setSelectedResourceType)
@@ -46,8 +51,8 @@ export function TreeView(): JSX.Element {
               <div
                 key={item}
                 className={cn(
-                  'cursor-pointer py-1.5 pl-9 pr-3 text-sm hover:bg-accent',
-                  selectedResourceType === item && 'bg-accent font-medium'
+                  "cursor-pointer py-1.5 pl-9 pr-3 text-sm hover:bg-accent",
+                  selectedResourceType === item && "bg-accent font-medium",
                 )}
                 onClick={() => setSelectedResourceType(item)}
               >

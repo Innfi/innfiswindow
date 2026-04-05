@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
-import { useAppStore } from '../../store/app.store'
+import { useEffect, useState } from "react"
+import { Eye, EyeOff } from "lucide-react"
+import { useAppStore } from "../../store/app.store"
 import {
   Table,
   TableHeader,
   TableBody,
   TableRow,
   TableHead,
-  TableCell
-} from '../../components/ui/table'
-import { cn } from '../../lib/utils'
+  TableCell,
+} from "../../components/ui/table"
+import { cn } from "../../lib/utils"
 
 interface K8sSecret {
   name: string
@@ -23,7 +23,7 @@ interface K8sSecret {
 }
 
 function formatAge(isoTimestamp: string): string {
-  if (!isoTimestamp) return '-'
+  if (!isoTimestamp) return "-"
   const diffMs = Date.now() - new Date(isoTimestamp).getTime()
   const diffSecs = Math.floor(diffMs / 1000)
   if (diffSecs < 60) return `${diffSecs}s`
@@ -57,7 +57,9 @@ function DetailPanel({ secret }: { secret: K8sSecret }): JSX.Element {
     <div className="w-96 shrink-0 border-l h-full overflow-y-auto p-4 space-y-4">
       <div>
         <h2 className="font-semibold text-base mb-1">{secret.name}</h2>
-        <span className="text-xs text-muted-foreground">{secret.namespace}</span>
+        <span className="text-xs text-muted-foreground">
+          {secret.namespace}
+        </span>
       </div>
 
       <div>
@@ -75,11 +77,15 @@ function DetailPanel({ secret }: { secret: K8sSecret }): JSX.Element {
           {dataEntries.map(([key, value]) => (
             <div key={key} className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className="font-mono font-bold text-sm flex-1">{key}</span>
+                <span className="font-mono font-bold text-sm flex-1">
+                  {key}
+                </span>
                 <button
                   onClick={() => toggleReveal(key)}
                   className="text-muted-foreground hover:text-foreground"
-                  aria-label={revealedKeys.has(key) ? 'Hide value' : 'Show value'}
+                  aria-label={
+                    revealedKeys.has(key) ? "Hide value" : "Show value"
+                  }
                 >
                   {revealedKeys.has(key) ? (
                     <EyeOff className="h-4 w-4" />
@@ -93,7 +99,9 @@ function DetailPanel({ secret }: { secret: K8sSecret }): JSX.Element {
                   {value}
                 </pre>
               ) : (
-                <div className="text-sm text-muted-foreground tracking-widest">••••••••</div>
+                <div className="text-sm text-muted-foreground tracking-widest">
+                  ••••••••
+                </div>
               )}
             </div>
           ))}
@@ -107,7 +115,9 @@ function DetailPanel({ secret }: { secret: K8sSecret }): JSX.Element {
           </h3>
           {labelEntries.map(([k, v]) => (
             <div key={k} className="flex gap-2 text-sm">
-              <span className="shrink-0 font-medium text-muted-foreground">{k}:</span>
+              <span className="shrink-0 font-medium text-muted-foreground">
+                {k}:
+              </span>
               <span className="break-all">{v}</span>
             </div>
           ))}
@@ -121,7 +131,9 @@ function DetailPanel({ secret }: { secret: K8sSecret }): JSX.Element {
           </h3>
           {annotationEntries.map(([k, v]) => (
             <div key={k} className="flex gap-2 text-sm">
-              <span className="shrink-0 font-medium text-muted-foreground">{k}:</span>
+              <span className="shrink-0 font-medium text-muted-foreground">
+                {k}:
+              </span>
               <span className="break-all">{v}</span>
             </div>
           ))}
@@ -175,17 +187,19 @@ export function SecretsView(): JSX.Element {
                 <TableRow
                   key={`${secret.namespace}/${secret.name}`}
                   className={cn(
-                    'cursor-pointer',
+                    "cursor-pointer",
                     selectedItem?.name === secret.name &&
                       selectedItem?.namespace === secret.namespace &&
-                      'bg-muted'
+                      "bg-muted",
                   )}
                   onClick={() => setSelectedItem(secret)}
                 >
                   <TableCell>{secret.name}</TableCell>
                   <TableCell>{secret.namespace}</TableCell>
                   <TableCell className="text-xs">{secret.type}</TableCell>
-                  <TableCell className="max-w-xs truncate">{secret.keys.join(', ') || '-'}</TableCell>
+                  <TableCell className="max-w-xs truncate">
+                    {secret.keys.join(", ") || "-"}
+                  </TableCell>
                   <TableCell>{formatAge(secret.creationTimestamp)}</TableCell>
                 </TableRow>
               ))}

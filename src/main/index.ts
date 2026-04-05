@@ -1,7 +1,7 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
-import { join } from 'path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { KubeConfig, CoreV1Api, AppsV1Api } from '@kubernetes/client-node'
+import { app, shell, BrowserWindow, ipcMain } from "electron"
+import { join } from "path"
+import { electronApp, optimizer, is } from "@electron-toolkit/utils"
+import { KubeConfig, CoreV1Api, AppsV1Api } from "@kubernetes/client-node"
 import {
   listContexts,
   getCurrentContext,
@@ -15,6 +15,7 @@ import {
   listPods,
   listConfigMaps,
   listSecrets,
+  listServices,
   createDeployment,
   updateDeployment,
   deleteDeployment,
@@ -23,8 +24,8 @@ import {
   deleteStatefulSet,
   createDaemonSet,
   updateDaemonSet,
-  deleteDaemonSet
-} from './k8s-handlers'
+  deleteDaemonSet,
+} from "./k8s-handlers"
 
 const kc = new KubeConfig()
 kc.loadFromDefault()
@@ -41,103 +42,124 @@ function createWindow(): void {
     height: 800,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux'
+    ...(process.platform === "linux"
       ? {
-          icon: join(__dirname, '../../build/icon.png')
+          icon: join(__dirname, "../../build/icon.png"),
         }
       : {}),
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
-    }
+      preload: join(__dirname, "../preload/index.js"),
+      sandbox: false,
+    },
   })
 
-  mainWindow.on('ready-to-show', () => {
+  mainWindow.on("ready-to-show", () => {
     mainWindow.show()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
-    return { action: 'deny' }
+    return { action: "deny" }
   })
 
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+    mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    mainWindow.loadFile(join(__dirname, "../renderer/index.html"))
   }
 }
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId("com.electron")
 
-  app.on('browser-window-created', (_, window) => {
+  app.on("browser-window-created", (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  ipcMain.on('ping', () => console.log('pong'))
+  ipcMain.on("ping", () => console.log("pong"))
 
-  ipcMain.handle('k8s:contexts:list', () => listContexts(kc))
-  ipcMain.handle('k8s:context:current', () => getCurrentContext(kc))
-  ipcMain.handle('k8s:cluster:type', () => getClusterType(kc))
-  ipcMain.handle('k8s:namespaces:list', () => listNamespaces(coreV1Api))
-  ipcMain.handle('k8s:deployments:list', () => listDeployments(appsV1Api))
-  ipcMain.handle('k8s:replicasets:list', () => listReplicaSets(appsV1Api))
-  ipcMain.handle('k8s:pods:list', () => listPods(coreV1Api))
-  ipcMain.handle('k8s:daemonsets:list', () => listDaemonSets(appsV1Api))
-  ipcMain.handle('k8s:statefulsets:list', () => listStatefulSets(appsV1Api))
-  ipcMain.handle('k8s:configmaps:list', () => listConfigMaps(coreV1Api))
-  ipcMain.handle('k8s:secrets:list', () => listSecrets(coreV1Api))
-  ipcMain.handle('k8s:nodes:list', () => listNodes(coreV1Api))
+  ipcMain.handle("k8s:contexts:list", () => listContexts(kc))
+  ipcMain.handle("k8s:context:current", () => getCurrentContext(kc))
+  ipcMain.handle("k8s:cluster:type", () => getClusterType(kc))
+  ipcMain.handle("k8s:namespaces:list", () => listNamespaces(coreV1Api))
+  ipcMain.handle("k8s:deployments:list", () => listDeployments(appsV1Api))
+  ipcMain.handle("k8s:replicasets:list", () => listReplicaSets(appsV1Api))
+  ipcMain.handle("k8s:pods:list", () => listPods(coreV1Api))
+  ipcMain.handle("k8s:daemonsets:list", () => listDaemonSets(appsV1Api))
+  ipcMain.handle("k8s:statefulsets:list", () => listStatefulSets(appsV1Api))
+  ipcMain.handle("k8s:configmaps:list", () => listConfigMaps(coreV1Api))
+  ipcMain.handle("k8s:secrets:list", () => listSecrets(coreV1Api))
+  ipcMain.handle("k8s:services:list", () => listServices(coreV1Api))
+  ipcMain.handle("k8s:nodes:list", () => listNodes(coreV1Api))
   ipcMain.handle(
-    'k8s:deployment:create',
+    "k8s:deployment:create",
     (_e, namespace: string, name: string, image: string, replicas: number) =>
-      createDeployment(appsV1Api, namespace, name, image, replicas)
+      createDeployment(appsV1Api, namespace, name, image, replicas),
   )
   ipcMain.handle(
-    'k8s:deployment:update',
+    "k8s:deployment:update",
     (_e, namespace: string, name: string, image: string, replicas: number) =>
-      updateDeployment(appsV1Api, namespace, name, image, replicas)
-  )
-  ipcMain.handle('k8s:deployment:delete', (_e, namespace: string, name: string) =>
-    deleteDeployment(appsV1Api, namespace, name)
+      updateDeployment(appsV1Api, namespace, name, image, replicas),
   )
   ipcMain.handle(
-    'k8s:statefulset:create',
-    (_e, namespace: string, name: string, image: string, replicas: number, serviceName: string) =>
-      createStatefulSet(appsV1Api, namespace, name, image, replicas, serviceName)
+    "k8s:deployment:delete",
+    (_e, namespace: string, name: string) =>
+      deleteDeployment(appsV1Api, namespace, name),
   )
   ipcMain.handle(
-    'k8s:statefulset:update',
+    "k8s:statefulset:create",
+    (
+      _e,
+      namespace: string,
+      name: string,
+      image: string,
+      replicas: number,
+      serviceName: string,
+    ) =>
+      createStatefulSet(
+        appsV1Api,
+        namespace,
+        name,
+        image,
+        replicas,
+        serviceName,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:statefulset:update",
     (_e, namespace: string, name: string, image: string, replicas: number) =>
-      updateStatefulSet(appsV1Api, namespace, name, image, replicas)
-  )
-  ipcMain.handle('k8s:statefulset:delete', (_e, namespace: string, name: string) =>
-    deleteStatefulSet(appsV1Api, namespace, name)
+      updateStatefulSet(appsV1Api, namespace, name, image, replicas),
   )
   ipcMain.handle(
-    'k8s:daemonset:create',
+    "k8s:statefulset:delete",
+    (_e, namespace: string, name: string) =>
+      deleteStatefulSet(appsV1Api, namespace, name),
+  )
+  ipcMain.handle(
+    "k8s:daemonset:create",
     (_e, namespace: string, name: string, image: string) =>
-      createDaemonSet(appsV1Api, namespace, name, image)
+      createDaemonSet(appsV1Api, namespace, name, image),
   )
   ipcMain.handle(
-    'k8s:daemonset:update',
+    "k8s:daemonset:update",
     (_e, namespace: string, name: string, image: string) =>
-      updateDaemonSet(appsV1Api, namespace, name, image)
+      updateDaemonSet(appsV1Api, namespace, name, image),
   )
-  ipcMain.handle('k8s:daemonset:delete', (_e, namespace: string, name: string) =>
-    deleteDaemonSet(appsV1Api, namespace, name)
+  ipcMain.handle(
+    "k8s:daemonset:delete",
+    (_e, namespace: string, name: string) =>
+      deleteDaemonSet(appsV1Api, namespace, name),
   )
 
   createWindow()
 
-  app.on('activate', function () {
+  app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
     app.quit()
   }
 })

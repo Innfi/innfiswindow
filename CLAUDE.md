@@ -1,6 +1,7 @@
 # CLAUDE.md - k8s management tool
 
 ## Your role
+
 You are an autonomous coding agent implementing the innfiswindow Kubernetes management desktop app.
 Each time you are invoked, you will be given a story ID from prd.json. Implement that story completely, then mark it `"complete"` in prd.json.
 
@@ -44,8 +45,8 @@ Each time you are invoked, you will be given a story ID from prd.json. Implement
 - Copy component source files directly into `src/renderer/components/ui/<component>.tsx`.
 - Always create `src/renderer/lib/utils.ts`:
   ```ts
-  import { clsx, type ClassValue } from 'clsx'
-  import { tailwindMerge } from 'tailwind-merge'
+  import { clsx, type ClassValue } from "clsx"
+  import { tailwindMerge } from "tailwind-merge"
   export function cn(...inputs: ClassValue[]) {
     return tailwindMerge(clsx(inputs))
   }

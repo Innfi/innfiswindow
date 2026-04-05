@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { create } from "zustand"
 
 interface AppState {
   selectedResourceType: string | null
@@ -10,6 +10,7 @@ interface AppState {
 export const useAppStore = create<AppState>((set) => ({
   selectedResourceType: null,
   selectedItem: null,
-  setSelectedResourceType: (type) => set({ selectedResourceType: type, selectedItem: null }),
-  setSelectedItem: (item) => set({ selectedItem: item })
+  setSelectedResourceType: (type) =>
+    set({ selectedResourceType: type, selectedItem: null }),
+  setSelectedItem: (item) => set({ selectedItem: item }),
 }))

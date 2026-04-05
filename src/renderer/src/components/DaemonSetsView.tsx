@@ -1,26 +1,26 @@
-import { useEffect, useState } from 'react'
-import { useAppStore } from '../../store/app.store'
+import { useEffect, useState } from "react"
+import { useAppStore } from "../../store/app.store"
 import {
   Table,
   TableHeader,
   TableBody,
   TableRow,
   TableHead,
-  TableCell
-} from '../../components/ui/table'
+  TableCell,
+} from "../../components/ui/table"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter
-} from '../../components/ui/dialog'
-import { Button } from '../../components/ui/button'
-import { Input } from '../../components/ui/input'
-import { Label } from '../../components/ui/label'
-import { cn } from '../../lib/utils'
-import { Pencil, Trash2, Plus } from 'lucide-react'
+  DialogFooter,
+} from "../../components/ui/dialog"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Label } from "../../components/ui/label"
+import { cn } from "../../lib/utils"
+import { Pencil, Trash2, Plus } from "lucide-react"
 
 interface K8sDaemonSetContainer {
   name: string
@@ -51,7 +51,7 @@ interface K8sDaemonSet {
 }
 
 function formatAge(isoTimestamp: string): string {
-  if (!isoTimestamp) return '-'
+  if (!isoTimestamp) return "-"
   const diffMs = Date.now() - new Date(isoTimestamp).getTime()
   const diffSecs = Math.floor(diffMs / 1000)
   if (diffSecs < 60) return `${diffSecs}s`
@@ -63,10 +63,18 @@ function formatAge(isoTimestamp: string): string {
   return `${diffDays}d`
 }
 
-function MetaEntry({ label, value }: { label: string; value: string }): JSX.Element {
+function MetaEntry({
+  label,
+  value,
+}: {
+  label: string
+  value: string
+}): JSX.Element {
   return (
     <div className="flex gap-2 text-sm">
-      <span className="shrink-0 font-medium text-muted-foreground w-32">{label}</span>
+      <span className="shrink-0 font-medium text-muted-foreground w-32">
+        {label}
+      </span>
       <span className="break-all">{value}</span>
     </div>
   )
@@ -90,9 +98,15 @@ function DetailPanel({ ds }: { ds: K8sDaemonSet }): JSX.Element {
         <MetaEntry label="Desired" value={String(ds.desiredNumberScheduled)} />
         <MetaEntry label="Current" value={String(ds.currentNumberScheduled)} />
         <MetaEntry label="Ready" value={String(ds.numberReady)} />
-        <MetaEntry label="Up-to-date" value={String(ds.updatedNumberScheduled)} />
+        <MetaEntry
+          label="Up-to-date"
+          value={String(ds.updatedNumberScheduled)}
+        />
         <MetaEntry label="Available" value={String(ds.numberAvailable)} />
-        <MetaEntry label="Created" value={new Date(ds.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(ds.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       <div className="space-y-1">
@@ -130,9 +144,14 @@ function DetailPanel({ ds }: { ds: K8sDaemonSet }): JSX.Element {
             Containers
           </h3>
           {ds.containers.map((c) => (
-            <div key={c.name} className="text-sm border rounded p-2 space-y-0.5">
+            <div
+              key={c.name}
+              className="text-sm border rounded p-2 space-y-0.5"
+            >
               <div className="font-medium">{c.name}</div>
-              <div className="text-xs text-muted-foreground break-all">{c.image}</div>
+              <div className="text-xs text-muted-foreground break-all">
+                {c.image}
+              </div>
             </div>
           ))}
         </div>
@@ -147,7 +166,7 @@ function DetailPanel({ ds }: { ds: K8sDaemonSet }): JSX.Element {
             <div key={i} className="text-sm border rounded p-2 space-y-0.5">
               {t.key && <div className="font-medium">{t.key}</div>}
               <div className="text-xs text-muted-foreground">
-                {[t.operator, t.value, t.effect].filter(Boolean).join(' / ')}
+                {[t.operator, t.value, t.effect].filter(Boolean).join(" / ")}
               </div>
             </div>
           ))}
@@ -164,25 +183,30 @@ interface CreateDialogProps {
   onCreated: () => void
 }
 
-function CreateDialog({ open, onOpenChange, namespaces, onCreated }: CreateDialogProps): JSX.Element {
-  const [name, setName] = useState('')
-  const [namespace, setNamespace] = useState(namespaces[0] ?? 'default')
-  const [image, setImage] = useState('')
+function CreateDialog({
+  open,
+  onOpenChange,
+  namespaces,
+  onCreated,
+}: CreateDialogProps): JSX.Element {
+  const [name, setName] = useState("")
+  const [namespace, setNamespace] = useState(namespaces[0] ?? "default")
+  const [image, setImage] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (open) {
-      setName('')
-      setNamespace(namespaces[0] ?? 'default')
-      setImage('')
+      setName("")
+      setNamespace(namespaces[0] ?? "default")
+      setImage("")
       setError(null)
     }
   }, [open, namespaces])
 
   async function handleSubmit(): Promise<void> {
     if (!name.trim() || !image.trim()) {
-      setError('Name and image are required.')
+      setError("Name and image are required.")
       return
     }
     setSubmitting(true)
@@ -203,7 +227,9 @@ function CreateDialog({ open, onOpenChange, namespaces, onCreated }: CreateDialo
       <DialogContent onClose={() => onOpenChange(false)}>
         <DialogHeader>
           <DialogTitle>New DaemonSet</DialogTitle>
-          <DialogDescription>Create a new Kubernetes DaemonSet.</DialogDescription>
+          <DialogDescription>
+            Create a new Kubernetes DaemonSet.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">
@@ -242,11 +268,15 @@ function CreateDialog({ open, onOpenChange, namespaces, onCreated }: CreateDialo
           {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'Creating…' : 'Create'}
+            {submitting ? "Creating…" : "Create"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -261,14 +291,19 @@ interface EditDialogProps {
   onUpdated: () => void
 }
 
-function EditDialog({ open, onOpenChange, daemonSet, onUpdated }: EditDialogProps): JSX.Element {
-  const [image, setImage] = useState('')
+function EditDialog({
+  open,
+  onOpenChange,
+  daemonSet,
+  onUpdated,
+}: EditDialogProps): JSX.Element {
+  const [image, setImage] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (open && daemonSet) {
-      setImage(daemonSet.containers[0]?.image ?? '')
+      setImage(daemonSet.containers[0]?.image ?? "")
       setError(null)
     }
   }, [open, daemonSet])
@@ -276,13 +311,17 @@ function EditDialog({ open, onOpenChange, daemonSet, onUpdated }: EditDialogProp
   async function handleSubmit(): Promise<void> {
     if (!daemonSet) return
     if (!image.trim()) {
-      setError('Image is required.')
+      setError("Image is required.")
       return
     }
     setSubmitting(true)
     setError(null)
     try {
-      await window.api.k8s.updateDaemonSet(daemonSet.namespace, daemonSet.name, image.trim())
+      await window.api.k8s.updateDaemonSet(
+        daemonSet.namespace,
+        daemonSet.name,
+        image.trim(),
+      )
       onUpdated()
       onOpenChange(false)
     } catch (e) {
@@ -298,7 +337,7 @@ function EditDialog({ open, onOpenChange, daemonSet, onUpdated }: EditDialogProp
         <DialogHeader>
           <DialogTitle>Edit DaemonSet</DialogTitle>
           <DialogDescription>
-            {daemonSet ? `${daemonSet.namespace}/${daemonSet.name}` : ''}
+            {daemonSet ? `${daemonSet.namespace}/${daemonSet.name}` : ""}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -314,11 +353,15 @@ function EditDialog({ open, onOpenChange, daemonSet, onUpdated }: EditDialogProp
           {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'Saving…' : 'Save'}
+            {submitting ? "Saving…" : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -333,7 +376,12 @@ interface DeleteDialogProps {
   onDeleted: () => void
 }
 
-function DeleteDialog({ open, onOpenChange, daemonSet, onDeleted }: DeleteDialogProps): JSX.Element {
+function DeleteDialog({
+  open,
+  onOpenChange,
+  daemonSet,
+  onDeleted,
+}: DeleteDialogProps): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -362,18 +410,28 @@ function DeleteDialog({ open, onOpenChange, daemonSet, onDeleted }: DeleteDialog
         <DialogHeader>
           <DialogTitle>Delete DaemonSet</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete{' '}
-            <strong>{daemonSet ? `${daemonSet.namespace}/${daemonSet.name}` : ''}</strong>? This
-            action cannot be undone.
+            Are you sure you want to delete{" "}
+            <strong>
+              {daemonSet ? `${daemonSet.namespace}/${daemonSet.name}` : ""}
+            </strong>
+            ? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         {error && <p className="text-sm text-red-500">{error}</p>}
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
-            {submitting ? 'Deleting…' : 'Delete'}
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={submitting}
+          >
+            {submitting ? "Deleting…" : "Delete"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -414,7 +472,7 @@ export function DaemonSetsView(): JSX.Element {
     window.api.k8s
       .listNamespaces()
       .then((data) => setNamespaces(data.map((ns) => ns.name)))
-      .catch(() => setNamespaces(['default']))
+      .catch(() => setNamespaces(["default"]))
   }, [])
 
   return (
@@ -449,10 +507,10 @@ export function DaemonSetsView(): JSX.Element {
                 <TableRow
                   key={`${ds.namespace}/${ds.name}`}
                   className={cn(
-                    'cursor-pointer',
+                    "cursor-pointer",
                     selectedItem?.name === ds.name &&
                       selectedItem?.namespace === ds.namespace &&
-                      'bg-muted'
+                      "bg-muted",
                   )}
                   onClick={() => setSelectedItem(ds)}
                 >
@@ -465,7 +523,10 @@ export function DaemonSetsView(): JSX.Element {
                   <TableCell>{ds.numberAvailable}</TableCell>
                   <TableCell>{formatAge(ds.creationTimestamp)}</TableCell>
                   <TableCell>
-                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="flex gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Button
                         variant="ghost"
                         size="icon"
@@ -498,7 +559,7 @@ export function DaemonSetsView(): JSX.Element {
       <CreateDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        namespaces={namespaces.length > 0 ? namespaces : ['default']}
+        namespaces={namespaces.length > 0 ? namespaces : ["default"]}
         onCreated={() => {
           fetchDaemonSets()
           setSelectedItem(null)
@@ -507,7 +568,9 @@ export function DaemonSetsView(): JSX.Element {
 
       <EditDialog
         open={editTarget !== null}
-        onOpenChange={(open) => { if (!open) setEditTarget(null) }}
+        onOpenChange={(open) => {
+          if (!open) setEditTarget(null)
+        }}
         daemonSet={editTarget}
         onUpdated={() => {
           fetchDaemonSets()
@@ -517,7 +580,9 @@ export function DaemonSetsView(): JSX.Element {
 
       <DeleteDialog
         open={deleteTarget !== null}
-        onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
         daemonSet={deleteTarget}
         onDeleted={() => {
           fetchDaemonSets()

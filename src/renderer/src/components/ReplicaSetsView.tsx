@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react'
-import { useAppStore } from '../../store/app.store'
+import { useEffect, useState } from "react"
+import { useAppStore } from "../../store/app.store"
 import {
   Table,
   TableHeader,
   TableBody,
   TableRow,
   TableHead,
-  TableCell
-} from '../../components/ui/table'
-import { cn } from '../../lib/utils'
+  TableCell,
+} from "../../components/ui/table"
+import { cn } from "../../lib/utils"
 
 interface K8sOwnerRef {
   kind: string
@@ -34,7 +34,7 @@ interface K8sReplicaSet {
 }
 
 function formatAge(isoTimestamp: string): string {
-  if (!isoTimestamp) return '-'
+  if (!isoTimestamp) return "-"
   const diffMs = Date.now() - new Date(isoTimestamp).getTime()
   const diffSecs = Math.floor(diffMs / 1000)
   if (diffSecs < 60) return `${diffSecs}s`
@@ -46,10 +46,18 @@ function formatAge(isoTimestamp: string): string {
   return `${diffDays}d`
 }
 
-function MetaEntry({ label, value }: { label: string; value: string }): JSX.Element {
+function MetaEntry({
+  label,
+  value,
+}: {
+  label: string
+  value: string
+}): JSX.Element {
   return (
     <div className="flex gap-2 text-sm">
-      <span className="shrink-0 font-medium text-muted-foreground w-32">{label}</span>
+      <span className="shrink-0 font-medium text-muted-foreground w-32">
+        {label}
+      </span>
       <span className="break-all">{value}</span>
     </div>
   )
@@ -73,7 +81,10 @@ function DetailPanel({ rs }: { rs: K8sReplicaSet }): JSX.Element {
         <MetaEntry label="Desired" value={String(rs.desiredReplicas)} />
         <MetaEntry label="Current" value={String(rs.currentReplicas)} />
         <MetaEntry label="Ready" value={String(rs.readyReplicas)} />
-        <MetaEntry label="Created" value={new Date(rs.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(rs.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {rs.ownerReferences.length > 0 && (
@@ -107,9 +118,14 @@ function DetailPanel({ rs }: { rs: K8sReplicaSet }): JSX.Element {
             Containers
           </h3>
           {rs.containers.map((c) => (
-            <div key={c.name} className="text-sm border rounded p-2 space-y-0.5">
+            <div
+              key={c.name}
+              className="text-sm border rounded p-2 space-y-0.5"
+            >
               <div className="font-medium">{c.name}</div>
-              <div className="text-xs text-muted-foreground break-all">{c.image}</div>
+              <div className="text-xs text-muted-foreground break-all">
+                {c.image}
+              </div>
             </div>
           ))}
         </div>
@@ -133,7 +149,9 @@ export function ReplicaSetsView(): JSX.Element {
   const [replicaSets, setReplicaSets] = useState<K8sReplicaSet[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sReplicaSet | null
+  const selectedItem = useAppStore(
+    (s) => s.selectedItem,
+  ) as K8sReplicaSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
 
   useEffect(() => {
@@ -174,10 +192,10 @@ export function ReplicaSetsView(): JSX.Element {
                 <TableRow
                   key={`${rs.namespace}/${rs.name}`}
                   className={cn(
-                    'cursor-pointer',
+                    "cursor-pointer",
                     selectedItem?.name === rs.name &&
                       selectedItem?.namespace === rs.namespace &&
-                      'bg-muted'
+                      "bg-muted",
                   )}
                   onClick={() => setSelectedItem(rs)}
                 >
@@ -194,9 +212,11 @@ export function ReplicaSetsView(): JSX.Element {
         )}
       </div>
 
-      {selectedItem && selectedItem.namespace !== undefined && selectedItem.desiredReplicas !== undefined && (
-        <DetailPanel rs={selectedItem} />
-      )}
+      {selectedItem &&
+        selectedItem.namespace !== undefined &&
+        selectedItem.desiredReplicas !== undefined && (
+          <DetailPanel rs={selectedItem} />
+        )}
     </div>
   )
 }

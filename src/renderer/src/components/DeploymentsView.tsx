@@ -1,26 +1,26 @@
-import { useEffect, useState } from 'react'
-import { useAppStore } from '../../store/app.store'
+import { useEffect, useState } from "react"
+import { useAppStore } from "../../store/app.store"
 import {
   Table,
   TableHeader,
   TableBody,
   TableRow,
   TableHead,
-  TableCell
-} from '../../components/ui/table'
+  TableCell,
+} from "../../components/ui/table"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter
-} from '../../components/ui/dialog'
-import { Button } from '../../components/ui/button'
-import { Input } from '../../components/ui/input'
-import { Label } from '../../components/ui/label'
-import { cn } from '../../lib/utils'
-import { Pencil, Trash2, Plus } from 'lucide-react'
+  DialogFooter,
+} from "../../components/ui/dialog"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Label } from "../../components/ui/label"
+import { cn } from "../../lib/utils"
+import { Pencil, Trash2, Plus } from "lucide-react"
 
 interface K8sDeploymentCondition {
   type: string
@@ -49,7 +49,7 @@ interface K8sDeployment {
 }
 
 function formatAge(isoTimestamp: string): string {
-  if (!isoTimestamp) return '-'
+  if (!isoTimestamp) return "-"
   const diffMs = Date.now() - new Date(isoTimestamp).getTime()
   const diffSecs = Math.floor(diffMs / 1000)
   if (diffSecs < 60) return `${diffSecs}s`
@@ -61,23 +61,37 @@ function formatAge(isoTimestamp: string): string {
   return `${diffDays}d`
 }
 
-function MetaEntry({ label, value }: { label: string; value: string }): JSX.Element {
+function MetaEntry({
+  label,
+  value,
+}: {
+  label: string
+  value: string
+}): JSX.Element {
   return (
     <div className="flex gap-2 text-sm">
-      <span className="shrink-0 font-medium text-muted-foreground w-32">{label}</span>
+      <span className="shrink-0 font-medium text-muted-foreground w-32">
+        {label}
+      </span>
       <span className="break-all">{value}</span>
     </div>
   )
 }
 
-function DetailPanel({ deployment }: { deployment: K8sDeployment }): JSX.Element {
+function DetailPanel({
+  deployment,
+}: {
+  deployment: K8sDeployment
+}): JSX.Element {
   const selectorEntries = Object.entries(deployment.selector)
 
   return (
     <div className="w-80 shrink-0 border-l h-full overflow-y-auto p-4 space-y-4">
       <div>
         <h2 className="font-semibold text-base mb-1">{deployment.name}</h2>
-        <span className="text-xs text-muted-foreground">{deployment.namespace}</span>
+        <span className="text-xs text-muted-foreground">
+          {deployment.namespace}
+        </span>
       </div>
 
       <div className="space-y-1">
@@ -86,10 +100,19 @@ function DetailPanel({ deployment }: { deployment: K8sDeployment }): JSX.Element
         </h3>
         <MetaEntry label="Desired" value={String(deployment.replicas)} />
         <MetaEntry label="Ready" value={String(deployment.readyReplicas)} />
-        <MetaEntry label="Up-to-date" value={String(deployment.updatedReplicas)} />
-        <MetaEntry label="Available" value={String(deployment.availableReplicas)} />
+        <MetaEntry
+          label="Up-to-date"
+          value={String(deployment.updatedReplicas)}
+        />
+        <MetaEntry
+          label="Available"
+          value={String(deployment.availableReplicas)}
+        />
         <MetaEntry label="Strategy" value={deployment.strategy} />
-        <MetaEntry label="Created" value={new Date(deployment.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(deployment.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {selectorEntries.length > 0 && (
@@ -109,9 +132,14 @@ function DetailPanel({ deployment }: { deployment: K8sDeployment }): JSX.Element
             Containers
           </h3>
           {deployment.containers.map((c) => (
-            <div key={c.name} className="text-sm border rounded p-2 space-y-0.5">
+            <div
+              key={c.name}
+              className="text-sm border rounded p-2 space-y-0.5"
+            >
               <div className="font-medium">{c.name}</div>
-              <div className="text-xs text-muted-foreground break-all">{c.image}</div>
+              <div className="text-xs text-muted-foreground break-all">
+                {c.image}
+              </div>
             </div>
           ))}
         </div>
@@ -123,15 +151,18 @@ function DetailPanel({ deployment }: { deployment: K8sDeployment }): JSX.Element
             Conditions
           </h3>
           {deployment.conditions.map((c) => (
-            <div key={c.type} className="text-sm space-y-0.5 border rounded p-2">
+            <div
+              key={c.type}
+              className="text-sm space-y-0.5 border rounded p-2"
+            >
               <div className="flex items-center gap-2">
                 <span className="font-medium">{c.type}</span>
                 <span
                   className={cn(
-                    'rounded px-1.5 py-0.5 text-xs',
-                    c.status === 'True'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
+                    "rounded px-1.5 py-0.5 text-xs",
+                    c.status === "True"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-yellow-100 text-yellow-800",
                   )}
                 >
                   {c.status}
@@ -155,10 +186,15 @@ interface CreateDialogProps {
   onCreated: () => void
 }
 
-function CreateDialog({ open, onOpenChange, namespaces, onCreated }: CreateDialogProps): JSX.Element {
-  const [name, setName] = useState('')
-  const [namespace, setNamespace] = useState(namespaces[0] ?? 'default')
-  const [image, setImage] = useState('')
+function CreateDialog({
+  open,
+  onOpenChange,
+  namespaces,
+  onCreated,
+}: CreateDialogProps): JSX.Element {
+  const [name, setName] = useState("")
+  const [namespace, setNamespace] = useState(namespaces[0] ?? "default")
+  const [image, setImage] = useState("")
   const [replicas, setReplicas] = useState(1)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -166,9 +202,9 @@ function CreateDialog({ open, onOpenChange, namespaces, onCreated }: CreateDialo
   // reset when opened
   useEffect(() => {
     if (open) {
-      setName('')
-      setNamespace(namespaces[0] ?? 'default')
-      setImage('')
+      setName("")
+      setNamespace(namespaces[0] ?? "default")
+      setImage("")
       setReplicas(1)
       setError(null)
     }
@@ -176,13 +212,18 @@ function CreateDialog({ open, onOpenChange, namespaces, onCreated }: CreateDialo
 
   async function handleSubmit(): Promise<void> {
     if (!name.trim() || !image.trim()) {
-      setError('Name and image are required.')
+      setError("Name and image are required.")
       return
     }
     setSubmitting(true)
     setError(null)
     try {
-      await window.api.k8s.createDeployment(namespace, name.trim(), image.trim(), replicas)
+      await window.api.k8s.createDeployment(
+        namespace,
+        name.trim(),
+        image.trim(),
+        replicas,
+      )
       onCreated()
       onOpenChange(false)
     } catch (e) {
@@ -197,7 +238,9 @@ function CreateDialog({ open, onOpenChange, namespaces, onCreated }: CreateDialo
       <DialogContent onClose={() => onOpenChange(false)}>
         <DialogHeader>
           <DialogTitle>New Deployment</DialogTitle>
-          <DialogDescription>Create a new Kubernetes Deployment.</DialogDescription>
+          <DialogDescription>
+            Create a new Kubernetes Deployment.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">
@@ -246,11 +289,15 @@ function CreateDialog({ open, onOpenChange, namespaces, onCreated }: CreateDialo
           {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'Creating…' : 'Create'}
+            {submitting ? "Creating…" : "Create"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -265,15 +312,20 @@ interface EditDialogProps {
   onUpdated: () => void
 }
 
-function EditDialog({ open, onOpenChange, deployment, onUpdated }: EditDialogProps): JSX.Element {
-  const [image, setImage] = useState('')
+function EditDialog({
+  open,
+  onOpenChange,
+  deployment,
+  onUpdated,
+}: EditDialogProps): JSX.Element {
+  const [image, setImage] = useState("")
   const [replicas, setReplicas] = useState(1)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (open && deployment) {
-      setImage(deployment.containers[0]?.image ?? '')
+      setImage(deployment.containers[0]?.image ?? "")
       setReplicas(deployment.replicas)
       setError(null)
     }
@@ -282,7 +334,7 @@ function EditDialog({ open, onOpenChange, deployment, onUpdated }: EditDialogPro
   async function handleSubmit(): Promise<void> {
     if (!deployment) return
     if (!image.trim()) {
-      setError('Image is required.')
+      setError("Image is required.")
       return
     }
     setSubmitting(true)
@@ -292,7 +344,7 @@ function EditDialog({ open, onOpenChange, deployment, onUpdated }: EditDialogPro
         deployment.namespace,
         deployment.name,
         image.trim(),
-        replicas
+        replicas,
       )
       onUpdated()
       onOpenChange(false)
@@ -309,7 +361,7 @@ function EditDialog({ open, onOpenChange, deployment, onUpdated }: EditDialogPro
         <DialogHeader>
           <DialogTitle>Edit Deployment</DialogTitle>
           <DialogDescription>
-            {deployment ? `${deployment.namespace}/${deployment.name}` : ''}
+            {deployment ? `${deployment.namespace}/${deployment.name}` : ""}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -335,11 +387,15 @@ function EditDialog({ open, onOpenChange, deployment, onUpdated }: EditDialogPro
           {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'Saving…' : 'Save'}
+            {submitting ? "Saving…" : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -354,7 +410,12 @@ interface DeleteDialogProps {
   onDeleted: () => void
 }
 
-function DeleteDialog({ open, onOpenChange, deployment, onDeleted }: DeleteDialogProps): JSX.Element {
+function DeleteDialog({
+  open,
+  onOpenChange,
+  deployment,
+  onDeleted,
+}: DeleteDialogProps): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -367,7 +428,10 @@ function DeleteDialog({ open, onOpenChange, deployment, onDeleted }: DeleteDialo
     setSubmitting(true)
     setError(null)
     try {
-      await window.api.k8s.deleteDeployment(deployment.namespace, deployment.name)
+      await window.api.k8s.deleteDeployment(
+        deployment.namespace,
+        deployment.name,
+      )
       onDeleted()
       onOpenChange(false)
     } catch (e) {
@@ -383,18 +447,28 @@ function DeleteDialog({ open, onOpenChange, deployment, onDeleted }: DeleteDialo
         <DialogHeader>
           <DialogTitle>Delete Deployment</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete{' '}
-            <strong>{deployment ? `${deployment.namespace}/${deployment.name}` : ''}</strong>? This
-            action cannot be undone.
+            Are you sure you want to delete{" "}
+            <strong>
+              {deployment ? `${deployment.namespace}/${deployment.name}` : ""}
+            </strong>
+            ? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         {error && <p className="text-sm text-red-500">{error}</p>}
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
-            {submitting ? 'Deleting…' : 'Delete'}
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={submitting}
+          >
+            {submitting ? "Deleting…" : "Delete"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -412,7 +486,9 @@ export function DeploymentsView(): JSX.Element {
   const [editTarget, setEditTarget] = useState<K8sDeployment | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<K8sDeployment | null>(null)
 
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sDeployment | null
+  const selectedItem = useAppStore(
+    (s) => s.selectedItem,
+  ) as K8sDeployment | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
 
   function fetchDeployments(): void {
@@ -435,7 +511,7 @@ export function DeploymentsView(): JSX.Element {
     window.api.k8s
       .listNamespaces()
       .then((data) => setNamespaces(data.map((ns) => ns.name)))
-      .catch(() => setNamespaces(['default']))
+      .catch(() => setNamespaces(["default"]))
   }, [])
 
   return (
@@ -468,10 +544,10 @@ export function DeploymentsView(): JSX.Element {
                 <TableRow
                   key={`${d.namespace}/${d.name}`}
                   className={cn(
-                    'cursor-pointer',
+                    "cursor-pointer",
                     selectedItem?.name === d.name &&
                       selectedItem?.namespace === d.namespace &&
-                      'bg-muted'
+                      "bg-muted",
                   )}
                   onClick={() => setSelectedItem(d)}
                 >
@@ -482,7 +558,10 @@ export function DeploymentsView(): JSX.Element {
                   <TableCell>{d.availableReplicas}</TableCell>
                   <TableCell>{formatAge(d.creationTimestamp)}</TableCell>
                   <TableCell>
-                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="flex gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Button
                         variant="ghost"
                         size="icon"
@@ -515,7 +594,7 @@ export function DeploymentsView(): JSX.Element {
       <CreateDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        namespaces={namespaces.length > 0 ? namespaces : ['default']}
+        namespaces={namespaces.length > 0 ? namespaces : ["default"]}
         onCreated={() => {
           fetchDeployments()
           setSelectedItem(null)
@@ -524,7 +603,9 @@ export function DeploymentsView(): JSX.Element {
 
       <EditDialog
         open={editTarget !== null}
-        onOpenChange={(open) => { if (!open) setEditTarget(null) }}
+        onOpenChange={(open) => {
+          if (!open) setEditTarget(null)
+        }}
         deployment={editTarget}
         onUpdated={() => {
           fetchDeployments()
@@ -534,7 +615,9 @@ export function DeploymentsView(): JSX.Element {
 
       <DeleteDialog
         open={deleteTarget !== null}
-        onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
         deployment={deleteTarget}
         onDeleted={() => {
           fetchDeployments()

@@ -1,30 +1,31 @@
-import { useEffect, useState } from "react";
-import { TreeView } from "./components/TreeView";
-import { NamespacesView } from "./components/NamespacesView";
-import { NodesView } from "./components/NodesView";
-import { DeploymentsView } from "./components/DeploymentsView";
-import { PodsView } from "./components/PodsView";
-import { ReplicaSetsView } from "./components/ReplicaSetsView";
-import { StatefulSetsView } from "./components/StatefulSetsView";
-import { DaemonSetsView } from "./components/DaemonSetsView";
-import { ConfigMapsView } from "./components/ConfigMapsView";
-import { SecretsView } from "./components/SecretsView";
-import { useAppStore } from "../store/app.store";
+import { useEffect, useState } from "react"
+import { TreeView } from "./components/TreeView"
+import { NamespacesView } from "./components/NamespacesView"
+import { NodesView } from "./components/NodesView"
+import { DeploymentsView } from "./components/DeploymentsView"
+import { PodsView } from "./components/PodsView"
+import { ReplicaSetsView } from "./components/ReplicaSetsView"
+import { StatefulSetsView } from "./components/StatefulSetsView"
+import { DaemonSetsView } from "./components/DaemonSetsView"
+import { ConfigMapsView } from "./components/ConfigMapsView"
+import { SecretsView } from "./components/SecretsView"
+import { ServicesView } from "./components/ServicesView"
+import { useAppStore } from "../store/app.store"
 
 function App(): JSX.Element {
-  const [currentContext, setCurrentContext] = useState<string>("");
+  const [currentContext, setCurrentContext] = useState<string>("")
   const [clusterType, setClusterType] = useState<"EKS" | "AKS" | "Local">(
     "Local",
-  );
-  const selectedResourceType = useAppStore((s) => s.selectedResourceType);
+  )
+  const selectedResourceType = useAppStore((s) => s.selectedResourceType)
 
   useEffect(() => {
     window.api.k8s
       .getCurrentContext()
       .then(setCurrentContext)
-      .catch(console.error);
-    window.api.k8s.getClusterType().then(setClusterType).catch(console.error);
-  }, []);
+      .catch(console.error)
+    window.api.k8s.getClusterType().then(setClusterType).catch(console.error)
+  }, [])
 
   //FIXME: add workload section
   return (
@@ -60,10 +61,11 @@ function App(): JSX.Element {
           {selectedResourceType === "ConfigMaps" && <ConfigMapsView />}
           {selectedResourceType === "Secrets" && <SecretsView />}
           {selectedResourceType === "Pods" && <PodsView />}
+          {selectedResourceType === "Services" && <ServicesView />}
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App

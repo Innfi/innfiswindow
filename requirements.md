@@ -1,4 +1,5 @@
 # overall requirements
+
 - the tool is for managing k8s resources.
 - user should be able to list, view detail, and modify the k8s resources
 - for now the list of resource is as follows:
@@ -12,6 +13,7 @@
 - the tool should utilize k8s api to communicate the cluster described in ~/.kube/config
 
 # layout requirements
+
 - the layout of the tools should follow typical form of backoffice or crm
 - the tree view should be able show represent k8s resource types and enable user to select each of it
 - the tree view should presend on the leftmost side of the app

@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react'
-import { useAppStore } from '../../store/app.store'
+import { useEffect, useState } from "react"
+import { useAppStore } from "../../store/app.store"
 import {
   Table,
   TableHeader,
   TableBody,
   TableRow,
   TableHead,
-  TableCell
-} from '../../components/ui/table'
-import { cn } from '../../lib/utils'
+  TableCell,
+} from "../../components/ui/table"
+import { cn } from "../../lib/utils"
 
 interface K8sConfigMap {
   name: string
@@ -22,7 +22,7 @@ interface K8sConfigMap {
 }
 
 function formatAge(isoTimestamp: string): string {
-  if (!isoTimestamp) return '-'
+  if (!isoTimestamp) return "-"
   const diffMs = Date.now() - new Date(isoTimestamp).getTime()
   const diffSecs = Math.floor(diffMs / 1000)
   if (diffSecs < 60) return `${diffSecs}s`
@@ -84,7 +84,9 @@ function DetailPanel({ cm }: { cm: K8sConfigMap }): JSX.Element {
           </h3>
           {labelEntries.map(([k, v]) => (
             <div key={k} className="flex gap-2 text-sm">
-              <span className="shrink-0 font-medium text-muted-foreground">{k}:</span>
+              <span className="shrink-0 font-medium text-muted-foreground">
+                {k}:
+              </span>
               <span className="break-all">{v}</span>
             </div>
           ))}
@@ -98,7 +100,9 @@ function DetailPanel({ cm }: { cm: K8sConfigMap }): JSX.Element {
           </h3>
           {annotationEntries.map(([k, v]) => (
             <div key={k} className="flex gap-2 text-sm">
-              <span className="shrink-0 font-medium text-muted-foreground">{k}:</span>
+              <span className="shrink-0 font-medium text-muted-foreground">
+                {k}:
+              </span>
               <span className="break-all">{v}</span>
             </div>
           ))}
@@ -151,16 +155,18 @@ export function ConfigMapsView(): JSX.Element {
                 <TableRow
                   key={`${cm.namespace}/${cm.name}`}
                   className={cn(
-                    'cursor-pointer',
+                    "cursor-pointer",
                     selectedItem?.name === cm.name &&
                       selectedItem?.namespace === cm.namespace &&
-                      'bg-muted'
+                      "bg-muted",
                   )}
                   onClick={() => setSelectedItem(cm)}
                 >
                   <TableCell>{cm.name}</TableCell>
                   <TableCell>{cm.namespace}</TableCell>
-                  <TableCell className="max-w-xs truncate">{cm.keys.join(', ') || '-'}</TableCell>
+                  <TableCell className="max-w-xs truncate">
+                    {cm.keys.join(", ") || "-"}
+                  </TableCell>
                   <TableCell>{formatAge(cm.creationTimestamp)}</TableCell>
                 </TableRow>
               ))}

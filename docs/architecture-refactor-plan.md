@@ -9,19 +9,19 @@
 
 ### 1.1 File Inventory
 
-| Layer | Directory | Files | LOC |
-|-------|-----------|-------|-----|
-| Main process | `src/main/` | 2 | 538 |
-| Preload | `src/preload/` | 2 | 306 |
-| Renderer — view components | `src/renderer/src/components/` | 10 | 2,828 |
-| Renderer — app root | `src/renderer/src/` | 2 | 79 |
-| Renderer — store | `src/renderer/store/` | 1 | 15 |
-| Renderer — lib/utils | `src/renderer/lib/` | 1 | 6 |
-| Renderer — shadcn/ui | `src/renderer/components/ui/` | 5 | 233 |
-| Test files | `src/main/__tests__/` | 1 | 195 |
-| **Total** | `src/` | **24** (+ 2 test) | **4,005** (+ 195 test) |
+| Layer                      | Directory                      | Files             | LOC                    |
+| -------------------------- | ------------------------------ | ----------------- | ---------------------- |
+| Main process               | `src/main/`                    | 2                 | 538                    |
+| Preload                    | `src/preload/`                 | 2                 | 306                    |
+| Renderer — view components | `src/renderer/src/components/` | 10                | 2,828                  |
+| Renderer — app root        | `src/renderer/src/`            | 2                 | 79                     |
+| Renderer — store           | `src/renderer/store/`          | 1                 | 15                     |
+| Renderer — lib/utils       | `src/renderer/lib/`            | 1                 | 6                      |
+| Renderer — shadcn/ui       | `src/renderer/components/ui/`  | 5                 | 233                    |
+| Test files                 | `src/main/__tests__/`          | 1                 | 195                    |
+| **Total**                  | `src/`                         | **24** (+ 2 test) | **4,005** (+ 195 test) |
 
-> *The `src/renderer/index.html` and `src/renderer/assets/main.css` are not counted as source code.*
+> _The `src/renderer/index.html` and `src/renderer/assets/main.css` are not counted as source code._
 
 ### 1.2 LOC per Layer (production code only)
 
@@ -33,22 +33,22 @@
 
 21 handlers registered in `src/main/index.ts`, grouped as follows:
 
-| Category | Handlers |
-|----------|----------|
-| Context info | `k8s:contexts:list`, `k8s:context:current`, `k8s:cluster:type` |
-| List operations | `k8s:namespaces:list`, `k8s:nodes:list`, `k8s:deployments:list`, `k8s:replicasets:list`, `k8s:pods:list`, `k8s:daemonsets:list`, `k8s:statefulsets:list`, `k8s:configmaps:list`, `k8s:secrets:list` |
-| Deployment CRUD | `k8s:deployment:create`, `k8s:deployment:update`, `k8s:deployment:delete` |
-| StatefulSet CRUD | `k8s:statefulset:create`, `k8s:statefulset:update`, `k8s:statefulset:delete` |
-| DaemonSet CRUD | `k8s:daemonset:create`, `k8s:daemonset:update`, `k8s:daemonset:delete` |
+| Category         | Handlers                                                                                                                                                                                            |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Context info     | `k8s:contexts:list`, `k8s:context:current`, `k8s:cluster:type`                                                                                                                                      |
+| List operations  | `k8s:namespaces:list`, `k8s:nodes:list`, `k8s:deployments:list`, `k8s:replicasets:list`, `k8s:pods:list`, `k8s:daemonsets:list`, `k8s:statefulsets:list`, `k8s:configmaps:list`, `k8s:secrets:list` |
+| Deployment CRUD  | `k8s:deployment:create`, `k8s:deployment:update`, `k8s:deployment:delete`                                                                                                                           |
+| StatefulSet CRUD | `k8s:statefulset:create`, `k8s:statefulset:update`, `k8s:statefulset:delete`                                                                                                                        |
+| DaemonSet CRUD   | `k8s:daemonset:create`, `k8s:daemonset:update`, `k8s:daemonset:delete`                                                                                                                              |
 
 ### 1.4 Zustand Store
 
 **File:** `src/renderer/store/app.store.ts` (15 LOC, 1 slice)
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `selectedResourceType` | `string \| null` | Navigation selection |
-| `selectedItem` | `object \| null` | **Untyped** — cast in each consumer |
+| Field                  | Type             | Notes                               |
+| ---------------------- | ---------------- | ----------------------------------- |
+| `selectedResourceType` | `string \| null` | Navigation selection                |
+| `selectedItem`         | `object \| null` | **Untyped** — cast in each consumer |
 
 Actions: `setSelectedResourceType`, `setSelectedItem`.
 
@@ -56,30 +56,30 @@ Actions: `setSelectedResourceType`, `setSelectedItem`.
 
 ### 1.5 React Components
 
-| Component | File | LOC | Notes |
-|-----------|------|-----|-------|
-| `App` | `src/renderer/src/App.tsx` | 69 | Layout root |
-| `TreeView` | `…/components/TreeView.tsx` | 62 | Nav sidebar |
-| `NamespacesView` | `…/components/NamespacesView.tsx` | 153 | List + detail |
-| `NodesView` | `…/components/NodesView.tsx` | 212 | List + detail |
-| `ReplicaSetsView` | `…/components/ReplicaSetsView.tsx` | 202 | List + detail |
-| `PodsView` | `…/components/PodsView.tsx` | 197 | List + detail |
-| `ConfigMapsView` | `…/components/ConfigMapsView.tsx` | 177 | List + detail |
-| `SecretsView` | `…/components/SecretsView.tsx` | 202 | List + detail |
-| `DeploymentsView` | `…/components/DeploymentsView.tsx` | **546** | **EXCEEDS 300 LOC** |
+| Component          | File                                | LOC     | Notes               |
+| ------------------ | ----------------------------------- | ------- | ------------------- |
+| `App`              | `src/renderer/src/App.tsx`          | 69      | Layout root         |
+| `TreeView`         | `…/components/TreeView.tsx`         | 62      | Nav sidebar         |
+| `NamespacesView`   | `…/components/NamespacesView.tsx`   | 153     | List + detail       |
+| `NodesView`        | `…/components/NodesView.tsx`        | 212     | List + detail       |
+| `ReplicaSetsView`  | `…/components/ReplicaSetsView.tsx`  | 202     | List + detail       |
+| `PodsView`         | `…/components/PodsView.tsx`         | 197     | List + detail       |
+| `ConfigMapsView`   | `…/components/ConfigMapsView.tsx`   | 177     | List + detail       |
+| `SecretsView`      | `…/components/SecretsView.tsx`      | 202     | List + detail       |
+| `DeploymentsView`  | `…/components/DeploymentsView.tsx`  | **546** | **EXCEEDS 300 LOC** |
 | `StatefulSetsView` | `…/components/StatefulSetsView.tsx` | **548** | **EXCEEDS 300 LOC** |
-| `DaemonSetsView` | `…/components/DaemonSetsView.tsx` | **529** | **EXCEEDS 300 LOC** |
+| `DaemonSetsView`   | `…/components/DaemonSetsView.tsx`   | **529** | **EXCEEDS 300 LOC** |
 
-*11 exported components, plus numerous inline helper components defined inside larger files.*
+_11 exported components, plus numerous inline helper components defined inside larger files._
 
 ### 1.6 Files Exceeding 300 LOC
 
-| File | LOC | Reason |
-|------|-----|--------|
+| File                                               | LOC | Reason                                   |
+| -------------------------------------------------- | --- | ---------------------------------------- |
 | `src/renderer/src/components/StatefulSetsView.tsx` | 548 | Monolithic: contains 4 nested components |
-| `src/renderer/src/components/DeploymentsView.tsx` | 546 | Monolithic: contains 4 nested components |
-| `src/renderer/src/components/DaemonSetsView.tsx` | 529 | Monolithic: contains 4 nested components |
-| `src/main/k8s-handlers.ts` | 395 | All K8s API wrappers in one file |
+| `src/renderer/src/components/DeploymentsView.tsx`  | 546 | Monolithic: contains 4 nested components |
+| `src/renderer/src/components/DaemonSetsView.tsx`   | 529 | Monolithic: contains 4 nested components |
+| `src/main/k8s-handlers.ts`                         | 395 | All K8s API wrappers in one file         |
 
 ---
 
@@ -110,7 +110,7 @@ Any bug in `formatAge` must be fixed in three places; any future resource view t
 
 ```ts
 // DeploymentsView.tsx
-const selectedItem = useAppStore((s) => s.selectedItem) as K8sDeployment | null;
+const selectedItem = useAppStore((s) => s.selectedItem) as K8sDeployment | null
 ```
 
 There is no compile-time guard preventing `selectedItem` from being cast to the wrong K8s type (e.g., casting a `K8sPod` as a `K8sDeployment`). TypeScript cannot catch this error at the call site.
@@ -128,7 +128,7 @@ There is no compile-time guard preventing `selectedItem` from being cast to the 
 In `src/main/index.ts` all 21 `ipcMain.handle` registrations directly invoke the corresponding handler function with no surrounding try/catch or structured logging:
 
 ```ts
-ipcMain.handle('k8s:deployments:list', () => listDeployments());
+ipcMain.handle("k8s:deployments:list", () => listDeployments())
 ```
 
 If the K8s API throws (e.g., expired credentials, unreachable cluster), the rejection propagates raw to the renderer. There is no central place to log errors, report them with context (handler name, arguments), or return a structured error envelope. Each renderer component independently handles `catch` with ad-hoc error strings.
@@ -176,6 +176,7 @@ Each view component calls `window.api.<resource>List()` inside a `useEffect` on 
 **Description:** Move the `formatAge(dateStr: string): string` function and the `MetaEntry` presentational component out of the three CRUD view files into shared modules.
 **Motivation:** PP-2. Any date-formatting bug currently requires fixing in three places. The next resource view will copy them a fourth time.
 **Affected files:**
+
 - Create `src/renderer/lib/format.ts` — export `formatAge`.
 - Create `src/renderer/src/components/MetaEntry.tsx` — export `MetaEntry`.
 - Update `DeploymentsView.tsx`, `StatefulSetsView.tsx`, `DaemonSetsView.tsx`, `NamespacesView.tsx`, `NodesView.tsx` to import from these new modules and delete their local definitions.
@@ -220,12 +221,12 @@ Repeat the same split for `statefulsets/` and `daemonsets/`.
 
 ```ts
 type SelectedItem =
-  | { type: 'Deployment'; data: K8sDeployment }
-  | { type: 'StatefulSet'; data: K8sStatefulSet }
-  | { type: 'DaemonSet'; data: K8sDaemonSet }
-  | { type: 'Pod'; data: K8sPod }
+  | { type: "Deployment"; data: K8sDeployment }
+  | { type: "StatefulSet"; data: K8sStatefulSet }
+  | { type: "DaemonSet"; data: K8sDaemonSet }
+  | { type: "Pod"; data: K8sPod }
   // ... other resource types
-  | null;
+  | null
 ```
 
 Consumers narrow via `if (selectedItem?.type === 'Deployment')` instead of unsafe casts.
@@ -243,12 +244,12 @@ Consumers narrow via `if (selectedItem?.type === 'Deployment')` instead of unsaf
 function handle<T>(channel: string, fn: (...args: unknown[]) => Promise<T>) {
   ipcMain.handle(channel, async (_event, ...args) => {
     try {
-      return { ok: true, data: await fn(...args) };
+      return { ok: true, data: await fn(...args) }
     } catch (err) {
-      console.error(`[IPC] ${channel} failed:`, err);
-      return { ok: false, error: (err as Error).message };
+      console.error(`[IPC] ${channel} failed:`, err)
+      return { ok: false, error: (err as Error).message }
     }
-  });
+  })
 }
 ```
 
@@ -276,11 +277,11 @@ Renderer components check `result.ok` before using `result.data`.
 
 ```ts
 export const IPC = {
-  NAMESPACES_LIST: 'k8s:namespaces:list',
-  DEPLOYMENTS_LIST: 'k8s:deployments:list',
-  DEPLOYMENT_CREATE: 'k8s:deployment:create',
+  NAMESPACES_LIST: "k8s:namespaces:list",
+  DEPLOYMENTS_LIST: "k8s:deployments:list",
+  DEPLOYMENT_CREATE: "k8s:deployment:create",
   // ... all 21 channels
-} as const;
+} as const
 ```
 
 Import `IPC` in `src/main/index.ts`, `src/preload/index.ts`, and all renderer call sites.
@@ -304,20 +305,27 @@ Import `IPC` in `src/main/index.ts`, `src/preload/index.ts`, and all renderer ca
 **Description:** Every view component duplicates this pattern:
 
 ```ts
-const [items, setItems] = useState<T[]>([]);
-const [loading, setLoading] = useState(false);
-const [error, setError] = useState<string | null>(null);
+const [items, setItems] = useState<T[]>([])
+const [loading, setLoading] = useState(false)
+const [error, setError] = useState<string | null>(null)
 useEffect(() => {
-  setLoading(true);
-  window.api.xyzList().then(setItems).catch(e => setError(e.message)).finally(() => setLoading(false));
-}, []);
+  setLoading(true)
+  window.api
+    .xyzList()
+    .then(setItems)
+    .catch((e) => setError(e.message))
+    .finally(() => setLoading(false))
+}, [])
 ```
 
 Extract this into `src/renderer/hooks/useResourceFetch.ts`:
 
 ```ts
 function useResourceFetch<T>(fetcher: () => Promise<T[]>): {
-  items: T[]; loading: boolean; error: string | null; refetch: () => void;
+  items: T[]
+  loading: boolean
+  error: string | null
+  refetch: () => void
 }
 ```
 
@@ -370,7 +378,9 @@ src/main/handlers/
 **Description:** Add a `resourceCache` map to the Zustand store:
 
 ```ts
-resourceCache: Partial<Record<ResourceType, { items: unknown[]; fetchedAt: number }>>
+resourceCache: Partial<
+  Record<ResourceType, { items: unknown[]; fetchedAt: number }>
+>
 ```
 
 `useResourceFetch` checks the cache first; treats entries older than 30 seconds as stale. After any mutation, the relevant cache entry is cleared to force a fresh fetch on next navigation.
@@ -451,21 +461,21 @@ src/
 
 ## 5. Refactoring Priority Summary
 
-| ID | Title | Priority | Complexity | Motivation |
-|----|-------|----------|------------|------------|
-| P1-A | Extract `formatAge` + `MetaEntry` | P1 | S | PP-2 |
-| P1-B | Split monolithic CRUD view files | P1 | M | PP-1 |
-| P1-C | Import K8s types from preload | P1 | S | PP-6 |
-| P1-D | Typed `selectedItem` in store | P1 | M | PP-3 |
-| P1-E | Centralised IPC error handler | P1 | M | PP-5 |
-| P2-A | `src/shared/types.ts` | P2 | S | PP-6 |
-| P2-B | IPC channel name constants | P2 | S | PP-7 |
-| P2-C | Move context/clusterType to store | P2 | S | PP-4 |
-| P2-D | `useResourceFetch` hook | P2 | S | PP-2, PP-9 |
-| P2-E | React error boundaries | P2 | S | PP-8 |
-| P3-A | Component unit tests | P3 | M | PP-10 |
-| P3-B | Split `k8s-handlers.ts` | P3 | S | PP-1 |
-| P3-C | Resource list caching | P3 | M | PP-9 |
+| ID   | Title                             | Priority | Complexity | Motivation |
+| ---- | --------------------------------- | -------- | ---------- | ---------- |
+| P1-A | Extract `formatAge` + `MetaEntry` | P1       | S          | PP-2       |
+| P1-B | Split monolithic CRUD view files  | P1       | M          | PP-1       |
+| P1-C | Import K8s types from preload     | P1       | S          | PP-6       |
+| P1-D | Typed `selectedItem` in store     | P1       | M          | PP-3       |
+| P1-E | Centralised IPC error handler     | P1       | M          | PP-5       |
+| P2-A | `src/shared/types.ts`             | P2       | S          | PP-6       |
+| P2-B | IPC channel name constants        | P2       | S          | PP-7       |
+| P2-C | Move context/clusterType to store | P2       | S          | PP-4       |
+| P2-D | `useResourceFetch` hook           | P2       | S          | PP-2, PP-9 |
+| P2-E | React error boundaries            | P2       | S          | PP-8       |
+| P3-A | Component unit tests              | P3       | M          | PP-10      |
+| P3-B | Split `k8s-handlers.ts`           | P3       | S          | PP-1       |
+| P3-C | Resource list caching             | P3       | M          | PP-9       |
 
 > **Complexity key:** S = hours, M = 1–2 days, L = 3+ days.
 
