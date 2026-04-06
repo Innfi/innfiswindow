@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain } from "electron"
 import { join } from "path"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
-import { KubeConfig, CoreV1Api, AppsV1Api } from "@kubernetes/client-node"
+import { KubeConfig, CoreV1Api, AppsV1Api, NetworkingV1Api } from "@kubernetes/client-node"
 import {
   listContexts,
   getCurrentContext,
@@ -16,6 +16,7 @@ import {
   listConfigMaps,
   listSecrets,
   listServices,
+  listIngresses,
   createDeployment,
   updateDeployment,
   deleteDeployment,
@@ -32,9 +33,10 @@ kc.loadFromDefault()
 
 const coreV1Api = kc.makeApiClient(CoreV1Api)
 const appsV1Api = kc.makeApiClient(AppsV1Api)
+const networkingV1Api = kc.makeApiClient(NetworkingV1Api)
 
 // Export for use in other modules if needed
-export { kc, coreV1Api, appsV1Api }
+export { kc, coreV1Api, appsV1Api, networkingV1Api }
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -90,6 +92,7 @@ app.whenReady().then(() => {
   ipcMain.handle("k8s:configmaps:list", () => listConfigMaps(coreV1Api))
   ipcMain.handle("k8s:secrets:list", () => listSecrets(coreV1Api))
   ipcMain.handle("k8s:services:list", () => listServices(coreV1Api))
+  ipcMain.handle("k8s:ingresses:list", () => listIngresses(networkingV1Api))
   ipcMain.handle("k8s:nodes:list", () => listNodes(coreV1Api))
   ipcMain.handle(
     "k8s:deployment:create",

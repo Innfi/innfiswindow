@@ -376,7 +376,7 @@
     {
       "id": "S23",
       "title": "Ingress resource: list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Implement Ingress resource support. In main process: add IPC handler 'k8s:ingresses:list' using NetworkingV1Api.listIngressForAllNamespaces(). In renderer: add 'Ingresses' as a leaf item under the 'Networking' tree group (created in S22). When selectedResourceType is 'Ingresses', show a shadcn Table with columns [Name, Namespace, Class (spec.ingressClassName), Hosts (comma-separated list of hosts from spec.rules), Address (status.loadBalancer.ingress[0].ip or hostname), Ports (80, or 80/443 if TLS is configured), Age]. Clicking a row sets selectedItem and shows a detail panel with: ingress class, TLS section (secret name + covered hosts), rules table (host, path, pathType, backend service name and port), labels, and annotations.",
       "acceptance_criteria": [
         "IPC handler 'k8s:ingresses:list' returns Ingresses across all namespaces using NetworkingV1Api",

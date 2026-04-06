@@ -10,6 +10,7 @@ import { DaemonSetsView } from "./components/DaemonSetsView"
 import { ConfigMapsView } from "./components/ConfigMapsView"
 import { SecretsView } from "./components/SecretsView"
 import { ServicesView } from "./components/ServicesView"
+import { IngressesView } from "./components/IngressesView"
 import { useAppStore } from "../store/app.store"
 
 function App(): JSX.Element {
@@ -62,6 +63,7 @@ function App(): JSX.Element {
           {selectedResourceType === "Secrets" && <SecretsView />}
           {selectedResourceType === "Pods" && <PodsView />}
           {selectedResourceType === "Services" && <ServicesView />}
+          {selectedResourceType === "Ingresses" && <IngressesView />}
         </div>
       </div>
     </div>

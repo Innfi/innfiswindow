@@ -1,4 +1,4 @@
-import { KubeConfig, CoreV1Api, AppsV1Api } from "@kubernetes/client-node"
+import { KubeConfig, CoreV1Api, AppsV1Api, NetworkingV1Api } from "@kubernetes/client-node"
 
 export async function listServices(api: CoreV1Api) {
   const res = await api.listServiceForAllNamespaces()
@@ -27,6 +27,46 @@ export async function listServices(api: CoreV1Api) {
       selector: svc.spec?.selector ?? {},
       labels: svc.metadata?.labels ?? {},
       annotations: svc.metadata?.annotations ?? {},
+    }
+  })
+}
+
+export async function listIngresses(api: NetworkingV1Api) {
+  const res = await api.listIngressForAllNamespaces()
+  return res.items.map((ing) => {
+    const lbIngress = ing.status?.loadBalancer?.ingress ?? []
+    const address = lbIngress[0]?.ip ?? lbIngress[0]?.hostname ?? ""
+    const hosts = (ing.spec?.rules ?? [])
+      .map((r) => r.host ?? "*")
+      .filter((h, i, arr) => arr.indexOf(h) === i)
+      .join(", ") || "*"
+    const hasTLS = (ing.spec?.tls ?? []).length > 0
+    const ports = hasTLS ? "80, 443" : "80"
+    const tls = (ing.spec?.tls ?? []).map((t) => ({
+      secretName: t.secretName ?? "",
+      hosts: t.hosts ?? [],
+    }))
+    const rules = (ing.spec?.rules ?? []).map((r) => ({
+      host: r.host ?? "*",
+      paths: (r.http?.paths ?? []).map((p) => ({
+        path: p.path ?? "/",
+        pathType: p.pathType ?? "",
+        serviceName: p.backend?.service?.name ?? "",
+        servicePort: p.backend?.service?.port?.number ?? p.backend?.service?.port?.name ?? "",
+      })),
+    }))
+    return {
+      name: ing.metadata?.name ?? "",
+      namespace: ing.metadata?.namespace ?? "",
+      ingressClassName: ing.spec?.ingressClassName ?? "",
+      hosts,
+      address,
+      ports,
+      creationTimestamp: ing.metadata?.creationTimestamp?.toISOString() ?? "",
+      tls,
+      rules,
+      labels: ing.metadata?.labels ?? {},
+      annotations: ing.metadata?.annotations ?? {},
     }
   })
 }

@@ -191,6 +191,37 @@ export interface K8sService {
   annotations: Record<string, string>
 }
 
+export interface K8sIngressTLS {
+  secretName: string
+  hosts: string[]
+}
+
+export interface K8sIngressPath {
+  path: string
+  pathType: string
+  serviceName: string
+  servicePort: string | number
+}
+
+export interface K8sIngressRule {
+  host: string
+  paths: K8sIngressPath[]
+}
+
+export interface K8sIngress {
+  name: string
+  namespace: string
+  ingressClassName: string
+  hosts: string
+  address: string
+  ports: string
+  creationTimestamp: string
+  tls: K8sIngressTLS[]
+  rules: K8sIngressRule[]
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 export interface K8sSecret {
   name: string
   namespace: string
@@ -215,6 +246,7 @@ export interface K8sAPI {
   listSecrets: () => Promise<K8sSecret[]>
   listPods: () => Promise<K8sPod[]>
   listServices: () => Promise<K8sService[]>
+  listIngresses: () => Promise<K8sIngress[]>
   getClusterType: () => Promise<"EKS" | "AKS" | "Local">
   createDeployment: (
     namespace: string,

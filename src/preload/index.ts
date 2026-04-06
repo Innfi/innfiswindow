@@ -16,6 +16,7 @@ const api = {
     listSecrets: () => ipcRenderer.invoke("k8s:secrets:list"),
     listPods: () => ipcRenderer.invoke("k8s:pods:list"),
     listServices: () => ipcRenderer.invoke("k8s:services:list"),
+    listIngresses: () => ipcRenderer.invoke("k8s:ingresses:list"),
     getClusterType: () => ipcRenderer.invoke("k8s:cluster:type"),
     createDeployment: (
       namespace: string,
