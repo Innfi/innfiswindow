@@ -26,6 +26,9 @@ import {
   createDaemonSet,
   updateDaemonSet,
   deleteDaemonSet,
+  createService,
+  updateService,
+  deleteService,
 } from "./k8s-handlers"
 
 const kc = new KubeConfig()
@@ -152,6 +155,32 @@ app.whenReady().then(() => {
     "k8s:daemonset:delete",
     (_e, namespace: string, name: string) =>
       deleteDaemonSet(appsV1Api, namespace, name),
+  )
+  ipcMain.handle(
+    "k8s:service:create",
+    (
+      _e,
+      namespace: string,
+      name: string,
+      type: string,
+      ports: Array<{ protocol: string; port: number; targetPort: number | string }>,
+      selector: Record<string, string>,
+    ) => createService(coreV1Api, namespace, name, type, ports, selector),
+  )
+  ipcMain.handle(
+    "k8s:service:update",
+    (
+      _e,
+      namespace: string,
+      name: string,
+      type: string,
+      ports: Array<{ protocol: string; port: number; targetPort: number | string }>,
+    ) => updateService(coreV1Api, namespace, name, type, ports),
+  )
+  ipcMain.handle(
+    "k8s:service:delete",
+    (_e, namespace: string, name: string) =>
+      deleteService(coreV1Api, namespace, name),
   )
 
   createWindow()

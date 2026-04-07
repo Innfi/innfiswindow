@@ -82,6 +82,30 @@ const api = {
       ipcRenderer.invoke("k8s:daemonset:update", namespace, name, image),
     deleteDaemonSet: (namespace: string, name: string) =>
       ipcRenderer.invoke("k8s:daemonset:delete", namespace, name),
+    createService: (
+      namespace: string,
+      name: string,
+      type: string,
+      ports: Array<{ protocol: string; port: number; targetPort: number | string }>,
+      selector: Record<string, string>,
+    ) =>
+      ipcRenderer.invoke(
+        "k8s:service:create",
+        namespace,
+        name,
+        type,
+        ports,
+        selector,
+      ),
+    updateService: (
+      namespace: string,
+      name: string,
+      type: string,
+      ports: Array<{ protocol: string; port: number; targetPort: number | string }>,
+    ) =>
+      ipcRenderer.invoke("k8s:service:update", namespace, name, type, ports),
+    deleteService: (namespace: string, name: string) =>
+      ipcRenderer.invoke("k8s:service:delete", namespace, name),
   },
 }
 

@@ -295,6 +295,23 @@ export interface K8sAPI {
     namespace: string,
     name: string,
   ) => Promise<{ success: boolean; name: string; namespace: string }>
+  createService: (
+    namespace: string,
+    name: string,
+    type: string,
+    ports: Array<{ protocol: string; port: number; targetPort: number | string }>,
+    selector: Record<string, string>,
+  ) => Promise<{ name: string; namespace: string }>
+  updateService: (
+    namespace: string,
+    name: string,
+    type: string,
+    ports: Array<{ protocol: string; port: number; targetPort: number | string }>,
+  ) => Promise<{ name: string; namespace: string }>
+  deleteService: (
+    namespace: string,
+    name: string,
+  ) => Promise<{ success: boolean; name: string; namespace: string }>
 }
 
 export interface API {

@@ -393,7 +393,7 @@
     {
       "id": "S24",
       "title": "Create, update, and delete Services",
-      "status": "pending",
+      "status": "complete",
       "description": "Add full CRUD support for Services. Users can create a new Service via a form dialog, edit an existing Service's type and ports via an edit dialog, and delete a Service with a confirmation prompt. All mutations go through IPC handlers in the main process using CoreV1Api. The Services list refreshes automatically after any mutation.",
       "acceptance_criteria": [
         "IPC handler `k8s:service:create` accepts namespace, name, type (ClusterIP/NodePort/LoadBalancer), ports (array of {protocol, port, targetPort}), and selector (key-value map); creates the Service and returns the created object",
@@ -416,7 +416,7 @@
     {
       "id": "S25",
       "title": "Create, update, and delete Ingresses",
-      "status": "pending",
+      "status": "incomplete",
       "description": "Add full CRUD support for Ingresses. Users can create a new Ingress via a form dialog, edit an existing Ingress's rules via an edit dialog, and delete an Ingress with a confirmation prompt. All mutations go through IPC handlers in the main process using NetworkingV1Api. The Ingresses list refreshes automatically after any mutation.",
       "acceptance_criteria": [
         "IPC handler `k8s:ingress:create` accepts namespace, name, ingressClassName, rules (array of {host, path, pathType, serviceName, servicePort}), and optional tls (array of {hosts, secretName}); creates the Ingress and returns the created object",

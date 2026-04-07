@@ -490,3 +490,71 @@ export async function deleteDaemonSet(
   await api.deleteNamespacedDaemonSet({ name, namespace })
   return { success: true, name, namespace }
 }
+
+export interface ServicePort {
+  protocol: string
+  port: number
+  targetPort: number | string
+}
+
+export async function createService(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+  type: string,
+  ports: ServicePort[],
+  selector: Record<string, string>,
+) {
+  const body = {
+    apiVersion: "v1",
+    kind: "Service",
+    metadata: { name, namespace },
+    spec: {
+      type,
+      selector,
+      ports: ports.map((p) => ({
+        protocol: p.protocol,
+        port: p.port,
+        targetPort: p.targetPort,
+      })),
+    },
+  }
+  const res = await api.createNamespacedService({ namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+  }
+}
+
+export async function updateService(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+  type: string,
+  ports: ServicePort[],
+) {
+  const body = {
+    spec: {
+      type,
+      ports: ports.map((p) => ({
+        protocol: p.protocol,
+        port: p.port,
+        targetPort: p.targetPort,
+      })),
+    },
+  }
+  const res = await api.patchNamespacedService({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+  }
+}
+
+export async function deleteService(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+) {
+  await api.deleteNamespacedService({ name, namespace })
+  return { success: true, name, namespace }
+}
