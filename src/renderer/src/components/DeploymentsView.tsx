@@ -20,7 +20,9 @@ import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
 import { cn } from "../../lib/utils"
-import { Pencil, Trash2, Plus } from "lucide-react"
+import { Pencil, Trash2, Plus, FileCode } from "lucide-react"
+import { dump as yamlDump } from "js-yaml"
+import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sDeploymentCondition {
   type: string
@@ -485,6 +487,9 @@ export function DeploymentsView(): JSX.Element {
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<K8sDeployment | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<K8sDeployment | null>(null)
+  const [yamlOpen, setYamlOpen] = useState(false)
+  const [yamlInitial, setYamlInitial] = useState("")
+  const [yamlTitle, setYamlTitle] = useState("")
 
   const selectedItem = useAppStore(
     (s) => s.selectedItem,
@@ -514,15 +519,61 @@ export function DeploymentsView(): JSX.Element {
       .catch(() => setNamespaces(["default"]))
   }, [])
 
+  function openNewYaml(): void {
+    const template = yamlDump({
+      apiVersion: "apps/v1",
+      kind: "Deployment",
+      metadata: { name: "my-deployment", namespace: "default" },
+      spec: {
+        replicas: 1,
+        selector: { matchLabels: { app: "my-deployment" } },
+        template: {
+          metadata: { labels: { app: "my-deployment" } },
+          spec: { containers: [{ name: "my-container", image: "nginx:latest" }] },
+        },
+      },
+    })
+    setYamlInitial(template)
+    setYamlTitle("New Deployment (YAML)")
+    setYamlOpen(true)
+  }
+
+  function openEditYaml(d: K8sDeployment): void {
+    const obj = {
+      apiVersion: "apps/v1",
+      kind: "Deployment",
+      metadata: { name: d.name, namespace: d.namespace },
+      spec: {
+        replicas: d.replicas,
+        selector: { matchLabels: d.selector },
+        template: {
+          metadata: { labels: d.selector },
+          spec: {
+            containers: d.containers.map((c) => ({ name: c.name, image: c.image })),
+          },
+        },
+      },
+    }
+    setYamlInitial(yamlDump(obj))
+    setYamlTitle(`Edit Deployment: ${d.namespace}/${d.name}`)
+    setYamlOpen(true)
+  }
+
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Deployments</h1>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" />
-            New Deployment
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={openNewYaml}>
+              <FileCode className="h-4 w-4" />
+              New Resource (YAML)
+            </Button>
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4" />
+              New Deployment
+            </Button>
+          </div>
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -562,6 +613,14 @@ export function DeploymentsView(): JSX.Element {
                       className="flex gap-1"
                       onClick={(e) => e.stopPropagation()}
                     >
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Edit YAML"
+                        onClick={() => openEditYaml(d)}
+                      >
+                        <FileCode className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -620,6 +679,17 @@ export function DeploymentsView(): JSX.Element {
         }}
         deployment={deleteTarget}
         onDeleted={() => {
+          fetchDeployments()
+          setSelectedItem(null)
+        }}
+      />
+
+      <YamlEditorPanel
+        open={yamlOpen}
+        onOpenChange={setYamlOpen}
+        initialYaml={yamlInitial}
+        title={yamlTitle}
+        onApplied={() => {
           fetchDeployments()
           setSelectedItem(null)
         }}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, FileCode } from "lucide-react"
 import { useAppStore } from "../../store/app.store"
 import {
   Table,
@@ -9,7 +9,10 @@ import {
   TableHead,
   TableCell,
 } from "../../components/ui/table"
+import { Button } from "../../components/ui/button"
 import { cn } from "../../lib/utils"
+import { dump as yamlDump } from "js-yaml"
+import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sSecret {
   name: string
@@ -147,10 +150,14 @@ export function SecretsView(): JSX.Element {
   const [secrets, setSecrets] = useState<K8sSecret[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [yamlOpen, setYamlOpen] = useState(false)
+  const [yamlInitial, setYamlInitial] = useState("")
+  const [yamlTitle, setYamlTitle] = useState("")
+
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sSecret | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
 
-  useEffect(() => {
+  function fetchSecrets(): void {
     setLoading(true)
     setError(null)
     window.api.k8s
@@ -163,12 +170,52 @@ export function SecretsView(): JSX.Element {
         setError(String(err))
         setLoading(false)
       })
+  }
+
+  useEffect(() => {
+    fetchSecrets()
   }, [])
+
+  function openNewYaml(): void {
+    const template = yamlDump({
+      apiVersion: "v1",
+      kind: "Secret",
+      metadata: { name: "my-secret", namespace: "default" },
+      type: "Opaque",
+      data: { key: "dmFsdWU=" },
+    })
+    setYamlInitial(template)
+    setYamlTitle("New Secret (YAML)")
+    setYamlOpen(true)
+  }
+
+  function openEditYaml(secret: K8sSecret): void {
+    const obj = {
+      apiVersion: "v1",
+      kind: "Secret",
+      metadata: {
+        name: secret.name,
+        namespace: secret.namespace,
+        ...(Object.keys(secret.labels).length > 0 ? { labels: secret.labels } : {}),
+      },
+      type: secret.type,
+      ...(Object.keys(secret.data).length > 0 ? { data: secret.data } : {}),
+    }
+    setYamlInitial(yamlDump(obj))
+    setYamlTitle(`Edit Secret: ${secret.namespace}/${secret.name}`)
+    setYamlOpen(true)
+  }
 
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
-        <h1 className="text-lg font-semibold mb-4">Secrets</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-lg font-semibold">Secrets</h1>
+          <Button size="sm" variant="outline" onClick={openNewYaml}>
+            <FileCode className="h-4 w-4" />
+            New Resource (YAML)
+          </Button>
+        </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
         {!loading && !error && (
@@ -180,6 +227,7 @@ export function SecretsView(): JSX.Element {
                 <TableHead>Type</TableHead>
                 <TableHead>Keys</TableHead>
                 <TableHead>Age</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -201,6 +249,18 @@ export function SecretsView(): JSX.Element {
                     {secret.keys.join(", ") || "-"}
                   </TableCell>
                   <TableCell>{formatAge(secret.creationTimestamp)}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Edit YAML"
+                        onClick={() => openEditYaml(secret)}
+                      >
+                        <FileCode className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -211,6 +271,17 @@ export function SecretsView(): JSX.Element {
       {selectedItem && selectedItem.type !== undefined && (
         <DetailPanel secret={selectedItem} />
       )}
+
+      <YamlEditorPanel
+        open={yamlOpen}
+        onOpenChange={setYamlOpen}
+        initialYaml={yamlInitial}
+        title={yamlTitle}
+        onApplied={() => {
+          fetchSecrets()
+          setSelectedItem(null)
+        }}
+      />
     </div>
   )
 }

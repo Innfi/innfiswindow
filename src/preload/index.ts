@@ -106,6 +106,26 @@ const api = {
       ipcRenderer.invoke("k8s:service:update", namespace, name, type, ports),
     deleteService: (namespace: string, name: string) =>
       ipcRenderer.invoke("k8s:service:delete", namespace, name),
+    createIngress: (
+      namespace: string,
+      name: string,
+      ingressClassName: string,
+      rules: Array<{ host: string; path: string; pathType: string; serviceName: string; servicePort: number | string }>,
+      tls: Array<{ hosts: string[]; secretName: string }>,
+    ) =>
+      ipcRenderer.invoke("k8s:ingress:create", namespace, name, ingressClassName, rules, tls),
+    updateIngress: (
+      namespace: string,
+      name: string,
+      ingressClassName: string,
+      rules: Array<{ host: string; path: string; pathType: string; serviceName: string; servicePort: number | string }>,
+      tls: Array<{ hosts: string[]; secretName: string }>,
+    ) =>
+      ipcRenderer.invoke("k8s:ingress:update", namespace, name, ingressClassName, rules, tls),
+    deleteIngress: (namespace: string, name: string) =>
+      ipcRenderer.invoke("k8s:ingress:delete", namespace, name),
+    applyResource: (yaml: string) =>
+      ipcRenderer.invoke("k8s:resource:apply", yaml),
   },
 }
 

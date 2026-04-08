@@ -1,4 +1,5 @@
-import { KubeConfig, CoreV1Api, AppsV1Api, NetworkingV1Api } from "@kubernetes/client-node"
+import { KubeConfig, CoreV1Api, AppsV1Api, NetworkingV1Api, KubernetesObjectApi } from "@kubernetes/client-node"
+import { load as yamlLoad } from "js-yaml"
 
 export async function listServices(api: CoreV1Api) {
   const res = await api.listServiceForAllNamespaces()
@@ -557,4 +558,153 @@ export async function deleteService(
 ) {
   await api.deleteNamespacedService({ name, namespace })
   return { success: true, name, namespace }
+}
+
+export interface IngressRuleEntry {
+  host: string
+  path: string
+  pathType: string
+  serviceName: string
+  servicePort: number | string
+}
+
+export interface IngressTLSEntry {
+  hosts: string[]
+  secretName: string
+}
+
+function buildIngressSpec(
+  ingressClassName: string,
+  rules: IngressRuleEntry[],
+  tls: IngressTLSEntry[],
+) {
+  // Group rules by host
+  const hostMap = new Map<string, IngressRuleEntry[]>()
+  for (const r of rules) {
+    const host = r.host || "*"
+    if (!hostMap.has(host)) hostMap.set(host, [])
+    hostMap.get(host)!.push(r)
+  }
+  const k8sRules = Array.from(hostMap.entries()).map(([host, paths]) => ({
+    host: host === "*" ? undefined : host,
+    http: {
+      paths: paths.map((p) => ({
+        path: p.path || "/",
+        pathType: p.pathType || "Prefix",
+        backend: {
+          service: {
+            name: p.serviceName,
+            port: {
+              number:
+                typeof p.servicePort === "number"
+                  ? p.servicePort
+                  : parseInt(String(p.servicePort), 10) || 80,
+            },
+          },
+        },
+      })),
+    },
+  }))
+  return {
+    ...(ingressClassName ? { ingressClassName } : {}),
+    rules: k8sRules,
+    ...(tls.length > 0
+      ? {
+          tls: tls.map((t) => ({
+            hosts: t.hosts,
+            secretName: t.secretName,
+          })),
+        }
+      : {}),
+  }
+}
+
+export async function createIngress(
+  api: NetworkingV1Api,
+  namespace: string,
+  name: string,
+  ingressClassName: string,
+  rules: IngressRuleEntry[],
+  tls: IngressTLSEntry[],
+) {
+  const body = {
+    apiVersion: "networking.k8s.io/v1",
+    kind: "Ingress",
+    metadata: { name, namespace },
+    spec: buildIngressSpec(ingressClassName, rules, tls),
+  }
+  const res = await api.createNamespacedIngress({ namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+  }
+}
+
+export async function updateIngress(
+  api: NetworkingV1Api,
+  namespace: string,
+  name: string,
+  ingressClassName: string,
+  rules: IngressRuleEntry[],
+  tls: IngressTLSEntry[],
+) {
+  const body = {
+    spec: buildIngressSpec(ingressClassName, rules, tls),
+  }
+  const res = await api.patchNamespacedIngress({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+  }
+}
+
+export async function deleteIngress(
+  api: NetworkingV1Api,
+  namespace: string,
+  name: string,
+) {
+  await api.deleteNamespacedIngress({ name, namespace })
+  return { success: true, name, namespace }
+}
+
+export async function applyResource(kc: KubeConfig, yamlString: string) {
+  const obj = yamlLoad(yamlString) as Record<string, unknown>
+  if (!obj || typeof obj !== "object") {
+    throw new Error("Invalid YAML: must be a Kubernetes object")
+  }
+  const meta = (obj.metadata ?? {}) as Record<string, unknown>
+  const name = (meta.name as string) ?? ""
+  const namespace = (meta.namespace as string) ?? ""
+  if (!obj.apiVersion || !obj.kind || !name) {
+    throw new Error("YAML must include apiVersion, kind, and metadata.name")
+  }
+  const client = KubernetesObjectApi.makeApiClient(kc)
+  try {
+    const res = await client.create(obj as never)
+    const body = (res as unknown as { body: Record<string, unknown> }).body ?? res
+    const bodyMeta = (body as Record<string, unknown>).metadata as Record<string, unknown> | undefined
+    return {
+      name: (bodyMeta?.name as string) ?? name,
+      namespace: (bodyMeta?.namespace as string) ?? namespace,
+    }
+  } catch (err: unknown) {
+    const statusCode = (err as Record<string, unknown>).statusCode ?? (err as Record<string, unknown>).code
+    if (statusCode === 409) {
+      const res = await client.patch(
+        obj as never,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { headers: { "Content-Type": "application/strategic-merge-patch+json" } },
+      )
+      const body = (res as unknown as { body: Record<string, unknown> }).body ?? res
+      const bodyMeta = (body as Record<string, unknown>).metadata as Record<string, unknown> | undefined
+      return {
+        name: (bodyMeta?.name as string) ?? name,
+        namespace: (bodyMeta?.namespace as string) ?? namespace,
+      }
+    }
+    throw err
+  }
 }

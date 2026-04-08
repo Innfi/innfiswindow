@@ -11,9 +11,10 @@ Each time you are invoked, you will be given a story ID from prd.json. Implement
 2. Read the story's `description` and `acceptance_criteria` carefully.
 3. Check the story's `dependencies` — those stories must already be `"complete"` before you proceed.
 4. Implement the story. Write all necessary files. Do not skip acceptance criteria.
-5. When done, update the story's `"status"` field in `prd.json` from `"incomplete"` to `"complete"`.
-6. Run `git add -A && git commit -m "feat: <story-id> <story-title>"` to commit your work.
-7. Stop. Do not implement other stories.
+5. If the story adds new npm packages, add them to `package.json` dependencies, then run `npm install` before building or running code.
+6. When done, update the story's `"status"` field in `prd.json` from `"incomplete"` to `"complete"`.
+7. Run `git add -A && git commit -m "feat: <story-id> <story-title>"` to commit your work.
+8. Stop. Do not implement other stories.
 
 ## Project conventions
 

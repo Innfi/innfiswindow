@@ -8,7 +8,11 @@ import {
   TableHead,
   TableCell,
 } from "../../components/ui/table"
+import { Button } from "../../components/ui/button"
 import { cn } from "../../lib/utils"
+import { FileCode } from "lucide-react"
+import { dump as yamlDump } from "js-yaml"
+import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sConfigMap {
   name: string
@@ -116,10 +120,14 @@ export function ConfigMapsView(): JSX.Element {
   const [configMaps, setConfigMaps] = useState<K8sConfigMap[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [yamlOpen, setYamlOpen] = useState(false)
+  const [yamlInitial, setYamlInitial] = useState("")
+  const [yamlTitle, setYamlTitle] = useState("")
+
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sConfigMap | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
 
-  useEffect(() => {
+  function fetchConfigMaps(): void {
     setLoading(true)
     setError(null)
     window.api.k8s
@@ -132,12 +140,50 @@ export function ConfigMapsView(): JSX.Element {
         setError(String(err))
         setLoading(false)
       })
+  }
+
+  useEffect(() => {
+    fetchConfigMaps()
   }, [])
+
+  function openNewYaml(): void {
+    const template = yamlDump({
+      apiVersion: "v1",
+      kind: "ConfigMap",
+      metadata: { name: "my-configmap", namespace: "default" },
+      data: { key: "value" },
+    })
+    setYamlInitial(template)
+    setYamlTitle("New ConfigMap (YAML)")
+    setYamlOpen(true)
+  }
+
+  function openEditYaml(cm: K8sConfigMap): void {
+    const obj = {
+      apiVersion: "v1",
+      kind: "ConfigMap",
+      metadata: {
+        name: cm.name,
+        namespace: cm.namespace,
+        ...(Object.keys(cm.labels).length > 0 ? { labels: cm.labels } : {}),
+      },
+      ...(Object.keys(cm.data).length > 0 ? { data: cm.data } : {}),
+    }
+    setYamlInitial(yamlDump(obj))
+    setYamlTitle(`Edit ConfigMap: ${cm.namespace}/${cm.name}`)
+    setYamlOpen(true)
+  }
 
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
-        <h1 className="text-lg font-semibold mb-4">ConfigMaps</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-lg font-semibold">ConfigMaps</h1>
+          <Button size="sm" variant="outline" onClick={openNewYaml}>
+            <FileCode className="h-4 w-4" />
+            New Resource (YAML)
+          </Button>
+        </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
         {!loading && !error && (
@@ -148,6 +194,7 @@ export function ConfigMapsView(): JSX.Element {
                 <TableHead>Namespace</TableHead>
                 <TableHead>Keys</TableHead>
                 <TableHead>Age</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -168,6 +215,18 @@ export function ConfigMapsView(): JSX.Element {
                     {cm.keys.join(", ") || "-"}
                   </TableCell>
                   <TableCell>{formatAge(cm.creationTimestamp)}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Edit YAML"
+                        onClick={() => openEditYaml(cm)}
+                      >
+                        <FileCode className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -178,6 +237,17 @@ export function ConfigMapsView(): JSX.Element {
       {selectedItem && selectedItem.keys !== undefined && (
         <DetailPanel cm={selectedItem} />
       )}
+
+      <YamlEditorPanel
+        open={yamlOpen}
+        onOpenChange={setYamlOpen}
+        initialYaml={yamlInitial}
+        title={yamlTitle}
+        onApplied={() => {
+          fetchConfigMaps()
+          setSelectedItem(null)
+        }}
+      />
     </div>
   )
 }

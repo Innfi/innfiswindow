@@ -20,7 +20,9 @@ import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
 import { cn } from "../../lib/utils"
-import { Pencil, Trash2, Plus, X } from "lucide-react"
+import { Pencil, Trash2, Plus, X, FileCode } from "lucide-react"
+import { dump as yamlDump } from "js-yaml"
+import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sServicePort {
   name: string
@@ -659,9 +661,54 @@ export function ServicesView(): JSX.Element {
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<K8sService | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<K8sService | null>(null)
+  const [yamlOpen, setYamlOpen] = useState(false)
+  const [yamlInitial, setYamlInitial] = useState("")
+  const [yamlTitle, setYamlTitle] = useState("")
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sService | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+
+  function openNewYaml(): void {
+    const template = yamlDump({
+      apiVersion: "v1",
+      kind: "Service",
+      metadata: { name: "my-service", namespace: "default" },
+      spec: {
+        type: "ClusterIP",
+        selector: { app: "my-app" },
+        ports: [{ protocol: "TCP", port: 80, targetPort: 8080 }],
+      },
+    })
+    setYamlInitial(template)
+    setYamlTitle("New Service (YAML)")
+    setYamlOpen(true)
+  }
+
+  function openEditYaml(svc: K8sService): void {
+    const obj = {
+      apiVersion: "v1",
+      kind: "Service",
+      metadata: {
+        name: svc.name,
+        namespace: svc.namespace,
+        ...(Object.keys(svc.labels).length > 0 ? { labels: svc.labels } : {}),
+      },
+      spec: {
+        type: svc.type,
+        ...(Object.keys(svc.selector).length > 0 ? { selector: svc.selector } : {}),
+        ports: svc.ports.map((p) => ({
+          name: p.name || undefined,
+          protocol: p.protocol,
+          port: p.port,
+          targetPort: isNaN(Number(p.targetPort)) ? p.targetPort : Number(p.targetPort),
+          ...(p.nodePort ? { nodePort: p.nodePort } : {}),
+        })),
+      },
+    }
+    setYamlInitial(yamlDump(obj))
+    setYamlTitle(`Edit Service: ${svc.namespace}/${svc.name}`)
+    setYamlOpen(true)
+  }
 
   function fetchServices(): void {
     setLoading(true)
@@ -691,10 +738,16 @@ export function ServicesView(): JSX.Element {
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Services</h1>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" />
-            New Service
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={openNewYaml}>
+              <FileCode className="h-4 w-4" />
+              New Resource (YAML)
+            </Button>
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4" />
+              New Service
+            </Button>
+          </div>
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -742,6 +795,14 @@ export function ServicesView(): JSX.Element {
                       className="flex gap-1"
                       onClick={(e) => e.stopPropagation()}
                     >
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Edit YAML"
+                        onClick={() => openEditYaml(svc)}
+                      >
+                        <FileCode className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -800,6 +861,17 @@ export function ServicesView(): JSX.Element {
         }}
         service={deleteTarget}
         onDeleted={() => {
+          fetchServices()
+          setSelectedItem(null)
+        }}
+      />
+
+      <YamlEditorPanel
+        open={yamlOpen}
+        onOpenChange={setYamlOpen}
+        initialYaml={yamlInitial}
+        title={yamlTitle}
+        onApplied={() => {
           fetchServices()
           setSelectedItem(null)
         }}

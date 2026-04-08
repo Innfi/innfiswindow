@@ -8,7 +8,11 @@ import {
   TableHead,
   TableCell,
 } from "../../components/ui/table"
+import { Button } from "../../components/ui/button"
 import { cn } from "../../lib/utils"
+import { FileCode, Plus } from "lucide-react"
+import { dump as yamlDump } from "js-yaml"
+import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sPodContainer {
   name: string
@@ -149,10 +153,14 @@ export function PodsView(): JSX.Element {
   const [pods, setPods] = useState<K8sPod[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [yamlOpen, setYamlOpen] = useState(false)
+  const [yamlInitial, setYamlInitial] = useState("")
+  const [yamlTitle, setYamlTitle] = useState("")
+
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sPod | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
 
-  useEffect(() => {
+  function fetchPods(): void {
     setLoading(true)
     setError(null)
     window.api.k8s
@@ -165,12 +173,55 @@ export function PodsView(): JSX.Element {
         setError(String(err))
         setLoading(false)
       })
+  }
+
+  useEffect(() => {
+    fetchPods()
   }, [])
+
+  function openNewYaml(): void {
+    const template = yamlDump({
+      apiVersion: "v1",
+      kind: "Pod",
+      metadata: { name: "my-pod", namespace: "default" },
+      spec: {
+        containers: [{ name: "my-container", image: "nginx:latest" }],
+      },
+    })
+    setYamlInitial(template)
+    setYamlTitle("New Pod (YAML)")
+    setYamlOpen(true)
+  }
+
+  function openEditYaml(pod: K8sPod): void {
+    const obj = {
+      apiVersion: "v1",
+      kind: "Pod",
+      metadata: {
+        name: pod.name,
+        namespace: pod.namespace,
+        ...(pod.app ? { labels: { app: pod.app } } : {}),
+      },
+      spec: {
+        ...(pod.nodeName ? { nodeName: pod.nodeName } : {}),
+        containers: pod.containers.map((c) => ({ name: c.name, image: c.image })),
+      },
+    }
+    setYamlInitial(yamlDump(obj))
+    setYamlTitle(`Edit Pod: ${pod.namespace}/${pod.name}`)
+    setYamlOpen(true)
+  }
 
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
-        <h1 className="text-lg font-semibold mb-4">Pods</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-lg font-semibold">Pods</h1>
+          <Button size="sm" variant="outline" onClick={openNewYaml}>
+            <FileCode className="h-4 w-4" />
+            New Resource (YAML)
+          </Button>
+        </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
         {!loading && !error && (
@@ -184,6 +235,7 @@ export function PodsView(): JSX.Element {
                 <TableHead>Status</TableHead>
                 <TableHead>Restarts</TableHead>
                 <TableHead>Age</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -205,6 +257,18 @@ export function PodsView(): JSX.Element {
                   <TableCell>{p.status}</TableCell>
                   <TableCell>{p.restarts}</TableCell>
                   <TableCell>{formatAge(p.creationTimestamp)}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Edit YAML"
+                        onClick={() => openEditYaml(p)}
+                      >
+                        <FileCode className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -215,6 +279,17 @@ export function PodsView(): JSX.Element {
       {selectedItem && selectedItem.containers !== undefined && (
         <DetailPanel pod={selectedItem} />
       )}
+
+      <YamlEditorPanel
+        open={yamlOpen}
+        onOpenChange={setYamlOpen}
+        initialYaml={yamlInitial}
+        title={yamlTitle}
+        onApplied={() => {
+          fetchPods()
+          setSelectedItem(null)
+        }}
+      />
     </div>
   )
 }

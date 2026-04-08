@@ -29,6 +29,10 @@ import {
   createService,
   updateService,
   deleteService,
+  createIngress,
+  updateIngress,
+  deleteIngress,
+  applyResource,
 } from "./k8s-handlers"
 
 const kc = new KubeConfig()
@@ -181,6 +185,37 @@ app.whenReady().then(() => {
     "k8s:service:delete",
     (_e, namespace: string, name: string) =>
       deleteService(coreV1Api, namespace, name),
+  )
+  ipcMain.handle(
+    "k8s:ingress:create",
+    (
+      _e,
+      namespace: string,
+      name: string,
+      ingressClassName: string,
+      rules: Array<{ host: string; path: string; pathType: string; serviceName: string; servicePort: number | string }>,
+      tls: Array<{ hosts: string[]; secretName: string }>,
+    ) => createIngress(networkingV1Api, namespace, name, ingressClassName, rules, tls),
+  )
+  ipcMain.handle(
+    "k8s:ingress:update",
+    (
+      _e,
+      namespace: string,
+      name: string,
+      ingressClassName: string,
+      rules: Array<{ host: string; path: string; pathType: string; serviceName: string; servicePort: number | string }>,
+      tls: Array<{ hosts: string[]; secretName: string }>,
+    ) => updateIngress(networkingV1Api, namespace, name, ingressClassName, rules, tls),
+  )
+  ipcMain.handle(
+    "k8s:ingress:delete",
+    (_e, namespace: string, name: string) =>
+      deleteIngress(networkingV1Api, namespace, name),
+  )
+  ipcMain.handle(
+    "k8s:resource:apply",
+    (_e, yaml: string) => applyResource(kc, yaml),
   )
 
   createWindow()

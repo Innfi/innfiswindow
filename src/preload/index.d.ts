@@ -312,6 +312,25 @@ export interface K8sAPI {
     namespace: string,
     name: string,
   ) => Promise<{ success: boolean; name: string; namespace: string }>
+  createIngress: (
+    namespace: string,
+    name: string,
+    ingressClassName: string,
+    rules: Array<{ host: string; path: string; pathType: string; serviceName: string; servicePort: number | string }>,
+    tls: Array<{ hosts: string[]; secretName: string }>,
+  ) => Promise<{ name: string; namespace: string }>
+  updateIngress: (
+    namespace: string,
+    name: string,
+    ingressClassName: string,
+    rules: Array<{ host: string; path: string; pathType: string; serviceName: string; servicePort: number | string }>,
+    tls: Array<{ hosts: string[]; secretName: string }>,
+  ) => Promise<{ name: string; namespace: string }>
+  deleteIngress: (
+    namespace: string,
+    name: string,
+  ) => Promise<{ success: boolean; name: string; namespace: string }>
+  applyResource: (yaml: string) => Promise<{ name: string; namespace: string }>
 }
 
 export interface API {
