@@ -10,7 +10,7 @@ import {
 } from "../../components/ui/table"
 import { Button } from "../../components/ui/button"
 import { cn } from "../../lib/utils"
-import { FileCode, Plus } from "lucide-react"
+import { FileCode } from "lucide-react"
 import { dump as yamlDump } from "js-yaml"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 

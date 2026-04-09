@@ -490,7 +490,7 @@
     {
       "id": "S27",
       "title": "Color palette preset switcher",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add a color palette preset system that lets users switch between named themes at runtime. Five presets are defined — Default, Ocean, Midnight, Slate, and Cyberpunk — each providing a complete set of shadcn/ui CSS variable overrides for both light and dark modes. The active preset is stored in Zustand and persisted to localStorage; switching a preset applies immediately without a page reload by writing CSS variables onto the document root. A preset picker is accessible from the AppBar.",
       "acceptance_criteria": [
         "A `src/renderer/lib/themes.ts` file exports a `Theme` type and a `THEMES` constant — an array of 5 preset objects, each with: `id` (string), `name` (string), `light` (CSS variable map), and `dark` (CSS variable map). The 5 presets are: Default (zinc-based neutrals), Ocean (blue/cyan, trust-inducing DevOps feel), Midnight (deep navy + indigo accents, Stripe-like), Slate (muted cool grays, minimal professional), and Cyberpunk (neon green/cyan on near-black, terminal aesthetic). Each preset defines at minimum these tokens: --background, --foreground, --card, --card-foreground, --primary, --primary-foreground, --secondary, --secondary-foreground, --muted, --muted-foreground, --accent, --accent-foreground, --destructive, --border, --ring",

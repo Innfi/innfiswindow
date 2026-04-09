@@ -1,4 +1,4 @@
-import { KubeConfig, CoreV1Api, AppsV1Api, NetworkingV1Api, KubernetesObjectApi } from "@kubernetes/client-node"
+import { KubeConfig, CoreV1Api, AppsV1Api, NetworkingV1Api, KubernetesObjectApi, PatchStrategy } from "@kubernetes/client-node"
 import { load as yamlLoad } from "js-yaml"
 
 export async function listServices(api: CoreV1Api) {
@@ -696,7 +696,7 @@ export async function applyResource(kc: KubeConfig, yamlString: string) {
         undefined,
         undefined,
         undefined,
-        { headers: { "Content-Type": "application/strategic-merge-patch+json" } },
+        PatchStrategy.StrategicMergePatch,
       )
       const body = (res as unknown as { body: Record<string, unknown> }).body ?? res
       const bodyMeta = (body as Record<string, unknown>).metadata as Record<string, unknown> | undefined

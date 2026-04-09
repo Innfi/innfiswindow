@@ -39,12 +39,14 @@ function Dialog({
 
 interface DialogContentProps {
   className?: string
+  style?: React.CSSProperties
   children: React.ReactNode
   onClose?: () => void
 }
 
 function DialogContent({
   className,
+  style,
   children,
   onClose,
 }: DialogContentProps): JSX.Element {
@@ -54,6 +56,7 @@ function DialogContent({
         "relative z-50 bg-background border rounded-lg shadow-lg w-full max-w-md p-6 space-y-4",
         className,
       )}
+      style={style}
       onClick={(e) => e.stopPropagation()}
     >
       {onClose && (
