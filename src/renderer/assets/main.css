@@ -21,6 +21,25 @@
   --color-ring: var(--ring);
 }
 
+/* Custom scrollbar styling — follows the active theme automatically */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
 /* Default (light) values so the page has colors before applyTheme() fires. */
 :root {
   --background: oklch(1 0 0);

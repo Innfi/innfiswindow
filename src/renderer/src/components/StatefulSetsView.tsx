@@ -79,7 +79,7 @@ function DetailPanel({ ss, onClose }: { ss: K8sStatefulSet; onClose: () => void 
   const selectorEntries = Object.entries(ss.selector)
 
   return (
-    <div className="w-80 shrink-0 border-l h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
         <h2 className="font-semibold text-base mb-1">{ss.name}</h2>

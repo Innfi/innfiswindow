@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react"
-import Editor from "@monaco-editor/react"
+import { useEffect, useRef, useState } from "react"
 import { load as yamlLoad } from "js-yaml"
 import {
   Dialog,
@@ -28,6 +27,7 @@ export function YamlEditorPanel({
   const [yaml, setYaml] = useState(initialYaml)
   const [error, setError] = useState<string | null>(null)
   const [applying, setApplying] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     if (open) {
@@ -62,33 +62,26 @@ export function YamlEditorPanel({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-4xl w-full flex flex-col p-0 overflow-hidden"
-        style={{ minHeight: "60vh" }}
+        style={{ height: "80vh" }}
         onClose={() => onOpenChange(false)}
       >
-        <div className="p-6 pb-3">
+        <div className="p-6 pb-3 bg-card text-card-foreground border-b border-border shrink-0">
           <DialogHeader>
             <DialogTitle>{title ?? "YAML Editor"}</DialogTitle>
           </DialogHeader>
         </div>
-        <div className="flex-1 min-h-0 border-t border-b" style={{ height: "55vh" }}>
-          <Editor
-            height="55vh"
-            language="yaml"
+        <div className="flex-1 min-h-0">
+          <textarea
+            ref={textareaRef}
             value={yaml}
-            onChange={(v) => setYaml(v ?? "")}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 13,
-              fontFamily: "'Cascadia Code', 'Fira Code', 'Consolas', monospace",
-              scrollBeyondLastLine: false,
-              wordWrap: "on",
-              automaticLayout: true,
-            }}
+            onChange={(e) => setYaml(e.target.value)}
+            className="w-full h-full resize-none p-4 font-mono text-sm bg-muted text-foreground border-border focus:outline-none focus:ring-1 focus:ring-ring"
+            spellCheck={false}
           />
         </div>
-        <div className="p-6 pt-3 space-y-3">
+        <div className="p-6 pt-3 space-y-3 bg-card text-card-foreground border-t border-border">
           {error && (
-            <p className="text-sm text-red-500 font-mono whitespace-pre-wrap">{error}</p>
+            <p className="text-sm text-destructive font-mono whitespace-pre-wrap">{error}</p>
           )}
           <DialogFooter>
             <Button

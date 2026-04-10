@@ -522,7 +522,7 @@
     {
       "id": "S29",
       "title": "Resource detail panel vivid card background",
-      "status": "incomplete",
+      "status": "complete",
       "description": "The resource detail panel currently blends into the background because the card colour is too close to the page background. Update every resource detail panel to use a noticeably distinct card surface (using the theme's --card token) with a visible border and subtle shadow so the panel stands out from the main content area regardless of which theme is active.",
       "acceptance_criteria": [
         "Every resource detail panel wraps its content in a container that uses `bg-card text-card-foreground` (Tailwind tokens mapped to the active theme's --card and --card-foreground CSS variables)",
@@ -535,7 +535,7 @@
     {
       "id": "S30",
       "title": "YAML editor panel theme integration",
-      "status": "incomplete",
+      "status": "complete",
       "description": "The YAML / text editor panel (YamlEditorPanel) used for viewing and editing resource manifests does not respect the active colour theme. Its background and text colours must be switched to use the same CSS variable tokens as the rest of the UI so it looks native in every theme preset.",
       "acceptance_criteria": [
         "`src/renderer/src/components/YamlEditorPanel.tsx` replaces any hard-coded background or text colour classes/styles with `bg-card text-card-foreground` (or `bg-muted text-foreground` for the editor textarea) so the panel inherits the active theme",
@@ -549,7 +549,7 @@
     {
       "id": "S31",
       "title": "Custom scrollbar styling",
-      "status": "incomplete",
+      "status": "complete",
       "description": "All scrollable containers in the app currently show the OS default scrollbar, which does not match the app's visual design. Apply a consistent custom scrollbar style to all scrollable areas (sidebar tree, resource list, detail panels, editor) that complements the active theme.",
       "acceptance_criteria": [
         "A global scrollbar CSS rule is added to `src/renderer/assets/main.css` using `::-webkit-scrollbar`, `::-webkit-scrollbar-track`, and `::-webkit-scrollbar-thumb` pseudo-elements",

@@ -198,7 +198,7 @@ function RulesEditor({
 
 function DetailPanel({ item, onClose }: { item: K8sIngress; onClose: () => void }): JSX.Element {
   return (
-    <div className="w-96 shrink-0 border-l overflow-y-auto p-4 space-y-4">
+    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
         <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
