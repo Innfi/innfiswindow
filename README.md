@@ -36,14 +36,14 @@ Innfiswindow lets you browse, inspect, and modify Kubernetes resources from a na
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Desktop shell | Electron (electron-vite) |
-| UI framework | React + TypeScript |
-| Styling | Tailwind CSS v4 + shadcn/ui |
-| State | Zustand |
-| k8s client | @kubernetes/client-node |
-| Build | electron-vite + Vite |
+| Layer         | Technology                  |
+| ------------- | --------------------------- |
+| Desktop shell | Electron (electron-vite)    |
+| UI framework  | React + TypeScript          |
+| Styling       | Tailwind CSS v4 + shadcn/ui |
+| State         | Zustand                     |
+| k8s client    | @kubernetes/client-node     |
+| Build         | electron-vite + Vite        |
 
 ## Project Structure
 

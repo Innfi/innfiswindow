@@ -299,14 +299,22 @@ export interface K8sAPI {
     namespace: string,
     name: string,
     type: string,
-    ports: Array<{ protocol: string; port: number; targetPort: number | string }>,
+    ports: Array<{
+      protocol: string
+      port: number
+      targetPort: number | string
+    }>,
     selector: Record<string, string>,
   ) => Promise<{ name: string; namespace: string }>
   updateService: (
     namespace: string,
     name: string,
     type: string,
-    ports: Array<{ protocol: string; port: number; targetPort: number | string }>,
+    ports: Array<{
+      protocol: string
+      port: number
+      targetPort: number | string
+    }>,
   ) => Promise<{ name: string; namespace: string }>
   deleteService: (
     namespace: string,
@@ -316,14 +324,26 @@ export interface K8sAPI {
     namespace: string,
     name: string,
     ingressClassName: string,
-    rules: Array<{ host: string; path: string; pathType: string; serviceName: string; servicePort: number | string }>,
+    rules: Array<{
+      host: string
+      path: string
+      pathType: string
+      serviceName: string
+      servicePort: number | string
+    }>,
     tls: Array<{ hosts: string[]; secretName: string }>,
   ) => Promise<{ name: string; namespace: string }>
   updateIngress: (
     namespace: string,
     name: string,
     ingressClassName: string,
-    rules: Array<{ host: string; path: string; pathType: string; serviceName: string; servicePort: number | string }>,
+    rules: Array<{
+      host: string
+      path: string
+      pathType: string
+      serviceName: string
+      servicePort: number | string
+    }>,
     tls: Array<{ hosts: string[]; secretName: string }>,
   ) => Promise<{ name: string; namespace: string }>
   deleteIngress: (

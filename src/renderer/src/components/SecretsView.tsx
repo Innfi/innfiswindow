@@ -1,17 +1,18 @@
-import { useEffect, useState } from "react"
+import { dump as yamlDump } from "js-yaml"
 import { Eye, EyeOff, FileCode, X } from "lucide-react"
-import { useAppStore } from "../../store/app.store"
+import { useEffect, useState } from "react"
+
+import { Button } from "../../components/ui/button"
 import {
   Table,
-  TableHeader,
   TableBody,
-  TableRow,
-  TableHead,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "../../components/ui/table"
-import { Button } from "../../components/ui/button"
 import { cn } from "../../lib/utils"
-import { dump as yamlDump } from "js-yaml"
+import { useAppStore } from "../../store/app.store"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sSecret {
@@ -38,7 +39,13 @@ function formatAge(isoTimestamp: string): string {
   return `${diffDays}d`
 }
 
-function DetailPanel({ secret, onClose }: { secret: K8sSecret; onClose: () => void }): JSX.Element {
+function DetailPanel({
+  secret,
+  onClose,
+}: {
+  secret: K8sSecret
+  onClose: () => void
+}): JSX.Element {
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set())
   const dataEntries = Object.entries(secret.data)
   const labelEntries = Object.entries(secret.labels)
@@ -60,10 +67,10 @@ function DetailPanel({ secret, onClose }: { secret: K8sSecret; onClose: () => vo
     <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-        <h2 className="font-semibold text-base mb-1">{secret.name}</h2>
-        <span className="text-xs text-muted-foreground">
-          {secret.namespace}
-        </span>
+          <h2 className="font-semibold text-base mb-1">{secret.name}</h2>
+          <span className="text-xs text-muted-foreground">
+            {secret.namespace}
+          </span>
         </div>
         <button
           onClick={onClose}
@@ -205,7 +212,9 @@ export function SecretsView(): JSX.Element {
       metadata: {
         name: secret.name,
         namespace: secret.namespace,
-        ...(Object.keys(secret.labels).length > 0 ? { labels: secret.labels } : {}),
+        ...(Object.keys(secret.labels).length > 0
+          ? { labels: secret.labels }
+          : {}),
       },
       type: secret.type,
       ...(Object.keys(secret.data).length > 0 ? { data: secret.data } : {}),
@@ -249,7 +258,14 @@ export function SecretsView(): JSX.Element {
                       selectedItem?.namespace === secret.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(selectedItem?.name === secret.name && selectedItem?.namespace === secret.namespace ? null : secret)}
+                  onClick={() =>
+                    setSelectedItem(
+                      selectedItem?.name === secret.name &&
+                        selectedItem?.namespace === secret.namespace
+                        ? null
+                        : secret,
+                    )
+                  }
                 >
                   <TableCell>{secret.name}</TableCell>
                   <TableCell>{secret.namespace}</TableCell>
@@ -259,7 +275,10 @@ export function SecretsView(): JSX.Element {
                   </TableCell>
                   <TableCell>{formatAge(secret.creationTimestamp)}</TableCell>
                   <TableCell>
-                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="flex gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Button
                         variant="ghost"
                         size="icon"
@@ -278,7 +297,10 @@ export function SecretsView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.type !== undefined && (
-        <DetailPanel secret={selectedItem} onClose={() => setSelectedItem(null)} />
+        <DetailPanel
+          secret={selectedItem}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
 
       <YamlEditorPanel

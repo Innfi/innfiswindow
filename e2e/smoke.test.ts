@@ -1,15 +1,15 @@
-import {
-  test,
-  expect,
-  _electron as electron,
-  ElectronApplication,
-  Page,
-} from "@playwright/test"
 import { execSync } from "child_process"
 import { writeFileSync } from "fs"
-import { join } from "path"
 import * as os from "os"
 import * as path from "path"
+import { join } from "path"
+import {
+  _electron as electron,
+  ElectronApplication,
+  expect,
+  Page,
+  test,
+} from "@playwright/test"
 
 // ---------------------------------------------------------------------------
 // Kind cluster availability check

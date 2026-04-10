@@ -452,9 +452,7 @@
         "After a successful apply the affected resource list re-fetches and the UI updates"
       ],
       "dependencies": ["S11", "S12", "S13", "S22", "S23", "S24"],
-      "ipc_handlers": [
-        "k8s:resource:apply"
-      ],
+      "ipc_handlers": ["k8s:resource:apply"],
       "notes": "Use `@monaco-editor/react` for the editor (install `@monaco-editor/react` and `monaco-editor`). Use `js-yaml` (already likely present) to serialize existing resources to YAML for pre-population and to parse user input before the IPC call. For `KubernetesObjectApi`, use `KubernetesObjectApi.makeApiClient(kc)` then call `.create(obj)` on success path and `.patch(obj, undefined, undefined, undefined, undefined, { headers: { 'Content-Type': 'application/strategic-merge-patch+json' } })` on conflict. Starter templates should include the minimal required fields (apiVersion, kind, metadata.name, metadata.namespace, spec). The 'Edit YAML' button should be added to existing table rows without removing the existing per-resource form-based Edit/Delete buttons."
     },
     {
@@ -517,7 +515,19 @@
         "Clicking the close button calls `setSelectedItem(null)`",
         "The close button is keyboard-accessible and has a visible focus ring"
       ],
-      "dependencies": ["S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S12", "S13"]
+      "dependencies": [
+        "S03",
+        "S04",
+        "S05",
+        "S06",
+        "S07",
+        "S08",
+        "S09",
+        "S10",
+        "S11",
+        "S12",
+        "S13"
+      ]
     },
     {
       "id": "S29",
@@ -559,6 +569,22 @@
         "No JavaScript is required — the fix is CSS-only"
       ],
       "dependencies": ["S27"]
+    },
+    {
+      "id": "S32",
+      "title": "Remove form-based edit dialog from resource pages",
+      "status": "complete",
+      "description": "Each resource list page (Deployments, DaemonSets, StatefulSets, Services, Ingresses, Pods, ConfigMaps, Secrets, ReplicaSets, Nodes, Namespaces) currently shows a pencil-icon Edit button that opens a form-based edit dialog. This is redundant with the YAML editor (FileCode button). Remove the form-based edit dialogs entirely; the YAML editor remains as the sole editing mechanism.",
+      "acceptance_criteria": [
+        "The pencil-icon Edit button (Pencil from lucide-react) is removed from every resource table row across all resource list components",
+        "The EditDialog component (and its open/close state, editTarget state) is removed from every affected view file",
+        "No import of Pencil from lucide-react remains in any resource view component",
+        "No import of Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Input, Label remains in any resource view component unless those imports are still needed for non-edit purposes (e.g. Delete confirmation dialogs — those must stay)",
+        "The YAML editor (FileCode button + YamlEditorPanel) is unaffected and continues to work",
+        "Delete buttons and Create buttons remain unaffected",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S28", "S31"]
     }
   ]
 }

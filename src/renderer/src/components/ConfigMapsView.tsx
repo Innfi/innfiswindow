@@ -1,17 +1,18 @@
+import { dump as yamlDump } from "js-yaml"
+import { FileCode, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useAppStore } from "../../store/app.store"
+
+import { Button } from "../../components/ui/button"
 import {
   Table,
-  TableHeader,
   TableBody,
-  TableRow,
-  TableHead,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "../../components/ui/table"
-import { Button } from "../../components/ui/button"
 import { cn } from "../../lib/utils"
-import { FileCode, X } from "lucide-react"
-import { dump as yamlDump } from "js-yaml"
+import { useAppStore } from "../../store/app.store"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sConfigMap {
@@ -38,7 +39,13 @@ function formatAge(isoTimestamp: string): string {
   return `${diffDays}d`
 }
 
-function DetailPanel({ cm, onClose }: { cm: K8sConfigMap; onClose: () => void }): JSX.Element {
+function DetailPanel({
+  cm,
+  onClose,
+}: {
+  cm: K8sConfigMap
+  onClose: () => void
+}): JSX.Element {
   const dataEntries = Object.entries(cm.data)
   const binaryEntries = Object.entries(cm.binaryData)
   const labelEntries = Object.entries(cm.labels)
@@ -48,8 +55,8 @@ function DetailPanel({ cm, onClose }: { cm: K8sConfigMap; onClose: () => void })
     <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-        <h2 className="font-semibold text-base mb-1">{cm.name}</h2>
-        <span className="text-xs text-muted-foreground">{cm.namespace}</span>
+          <h2 className="font-semibold text-base mb-1">{cm.name}</h2>
+          <span className="text-xs text-muted-foreground">{cm.namespace}</span>
         </div>
         <button
           onClick={onClose}
@@ -216,7 +223,14 @@ export function ConfigMapsView(): JSX.Element {
                       selectedItem?.namespace === cm.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(selectedItem?.name === cm.name && selectedItem?.namespace === cm.namespace ? null : cm)}
+                  onClick={() =>
+                    setSelectedItem(
+                      selectedItem?.name === cm.name &&
+                        selectedItem?.namespace === cm.namespace
+                        ? null
+                        : cm,
+                    )
+                  }
                 >
                   <TableCell>{cm.name}</TableCell>
                   <TableCell>{cm.namespace}</TableCell>
@@ -225,7 +239,10 @@ export function ConfigMapsView(): JSX.Element {
                   </TableCell>
                   <TableCell>{formatAge(cm.creationTimestamp)}</TableCell>
                   <TableCell>
-                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="flex gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Button
                         variant="ghost"
                         size="icon"

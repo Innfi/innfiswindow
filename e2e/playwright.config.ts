@@ -1,5 +1,5 @@
-import { defineConfig } from "@playwright/test"
 import path from "path"
+import { defineConfig } from "@playwright/test"
 
 export default defineConfig({
   testDir: path.join(__dirname),

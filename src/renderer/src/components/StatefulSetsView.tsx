@@ -1,26 +1,27 @@
+import { Plus, Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useAppStore } from "../../store/app.store"
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "../../components/ui/table"
+
+import { Button } from "../../components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "../../components/ui/dialog"
-import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table"
 import { cn } from "../../lib/utils"
-import { Pencil, Trash2, Plus, X } from "lucide-react"
+import { useAppStore } from "../../store/app.store"
 
 interface K8sStatefulSetContainer {
   name: string
@@ -75,15 +76,21 @@ function MetaEntry({
   )
 }
 
-function DetailPanel({ ss, onClose }: { ss: K8sStatefulSet; onClose: () => void }): JSX.Element {
+function DetailPanel({
+  ss,
+  onClose,
+}: {
+  ss: K8sStatefulSet
+  onClose: () => void
+}): JSX.Element {
   const selectorEntries = Object.entries(ss.selector)
 
   return (
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-        <h2 className="font-semibold text-base mb-1">{ss.name}</h2>
-        <span className="text-xs text-muted-foreground">{ss.namespace}</span>
+          <h2 className="font-semibold text-base mb-1">{ss.name}</h2>
+          <span className="text-xs text-muted-foreground">{ss.namespace}</span>
         </div>
         <button
           onClick={onClose}
@@ -301,104 +308,6 @@ function CreateDialog({
   )
 }
 
-interface EditDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  statefulSet: K8sStatefulSet | null
-  onUpdated: () => void
-}
-
-function EditDialog({
-  open,
-  onOpenChange,
-  statefulSet,
-  onUpdated,
-}: EditDialogProps): JSX.Element {
-  const [image, setImage] = useState("")
-  const [replicas, setReplicas] = useState(1)
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (open && statefulSet) {
-      setImage(statefulSet.containers[0]?.image ?? "")
-      setReplicas(statefulSet.replicas)
-      setError(null)
-    }
-  }, [open, statefulSet])
-
-  async function handleSubmit(): Promise<void> {
-    if (!statefulSet) return
-    if (!image.trim()) {
-      setError("Image is required.")
-      return
-    }
-    setSubmitting(true)
-    setError(null)
-    try {
-      await window.api.k8s.updateStatefulSet(
-        statefulSet.namespace,
-        statefulSet.name,
-        image.trim(),
-        replicas,
-      )
-      onUpdated()
-      onOpenChange(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
-        <DialogHeader>
-          <DialogTitle>Edit StatefulSet</DialogTitle>
-          <DialogDescription>
-            {statefulSet ? `${statefulSet.namespace}/${statefulSet.name}` : ""}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="edit-ss-image">Image</Label>
-            <Input
-              id="edit-ss-image"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="nginx:latest"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="edit-ss-replicas">Replicas</Label>
-            <Input
-              id="edit-ss-replicas"
-              type="number"
-              min={0}
-              value={replicas}
-              onChange={(e) => setReplicas(Number(e.target.value))}
-            />
-          </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Saving…" : "Save"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 interface DeleteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -481,7 +390,6 @@ export function StatefulSetsView(): JSX.Element {
   const [namespaces, setNamespaces] = useState<string[]>([])
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<K8sStatefulSet | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<K8sStatefulSet | null>(null)
 
   const selectedItem = useAppStore(
@@ -546,7 +454,14 @@ export function StatefulSetsView(): JSX.Element {
                       selectedItem?.namespace === ss.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(selectedItem?.name === ss.name && selectedItem?.namespace === ss.namespace ? null : ss)}
+                  onClick={() =>
+                    setSelectedItem(
+                      selectedItem?.name === ss.name &&
+                        selectedItem?.namespace === ss.namespace
+                        ? null
+                        : ss,
+                    )
+                  }
                 >
                   <TableCell>{ss.name}</TableCell>
                   <TableCell>{ss.namespace}</TableCell>
@@ -560,14 +475,6 @@ export function StatefulSetsView(): JSX.Element {
                       className="flex gap-1"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Edit"
-                        onClick={() => setEditTarget(ss)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -594,18 +501,6 @@ export function StatefulSetsView(): JSX.Element {
         onOpenChange={setCreateOpen}
         namespaces={namespaces.length > 0 ? namespaces : ["default"]}
         onCreated={() => {
-          fetchStatefulSets()
-          setSelectedItem(null)
-        }}
-      />
-
-      <EditDialog
-        open={editTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setEditTarget(null)
-        }}
-        statefulSet={editTarget}
-        onUpdated={() => {
           fetchStatefulSets()
           setSelectedItem(null)
         }}

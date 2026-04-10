@@ -1,6 +1,7 @@
+import { X } from "lucide-react"
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { X } from "lucide-react"
+
 import { cn } from "../../lib/utils"
 
 interface DialogProps {
@@ -122,8 +123,8 @@ function DialogFooter({
 export {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 }

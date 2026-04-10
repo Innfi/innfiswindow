@@ -1,38 +1,44 @@
-import { app, shell, BrowserWindow, ipcMain } from "electron"
+import { app, BrowserWindow, ipcMain, shell } from "electron"
 import { join } from "path"
-import { electronApp, optimizer, is } from "@electron-toolkit/utils"
-import { KubeConfig, CoreV1Api, AppsV1Api, NetworkingV1Api } from "@kubernetes/client-node"
+import { electronApp, is, optimizer } from "@electron-toolkit/utils"
 import {
-  listContexts,
-  getCurrentContext,
+  AppsV1Api,
+  CoreV1Api,
+  KubeConfig,
+  NetworkingV1Api,
+} from "@kubernetes/client-node"
+
+import {
+  applyResource,
+  createDaemonSet,
+  createDeployment,
+  createIngress,
+  createService,
+  createStatefulSet,
+  deleteDaemonSet,
+  deleteDeployment,
+  deleteIngress,
+  deleteService,
+  deleteStatefulSet,
   getClusterType,
+  getCurrentContext,
+  listConfigMaps,
+  listContexts,
+  listDaemonSets,
+  listDeployments,
+  listIngresses,
   listNamespaces,
   listNodes,
-  listDeployments,
-  listReplicaSets,
-  listStatefulSets,
-  listDaemonSets,
   listPods,
-  listConfigMaps,
+  listReplicaSets,
   listSecrets,
   listServices,
-  listIngresses,
-  createDeployment,
-  updateDeployment,
-  deleteDeployment,
-  createStatefulSet,
-  updateStatefulSet,
-  deleteStatefulSet,
-  createDaemonSet,
+  listStatefulSets,
   updateDaemonSet,
-  deleteDaemonSet,
-  createService,
-  updateService,
-  deleteService,
-  createIngress,
+  updateDeployment,
   updateIngress,
-  deleteIngress,
-  applyResource,
+  updateService,
+  updateStatefulSet,
 } from "./k8s-handlers"
 
 const kc = new KubeConfig()
@@ -43,7 +49,7 @@ const appsV1Api = kc.makeApiClient(AppsV1Api)
 const networkingV1Api = kc.makeApiClient(NetworkingV1Api)
 
 // Export for use in other modules if needed
-export { kc, coreV1Api, appsV1Api, networkingV1Api }
+export { appsV1Api, coreV1Api, kc, networkingV1Api }
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -167,7 +173,11 @@ app.whenReady().then(() => {
       namespace: string,
       name: string,
       type: string,
-      ports: Array<{ protocol: string; port: number; targetPort: number | string }>,
+      ports: Array<{
+        protocol: string
+        port: number
+        targetPort: number | string
+      }>,
       selector: Record<string, string>,
     ) => createService(coreV1Api, namespace, name, type, ports, selector),
   )
@@ -178,13 +188,15 @@ app.whenReady().then(() => {
       namespace: string,
       name: string,
       type: string,
-      ports: Array<{ protocol: string; port: number; targetPort: number | string }>,
+      ports: Array<{
+        protocol: string
+        port: number
+        targetPort: number | string
+      }>,
     ) => updateService(coreV1Api, namespace, name, type, ports),
   )
-  ipcMain.handle(
-    "k8s:service:delete",
-    (_e, namespace: string, name: string) =>
-      deleteService(coreV1Api, namespace, name),
+  ipcMain.handle("k8s:service:delete", (_e, namespace: string, name: string) =>
+    deleteService(coreV1Api, namespace, name),
   )
   ipcMain.handle(
     "k8s:ingress:create",
@@ -193,9 +205,23 @@ app.whenReady().then(() => {
       namespace: string,
       name: string,
       ingressClassName: string,
-      rules: Array<{ host: string; path: string; pathType: string; serviceName: string; servicePort: number | string }>,
+      rules: Array<{
+        host: string
+        path: string
+        pathType: string
+        serviceName: string
+        servicePort: number | string
+      }>,
       tls: Array<{ hosts: string[]; secretName: string }>,
-    ) => createIngress(networkingV1Api, namespace, name, ingressClassName, rules, tls),
+    ) =>
+      createIngress(
+        networkingV1Api,
+        namespace,
+        name,
+        ingressClassName,
+        rules,
+        tls,
+      ),
   )
   ipcMain.handle(
     "k8s:ingress:update",
@@ -204,18 +230,29 @@ app.whenReady().then(() => {
       namespace: string,
       name: string,
       ingressClassName: string,
-      rules: Array<{ host: string; path: string; pathType: string; serviceName: string; servicePort: number | string }>,
+      rules: Array<{
+        host: string
+        path: string
+        pathType: string
+        serviceName: string
+        servicePort: number | string
+      }>,
       tls: Array<{ hosts: string[]; secretName: string }>,
-    ) => updateIngress(networkingV1Api, namespace, name, ingressClassName, rules, tls),
+    ) =>
+      updateIngress(
+        networkingV1Api,
+        namespace,
+        name,
+        ingressClassName,
+        rules,
+        tls,
+      ),
   )
-  ipcMain.handle(
-    "k8s:ingress:delete",
-    (_e, namespace: string, name: string) =>
-      deleteIngress(networkingV1Api, namespace, name),
+  ipcMain.handle("k8s:ingress:delete", (_e, namespace: string, name: string) =>
+    deleteIngress(networkingV1Api, namespace, name),
   )
-  ipcMain.handle(
-    "k8s:resource:apply",
-    (_e, yaml: string) => applyResource(kc, yaml),
+  ipcMain.handle("k8s:resource:apply", (_e, yaml: string) =>
+    applyResource(kc, yaml),
   )
 
   createWindow()

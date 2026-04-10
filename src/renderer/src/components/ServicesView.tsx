@@ -1,27 +1,28 @@
+import { dump as yamlDump } from "js-yaml"
+import { FileCode, Plus, Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useAppStore } from "../../store/app.store"
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "../../components/ui/table"
+
+import { Button } from "../../components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "../../components/ui/dialog"
-import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table"
 import { cn } from "../../lib/utils"
-import { Pencil, Trash2, Plus, X, FileCode } from "lucide-react"
-import { dump as yamlDump } from "js-yaml"
+import { useAppStore } from "../../store/app.store"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sServicePort {
@@ -74,7 +75,13 @@ function formatPorts(ports: K8sServicePort[]): string {
   return ports.map((p) => `${p.port}/${p.protocol}`).join(", ")
 }
 
-function DetailPanel({ svc, onClose }: { svc: K8sService; onClose: () => void }): JSX.Element {
+function DetailPanel({
+  svc,
+  onClose,
+}: {
+  svc: K8sService
+  onClose: () => void
+}): JSX.Element {
   const selectorEntries = Object.entries(svc.selector)
   const labelEntries = Object.entries(svc.labels)
   const annotationEntries = Object.entries(svc.annotations)
@@ -83,8 +90,8 @@ function DetailPanel({ svc, onClose }: { svc: K8sService; onClose: () => void })
     <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-        <h2 className="font-semibold text-base mb-1">{svc.name}</h2>
-        <span className="text-xs text-muted-foreground">{svc.namespace}</span>
+          <h2 className="font-semibold text-base mb-1">{svc.name}</h2>
+          <span className="text-xs text-muted-foreground">{svc.namespace}</span>
         </div>
         <button
           onClick={onClose}
@@ -209,8 +216,14 @@ function PortsEditor({
   ports: PortEntry[]
   onChange: (ports: PortEntry[]) => void
 }): JSX.Element {
-  function updatePort(idx: number, field: keyof PortEntry, value: string): void {
-    const updated = ports.map((p, i) => (i === idx ? { ...p, [field]: value } : p))
+  function updatePort(
+    idx: number,
+    field: keyof PortEntry,
+    value: string,
+  ): void {
+    const updated = ports.map((p, i) =>
+      i === idx ? { ...p, [field]: value } : p,
+    )
     onChange(updated)
   }
 
@@ -279,8 +292,14 @@ function SelectorEditor({
   entries: SelectorEntry[]
   onChange: (entries: SelectorEntry[]) => void
 }): JSX.Element {
-  function updateEntry(idx: number, field: keyof SelectorEntry, value: string): void {
-    const updated = entries.map((e, i) => (i === idx ? { ...e, [field]: value } : e))
+  function updateEntry(
+    idx: number,
+    field: keyof SelectorEntry,
+    value: string,
+  ): void {
+    const updated = entries.map((e, i) =>
+      i === idx ? { ...e, [field]: value } : e,
+    )
     onChange(updated)
   }
 
@@ -377,7 +396,9 @@ function CreateDialog({
       setError("At least one port is required.")
       return
     }
-    const invalidPort = ports.find((p) => !p.port.trim() || !p.targetPort.trim())
+    const invalidPort = ports.find(
+      (p) => !p.port.trim() || !p.targetPort.trim(),
+    )
     if (invalidPort) {
       setError("All port and targetPort fields are required.")
       return
@@ -418,7 +439,9 @@ function CreateDialog({
       <DialogContent onClose={() => onOpenChange(false)}>
         <DialogHeader>
           <DialogTitle>New Service</DialogTitle>
-          <DialogDescription>Create a new Kubernetes Service.</DialogDescription>
+          <DialogDescription>
+            Create a new Kubernetes Service.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
           <div className="space-y-1">
@@ -472,118 +495,6 @@ function CreateDialog({
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
             {submitting ? "Creating…" : "Create"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-interface EditDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  service: K8sService | null
-  onUpdated: () => void
-}
-
-function EditDialog({
-  open,
-  onOpenChange,
-  service,
-  onUpdated,
-}: EditDialogProps): JSX.Element {
-  const [type, setType] = useState("ClusterIP")
-  const [ports, setPorts] = useState<PortEntry[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (open && service) {
-      setType(service.type)
-      setPorts(
-        service.ports.map((p) => ({
-          protocol: p.protocol,
-          port: String(p.port),
-          targetPort: String(p.targetPort),
-        })),
-      )
-      setError(null)
-    }
-  }, [open, service])
-
-  async function handleSubmit(): Promise<void> {
-    if (!service) return
-    if (ports.length === 0) {
-      setError("At least one port is required.")
-      return
-    }
-    const invalidPort = ports.find((p) => !p.port.trim() || !p.targetPort.trim())
-    if (invalidPort) {
-      setError("All port and targetPort fields are required.")
-      return
-    }
-    const parsedPorts = ports.map((p) => ({
-      protocol: p.protocol,
-      port: parseInt(p.port, 10),
-      targetPort: isNaN(parseInt(p.targetPort, 10))
-        ? p.targetPort
-        : parseInt(p.targetPort, 10),
-    }))
-
-    setSubmitting(true)
-    setError(null)
-    try {
-      await window.api.k8s.updateService(
-        service.namespace,
-        service.name,
-        type,
-        parsedPorts,
-      )
-      onUpdated()
-      onOpenChange(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
-        <DialogHeader>
-          <DialogTitle>Edit Service</DialogTitle>
-          <DialogDescription>
-            {service ? `${service.namespace}/${service.name}` : ""}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-          <div className="space-y-1">
-            <Label htmlFor="edit-svc-type">Type</Label>
-            <select
-              id="edit-svc-type"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option>ClusterIP</option>
-              <option>NodePort</option>
-              <option>LoadBalancer</option>
-            </select>
-          </div>
-          <PortsEditor ports={ports} onChange={setPorts} />
-          {error && <p className="text-sm text-red-500">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Saving…" : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -668,7 +579,6 @@ export function ServicesView(): JSX.Element {
   const [namespaces, setNamespaces] = useState<string[]>([])
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<K8sService | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<K8sService | null>(null)
   const [yamlOpen, setYamlOpen] = useState(false)
   const [yamlInitial, setYamlInitial] = useState("")
@@ -704,12 +614,16 @@ export function ServicesView(): JSX.Element {
       },
       spec: {
         type: svc.type,
-        ...(Object.keys(svc.selector).length > 0 ? { selector: svc.selector } : {}),
+        ...(Object.keys(svc.selector).length > 0
+          ? { selector: svc.selector }
+          : {}),
         ports: svc.ports.map((p) => ({
           name: p.name || undefined,
           protocol: p.protocol,
           port: p.port,
-          targetPort: isNaN(Number(p.targetPort)) ? p.targetPort : Number(p.targetPort),
+          targetPort: isNaN(Number(p.targetPort))
+            ? p.targetPort
+            : Number(p.targetPort),
           ...(p.nodePort ? { nodePort: p.nodePort } : {}),
         })),
       },
@@ -784,7 +698,14 @@ export function ServicesView(): JSX.Element {
                       selectedItem?.namespace === svc.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(selectedItem?.name === svc.name && selectedItem?.namespace === svc.namespace ? null : svc)}
+                  onClick={() =>
+                    setSelectedItem(
+                      selectedItem?.name === svc.name &&
+                        selectedItem?.namespace === svc.namespace
+                        ? null
+                        : svc,
+                    )
+                  }
                 >
                   <TableCell>{svc.name}</TableCell>
                   <TableCell>{svc.namespace}</TableCell>
@@ -815,14 +736,6 @@ export function ServicesView(): JSX.Element {
                       <Button
                         variant="ghost"
                         size="icon"
-                        title="Edit"
-                        onClick={() => setEditTarget(svc)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
                         title="Delete"
                         onClick={() => setDeleteTarget(svc)}
                       >
@@ -846,18 +759,6 @@ export function ServicesView(): JSX.Element {
         onOpenChange={setCreateOpen}
         namespaces={namespaces.length > 0 ? namespaces : ["default"]}
         onCreated={() => {
-          fetchServices()
-          setSelectedItem(null)
-        }}
-      />
-
-      <EditDialog
-        open={editTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setEditTarget(null)
-        }}
-        service={editTarget}
-        onUpdated={() => {
           fetchServices()
           setSelectedItem(null)
         }}

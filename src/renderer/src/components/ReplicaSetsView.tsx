@@ -1,15 +1,16 @@
+import { X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useAppStore } from "../../store/app.store"
+
 import {
   Table,
-  TableHeader,
   TableBody,
-  TableRow,
-  TableHead,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "../../components/ui/table"
 import { cn } from "../../lib/utils"
-import { X } from "lucide-react"
+import { useAppStore } from "../../store/app.store"
 
 interface K8sOwnerRef {
   kind: string
@@ -64,7 +65,13 @@ function MetaEntry({
   )
 }
 
-function DetailPanel({ rs, onClose }: { rs: K8sReplicaSet; onClose: () => void }): JSX.Element {
+function DetailPanel({
+  rs,
+  onClose,
+}: {
+  rs: K8sReplicaSet
+  onClose: () => void
+}): JSX.Element {
   const selectorEntries = Object.entries(rs.selector)
   const podTemplateEntries = Object.entries(rs.podTemplateLabels)
 
@@ -72,8 +79,8 @@ function DetailPanel({ rs, onClose }: { rs: K8sReplicaSet; onClose: () => void }
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-        <h2 className="font-semibold text-base mb-1">{rs.name}</h2>
-        <span className="text-xs text-muted-foreground">{rs.namespace}</span>
+          <h2 className="font-semibold text-base mb-1">{rs.name}</h2>
+          <span className="text-xs text-muted-foreground">{rs.namespace}</span>
         </div>
         <button
           onClick={onClose}
@@ -207,7 +214,14 @@ export function ReplicaSetsView(): JSX.Element {
                       selectedItem?.namespace === rs.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(selectedItem?.name === rs.name && selectedItem?.namespace === rs.namespace ? null : rs)}
+                  onClick={() =>
+                    setSelectedItem(
+                      selectedItem?.name === rs.name &&
+                        selectedItem?.namespace === rs.namespace
+                        ? null
+                        : rs,
+                    )
+                  }
                 >
                   <TableCell>{rs.name}</TableCell>
                   <TableCell>{rs.namespace}</TableCell>
@@ -225,7 +239,10 @@ export function ReplicaSetsView(): JSX.Element {
       {selectedItem &&
         selectedItem.namespace !== undefined &&
         selectedItem.desiredReplicas !== undefined && (
-          <DetailPanel rs={selectedItem} onClose={() => setSelectedItem(null)} />
+          <DetailPanel
+            rs={selectedItem}
+            onClose={() => setSelectedItem(null)}
+          />
         )}
     </div>
   )

@@ -1,17 +1,18 @@
+import { dump as yamlDump } from "js-yaml"
+import { FileCode, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useAppStore } from "../../store/app.store"
+
+import { Button } from "../../components/ui/button"
 import {
   Table,
-  TableHeader,
   TableBody,
-  TableRow,
-  TableHead,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "../../components/ui/table"
-import { Button } from "../../components/ui/button"
 import { cn } from "../../lib/utils"
-import { FileCode, X } from "lucide-react"
-import { dump as yamlDump } from "js-yaml"
+import { useAppStore } from "../../store/app.store"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sPodContainer {
@@ -70,13 +71,19 @@ function MetaEntry({
   )
 }
 
-function DetailPanel({ pod, onClose }: { pod: K8sPod; onClose: () => void }): JSX.Element {
+function DetailPanel({
+  pod,
+  onClose,
+}: {
+  pod: K8sPod
+  onClose: () => void
+}): JSX.Element {
   return (
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-        <h2 className="font-semibold text-base mb-1">{pod.name}</h2>
-        <span className="text-xs text-muted-foreground">{pod.namespace}</span>
+          <h2 className="font-semibold text-base mb-1">{pod.name}</h2>
+          <span className="text-xs text-muted-foreground">{pod.namespace}</span>
         </div>
         <button
           onClick={onClose}
@@ -213,7 +220,10 @@ export function PodsView(): JSX.Element {
       },
       spec: {
         ...(pod.nodeName ? { nodeName: pod.nodeName } : {}),
-        containers: pod.containers.map((c) => ({ name: c.name, image: c.image })),
+        containers: pod.containers.map((c) => ({
+          name: c.name,
+          image: c.image,
+        })),
       },
     }
     setYamlInitial(yamlDump(obj))
@@ -257,7 +267,14 @@ export function PodsView(): JSX.Element {
                       selectedItem?.namespace === p.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(selectedItem?.name === p.name && selectedItem?.namespace === p.namespace ? null : p)}
+                  onClick={() =>
+                    setSelectedItem(
+                      selectedItem?.name === p.name &&
+                        selectedItem?.namespace === p.namespace
+                        ? null
+                        : p,
+                    )
+                  }
                 >
                   <TableCell>{p.name}</TableCell>
                   <TableCell>{p.namespace}</TableCell>
@@ -267,7 +284,10 @@ export function PodsView(): JSX.Element {
                   <TableCell>{p.restarts}</TableCell>
                   <TableCell>{formatAge(p.creationTimestamp)}</TableCell>
                   <TableCell>
-                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="flex gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Button
                         variant="ghost"
                         size="icon"

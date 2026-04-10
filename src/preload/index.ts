@@ -86,7 +86,11 @@ const api = {
       namespace: string,
       name: string,
       type: string,
-      ports: Array<{ protocol: string; port: number; targetPort: number | string }>,
+      ports: Array<{
+        protocol: string
+        port: number
+        targetPort: number | string
+      }>,
       selector: Record<string, string>,
     ) =>
       ipcRenderer.invoke(
@@ -101,27 +105,56 @@ const api = {
       namespace: string,
       name: string,
       type: string,
-      ports: Array<{ protocol: string; port: number; targetPort: number | string }>,
-    ) =>
-      ipcRenderer.invoke("k8s:service:update", namespace, name, type, ports),
+      ports: Array<{
+        protocol: string
+        port: number
+        targetPort: number | string
+      }>,
+    ) => ipcRenderer.invoke("k8s:service:update", namespace, name, type, ports),
     deleteService: (namespace: string, name: string) =>
       ipcRenderer.invoke("k8s:service:delete", namespace, name),
     createIngress: (
       namespace: string,
       name: string,
       ingressClassName: string,
-      rules: Array<{ host: string; path: string; pathType: string; serviceName: string; servicePort: number | string }>,
+      rules: Array<{
+        host: string
+        path: string
+        pathType: string
+        serviceName: string
+        servicePort: number | string
+      }>,
       tls: Array<{ hosts: string[]; secretName: string }>,
     ) =>
-      ipcRenderer.invoke("k8s:ingress:create", namespace, name, ingressClassName, rules, tls),
+      ipcRenderer.invoke(
+        "k8s:ingress:create",
+        namespace,
+        name,
+        ingressClassName,
+        rules,
+        tls,
+      ),
     updateIngress: (
       namespace: string,
       name: string,
       ingressClassName: string,
-      rules: Array<{ host: string; path: string; pathType: string; serviceName: string; servicePort: number | string }>,
+      rules: Array<{
+        host: string
+        path: string
+        pathType: string
+        serviceName: string
+        servicePort: number | string
+      }>,
       tls: Array<{ hosts: string[]; secretName: string }>,
     ) =>
-      ipcRenderer.invoke("k8s:ingress:update", namespace, name, ingressClassName, rules, tls),
+      ipcRenderer.invoke(
+        "k8s:ingress:update",
+        namespace,
+        name,
+        ingressClassName,
+        rules,
+        tls,
+      ),
     deleteIngress: (namespace: string, name: string) =>
       ipcRenderer.invoke("k8s:ingress:delete", namespace, name),
     applyResource: (yaml: string) =>
@@ -140,8 +173,5 @@ if (process.contextIsolated) {
     console.error(error)
   }
 } else {
-  // @ts-ignore (define in dts)
-  window.electron = electronAPI
-  // @ts-ignore (define in dts)
-  window.api = api
+  Object.assign(window, { electron: electronAPI, api })
 }

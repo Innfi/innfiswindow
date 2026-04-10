@@ -1,7 +1,8 @@
 import { Palette } from "lucide-react"
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+
 import { THEMES } from "../lib/themes"
 import { useAppStore } from "../store/app.store"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 
 export function ThemePicker(): JSX.Element {
   const themeId = useAppStore((s) => s.themeId)

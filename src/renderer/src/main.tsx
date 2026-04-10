@@ -1,8 +1,10 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
-import "../assets/main.css"
-import App from "./App"
+
 import { applyTheme } from "../lib/themes"
+import App from "./App"
+
+import "../assets/main.css"
 
 // Apply persisted theme before first render to avoid flash of unstyled content
 const stored = localStorage.getItem("innfiswindow-app-store")

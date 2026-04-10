@@ -1,5 +1,12 @@
-import { KubeConfig, CoreV1Api, AppsV1Api, NetworkingV1Api, KubernetesObjectApi, PatchStrategy } from "@kubernetes/client-node"
 import { load as yamlLoad } from "js-yaml"
+import {
+  AppsV1Api,
+  CoreV1Api,
+  KubeConfig,
+  KubernetesObjectApi,
+  NetworkingV1Api,
+  PatchStrategy,
+} from "@kubernetes/client-node"
 
 export async function listServices(api: CoreV1Api) {
   const res = await api.listServiceForAllNamespaces()
@@ -37,10 +44,11 @@ export async function listIngresses(api: NetworkingV1Api) {
   return res.items.map((ing) => {
     const lbIngress = ing.status?.loadBalancer?.ingress ?? []
     const address = lbIngress[0]?.ip ?? lbIngress[0]?.hostname ?? ""
-    const hosts = (ing.spec?.rules ?? [])
-      .map((r) => r.host ?? "*")
-      .filter((h, i, arr) => arr.indexOf(h) === i)
-      .join(", ") || "*"
+    const hosts =
+      (ing.spec?.rules ?? [])
+        .map((r) => r.host ?? "*")
+        .filter((h, i, arr) => arr.indexOf(h) === i)
+        .join(", ") || "*"
     const hasTLS = (ing.spec?.tls ?? []).length > 0
     const ports = hasTLS ? "80, 443" : "80"
     const tls = (ing.spec?.tls ?? []).map((t) => ({
@@ -53,7 +61,10 @@ export async function listIngresses(api: NetworkingV1Api) {
         path: p.path ?? "/",
         pathType: p.pathType ?? "",
         serviceName: p.backend?.service?.name ?? "",
-        servicePort: p.backend?.service?.port?.number ?? p.backend?.service?.port?.name ?? "",
+        servicePort:
+          p.backend?.service?.port?.number ??
+          p.backend?.service?.port?.name ??
+          "",
       })),
     }))
     return {
@@ -681,14 +692,19 @@ export async function applyResource(kc: KubeConfig, yamlString: string) {
   const client = KubernetesObjectApi.makeApiClient(kc)
   try {
     const res = await client.create(obj as never)
-    const body = (res as unknown as { body: Record<string, unknown> }).body ?? res
-    const bodyMeta = (body as Record<string, unknown>).metadata as Record<string, unknown> | undefined
+    const body =
+      (res as unknown as { body: Record<string, unknown> }).body ?? res
+    const bodyMeta = (body as Record<string, unknown>).metadata as
+      | Record<string, unknown>
+      | undefined
     return {
       name: (bodyMeta?.name as string) ?? name,
       namespace: (bodyMeta?.namespace as string) ?? namespace,
     }
   } catch (err: unknown) {
-    const statusCode = (err as Record<string, unknown>).statusCode ?? (err as Record<string, unknown>).code
+    const statusCode =
+      (err as Record<string, unknown>).statusCode ??
+      (err as Record<string, unknown>).code
     if (statusCode === 409) {
       const res = await client.patch(
         obj as never,
@@ -698,8 +714,11 @@ export async function applyResource(kc: KubeConfig, yamlString: string) {
         undefined,
         PatchStrategy.StrategicMergePatch,
       )
-      const body = (res as unknown as { body: Record<string, unknown> }).body ?? res
-      const bodyMeta = (body as Record<string, unknown>).metadata as Record<string, unknown> | undefined
+      const body =
+        (res as unknown as { body: Record<string, unknown> }).body ?? res
+      const bodyMeta = (body as Record<string, unknown>).metadata as
+        | Record<string, unknown>
+        | undefined
       return {
         name: (bodyMeta?.name as string) ?? name,
         namespace: (bodyMeta?.namespace as string) ?? namespace,

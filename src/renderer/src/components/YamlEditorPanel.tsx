@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState } from "react"
 import { load as yamlLoad } from "js-yaml"
+import { useEffect, useRef, useState } from "react"
+
+import { Button } from "../../components/ui/button"
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "../../components/ui/dialog"
-import { Button } from "../../components/ui/button"
 
 interface YamlEditorPanelProps {
   open: boolean
@@ -81,7 +82,9 @@ export function YamlEditorPanel({
         </div>
         <div className="p-6 pt-3 space-y-3 bg-card text-card-foreground border-t border-border">
           {error && (
-            <p className="text-sm text-destructive font-mono whitespace-pre-wrap">{error}</p>
+            <p className="text-sm text-destructive font-mono whitespace-pre-wrap">
+              {error}
+            </p>
           )}
           <DialogFooter>
             <Button

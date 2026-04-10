@@ -1,15 +1,16 @@
+import { X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useAppStore } from "../../store/app.store"
+
 import {
   Table,
-  TableHeader,
   TableBody,
-  TableRow,
-  TableHead,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "../../components/ui/table"
 import { cn } from "../../lib/utils"
-import { X } from "lucide-react"
+import { useAppStore } from "../../store/app.store"
 
 interface K8sNodeCondition {
   type: string
@@ -60,7 +61,13 @@ function MetaEntry({
   )
 }
 
-function DetailPanel({ node, onClose }: { node: K8sNode; onClose: () => void }): JSX.Element {
+function DetailPanel({
+  node,
+  onClose,
+}: {
+  node: K8sNode
+  onClose: () => void
+}): JSX.Element {
   const labelEntries = Object.entries(node.labels)
   const capacityEntries = Object.entries(node.capacity)
   const allocatableEntries = Object.entries(node.allocatable)
@@ -69,17 +76,17 @@ function DetailPanel({ node, onClose }: { node: K8sNode; onClose: () => void }):
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-        <h2 className="font-semibold text-base mb-1">{node.name}</h2>
-        <span
-          className={cn(
-            "inline-block rounded px-2 py-0.5 text-xs font-medium",
-            node.status === "Ready"
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800",
-          )}
-        >
-          {node.status}
-        </span>
+          <h2 className="font-semibold text-base mb-1">{node.name}</h2>
+          <span
+            className={cn(
+              "inline-block rounded px-2 py-0.5 text-xs font-medium",
+              node.status === "Ready"
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800",
+            )}
+          >
+            {node.status}
+          </span>
         </div>
         <button
           onClick={onClose}
@@ -216,7 +223,11 @@ export function NodesView(): JSX.Element {
                     "cursor-pointer",
                     selectedItem?.name === node.name && "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(selectedItem?.name === node.name ? null : node)}
+                  onClick={() =>
+                    setSelectedItem(
+                      selectedItem?.name === node.name ? null : node,
+                    )
+                  }
                 >
                   <TableCell>{node.name}</TableCell>
                   <TableCell>{node.status}</TableCell>
@@ -230,7 +241,12 @@ export function NodesView(): JSX.Element {
         )}
       </div>
 
-      {selectedItem && <DetailPanel node={selectedItem} onClose={() => setSelectedItem(null)} />}
+      {selectedItem && (
+        <DetailPanel
+          node={selectedItem}
+          onClose={() => setSelectedItem(null)}
+        />
+      )}
     </div>
   )
 }

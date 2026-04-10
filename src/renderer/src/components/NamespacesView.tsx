@@ -1,15 +1,16 @@
+import { X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useAppStore } from "../../store/app.store"
+
 import {
   Table,
-  TableHeader,
   TableBody,
-  TableRow,
-  TableHead,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "../../components/ui/table"
 import { cn } from "../../lib/utils"
-import { X } from "lucide-react"
+import { useAppStore } from "../../store/app.store"
 
 interface K8sNamespace {
   name: string
@@ -49,7 +50,13 @@ function MetaEntry({
   )
 }
 
-function DetailPanel({ ns, onClose }: { ns: K8sNamespace; onClose: () => void }): JSX.Element {
+function DetailPanel({
+  ns,
+  onClose,
+}: {
+  ns: K8sNamespace
+  onClose: () => void
+}): JSX.Element {
   const labelEntries = Object.entries(ns.labels)
   const annotationEntries = Object.entries(ns.annotations)
 
@@ -57,17 +64,17 @@ function DetailPanel({ ns, onClose }: { ns: K8sNamespace; onClose: () => void })
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-        <h2 className="font-semibold text-base mb-1">{ns.name}</h2>
-        <span
-          className={cn(
-            "inline-block rounded px-2 py-0.5 text-xs font-medium",
-            ns.status === "Active"
-              ? "bg-green-100 text-green-800"
-              : "bg-yellow-100 text-yellow-800",
-          )}
-        >
-          {ns.status}
-        </span>
+          <h2 className="font-semibold text-base mb-1">{ns.name}</h2>
+          <span
+            className={cn(
+              "inline-block rounded px-2 py-0.5 text-xs font-medium",
+              ns.status === "Active"
+                ? "bg-green-100 text-green-800"
+                : "bg-yellow-100 text-yellow-800",
+            )}
+          >
+            {ns.status}
+          </span>
         </div>
         <button
           onClick={onClose}
@@ -158,7 +165,9 @@ export function NamespacesView(): JSX.Element {
                     "cursor-pointer",
                     selectedItem?.name === ns.name && "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(selectedItem?.name === ns.name ? null : ns)}
+                  onClick={() =>
+                    setSelectedItem(selectedItem?.name === ns.name ? null : ns)
+                  }
                 >
                   <TableCell>{ns.name}</TableCell>
                   <TableCell>{ns.status}</TableCell>
@@ -170,7 +179,9 @@ export function NamespacesView(): JSX.Element {
         )}
       </div>
 
-      {selectedItem && <DetailPanel ns={selectedItem} onClose={() => setSelectedItem(null)} />}
+      {selectedItem && (
+        <DetailPanel ns={selectedItem} onClose={() => setSelectedItem(null)} />
+      )}
     </div>
   )
 }

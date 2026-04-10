@@ -1,8 +1,9 @@
+import { ChevronDown, ChevronRight } from "lucide-react"
 import { useState } from "react"
 import * as Collapsible from "@radix-ui/react-collapsible"
-import { ChevronDown, ChevronRight } from "lucide-react"
-import { useAppStore } from "../../store/app.store"
+
 import { cn } from "../../lib/utils"
+import { useAppStore } from "../../store/app.store"
 
 const groups = [
   { label: "Cluster", items: ["Namespaces", "Nodes"] },

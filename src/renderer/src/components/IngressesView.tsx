@@ -1,6 +1,18 @@
-import { useEffect, useState } from "react"
 import { dump as yamlDump } from "js-yaml"
-import { YamlEditorPanel } from "./YamlEditorPanel"
+import { FileCode, Plus, Trash2, X } from "lucide-react"
+import { useEffect, useState } from "react"
+
+import { Button } from "../../components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog"
+import { Input } from "../../components/ui/input"
+import { Label } from "../../components/ui/label"
 import {
   Table,
   TableBody,
@@ -9,20 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "../../components/ui/dialog"
-import { Button } from "../../components/ui/button"
-import { Input } from "../../components/ui/input"
-import { Label } from "../../components/ui/label"
-import { useAppStore } from "../../store/app.store"
 import { cn } from "../../lib/utils"
-import { Pencil, Trash2, Plus, X, FileCode } from "lucide-react"
+import { useAppStore } from "../../store/app.store"
+import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sIngressTLS {
   secretName: string
@@ -74,25 +75,6 @@ function formatAge(timestamp: string): string {
   return `${mins}m`
 }
 
-function flattenRules(rules: K8sIngressRule[]): FlatRule[] {
-  const flat: FlatRule[] = []
-  for (const rule of rules) {
-    for (const p of rule.paths) {
-      flat.push({
-        host: rule.host || "",
-        path: p.path,
-        pathType: p.pathType,
-        serviceName: p.serviceName,
-        servicePort: String(p.servicePort),
-      })
-    }
-  }
-  if (flat.length === 0) {
-    flat.push({ host: "", path: "/", pathType: "Prefix", serviceName: "", servicePort: "80" })
-  }
-  return flat
-}
-
 const SELECT_CLASS =
   "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 
@@ -106,7 +88,13 @@ function RulesEditor({
   function addRule(): void {
     onChange([
       ...rules,
-      { host: "", path: "/", pathType: "Prefix", serviceName: "", servicePort: "80" },
+      {
+        host: "",
+        path: "/",
+        pathType: "Prefix",
+        serviceName: "",
+        servicePort: "80",
+      },
     ])
   }
 
@@ -196,13 +184,19 @@ function RulesEditor({
   )
 }
 
-function DetailPanel({ item, onClose }: { item: K8sIngress; onClose: () => void }): JSX.Element {
+function DetailPanel({
+  item,
+  onClose,
+}: {
+  item: K8sIngress
+  onClose: () => void
+}): JSX.Element {
   return (
     <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-        <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
-        <p className="text-xs text-muted-foreground">{item.namespace}</p>
+          <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
+          <p className="text-xs text-muted-foreground">{item.namespace}</p>
         </div>
         <button
           onClick={onClose}
@@ -214,7 +208,9 @@ function DetailPanel({ item, onClose }: { item: K8sIngress; onClose: () => void 
       </div>
 
       <div>
-        <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">Ingress Class</p>
+        <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">
+          Ingress Class
+        </p>
         <p className="text-sm">
           {item.ingressClassName || (
             <span className="text-muted-foreground italic">none</span>
@@ -224,7 +220,9 @@ function DetailPanel({ item, onClose }: { item: K8sIngress; onClose: () => void 
 
       {item.tls.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">TLS</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">
+            TLS
+          </p>
           <div className="space-y-2">
             {item.tls.map((t: K8sIngressTLS, i: number) => (
               <div key={i} className="rounded border p-2 text-sm space-y-1">
@@ -247,14 +245,18 @@ function DetailPanel({ item, onClose }: { item: K8sIngress; onClose: () => void 
       )}
 
       <div>
-        <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Rules</p>
+        <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">
+          Rules
+        </p>
         {item.rules.length === 0 ? (
           <p className="text-sm text-muted-foreground italic">No rules</p>
         ) : (
           <div className="space-y-3">
             {item.rules.map((rule: K8sIngressRule, i: number) => (
               <div key={i} className="rounded border p-2">
-                <p className="font-mono text-sm font-medium mb-2">{rule.host}</p>
+                <p className="font-mono text-sm font-medium mb-2">
+                  {rule.host}
+                </p>
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="text-muted-foreground">
@@ -283,7 +285,9 @@ function DetailPanel({ item, onClose }: { item: K8sIngress; onClose: () => void 
 
       {Object.keys(item.labels).length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">Labels</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">
+            Labels
+          </p>
           <div className="space-y-0.5">
             {Object.entries(item.labels).map(([k, v]) => (
               <div key={k} className="text-xs font-mono">
@@ -331,7 +335,13 @@ function CreateDialog({
   const [namespace, setNamespace] = useState(namespaces[0] ?? "default")
   const [ingressClassName, setIngressClassName] = useState("")
   const [rules, setRules] = useState<FlatRule[]>([
-    { host: "", path: "/", pathType: "Prefix", serviceName: "", servicePort: "80" },
+    {
+      host: "",
+      path: "/",
+      pathType: "Prefix",
+      serviceName: "",
+      servicePort: "80",
+    },
   ])
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -341,7 +351,15 @@ function CreateDialog({
       setName("")
       setNamespace(namespaces[0] ?? "default")
       setIngressClassName("")
-      setRules([{ host: "", path: "/", pathType: "Prefix", serviceName: "", servicePort: "80" }])
+      setRules([
+        {
+          host: "",
+          path: "/",
+          pathType: "Prefix",
+          serviceName: "",
+          servicePort: "80",
+        },
+      ])
       setError(null)
     }
   }, [open, namespaces])
@@ -355,7 +373,9 @@ function CreateDialog({
       setError("At least one rule is required.")
       return
     }
-    const invalidRule = rules.find((r) => !r.serviceName.trim() || !r.servicePort.trim())
+    const invalidRule = rules.find(
+      (r) => !r.serviceName.trim() || !r.servicePort.trim(),
+    )
     if (invalidRule) {
       setError("All rules must have a service name and port.")
       return
@@ -391,7 +411,9 @@ function CreateDialog({
       <DialogContent onClose={() => onOpenChange(false)}>
         <DialogHeader>
           <DialogTitle>New Ingress</DialogTitle>
-          <DialogDescription>Create a new Kubernetes Ingress.</DialogDescription>
+          <DialogDescription>
+            Create a new Kubernetes Ingress.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
           <div className="space-y-1">
@@ -431,109 +453,15 @@ function CreateDialog({
           {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
             {submitting ? "Creating…" : "Create"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-interface EditDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  ingress: K8sIngress | null
-  onUpdated: () => void
-}
-
-function EditDialog({
-  open,
-  onOpenChange,
-  ingress,
-  onUpdated,
-}: EditDialogProps): JSX.Element {
-  const [ingressClassName, setIngressClassName] = useState("")
-  const [rules, setRules] = useState<FlatRule[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (open && ingress) {
-      setIngressClassName(ingress.ingressClassName || "")
-      setRules(flattenRules(ingress.rules))
-      setError(null)
-    }
-  }, [open, ingress])
-
-  async function handleSubmit(): Promise<void> {
-    if (!ingress) return
-    if (rules.length === 0) {
-      setError("At least one rule is required.")
-      return
-    }
-    const invalidRule = rules.find((r) => !r.serviceName.trim() || !r.servicePort.trim())
-    if (invalidRule) {
-      setError("All rules must have a service name and port.")
-      return
-    }
-
-    setSubmitting(true)
-    setError(null)
-    try {
-      await window.api.k8s.updateIngress(
-        ingress.namespace,
-        ingress.name,
-        ingressClassName.trim(),
-        rules.map((r) => ({
-          host: r.host.trim(),
-          path: r.path.trim() || "/",
-          pathType: r.pathType,
-          serviceName: r.serviceName.trim(),
-          servicePort: parseInt(r.servicePort, 10) || r.servicePort,
-        })),
-        ingress.tls,
-      )
-      onUpdated()
-      onOpenChange(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
-        <DialogHeader>
-          <DialogTitle>Edit Ingress</DialogTitle>
-          <DialogDescription>
-            {ingress ? `${ingress.namespace}/${ingress.name}` : ""}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
-          <div className="space-y-1">
-            <Label htmlFor="edit-ing-class">Ingress Class Name</Label>
-            <Input
-              id="edit-ing-class"
-              value={ingressClassName}
-              onChange={(e) => setIngressClassName(e.target.value)}
-              placeholder="nginx"
-            />
-          </div>
-          <RulesEditor rules={rules} onChange={setRules} />
-          {error && <p className="text-sm text-red-500">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Saving…" : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -583,16 +511,26 @@ function DeleteDialog({
           <DialogTitle>Delete Ingress</DialogTitle>
           <DialogDescription>
             Are you sure you want to delete{" "}
-            <strong>{ingress ? `${ingress.namespace}/${ingress.name}` : ""}</strong>? This action
-            cannot be undone.
+            <strong>
+              {ingress ? `${ingress.namespace}/${ingress.name}` : ""}
+            </strong>
+            ? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         {error && <p className="text-sm text-red-500">{error}</p>}
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={submitting}
+          >
             {submitting ? "Deleting…" : "Delete"}
           </Button>
         </DialogFooter>
@@ -608,7 +546,6 @@ export function IngressesView(): JSX.Element {
   const [namespaces, setNamespaces] = useState<string[]>([])
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<K8sIngress | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<K8sIngress | null>(null)
   const [yamlOpen, setYamlOpen] = useState(false)
   const [yamlInitial, setYamlInitial] = useState("")
@@ -631,7 +568,9 @@ export function IngressesView(): JSX.Element {
                 {
                   path: "/",
                   pathType: "Prefix",
-                  backend: { service: { name: "my-service", port: { number: 80 } } },
+                  backend: {
+                    service: { name: "my-service", port: { number: 80 } },
+                  },
                 },
               ],
             },
@@ -652,10 +591,14 @@ export function IngressesView(): JSX.Element {
         name: ing.name,
         namespace: ing.namespace,
         ...(Object.keys(ing.labels).length > 0 ? { labels: ing.labels } : {}),
-        ...(Object.keys(ing.annotations).length > 0 ? { annotations: ing.annotations } : {}),
+        ...(Object.keys(ing.annotations).length > 0
+          ? { annotations: ing.annotations }
+          : {}),
       },
       spec: {
-        ...(ing.ingressClassName ? { ingressClassName: ing.ingressClassName } : {}),
+        ...(ing.ingressClassName
+          ? { ingressClassName: ing.ingressClassName }
+          : {}),
         rules: ing.rules.map((r) => ({
           host: r.host,
           http: {
@@ -665,14 +608,24 @@ export function IngressesView(): JSX.Element {
               backend: {
                 service: {
                   name: p.serviceName,
-                  port: { number: typeof p.servicePort === "number" ? p.servicePort : parseInt(String(p.servicePort), 10) || 80 },
+                  port: {
+                    number:
+                      typeof p.servicePort === "number"
+                        ? p.servicePort
+                        : parseInt(String(p.servicePort), 10) || 80,
+                  },
                 },
               },
             })),
           },
         })),
         ...(ing.tls.length > 0
-          ? { tls: ing.tls.map((t) => ({ hosts: t.hosts, secretName: t.secretName })) }
+          ? {
+              tls: ing.tls.map((t) => ({
+                hosts: t.hosts,
+                secretName: t.secretName,
+              })),
+            }
           : {}),
       },
     }
@@ -746,7 +699,14 @@ export function IngressesView(): JSX.Element {
                       selectedItem?.namespace === ing.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(selectedItem?.name === ing.name && selectedItem?.namespace === ing.namespace ? null : ing)}
+                  onClick={() =>
+                    setSelectedItem(
+                      selectedItem?.name === ing.name &&
+                        selectedItem?.namespace === ing.namespace
+                        ? null
+                        : ing,
+                    )
+                  }
                 >
                   <TableCell className="font-medium">{ing.name}</TableCell>
                   <TableCell>{ing.namespace}</TableCell>
@@ -756,7 +716,10 @@ export function IngressesView(): JSX.Element {
                   <TableCell>{ing.ports}</TableCell>
                   <TableCell>{formatAge(ing.creationTimestamp)}</TableCell>
                   <TableCell>
-                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="flex gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Button
                         variant="ghost"
                         size="icon"
@@ -764,14 +727,6 @@ export function IngressesView(): JSX.Element {
                         onClick={() => openEditYaml(ing)}
                       >
                         <FileCode className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Edit"
-                        onClick={() => setEditTarget(ing)}
-                      >
-                        <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -787,7 +742,10 @@ export function IngressesView(): JSX.Element {
               ))}
               {ingresses.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={8}
+                    className="text-center text-muted-foreground"
+                  >
                     No ingresses found
                   </TableCell>
                 </TableRow>
@@ -798,7 +756,10 @@ export function IngressesView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.rules !== undefined && (
-        <DetailPanel item={selectedItem} onClose={() => setSelectedItem(null)} />
+        <DetailPanel
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
 
       <CreateDialog
@@ -806,18 +767,6 @@ export function IngressesView(): JSX.Element {
         onOpenChange={setCreateOpen}
         namespaces={namespaces.length > 0 ? namespaces : ["default"]}
         onCreated={() => {
-          fetchIngresses()
-          setSelectedItem(null)
-        }}
-      />
-
-      <EditDialog
-        open={editTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setEditTarget(null)
-        }}
-        ingress={editTarget}
-        onUpdated={() => {
           fetchIngresses()
           setSelectedItem(null)
         }}

@@ -1,26 +1,27 @@
+import { Plus, Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useAppStore } from "../../store/app.store"
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "../../components/ui/table"
+
+import { Button } from "../../components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "../../components/ui/dialog"
-import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table"
 import { cn } from "../../lib/utils"
-import { Pencil, Trash2, Plus, X } from "lucide-react"
+import { useAppStore } from "../../store/app.store"
 
 interface K8sDaemonSetContainer {
   name: string
@@ -80,7 +81,13 @@ function MetaEntry({
   )
 }
 
-function DetailPanel({ ds, onClose }: { ds: K8sDaemonSet; onClose: () => void }): JSX.Element {
+function DetailPanel({
+  ds,
+  onClose,
+}: {
+  ds: K8sDaemonSet
+  onClose: () => void
+}): JSX.Element {
   const selectorEntries = Object.entries(ds.selector)
   const nodeSelectorEntries = Object.entries(ds.nodeSelector)
 
@@ -88,8 +95,8 @@ function DetailPanel({ ds, onClose }: { ds: K8sDaemonSet; onClose: () => void })
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-        <h2 className="font-semibold text-base mb-1">{ds.name}</h2>
-        <span className="text-xs text-muted-foreground">{ds.namespace}</span>
+          <h2 className="font-semibold text-base mb-1">{ds.name}</h2>
+          <span className="text-xs text-muted-foreground">{ds.namespace}</span>
         </div>
         <button
           onClick={onClose}
@@ -293,91 +300,6 @@ function CreateDialog({
   )
 }
 
-interface EditDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  daemonSet: K8sDaemonSet | null
-  onUpdated: () => void
-}
-
-function EditDialog({
-  open,
-  onOpenChange,
-  daemonSet,
-  onUpdated,
-}: EditDialogProps): JSX.Element {
-  const [image, setImage] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (open && daemonSet) {
-      setImage(daemonSet.containers[0]?.image ?? "")
-      setError(null)
-    }
-  }, [open, daemonSet])
-
-  async function handleSubmit(): Promise<void> {
-    if (!daemonSet) return
-    if (!image.trim()) {
-      setError("Image is required.")
-      return
-    }
-    setSubmitting(true)
-    setError(null)
-    try {
-      await window.api.k8s.updateDaemonSet(
-        daemonSet.namespace,
-        daemonSet.name,
-        image.trim(),
-      )
-      onUpdated()
-      onOpenChange(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
-        <DialogHeader>
-          <DialogTitle>Edit DaemonSet</DialogTitle>
-          <DialogDescription>
-            {daemonSet ? `${daemonSet.namespace}/${daemonSet.name}` : ""}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="edit-ds-image">Image</Label>
-            <Input
-              id="edit-ds-image"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="nginx:latest"
-            />
-          </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Saving…" : "Save"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 interface DeleteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -455,7 +377,6 @@ export function DaemonSetsView(): JSX.Element {
   const [namespaces, setNamespaces] = useState<string[]>([])
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<K8sDaemonSet | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<K8sDaemonSet | null>(null)
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sDaemonSet | null
@@ -521,7 +442,14 @@ export function DaemonSetsView(): JSX.Element {
                       selectedItem?.namespace === ds.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(selectedItem?.name === ds.name && selectedItem?.namespace === ds.namespace ? null : ds)}
+                  onClick={() =>
+                    setSelectedItem(
+                      selectedItem?.name === ds.name &&
+                        selectedItem?.namespace === ds.namespace
+                        ? null
+                        : ds,
+                    )
+                  }
                 >
                   <TableCell>{ds.name}</TableCell>
                   <TableCell>{ds.namespace}</TableCell>
@@ -536,14 +464,6 @@ export function DaemonSetsView(): JSX.Element {
                       className="flex gap-1"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Edit"
-                        onClick={() => setEditTarget(ds)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -570,18 +490,6 @@ export function DaemonSetsView(): JSX.Element {
         onOpenChange={setCreateOpen}
         namespaces={namespaces.length > 0 ? namespaces : ["default"]}
         onCreated={() => {
-          fetchDaemonSets()
-          setSelectedItem(null)
-        }}
-      />
-
-      <EditDialog
-        open={editTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setEditTarget(null)
-        }}
-        daemonSet={editTarget}
-        onUpdated={() => {
           fetchDaemonSets()
           setSelectedItem(null)
         }}

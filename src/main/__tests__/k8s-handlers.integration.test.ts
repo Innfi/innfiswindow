@@ -1,17 +1,18 @@
-import { describe, test, expect, beforeAll } from "vitest"
-import { KubeConfig, CoreV1Api, AppsV1Api } from "@kubernetes/client-node"
+import { beforeAll, describe, expect, test } from "vitest"
+import { AppsV1Api, CoreV1Api, KubeConfig } from "@kubernetes/client-node"
+
 import {
-  listContexts,
   getCurrentContext,
+  listConfigMaps,
+  listContexts,
+  listDaemonSets,
+  listDeployments,
   listNamespaces,
   listNodes,
-  listDeployments,
-  listReplicaSets,
-  listStatefulSets,
-  listDaemonSets,
   listPods,
-  listConfigMaps,
+  listReplicaSets,
   listSecrets,
+  listStatefulSets,
 } from "../k8s-handlers"
 
 const KIND_CONTEXT = "kind-innfiswindow-test"
