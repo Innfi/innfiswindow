@@ -20,7 +20,7 @@ import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
 import { cn } from "../../lib/utils"
-import { Pencil, Trash2, Plus, FileCode } from "lucide-react"
+import { Pencil, Trash2, Plus, FileCode, X } from "lucide-react"
 import { dump as yamlDump } from "js-yaml"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
@@ -82,18 +82,29 @@ function MetaEntry({
 
 function DetailPanel({
   deployment,
+  onClose,
 }: {
   deployment: K8sDeployment
+  onClose: () => void
 }): JSX.Element {
   const selectorEntries = Object.entries(deployment.selector)
 
   return (
     <div className="w-80 shrink-0 border-l h-full overflow-y-auto p-4 space-y-4">
-      <div>
+      <div className="flex items-start justify-between">
+        <div>
         <h2 className="font-semibold text-base mb-1">{deployment.name}</h2>
         <span className="text-xs text-muted-foreground">
           {deployment.namespace}
         </span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="space-y-1">
@@ -600,7 +611,7 @@ export function DeploymentsView(): JSX.Element {
                       selectedItem?.namespace === d.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(d)}
+                  onClick={() => setSelectedItem(selectedItem?.name === d.name && selectedItem?.namespace === d.namespace ? null : d)}
                 >
                   <TableCell>{d.name}</TableCell>
                   <TableCell>{d.namespace}</TableCell>
@@ -647,7 +658,7 @@ export function DeploymentsView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.namespace !== undefined && (
-        <DetailPanel deployment={selectedItem} />
+        <DetailPanel deployment={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
 
       <CreateDialog

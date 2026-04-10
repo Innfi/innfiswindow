@@ -10,7 +10,7 @@ import {
 } from "../../components/ui/table"
 import { Button } from "../../components/ui/button"
 import { cn } from "../../lib/utils"
-import { FileCode } from "lucide-react"
+import { FileCode, X } from "lucide-react"
 import { dump as yamlDump } from "js-yaml"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
@@ -70,12 +70,21 @@ function MetaEntry({
   )
 }
 
-function DetailPanel({ pod }: { pod: K8sPod }): JSX.Element {
+function DetailPanel({ pod, onClose }: { pod: K8sPod; onClose: () => void }): JSX.Element {
   return (
     <div className="w-80 shrink-0 border-l h-full overflow-y-auto p-4 space-y-4">
-      <div>
+      <div className="flex items-start justify-between">
+        <div>
         <h2 className="font-semibold text-base mb-1">{pod.name}</h2>
         <span className="text-xs text-muted-foreground">{pod.namespace}</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="space-y-1">
@@ -248,7 +257,7 @@ export function PodsView(): JSX.Element {
                       selectedItem?.namespace === p.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(p)}
+                  onClick={() => setSelectedItem(selectedItem?.name === p.name && selectedItem?.namespace === p.namespace ? null : p)}
                 >
                   <TableCell>{p.name}</TableCell>
                   <TableCell>{p.namespace}</TableCell>
@@ -277,7 +286,7 @@ export function PodsView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.containers !== undefined && (
-        <DetailPanel pod={selectedItem} />
+        <DetailPanel pod={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
 
       <YamlEditorPanel

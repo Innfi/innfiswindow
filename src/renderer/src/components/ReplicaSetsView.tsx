@@ -9,6 +9,7 @@ import {
   TableCell,
 } from "../../components/ui/table"
 import { cn } from "../../lib/utils"
+import { X } from "lucide-react"
 
 interface K8sOwnerRef {
   kind: string
@@ -63,15 +64,24 @@ function MetaEntry({
   )
 }
 
-function DetailPanel({ rs }: { rs: K8sReplicaSet }): JSX.Element {
+function DetailPanel({ rs, onClose }: { rs: K8sReplicaSet; onClose: () => void }): JSX.Element {
   const selectorEntries = Object.entries(rs.selector)
   const podTemplateEntries = Object.entries(rs.podTemplateLabels)
 
   return (
     <div className="w-80 shrink-0 border-l h-full overflow-y-auto p-4 space-y-4">
-      <div>
+      <div className="flex items-start justify-between">
+        <div>
         <h2 className="font-semibold text-base mb-1">{rs.name}</h2>
         <span className="text-xs text-muted-foreground">{rs.namespace}</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="space-y-1">
@@ -197,7 +207,7 @@ export function ReplicaSetsView(): JSX.Element {
                       selectedItem?.namespace === rs.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(rs)}
+                  onClick={() => setSelectedItem(selectedItem?.name === rs.name && selectedItem?.namespace === rs.namespace ? null : rs)}
                 >
                   <TableCell>{rs.name}</TableCell>
                   <TableCell>{rs.namespace}</TableCell>
@@ -215,7 +225,7 @@ export function ReplicaSetsView(): JSX.Element {
       {selectedItem &&
         selectedItem.namespace !== undefined &&
         selectedItem.desiredReplicas !== undefined && (
-          <DetailPanel rs={selectedItem} />
+          <DetailPanel rs={selectedItem} onClose={() => setSelectedItem(null)} />
         )}
     </div>
   )

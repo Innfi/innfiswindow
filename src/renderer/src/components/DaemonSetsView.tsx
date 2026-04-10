@@ -20,7 +20,7 @@ import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
 import { cn } from "../../lib/utils"
-import { Pencil, Trash2, Plus } from "lucide-react"
+import { Pencil, Trash2, Plus, X } from "lucide-react"
 
 interface K8sDaemonSetContainer {
   name: string
@@ -80,15 +80,24 @@ function MetaEntry({
   )
 }
 
-function DetailPanel({ ds }: { ds: K8sDaemonSet }): JSX.Element {
+function DetailPanel({ ds, onClose }: { ds: K8sDaemonSet; onClose: () => void }): JSX.Element {
   const selectorEntries = Object.entries(ds.selector)
   const nodeSelectorEntries = Object.entries(ds.nodeSelector)
 
   return (
     <div className="w-80 shrink-0 border-l h-full overflow-y-auto p-4 space-y-4">
-      <div>
+      <div className="flex items-start justify-between">
+        <div>
         <h2 className="font-semibold text-base mb-1">{ds.name}</h2>
         <span className="text-xs text-muted-foreground">{ds.namespace}</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="space-y-1">
@@ -512,7 +521,7 @@ export function DaemonSetsView(): JSX.Element {
                       selectedItem?.namespace === ds.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(ds)}
+                  onClick={() => setSelectedItem(selectedItem?.name === ds.name && selectedItem?.namespace === ds.namespace ? null : ds)}
                 >
                   <TableCell>{ds.name}</TableCell>
                   <TableCell>{ds.namespace}</TableCell>
@@ -553,7 +562,7 @@ export function DaemonSetsView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.desiredNumberScheduled !== undefined && (
-        <DetailPanel ds={selectedItem} />
+        <DetailPanel ds={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
 
       <CreateDialog

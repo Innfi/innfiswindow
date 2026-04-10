@@ -196,12 +196,21 @@ function RulesEditor({
   )
 }
 
-function DetailPanel({ item }: { item: K8sIngress }): JSX.Element {
+function DetailPanel({ item, onClose }: { item: K8sIngress; onClose: () => void }): JSX.Element {
   return (
     <div className="w-96 shrink-0 border-l overflow-y-auto p-4 space-y-4">
-      <div>
+      <div className="flex items-start justify-between">
+        <div>
         <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
         <p className="text-xs text-muted-foreground">{item.namespace}</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <div>
@@ -737,7 +746,7 @@ export function IngressesView(): JSX.Element {
                       selectedItem?.namespace === ing.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(ing)}
+                  onClick={() => setSelectedItem(selectedItem?.name === ing.name && selectedItem?.namespace === ing.namespace ? null : ing)}
                 >
                   <TableCell className="font-medium">{ing.name}</TableCell>
                   <TableCell>{ing.namespace}</TableCell>
@@ -789,7 +798,7 @@ export function IngressesView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.rules !== undefined && (
-        <DetailPanel item={selectedItem} />
+        <DetailPanel item={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
 
       <CreateDialog

@@ -20,7 +20,7 @@ import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
 import { cn } from "../../lib/utils"
-import { Pencil, Trash2, Plus } from "lucide-react"
+import { Pencil, Trash2, Plus, X } from "lucide-react"
 
 interface K8sStatefulSetContainer {
   name: string
@@ -75,14 +75,23 @@ function MetaEntry({
   )
 }
 
-function DetailPanel({ ss }: { ss: K8sStatefulSet }): JSX.Element {
+function DetailPanel({ ss, onClose }: { ss: K8sStatefulSet; onClose: () => void }): JSX.Element {
   const selectorEntries = Object.entries(ss.selector)
 
   return (
     <div className="w-80 shrink-0 border-l h-full overflow-y-auto p-4 space-y-4">
-      <div>
+      <div className="flex items-start justify-between">
+        <div>
         <h2 className="font-semibold text-base mb-1">{ss.name}</h2>
         <span className="text-xs text-muted-foreground">{ss.namespace}</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="space-y-1">
@@ -537,7 +546,7 @@ export function StatefulSetsView(): JSX.Element {
                       selectedItem?.namespace === ss.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(ss)}
+                  onClick={() => setSelectedItem(selectedItem?.name === ss.name && selectedItem?.namespace === ss.namespace ? null : ss)}
                 >
                   <TableCell>{ss.name}</TableCell>
                   <TableCell>{ss.namespace}</TableCell>
@@ -577,7 +586,7 @@ export function StatefulSetsView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.serviceName !== undefined && (
-        <DetailPanel ss={selectedItem} />
+        <DetailPanel ss={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
 
       <CreateDialog

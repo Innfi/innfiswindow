@@ -9,6 +9,7 @@ import {
   TableCell,
 } from "../../components/ui/table"
 import { cn } from "../../lib/utils"
+import { X } from "lucide-react"
 
 interface K8sNamespace {
   name: string
@@ -48,13 +49,14 @@ function MetaEntry({
   )
 }
 
-function DetailPanel({ ns }: { ns: K8sNamespace }): JSX.Element {
+function DetailPanel({ ns, onClose }: { ns: K8sNamespace; onClose: () => void }): JSX.Element {
   const labelEntries = Object.entries(ns.labels)
   const annotationEntries = Object.entries(ns.annotations)
 
   return (
     <div className="w-80 shrink-0 border-l h-full overflow-y-auto p-4 space-y-4">
-      <div>
+      <div className="flex items-start justify-between">
+        <div>
         <h2 className="font-semibold text-base mb-1">{ns.name}</h2>
         <span
           className={cn(
@@ -66,6 +68,14 @@ function DetailPanel({ ns }: { ns: K8sNamespace }): JSX.Element {
         >
           {ns.status}
         </span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="space-y-1">
@@ -148,7 +158,7 @@ export function NamespacesView(): JSX.Element {
                     "cursor-pointer",
                     selectedItem?.name === ns.name && "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(ns)}
+                  onClick={() => setSelectedItem(selectedItem?.name === ns.name ? null : ns)}
                 >
                   <TableCell>{ns.name}</TableCell>
                   <TableCell>{ns.status}</TableCell>
@@ -160,7 +170,7 @@ export function NamespacesView(): JSX.Element {
         )}
       </div>
 
-      {selectedItem && <DetailPanel ns={selectedItem} />}
+      {selectedItem && <DetailPanel ns={selectedItem} onClose={() => setSelectedItem(null)} />}
     </div>
   )
 }

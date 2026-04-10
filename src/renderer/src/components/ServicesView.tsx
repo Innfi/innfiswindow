@@ -74,16 +74,25 @@ function formatPorts(ports: K8sServicePort[]): string {
   return ports.map((p) => `${p.port}/${p.protocol}`).join(", ")
 }
 
-function DetailPanel({ svc }: { svc: K8sService }): JSX.Element {
+function DetailPanel({ svc, onClose }: { svc: K8sService; onClose: () => void }): JSX.Element {
   const selectorEntries = Object.entries(svc.selector)
   const labelEntries = Object.entries(svc.labels)
   const annotationEntries = Object.entries(svc.annotations)
 
   return (
     <div className="w-96 shrink-0 border-l h-full overflow-y-auto p-4 space-y-4">
-      <div>
+      <div className="flex items-start justify-between">
+        <div>
         <h2 className="font-semibold text-base mb-1">{svc.name}</h2>
         <span className="text-xs text-muted-foreground">{svc.namespace}</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="space-y-1">
@@ -775,7 +784,7 @@ export function ServicesView(): JSX.Element {
                       selectedItem?.namespace === svc.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(svc)}
+                  onClick={() => setSelectedItem(selectedItem?.name === svc.name && selectedItem?.namespace === svc.namespace ? null : svc)}
                 >
                   <TableCell>{svc.name}</TableCell>
                   <TableCell>{svc.namespace}</TableCell>
@@ -829,7 +838,7 @@ export function ServicesView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.type !== undefined && (
-        <DetailPanel svc={selectedItem} />
+        <DetailPanel svc={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
 
       <CreateDialog

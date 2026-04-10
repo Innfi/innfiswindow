@@ -10,7 +10,7 @@ import {
 } from "../../components/ui/table"
 import { Button } from "../../components/ui/button"
 import { cn } from "../../lib/utils"
-import { FileCode } from "lucide-react"
+import { FileCode, X } from "lucide-react"
 import { dump as yamlDump } from "js-yaml"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
@@ -38,7 +38,7 @@ function formatAge(isoTimestamp: string): string {
   return `${diffDays}d`
 }
 
-function DetailPanel({ cm }: { cm: K8sConfigMap }): JSX.Element {
+function DetailPanel({ cm, onClose }: { cm: K8sConfigMap; onClose: () => void }): JSX.Element {
   const dataEntries = Object.entries(cm.data)
   const binaryEntries = Object.entries(cm.binaryData)
   const labelEntries = Object.entries(cm.labels)
@@ -46,9 +46,18 @@ function DetailPanel({ cm }: { cm: K8sConfigMap }): JSX.Element {
 
   return (
     <div className="w-96 shrink-0 border-l h-full overflow-y-auto p-4 space-y-4">
-      <div>
+      <div className="flex items-start justify-between">
+        <div>
         <h2 className="font-semibold text-base mb-1">{cm.name}</h2>
         <span className="text-xs text-muted-foreground">{cm.namespace}</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       {dataEntries.length > 0 && (
@@ -207,7 +216,7 @@ export function ConfigMapsView(): JSX.Element {
                       selectedItem?.namespace === cm.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(cm)}
+                  onClick={() => setSelectedItem(selectedItem?.name === cm.name && selectedItem?.namespace === cm.namespace ? null : cm)}
                 >
                   <TableCell>{cm.name}</TableCell>
                   <TableCell>{cm.namespace}</TableCell>
@@ -235,7 +244,7 @@ export function ConfigMapsView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.keys !== undefined && (
-        <DetailPanel cm={selectedItem} />
+        <DetailPanel cm={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
 
       <YamlEditorPanel

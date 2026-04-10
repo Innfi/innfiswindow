@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Eye, EyeOff, FileCode } from "lucide-react"
+import { Eye, EyeOff, FileCode, X } from "lucide-react"
 import { useAppStore } from "../../store/app.store"
 import {
   Table,
@@ -38,7 +38,7 @@ function formatAge(isoTimestamp: string): string {
   return `${diffDays}d`
 }
 
-function DetailPanel({ secret }: { secret: K8sSecret }): JSX.Element {
+function DetailPanel({ secret, onClose }: { secret: K8sSecret; onClose: () => void }): JSX.Element {
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set())
   const dataEntries = Object.entries(secret.data)
   const labelEntries = Object.entries(secret.labels)
@@ -58,11 +58,20 @@ function DetailPanel({ secret }: { secret: K8sSecret }): JSX.Element {
 
   return (
     <div className="w-96 shrink-0 border-l h-full overflow-y-auto p-4 space-y-4">
-      <div>
+      <div className="flex items-start justify-between">
+        <div>
         <h2 className="font-semibold text-base mb-1">{secret.name}</h2>
         <span className="text-xs text-muted-foreground">
           {secret.namespace}
         </span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <div>
@@ -240,7 +249,7 @@ export function SecretsView(): JSX.Element {
                       selectedItem?.namespace === secret.namespace &&
                       "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(secret)}
+                  onClick={() => setSelectedItem(selectedItem?.name === secret.name && selectedItem?.namespace === secret.namespace ? null : secret)}
                 >
                   <TableCell>{secret.name}</TableCell>
                   <TableCell>{secret.namespace}</TableCell>
@@ -269,7 +278,7 @@ export function SecretsView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.type !== undefined && (
-        <DetailPanel secret={selectedItem} />
+        <DetailPanel secret={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
 
       <YamlEditorPanel

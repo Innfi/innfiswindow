@@ -9,6 +9,7 @@ import {
   TableCell,
 } from "../../components/ui/table"
 import { cn } from "../../lib/utils"
+import { X } from "lucide-react"
 
 interface K8sNodeCondition {
   type: string
@@ -59,14 +60,15 @@ function MetaEntry({
   )
 }
 
-function DetailPanel({ node }: { node: K8sNode }): JSX.Element {
+function DetailPanel({ node, onClose }: { node: K8sNode; onClose: () => void }): JSX.Element {
   const labelEntries = Object.entries(node.labels)
   const capacityEntries = Object.entries(node.capacity)
   const allocatableEntries = Object.entries(node.allocatable)
 
   return (
     <div className="w-80 shrink-0 border-l h-full overflow-y-auto p-4 space-y-4">
-      <div>
+      <div className="flex items-start justify-between">
+        <div>
         <h2 className="font-semibold text-base mb-1">{node.name}</h2>
         <span
           className={cn(
@@ -78,6 +80,14 @@ function DetailPanel({ node }: { node: K8sNode }): JSX.Element {
         >
           {node.status}
         </span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="space-y-1">
@@ -206,7 +216,7 @@ export function NodesView(): JSX.Element {
                     "cursor-pointer",
                     selectedItem?.name === node.name && "bg-muted",
                   )}
-                  onClick={() => setSelectedItem(node)}
+                  onClick={() => setSelectedItem(selectedItem?.name === node.name ? null : node)}
                 >
                   <TableCell>{node.name}</TableCell>
                   <TableCell>{node.status}</TableCell>
@@ -220,7 +230,7 @@ export function NodesView(): JSX.Element {
         )}
       </div>
 
-      {selectedItem && <DetailPanel node={selectedItem} />}
+      {selectedItem && <DetailPanel node={selectedItem} onClose={() => setSelectedItem(null)} />}
     </div>
   )
 }

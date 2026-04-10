@@ -504,6 +504,61 @@
       ],
       "dependencies": ["S01", "S02"],
       "notes": "Preset CSS variable values — use oklch throughout:\n\nDefault (zinc): light --background: oklch(1 0 0), --foreground: oklch(0.145 0 0), --primary: oklch(0.205 0 0), --primary-foreground: oklch(0.985 0 0), --secondary: oklch(0.97 0 0), --secondary-foreground: oklch(0.205 0 0), --muted: oklch(0.97 0 0), --muted-foreground: oklch(0.556 0 0), --accent: oklch(0.97 0 0), --accent-foreground: oklch(0.205 0 0), --destructive: oklch(0.577 0.245 27.325), --border: oklch(0.922 0 0), --ring: oklch(0.708 0 0), --card: oklch(1 0 0), --card-foreground: oklch(0.145 0 0); dark: --background: oklch(0.145 0 0), --foreground: oklch(0.985 0 0), --primary: oklch(0.985 0 0), --primary-foreground: oklch(0.205 0 0), --secondary: oklch(0.269 0 0), --secondary-foreground: oklch(0.985 0 0), --muted: oklch(0.269 0 0), --muted-foreground: oklch(0.708 0 0), --accent: oklch(0.269 0 0), --accent-foreground: oklch(0.985 0 0), --destructive: oklch(0.704 0.191 22.216), --border: oklch(1 0 0 / 10%), --ring: oklch(0.556 0 0), --card: oklch(0.205 0 0), --card-foreground: oklch(0.985 0 0).\n\nOcean: light --background: oklch(0.98 0.01 220), --foreground: oklch(0.15 0.02 230), --primary: oklch(0.55 0.18 230), --primary-foreground: oklch(0.98 0 0), --secondary: oklch(0.92 0.04 210), --secondary-foreground: oklch(0.25 0.05 230), --muted: oklch(0.94 0.02 215), --muted-foreground: oklch(0.5 0.05 225), --accent: oklch(0.88 0.08 195), --accent-foreground: oklch(0.2 0.06 230), --destructive: oklch(0.577 0.245 27.325), --border: oklch(0.88 0.03 220), --ring: oklch(0.55 0.18 230), --card: oklch(1 0 0), --card-foreground: oklch(0.15 0.02 230); dark: --background: oklch(0.13 0.02 240), --foreground: oklch(0.92 0.02 210), --primary: oklch(0.65 0.16 225), --primary-foreground: oklch(0.1 0.02 240), --secondary: oklch(0.22 0.04 235), --secondary-foreground: oklch(0.9 0.02 215), --muted: oklch(0.2 0.03 235), --muted-foreground: oklch(0.6 0.05 220), --accent: oklch(0.28 0.08 200), --accent-foreground: oklch(0.92 0.02 210), --destructive: oklch(0.704 0.191 22.216), --border: oklch(1 0 0 / 10%), --ring: oklch(0.65 0.16 225), --card: oklch(0.18 0.025 238), --card-foreground: oklch(0.92 0.02 210).\n\nMidnight: light --background: oklch(0.97 0.01 265), --foreground: oklch(0.18 0.04 270), --primary: oklch(0.5 0.22 270), --primary-foreground: oklch(1 0 0), --secondary: oklch(0.91 0.04 265), --secondary-foreground: oklch(0.28 0.06 270), --muted: oklch(0.93 0.02 265), --muted-foreground: oklch(0.52 0.06 265), --accent: oklch(0.86 0.09 280), --accent-foreground: oklch(0.2 0.07 270), --destructive: oklch(0.577 0.245 27.325), --border: oklch(0.87 0.04 265), --ring: oklch(0.5 0.22 270), --card: oklch(1 0 0), --card-foreground: oklch(0.18 0.04 270); dark: --background: oklch(0.1 0.025 265), --foreground: oklch(0.93 0.015 265), --primary: oklch(0.62 0.2 268), --primary-foreground: oklch(0.08 0.02 268), --secondary: oklch(0.2 0.05 268), --secondary-foreground: oklch(0.9 0.02 265), --muted: oklch(0.18 0.04 268), --muted-foreground: oklch(0.58 0.06 265), --accent: oklch(0.26 0.1 275), --accent-foreground: oklch(0.93 0.015 265), --destructive: oklch(0.704 0.191 22.216), --border: oklch(1 0 0 / 10%), --ring: oklch(0.62 0.2 268), --card: oklch(0.16 0.03 265), --card-foreground: oklch(0.93 0.015 265).\n\nSlate: light --background: oklch(0.985 0.003 250), --foreground: oklch(0.2 0.015 250), --primary: oklch(0.42 0.08 250), --primary-foreground: oklch(0.98 0 0), --secondary: oklch(0.94 0.01 250), --secondary-foreground: oklch(0.3 0.02 250), --muted: oklch(0.95 0.008 250), --muted-foreground: oklch(0.52 0.02 250), --accent: oklch(0.9 0.015 250), --accent-foreground: oklch(0.25 0.02 250), --destructive: oklch(0.577 0.245 27.325), --border: oklch(0.88 0.01 250), --ring: oklch(0.42 0.08 250), --card: oklch(1 0 0), --card-foreground: oklch(0.2 0.015 250); dark: --background: oklch(0.15 0.01 250), --foreground: oklch(0.94 0.008 250), --primary: oklch(0.68 0.07 250), --primary-foreground: oklch(0.12 0.01 250), --secondary: oklch(0.25 0.015 250), --secondary-foreground: oklch(0.92 0.008 250), --muted: oklch(0.22 0.012 250), --muted-foreground: oklch(0.6 0.02 250), --accent: oklch(0.3 0.02 250), --accent-foreground: oklch(0.94 0.008 250), --destructive: oklch(0.704 0.191 22.216), --border: oklch(1 0 0 / 10%), --ring: oklch(0.68 0.07 250), --card: oklch(0.2 0.012 250), --card-foreground: oklch(0.94 0.008 250).\n\nCyberpunk: light --background: oklch(0.96 0.01 160), --foreground: oklch(0.1 0.04 150), --primary: oklch(0.55 0.22 155), --primary-foreground: oklch(0.98 0 0), --secondary: oklch(0.88 0.07 185), --secondary-foreground: oklch(0.15 0.05 165), --muted: oklch(0.92 0.03 160), --muted-foreground: oklch(0.45 0.07 155), --accent: oklch(0.82 0.14 195), --accent-foreground: oklch(0.1 0.04 160), --destructive: oklch(0.577 0.245 27.325), --border: oklch(0.84 0.06 165), --ring: oklch(0.55 0.22 155), --card: oklch(1 0 0), --card-foreground: oklch(0.1 0.04 150); dark: --background: oklch(0.1 0.015 165), --foreground: oklch(0.9 0.06 155), --primary: oklch(0.72 0.22 155), --primary-foreground: oklch(0.08 0.015 165), --secondary: oklch(0.2 0.06 185), --secondary-foreground: oklch(0.88 0.06 155), --muted: oklch(0.17 0.04 165), --muted-foreground: oklch(0.55 0.1 155), --accent: oklch(0.25 0.12 195), --accent-foreground: oklch(0.9 0.06 155), --destructive: oklch(0.704 0.191 22.216), --border: oklch(1 0 0 / 10%), --ring: oklch(0.72 0.22 155), --card: oklch(0.15 0.02 165), --card-foreground: oklch(0.9 0.06 155).\n\nFor the swatch preview in ThemePicker use the preset's `primary` light value as the swatch background color. Use shadcn Popover + a grid of color circles. No IPC handlers needed — this is a pure renderer-side feature."
+    },
+    {
+      "id": "S28",
+      "title": "Resource detail panel toggle and close button",
+      "status": "complete",
+      "description": "Clicking a resource row that is already selected should deselect it (toggle behaviour), collapsing the detail panel. A close button (X) must appear in the top-right corner of the detail panel so users can dismiss it without clicking the row again.",
+      "acceptance_criteria": [
+        "Clicking a resource row when it is already the selected item calls `setSelectedItem(null)`, which collapses the detail panel",
+        "Clicking a different row still selects that row as before",
+        "Every resource detail panel (Namespaces, Nodes, Deployments, ReplicaSets, StatefulSets, DaemonSets, ConfigMaps, Secrets, Pods, Services, Ingresses) renders a close button (an X icon button) in the top-right corner of the panel header",
+        "Clicking the close button calls `setSelectedItem(null)`",
+        "The close button is keyboard-accessible and has a visible focus ring"
+      ],
+      "dependencies": ["S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S12", "S13"]
+    },
+    {
+      "id": "S29",
+      "title": "Resource detail panel vivid card background",
+      "status": "incomplete",
+      "description": "The resource detail panel currently blends into the background because the card colour is too close to the page background. Update every resource detail panel to use a noticeably distinct card surface (using the theme's --card token) with a visible border and subtle shadow so the panel stands out from the main content area regardless of which theme is active.",
+      "acceptance_criteria": [
+        "Every resource detail panel wraps its content in a container that uses `bg-card text-card-foreground` (Tailwind tokens mapped to the active theme's --card and --card-foreground CSS variables)",
+        "The detail panel container has a visible `border border-border` and a `shadow-md` (or equivalent) so it is clearly separated from the background",
+        "The visual distinction is legible across all five theme presets (Default, Ocean, Midnight, Slate, Cyberpunk) in both light and dark OS modes",
+        "No hard-coded colour values are introduced — styling must reference only the theme CSS variable tokens"
+      ],
+      "dependencies": ["S27", "S28"]
+    },
+    {
+      "id": "S30",
+      "title": "YAML editor panel theme integration",
+      "status": "incomplete",
+      "description": "The YAML / text editor panel (YamlEditorPanel) used for viewing and editing resource manifests does not respect the active colour theme. Its background and text colours must be switched to use the same CSS variable tokens as the rest of the UI so it looks native in every theme preset.",
+      "acceptance_criteria": [
+        "`src/renderer/src/components/YamlEditorPanel.tsx` replaces any hard-coded background or text colour classes/styles with `bg-card text-card-foreground` (or `bg-muted text-foreground` for the editor textarea) so the panel inherits the active theme",
+        "The editor textarea itself uses `bg-muted text-foreground border-border` classes; no inline `style` attributes with fixed colour values remain",
+        "The panel header (title bar, action buttons) uses `bg-card text-card-foreground border-border` classes",
+        "Switching theme presets at runtime immediately updates the editor panel colours without a reload",
+        "The fix applies to all call sites that render YamlEditorPanel"
+      ],
+      "dependencies": ["S27", "S28"]
+    },
+    {
+      "id": "S31",
+      "title": "Custom scrollbar styling",
+      "status": "incomplete",
+      "description": "All scrollable containers in the app currently show the OS default scrollbar, which does not match the app's visual design. Apply a consistent custom scrollbar style to all scrollable areas (sidebar tree, resource list, detail panels, editor) that complements the active theme.",
+      "acceptance_criteria": [
+        "A global scrollbar CSS rule is added to `src/renderer/assets/main.css` using `::-webkit-scrollbar`, `::-webkit-scrollbar-track`, and `::-webkit-scrollbar-thumb` pseudo-elements",
+        "The scrollbar thumb colour uses `var(--border)` and the track uses `var(--background)` so it automatically follows the active theme",
+        "The scrollbar width is narrower than the OS default (e.g. 6–8 px) and the thumb has rounded corners",
+        "The custom scrollbar is visible on all major scrollable regions: the left sidebar TreeView, the resource list table, and every detail panel",
+        "No JavaScript is required — the fix is CSS-only"
+      ],
+      "dependencies": ["S27"]
     }
   ]
 }

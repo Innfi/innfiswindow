@@ -56,7 +56,7 @@ function App(): JSX.Element {
   }, [])
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
       {/* Top bar */}
       <div className="flex h-12 shrink-0 items-center border-b px-4">
         <span className="flex-1 font-semibold">Innfiswindow</span>
