@@ -6,7 +6,7 @@ import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 
 const groups = [
-  { label: "Cluster", items: ["Namespaces", "Nodes"] },
+  { label: "Cluster", items: ["Namespaces", "Nodes", "Events"] },
   {
     label: "Workloads",
     items: ["Deployments", "ReplicaSets", "StatefulSets", "DaemonSets", "Pods"],

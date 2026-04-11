@@ -21,7 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { cn } from "../../lib/utils"
+import { handleIpcError } from "../../lib/ipc-error"
+import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
@@ -55,19 +56,6 @@ interface PortEntry {
 interface SelectorEntry {
   key: string
   value: string
-}
-
-function formatAge(isoTimestamp: string): string {
-  if (!isoTimestamp) return "-"
-  const diffMs = Date.now() - new Date(isoTimestamp).getTime()
-  const diffSecs = Math.floor(diffMs / 1000)
-  if (diffSecs < 60) return `${diffSecs}s`
-  const diffMins = Math.floor(diffSecs / 60)
-  if (diffMins < 60) return `${diffMins}m`
-  const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `${diffHours}h`
-  const diffDays = Math.floor(diffHours / 24)
-  return `${diffDays}d`
 }
 
 function formatPorts(ports: K8sServicePort[]): string {
@@ -643,6 +631,7 @@ export function ServicesView(): JSX.Element {
         setLoading(false)
       })
       .catch((err) => {
+        handleIpcError(err, "Services")
         setError(String(err))
         setLoading(false)
       })

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from "electron"
+import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron"
 import { electronAPI } from "@electron-toolkit/preload"
 
 // Custom APIs for renderer
@@ -159,6 +159,27 @@ const api = {
       ipcRenderer.invoke("k8s:ingress:delete", namespace, name),
     applyResource: (yaml: string) =>
       ipcRenderer.invoke("k8s:resource:apply", yaml),
+  },
+  startPodLog: (namespace: string, podName: string, containerName?: string) =>
+    ipcRenderer.invoke("k8s:pod:log:start", {
+      namespace,
+      podName,
+      containerName,
+    }),
+  stopPodLog: (namespace: string, podName: string) =>
+    ipcRenderer.invoke("k8s:pod:log:stop", { namespace, podName }),
+  onPodLogData: (callback: (line: string) => void) => {
+    const handler = (_e: IpcRendererEvent, line: string) => callback(line)
+    ipcRenderer.on("k8s:pod:log:data", handler)
+    return () => ipcRenderer.removeListener("k8s:pod:log:data", handler)
+  },
+  listEvents: () => ipcRenderer.invoke("k8s:events:list"),
+  startEventsWatch: () => ipcRenderer.invoke("k8s:events:watch:start"),
+  stopEventsWatch: () => ipcRenderer.invoke("k8s:events:watch:stop"),
+  onEventsData: (callback: (event: unknown) => void) => {
+    const handler = (_e: IpcRendererEvent, event: unknown) => callback(event)
+    ipcRenderer.on("k8s:events:data", handler)
+    return () => ipcRenderer.removeListener("k8s:events:data", handler)
   },
 }
 

@@ -9,8 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { cn } from "../../lib/utils"
+import { handleIpcError } from "../../lib/ipc-error"
+import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { MetaEntry } from "./MetaEntry"
 
 interface K8sOwnerRef {
   kind: string
@@ -33,36 +35,6 @@ interface K8sReplicaSet {
   containers: K8sReplicaSetContainer[]
   ownerReferences: K8sOwnerRef[]
   podTemplateLabels: Record<string, string>
-}
-
-function formatAge(isoTimestamp: string): string {
-  if (!isoTimestamp) return "-"
-  const diffMs = Date.now() - new Date(isoTimestamp).getTime()
-  const diffSecs = Math.floor(diffMs / 1000)
-  if (diffSecs < 60) return `${diffSecs}s`
-  const diffMins = Math.floor(diffSecs / 60)
-  if (diffMins < 60) return `${diffMins}m`
-  const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `${diffHours}h`
-  const diffDays = Math.floor(diffHours / 24)
-  return `${diffDays}d`
-}
-
-function MetaEntry({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}): JSX.Element {
-  return (
-    <div className="flex gap-2 text-sm">
-      <span className="shrink-0 font-medium text-muted-foreground w-32">
-        {label}
-      </span>
-      <span className="break-all">{value}</span>
-    </div>
-  )
 }
 
 function DetailPanel({
@@ -181,6 +153,7 @@ export function ReplicaSetsView(): JSX.Element {
         setLoading(false)
       })
       .catch((err) => {
+        handleIpcError(err, "ReplicaSets")
         setError(String(err))
         setLoading(false)
       })

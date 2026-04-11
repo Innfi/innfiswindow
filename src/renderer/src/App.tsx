@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react"
 
 import { ThemePicker } from "../components/ThemePicker"
+import { Toaster } from "../components/ui/sonner"
+import { handleIpcError } from "../lib/ipc-error"
 import { applyTheme } from "../lib/themes"
 import { useAppStore } from "../store/app.store"
 import { ConfigMapsView } from "./components/ConfigMapsView"
 import { DaemonSetsView } from "./components/DaemonSetsView"
 import { DeploymentsView } from "./components/DeploymentsView"
+import { EventsView } from "./components/EventsView"
 import { IngressesView } from "./components/IngressesView"
 import { NamespacesView } from "./components/NamespacesView"
 import { NodesView } from "./components/NodesView"
@@ -52,49 +55,56 @@ function App(): JSX.Element {
     window.api.k8s
       .getCurrentContext()
       .then(setCurrentContext)
-      .catch(console.error)
-    window.api.k8s.getClusterType().then(setClusterType).catch(console.error)
+      .catch((err) => handleIpcError(err, "kubeconfig"))
+    window.api.k8s
+      .getClusterType()
+      .then(setClusterType)
+      .catch((err) => handleIpcError(err, "cluster type"))
   }, [])
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      {/* Top bar */}
-      <div className="flex h-12 shrink-0 items-center border-b px-4">
-        <span className="flex-1 font-semibold">Innfiswindow</span>
-        <ThemePicker />
-        <span className="rounded border px-2 py-0.5 text-xs mr-2 ml-2">
-          {clusterType}
-        </span>
-        {currentContext && (
-          <span className="rounded border px-2 py-0.5 text-xs">
-            {currentContext}
+    <>
+      <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+        {/* Top bar */}
+        <div className="flex h-12 shrink-0 items-center border-b px-4">
+          <span className="flex-1 font-semibold">Innfiswindow</span>
+          <ThemePicker />
+          <span className="rounded border px-2 py-0.5 text-xs mr-2 ml-2">
+            {clusterType}
           </span>
-        )}
-      </div>
-
-      {/* Body */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar */}
-        <div className="w-60 shrink-0 border-r h-full overflow-y-auto">
-          <TreeView />
+          {currentContext && (
+            <span className="rounded border px-2 py-0.5 text-xs">
+              {currentContext}
+            </span>
+          )}
         </div>
 
-        {/* Main content */}
-        <div className="flex-1 overflow-hidden">
-          {selectedResourceType === "Namespaces" && <NamespacesView />}
-          {selectedResourceType === "Nodes" && <NodesView />}
-          {selectedResourceType === "Deployments" && <DeploymentsView />}
-          {selectedResourceType === "ReplicaSets" && <ReplicaSetsView />}
-          {selectedResourceType === "StatefulSets" && <StatefulSetsView />}
-          {selectedResourceType === "DaemonSets" && <DaemonSetsView />}
-          {selectedResourceType === "ConfigMaps" && <ConfigMapsView />}
-          {selectedResourceType === "Secrets" && <SecretsView />}
-          {selectedResourceType === "Pods" && <PodsView />}
-          {selectedResourceType === "Services" && <ServicesView />}
-          {selectedResourceType === "Ingresses" && <IngressesView />}
+        {/* Body */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left sidebar */}
+          <div className="w-60 shrink-0 border-r h-full overflow-y-auto">
+            <TreeView />
+          </div>
+
+          {/* Main content */}
+          <div className="flex-1 overflow-hidden">
+            {selectedResourceType === "Namespaces" && <NamespacesView />}
+            {selectedResourceType === "Nodes" && <NodesView />}
+            {selectedResourceType === "Deployments" && <DeploymentsView />}
+            {selectedResourceType === "ReplicaSets" && <ReplicaSetsView />}
+            {selectedResourceType === "StatefulSets" && <StatefulSetsView />}
+            {selectedResourceType === "DaemonSets" && <DaemonSetsView />}
+            {selectedResourceType === "ConfigMaps" && <ConfigMapsView />}
+            {selectedResourceType === "Secrets" && <SecretsView />}
+            {selectedResourceType === "Pods" && <PodsView />}
+            {selectedResourceType === "Services" && <ServicesView />}
+            {selectedResourceType === "Ingresses" && <IngressesView />}
+            {selectedResourceType === "Events" && <EventsView />}
+          </div>
         </div>
       </div>
-    </div>
+      <Toaster position="bottom-right" duration={5000} />
+    </>
   )
 }
 

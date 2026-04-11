@@ -1,5 +1,5 @@
 import { dump as yamlDump } from "js-yaml"
-import { FileCode, X } from "lucide-react"
+import { FileCode, ScrollText, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Button } from "../../components/ui/button"
@@ -11,8 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { cn } from "../../lib/utils"
+import { handleIpcError } from "../../lib/ipc-error"
+import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { MetaEntry } from "./MetaEntry"
+import { PodLogPanel } from "./PodLogPanel"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sPodContainer {
@@ -39,36 +42,6 @@ interface K8sPod {
   nodeName: string
   containers: K8sPodContainer[]
   conditions: K8sPodCondition[]
-}
-
-function formatAge(isoTimestamp: string): string {
-  if (!isoTimestamp) return "-"
-  const diffMs = Date.now() - new Date(isoTimestamp).getTime()
-  const diffSecs = Math.floor(diffMs / 1000)
-  if (diffSecs < 60) return `${diffSecs}s`
-  const diffMins = Math.floor(diffSecs / 60)
-  if (diffMins < 60) return `${diffMins}m`
-  const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `${diffHours}h`
-  const diffDays = Math.floor(diffHours / 24)
-  return `${diffDays}d`
-}
-
-function MetaEntry({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}): JSX.Element {
-  return (
-    <div className="flex gap-2 text-sm">
-      <span className="shrink-0 font-medium text-muted-foreground w-32">
-        {label}
-      </span>
-      <span className="break-all">{value}</span>
-    </div>
-  )
 }
 
 function DetailPanel({
@@ -172,6 +145,7 @@ export function PodsView(): JSX.Element {
   const [yamlOpen, setYamlOpen] = useState(false)
   const [yamlInitial, setYamlInitial] = useState("")
   const [yamlTitle, setYamlTitle] = useState("")
+  const [logPod, setLogPod] = useState<K8sPod | null>(null)
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sPod | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
@@ -186,6 +160,7 @@ export function PodsView(): JSX.Element {
         setLoading(false)
       })
       .catch((err) => {
+        handleIpcError(err, "Pods")
         setError(String(err))
         setLoading(false)
       })
@@ -291,6 +266,18 @@ export function PodsView(): JSX.Element {
                       <Button
                         variant="ghost"
                         size="icon"
+                        title="Logs"
+                        onClick={() => {
+                          console.log(`pod: ${p.containers[0].name}`)
+                          setLogPod(p)
+                          setSelectedItem(null)
+                        }}
+                      >
+                        <ScrollText className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         title="Edit YAML"
                         onClick={() => openEditYaml(p)}
                       >
@@ -305,8 +292,23 @@ export function PodsView(): JSX.Element {
         )}
       </div>
 
-      {selectedItem && selectedItem.containers !== undefined && (
-        <DetailPanel pod={selectedItem} onClose={() => setSelectedItem(null)} />
+      {logPod ? (
+        <div className="w-[480px] shrink-0 h-full overflow-hidden">
+          <PodLogPanel
+            namespace={logPod.namespace}
+            podName={logPod.name}
+            containers={logPod.containers}
+            onClose={() => setLogPod(null)}
+          />
+        </div>
+      ) : (
+        selectedItem &&
+        selectedItem.containers !== undefined && (
+          <DetailPanel
+            pod={selectedItem}
+            onClose={() => setSelectedItem(null)}
+          />
+        )
       )}
 
       <YamlEditorPanel

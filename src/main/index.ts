@@ -1,11 +1,14 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron"
 import { join } from "path"
+import { PassThrough } from "stream"
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
 import {
   AppsV1Api,
   CoreV1Api,
   KubeConfig,
+  Log,
   NetworkingV1Api,
+  Watch,
 } from "@kubernetes/client-node"
 
 import {
@@ -26,6 +29,7 @@ import {
   listContexts,
   listDaemonSets,
   listDeployments,
+  listEvents,
   listIngresses,
   listNamespaces,
   listNodes,
@@ -51,8 +55,12 @@ const networkingV1Api = kc.makeApiClient(NetworkingV1Api)
 // Export for use in other modules if needed
 export { appsV1Api, coreV1Api, kc, networkingV1Api }
 
+let mainWindow: BrowserWindow | null = null
+const activeLogRequests = new Map<string, { abort: () => void }>()
+let activeEventsWatch: { abort: () => void } | null = null
+
 function createWindow(): void {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     show: false,
@@ -69,7 +77,11 @@ function createWindow(): void {
   })
 
   mainWindow.on("ready-to-show", () => {
-    mainWindow.show()
+    mainWindow!.show()
+  })
+
+  mainWindow.on("closed", () => {
+    mainWindow = null
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -253,6 +265,114 @@ app.whenReady().then(() => {
   )
   ipcMain.handle("k8s:resource:apply", (_e, yaml: string) =>
     applyResource(kc, yaml),
+  )
+
+  ipcMain.handle("k8s:events:list", () => listEvents(coreV1Api))
+
+  ipcMain.handle("k8s:events:watch:start", async () => {
+    if (activeEventsWatch) {
+      activeEventsWatch.abort()
+      activeEventsWatch = null
+    }
+    const watch = new Watch(kc)
+    const req = await watch.watch(
+      "/api/v1/events",
+      {},
+      (_type: string, apiObj: unknown) => {
+        if (!apiObj) return
+        const ev = apiObj as Record<string, unknown>
+        const meta = (ev.metadata ?? {}) as Record<string, unknown>
+        const involvedObject = (ev.involvedObject ?? {}) as Record<
+          string,
+          unknown
+        >
+        const event = {
+          name: (meta.name as string) ?? "",
+          namespace: (meta.namespace as string) ?? "",
+          type: (ev.type as string) ?? "Normal",
+          reason: (ev.reason as string) ?? "",
+          involvedObjectKind: (involvedObject.kind as string) ?? "",
+          involvedObjectName: (involvedObject.name as string) ?? "",
+          message: (ev.message as string) ?? "",
+          count: (ev.count as number) ?? 1,
+          firstTimestamp: (ev.firstTimestamp as string) ?? "",
+          lastTimestamp:
+            (ev.lastTimestamp as string) ?? (ev.eventTime as string) ?? "",
+          creationTimestamp: (meta.creationTimestamp as string) ?? "",
+        }
+        mainWindow?.webContents.send("k8s:events:data", event)
+      },
+      (err) => {
+        if (err) console.error("Events watch ended:", err)
+      },
+    )
+    activeEventsWatch = { abort: () => req.abort() }
+    return { success: true }
+  })
+
+  ipcMain.handle("k8s:events:watch:stop", () => {
+    if (activeEventsWatch) {
+      activeEventsWatch.abort()
+      activeEventsWatch = null
+    }
+    return { success: true }
+  })
+
+  ipcMain.handle(
+    "k8s:pod:log:start",
+    async (
+      _e,
+      {
+        namespace,
+        podName,
+        containerName,
+      }: { namespace: string; podName: string; containerName?: string },
+    ) => {
+      const key = `${namespace}/${podName}`
+      if (activeLogRequests.has(key)) {
+        activeLogRequests.get(key)!.abort()
+        activeLogRequests.delete(key)
+      }
+
+      const log = new Log(kc)
+      const logStream = new PassThrough()
+
+      logStream.on("data", (chunk: Buffer) => {
+        const text = chunk.toString()
+        const lines = text.split("\n")
+        for (const line of lines) {
+          if (line) {
+            mainWindow?.webContents.send("k8s:pod:log:data", line)
+          }
+        }
+      })
+
+      const req = await log.log(
+        namespace,
+        podName,
+        containerName ?? "",
+        logStream,
+        (err) => {
+          if (err) console.error("Log stream ended:", err)
+        },
+        { follow: true, tailLines: 200 },
+      )
+
+      activeLogRequests.set(key, { abort: () => req.abort() })
+      return { success: true }
+    },
+  )
+
+  ipcMain.handle(
+    "k8s:pod:log:stop",
+    (_e, { namespace, podName }: { namespace: string; podName: string }) => {
+      const key = `${namespace}/${podName}`
+      if (activeLogRequests.has(key)) {
+        activeLogRequests.get(key)!.abort()
+        activeLogRequests.delete(key)
+      }
+      return { success: true }
+    },
   )
 
   createWindow()

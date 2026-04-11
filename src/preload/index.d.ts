@@ -222,6 +222,20 @@ export interface K8sIngress {
   annotations: Record<string, string>
 }
 
+export interface K8sEvent {
+  name: string
+  namespace: string
+  type: string
+  reason: string
+  involvedObjectKind: string
+  involvedObjectName: string
+  message: string
+  count: number
+  firstTimestamp: string
+  lastTimestamp: string
+  creationTimestamp: string
+}
+
 export interface K8sSecret {
   name: string
   namespace: string
@@ -355,6 +369,20 @@ export interface K8sAPI {
 
 export interface API {
   k8s: K8sAPI
+  startPodLog: (
+    namespace: string,
+    podName: string,
+    containerName?: string,
+  ) => Promise<{ success: boolean }>
+  stopPodLog: (
+    namespace: string,
+    podName: string,
+  ) => Promise<{ success: boolean }>
+  onPodLogData: (callback: (line: string) => void) => () => void
+  listEvents: () => Promise<K8sEvent[]>
+  startEventsWatch: () => Promise<{ success: boolean }>
+  stopEventsWatch: () => Promise<{ success: boolean }>
+  onEventsData: (callback: (event: K8sEvent) => void) => () => void
 }
 
 declare global {

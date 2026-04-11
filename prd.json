@@ -585,6 +585,87 @@
         "No TypeScript compile errors after the changes"
       ],
       "dependencies": ["S28", "S31"]
+    },
+    {
+      "id": "S33",
+      "title": "Global error snackbar for IPC and runtime errors",
+      "status": "complete",
+      "description": "Add a global error-handling layer that captures errors from IPC calls (k8s API failures, kubeconfig issues, etc.) and runtime errors in the renderer, then displays them as a dismissible snackbar/toast notification at the bottom of the screen. All existing resource view components (Deployments, DaemonSets, StatefulSets, Services, Pods, ConfigMaps, Secrets, ReplicaSets, Nodes, Namespaces) must route their caught errors through this system instead of silently dropping them.",
+      "acceptance_criteria": [
+        "A `useToast` hook and `Toaster` component from shadcn/ui (sonner or the built-in toast) are installed and rendered once in the root App component",
+        "A shared `handleIpcError(err: unknown, context: string)` utility (e.g. in `src/renderer/lib/ipc-error.ts`) calls `toast.error(...)` with the error message and optional context label",
+        "Every resource view component (Deployments, DaemonSets, StatefulSets, Services, Pods, ConfigMaps, Secrets, ReplicaSets, Nodes, Namespaces) wraps its IPC calls in try/catch and calls `handleIpcError` on failure instead of console.error or silent failure",
+        "The snackbar appears at the bottom-right (or bottom-center) of the screen and is dismissible by clicking",
+        "The snackbar auto-dismisses after 5 seconds",
+        "Multiple errors queue correctly — each error shows as its own toast",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S32"],
+      "notes": "Use the shadcn/ui Sonner integration (`sonner` package + `<Toaster />` from `sonner`) for the toast. Copy `src/renderer/components/ui/sonner.tsx` as the shadcn wrapper. Add `sonner` to package.json dependencies."
+    },
+    {
+      "id": "S34",
+      "title": "Pod log tailing panel",
+      "status": "complete",
+      "description": "Add a live log-tailing panel for pods. When a user selects a pod row in PodsView and clicks a new 'Logs' button, a log panel opens (replacing or alongside the detail panel) that streams the pod's container logs in real time using the Kubernetes log-follow API. The panel shows a scrollable, auto-scrolling text area of log lines and has a Stop/Close control.",
+      "acceptance_criteria": [
+        "A 'Logs' button (e.g. ScrollText icon from lucide-react) appears in each pod row in PodsView, alongside the existing YAML and Delete buttons",
+        "Clicking the Logs button opens a `PodLogPanel` component in the right-hand detail area, replacing any previously open detail or YAML panel for that pod",
+        "The main process registers an IPC channel `k8s:pod:log:start` that accepts `{ namespace, podName, containerName? }` and begins streaming logs using `@kubernetes/client-node` `CoreV1Api.readNamespacedPodLog` with `follow: true` and `tailLines: 200`",
+        "Log lines are forwarded to the renderer via `webContents.send` on a channel `k8s:pod:log:data` as plain strings",
+        "A second IPC channel `k8s:pod:log:stop` accepts `{ namespace, podName }` and aborts the active stream for that pod",
+        "The `PodLogPanel` component subscribes to `k8s:pod:log:data` events, appends lines to state, and auto-scrolls to the bottom unless the user has manually scrolled up",
+        "The panel has a 'Stop' button that calls `k8s:pod:log:stop` and a 'Close' button that also stops the stream and hides the panel",
+        "Log text is rendered in a monospace font in a dark background area; each line is displayed verbatim",
+        "If the pod has multiple containers, a dropdown lets the user select the container; changing container restarts the stream",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S33"],
+      "ipc_handlers": [
+        "k8s:pod:log:start — starts log stream for a pod/container; sends lines via webContents.send('k8s:pod:log:data', line)",
+        "k8s:pod:log:stop — aborts the active log stream for the given pod"
+      ],
+      "notes": "Use the `@kubernetes/client-node` `Log` class (`import { Log } from '@kubernetes/client-node'`) with a PassThrough or Writable stream to receive lines. Store active streams in a Map in the main process keyed by `${namespace}/${podName}` so they can be aborted. Expose `window.api.startPodLog`, `window.api.stopPodLog`, and `window.api.onPodLogData` through the preload contextBridge."
+    },
+    {
+      "id": "S35",
+      "title": "Add close button to Toaster notifications",
+      "status": "complete",
+      "description": "The Toaster component (`src/renderer/components/ui/sonner.tsx`) currently renders toast notifications without a visible close (X) button. Update the Toaster configuration so each toast shows a close button that the user can click to immediately dismiss it, in addition to the existing auto-dismiss behaviour.",
+      "acceptance_criteria": [
+        "The `<Toaster>` in `src/renderer/components/ui/sonner.tsx` is rendered with the `closeButton` prop set to `true`",
+        "A visible close (X) button appears on each toast notification",
+        "Clicking the close button immediately dismisses the toast",
+        "The auto-dismiss timer and other existing toast behaviour remain unchanged",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S33"],
+      "notes": "Sonner's `<Toaster>` accepts a `closeButton` boolean prop. The only change needed is adding `closeButton` to the `<Toaster ... />` element in `src/renderer/components/ui/sonner.tsx`."
+    },
+    {
+      "id": "S36",
+      "title": "Kubernetes Events resource view with live tail",
+      "status": "complete",
+      "description": "Add Events as a new resource type. The left-hand tree view gains an 'Events' entry under a new or existing section. Selecting it shows an EventsView table listing recent events cluster-wide (or filtered by namespace). Each event row shows Type, Reason, Object, Message, Count, and Last Seen. A 'Tail' toggle button at the top of the view starts live-watching for new events and appends them to the list in real time, similar to the pod log tail feature.",
+      "acceptance_criteria": [
+        "The tree view sidebar gains an 'Events' item (e.g. under a 'Cluster' or 'Workloads' section); clicking it sets the active view to 'events'",
+        "An `EventsView` component is created at `src/renderer/src/components/EventsView.tsx` that fetches and displays events in a table",
+        "The table columns are: Type (Normal/Warning badge), Reason, Involved Object (kind/name), Namespace, Message (truncated), Count, Last Seen (age-formatted timestamp)",
+        "Warning-type events are visually distinguished (e.g. amber/yellow row tint or badge)",
+        "The main process registers `k8s:events:list` IPC handler that calls `CoreV1Api.listEventForAllNamespaces` (or `listNamespacedEvent` when a namespace is selected) and returns serialized event objects",
+        "A 'Tail' toggle button at the top of EventsView starts/stops live watching via a new IPC channel `k8s:events:watch:start` / `k8s:events:watch:stop`; new events are pushed to the renderer via `webContents.send('k8s:events:data', event)`",
+        "While tailing, new events are prepended or appended to the list (newest first preferred) and the list is capped at 500 entries to prevent memory growth",
+        "Stopping the tail or navigating away calls `k8s:events:watch:stop` to clean up the watch stream",
+        "Errors from IPC calls are routed through `handleIpcError` (from S33)",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S33", "S35"],
+      "ipc_handlers": [
+        "k8s:events:list — lists events (all namespaces or filtered); returns plain serialized array",
+        "k8s:events:watch:start — begins a k8s watch on events; pushes new events via webContents.send('k8s:events:data', event)",
+        "k8s:events:watch:stop — aborts the active events watch stream"
+      ],
+      "notes": "Use `CoreV1Api.listEventForAllNamespaces` with `watch: true` via the `@kubernetes/client-node` `Watch` helper class for the tail feature. Expose `window.api.listEvents`, `window.api.startEventsWatch`, `window.api.stopEventsWatch`, and `window.api.onEventsData` through the preload contextBridge. Age-format timestamps using a simple helper (e.g. '2m ago', '1h ago')."
     }
   ]
 }
