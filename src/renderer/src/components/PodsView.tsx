@@ -15,7 +15,6 @@ import { handleIpcError } from "../../lib/ipc-error"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { MetaEntry } from "./MetaEntry"
-import { PodLogPanel } from "./PodLogPanel"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sPodContainer {
@@ -47,9 +46,11 @@ interface K8sPod {
 function DetailPanel({
   pod,
   onClose,
+  onLogs,
 }: {
   pod: K8sPod
   onClose: () => void
+  onLogs: () => void
 }): JSX.Element {
   return (
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
@@ -58,13 +59,18 @@ function DetailPanel({
           <h2 className="font-semibold text-base mb-1">{pod.name}</h2>
           <span className="text-xs text-muted-foreground">{pod.namespace}</span>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          aria-label="Close panel"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" title="Logs" onClick={onLogs}>
+            <ScrollText className="h-4 w-4" />
+          </Button>
+          <button
+            onClick={onClose}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            aria-label="Close panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-1">
@@ -145,10 +151,10 @@ export function PodsView(): JSX.Element {
   const [yamlOpen, setYamlOpen] = useState(false)
   const [yamlInitial, setYamlInitial] = useState("")
   const [yamlTitle, setYamlTitle] = useState("")
-  const [logPod, setLogPod] = useState<K8sPod | null>(null)
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sPod | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
 
   function fetchPods(): void {
     setLoading(true)
@@ -169,20 +175,6 @@ export function PodsView(): JSX.Element {
   useEffect(() => {
     fetchPods()
   }, [])
-
-  function openNewYaml(): void {
-    const template = yamlDump({
-      apiVersion: "v1",
-      kind: "Pod",
-      metadata: { name: "my-pod", namespace: "default" },
-      spec: {
-        containers: [{ name: "my-container", image: "nginx:latest" }],
-      },
-    })
-    setYamlInitial(template)
-    setYamlTitle("New Pod (YAML)")
-    setYamlOpen(true)
-  }
 
   function openEditYaml(pod: K8sPod): void {
     const obj = {
@@ -209,12 +201,8 @@ export function PodsView(): JSX.Element {
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4">
           <h1 className="text-lg font-semibold">Pods</h1>
-          <Button size="sm" variant="outline" onClick={openNewYaml}>
-            <FileCode className="h-4 w-4" />
-            New Resource (YAML)
-          </Button>
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -266,18 +254,6 @@ export function PodsView(): JSX.Element {
                       <Button
                         variant="ghost"
                         size="icon"
-                        title="Logs"
-                        onClick={() => {
-                          console.log(`pod: ${p.containers[0].name}`)
-                          setLogPod(p)
-                          setSelectedItem(null)
-                        }}
-                      >
-                        <ScrollText className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
                         title="Edit YAML"
                         onClick={() => openEditYaml(p)}
                       >
@@ -292,23 +268,19 @@ export function PodsView(): JSX.Element {
         )}
       </div>
 
-      {logPod ? (
-        <div className="w-[480px] shrink-0 h-full overflow-hidden">
-          <PodLogPanel
-            namespace={logPod.namespace}
-            podName={logPod.name}
-            containers={logPod.containers}
-            onClose={() => setLogPod(null)}
-          />
-        </div>
-      ) : (
-        selectedItem &&
-        selectedItem.containers !== undefined && (
-          <DetailPanel
-            pod={selectedItem}
-            onClose={() => setSelectedItem(null)}
-          />
-        )
+      {selectedItem && selectedItem.containers !== undefined && (
+        <DetailPanel
+          pod={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onLogs={() =>
+            openDrawerTab({
+              type: "pod-log",
+              namespace: selectedItem.namespace,
+              podName: selectedItem.name,
+              containers: selectedItem.containers,
+            })
+          }
+        />
       )}
 
       <YamlEditorPanel

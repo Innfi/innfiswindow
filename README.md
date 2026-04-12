@@ -127,3 +127,7 @@ npm run preview    # preview production build
 - Node.js 18+
 - A valid `~/.kube/config` pointing to a reachable cluster
 - For EKS/AKS: the relevant credential helper (`aws`, `kubelogin`) must be on `PATH`
+
+## License
+
+[MIT](LICENSE)

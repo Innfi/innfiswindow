@@ -5,6 +5,7 @@ import { Toaster } from "../components/ui/sonner"
 import { handleIpcError } from "../lib/ipc-error"
 import { applyTheme } from "../lib/themes"
 import { useAppStore } from "../store/app.store"
+import { BottomDrawer } from "./components/BottomDrawer"
 import { ConfigMapsView } from "./components/ConfigMapsView"
 import { DaemonSetsView } from "./components/DaemonSetsView"
 import { DeploymentsView } from "./components/DeploymentsView"
@@ -80,27 +81,33 @@ function App(): JSX.Element {
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Left sidebar */}
-          <div className="w-60 shrink-0 border-r h-full overflow-y-auto">
-            <TreeView />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {/* Tree + content row */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Left sidebar */}
+            <div className="w-60 shrink-0 border-r h-full overflow-y-auto">
+              <TreeView />
+            </div>
+
+            {/* Main content */}
+            <div className="flex-1 overflow-hidden">
+              {selectedResourceType === "Namespaces" && <NamespacesView />}
+              {selectedResourceType === "Nodes" && <NodesView />}
+              {selectedResourceType === "Deployments" && <DeploymentsView />}
+              {selectedResourceType === "ReplicaSets" && <ReplicaSetsView />}
+              {selectedResourceType === "StatefulSets" && <StatefulSetsView />}
+              {selectedResourceType === "DaemonSets" && <DaemonSetsView />}
+              {selectedResourceType === "ConfigMaps" && <ConfigMapsView />}
+              {selectedResourceType === "Secrets" && <SecretsView />}
+              {selectedResourceType === "Pods" && <PodsView />}
+              {selectedResourceType === "Services" && <ServicesView />}
+              {selectedResourceType === "Ingresses" && <IngressesView />}
+              {selectedResourceType === "Events" && <EventsView />}
+            </div>
           </div>
 
-          {/* Main content */}
-          <div className="flex-1 overflow-hidden">
-            {selectedResourceType === "Namespaces" && <NamespacesView />}
-            {selectedResourceType === "Nodes" && <NodesView />}
-            {selectedResourceType === "Deployments" && <DeploymentsView />}
-            {selectedResourceType === "ReplicaSets" && <ReplicaSetsView />}
-            {selectedResourceType === "StatefulSets" && <StatefulSetsView />}
-            {selectedResourceType === "DaemonSets" && <DaemonSetsView />}
-            {selectedResourceType === "ConfigMaps" && <ConfigMapsView />}
-            {selectedResourceType === "Secrets" && <SecretsView />}
-            {selectedResourceType === "Pods" && <PodsView />}
-            {selectedResourceType === "Services" && <ServicesView />}
-            {selectedResourceType === "Ingresses" && <IngressesView />}
-            {selectedResourceType === "Events" && <EventsView />}
-          </div>
+          {/* Unified tabbed bottom drawer */}
+          <BottomDrawer />
         </div>
       </div>
       <Toaster position="bottom-right" duration={5000} />

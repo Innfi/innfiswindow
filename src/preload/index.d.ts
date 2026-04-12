@@ -373,12 +373,15 @@ export interface API {
     namespace: string,
     podName: string,
     containerName?: string,
+    tabKey?: string,
   ) => Promise<{ success: boolean }>
   stopPodLog: (
     namespace: string,
     podName: string,
   ) => Promise<{ success: boolean }>
-  onPodLogData: (callback: (line: string) => void) => () => void
+  onPodLogData: (
+    callback: (data: { tabKey: string; line: string }) => void,
+  ) => () => void
   listEvents: () => Promise<K8sEvent[]>
   startEventsWatch: () => Promise<{ success: boolean }>
   stopEventsWatch: () => Promise<{ success: boolean }>

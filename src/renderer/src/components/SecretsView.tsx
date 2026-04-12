@@ -181,19 +181,6 @@ export function SecretsView(): JSX.Element {
     fetchSecrets()
   }, [])
 
-  function openNewYaml(): void {
-    const template = yamlDump({
-      apiVersion: "v1",
-      kind: "Secret",
-      metadata: { name: "my-secret", namespace: "default" },
-      type: "Opaque",
-      data: { key: "dmFsdWU=" },
-    })
-    setYamlInitial(template)
-    setYamlTitle("New Secret (YAML)")
-    setYamlOpen(true)
-  }
-
   function openEditYaml(secret: K8sSecret): void {
     const obj = {
       apiVersion: "v1",
@@ -218,10 +205,6 @@ export function SecretsView(): JSX.Element {
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Secrets</h1>
-          <Button size="sm" variant="outline" onClick={openNewYaml}>
-            <FileCode className="h-4 w-4" />
-            New Resource (YAML)
-          </Button>
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}

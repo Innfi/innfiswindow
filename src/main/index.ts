@@ -326,7 +326,13 @@ app.whenReady().then(() => {
         namespace,
         podName,
         containerName,
-      }: { namespace: string; podName: string; containerName?: string },
+        tabKey,
+      }: {
+        namespace: string
+        podName: string
+        containerName?: string
+        tabKey?: string
+      },
     ) => {
       const key = `${namespace}/${podName}`
       if (activeLogRequests.has(key)) {
@@ -336,13 +342,17 @@ app.whenReady().then(() => {
 
       const log = new Log(kc)
       const logStream = new PassThrough()
+      const emitKey = tabKey ?? key
 
       logStream.on("data", (chunk: Buffer) => {
         const text = chunk.toString()
         const lines = text.split("\n")
         for (const line of lines) {
           if (line) {
-            mainWindow?.webContents.send("k8s:pod:log:data", line)
+            mainWindow?.webContents.send("k8s:pod:log:data", {
+              tabKey: emitKey,
+              line,
+            })
           }
         }
       })

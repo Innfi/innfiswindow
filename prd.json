@@ -666,6 +666,110 @@
         "k8s:events:watch:stop — aborts the active events watch stream"
       ],
       "notes": "Use `CoreV1Api.listEventForAllNamespaces` with `watch: true` via the `@kubernetes/client-node` `Watch` helper class for the tail feature. Expose `window.api.listEvents`, `window.api.startEventsWatch`, `window.api.stopEventsWatch`, and `window.api.onEventsData` through the preload contextBridge. Age-format timestamps using a simple helper (e.g. '2m ago', '1h ago')."
+    },
+    {
+      "id": "S37",
+      "title": "Bottom drawer panel with New resource button and YAML editor",
+      "status": "complete",
+      "description": "Add a persistent bottom drawer panel to the main layout. The drawer has a toolbar at its top edge containing a 'New' button. Clicking 'New' opens the existing YAML editor (YamlEditorPanel or equivalent) inside the drawer, pre-populated with an empty resource template, allowing the user to author and apply a new Kubernetes resource from scratch via `k8s:resource:apply`.",
+      "acceptance_criteria": [
+        "A bottom drawer panel is rendered in the main App layout, below the tree-view / resource-list split area; it is always visible as a slim toolbar (e.g. 32px tall) and can be expanded",
+        "The drawer toolbar contains a 'New' button (e.g. Plus icon from lucide-react) on its left side and a collapse/expand toggle on its right side",
+        "Clicking 'New' expands the drawer (if collapsed) and renders the YAML editor inside it, pre-filled with a minimal Kubernetes resource skeleton (apiVersion, kind, metadata.name, metadata.namespace, spec: {})",
+        "The YAML editor inside the drawer reuses the existing `YamlEditorPanel` component (or the same Monaco editor integration) — no duplicate editor implementation",
+        "The drawer has a configurable height (default ~40% of window height) and the user can resize it by dragging the top edge",
+        "An 'Apply' button (or the editor's existing Apply action) calls `window.api.applyResource(yaml)` and shows success/error via the existing toast system (S33)",
+        "A 'Close' or 'Clear' button resets the editor content and collapses the drawer",
+        "The drawer state (open/closed, height) is local component state — no Zustand changes required",
+        "The bottom drawer does not interfere with the existing right-side detail/YAML panel used for editing existing resources",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S33", "S35"],
+      "notes": "Implement the drawer as a new component `src/renderer/src/components/BottomDrawer.tsx`. Use a resize handle div with onMouseDown to implement drag-to-resize (track mouse movement in a document-level mousemove listener, clean up on mouseup). The YAML skeleton template should be a simple constant string. Reuse the Monaco editor already present in the codebase — do not add a second editor library."
+    },
+    {
+      "id": "S38",
+      "title": "Remove New resource button from PodsView",
+      "status": "complete",
+      "description": "The PodsView component currently has a 'New' or 'Create' button for creating a new pod resource. Pods are not typically created directly — they are managed by controllers (Deployments, StatefulSets, etc.). Remove this button from the PodsView toolbar.",
+      "acceptance_criteria": [
+        "The 'New' / 'Create' button is removed from `src/renderer/src/components/PodsView.tsx`",
+        "Any state variables, handlers, or dialog components used exclusively by that button (e.g. create dialog open state, createPod handler) are also removed",
+        "All other pod functionality (Logs button, YAML editor, Delete button, table listing) remains unaffected",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S32"]
+    },
+    {
+      "id": "S39",
+      "title": "Remove New resource button from all resource view components",
+      "status": "complete",
+      "description": "Audit every resource view component in `src/renderer/src/components/` and remove any 'New' / 'Create' button that opens a create-resource dialog. The bottom drawer (S37) is the single entry point for creating new resources going forward. This story supersedes S38 (which only targeted PodsView) and covers all views.",
+      "acceptance_criteria": [
+        "Every file matching `src/renderer/src/components/*View.tsx` is checked for a 'New' or 'Create' toolbar button",
+        "Any such button — and all state variables, dialog open/close handlers, and create-dialog JSX used exclusively by it — is removed from each affected component",
+        "The following views are confirmed clean after the change: DeploymentsView, DaemonSetsView, StatefulSetsView, ServicesView, IngressesView, PodsView, ConfigMapsView, SecretsView, ReplicaSetsView, NodesView, NamespacesView",
+        "All other functionality in each view (YAML editor, Delete button, detail panel, table listing) remains unaffected",
+        "No unused imports are left behind from the removed code",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S38"],
+      "notes": "S38 already removed the New button from PodsView; verify it is gone and apply the same removal to any remaining views that still have it. Do not remove create-related IPC handlers from the main process — only the UI buttons and dialogs are in scope."
+    },
+    {
+      "id": "S40",
+      "title": "Move pod Logs button from list view to detail panel",
+      "status": "complete",
+      "description": "The 'Logs' button currently appears in every pod row in the PodsView table (added by S34). Move it into the pod detail panel so it is only visible when a pod row is selected and the detail panel is open. The log-tailing functionality itself (PodLogPanel, IPC handlers) remains unchanged.",
+      "acceptance_criteria": [
+        "The 'Logs' (ScrollText) button is removed from every pod row in `src/renderer/src/components/PodsView.tsx`",
+        "A 'Logs' button (ScrollText icon, same visual style as before) is added to the pod detail panel header or action bar, visible when a pod is selected",
+        "Clicking the Logs button in the detail panel opens `PodLogPanel` exactly as it did before — replacing the detail content with the live log stream",
+        "The 'Close' / 'Stop' controls in PodLogPanel return the user to the pod detail view (not a blank panel)",
+        "When no pod is selected, no Logs button is visible anywhere in PodsView",
+        "All other pod row actions (YAML editor, Delete button) remain in the row as-is",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S34", "S39"]
+    },
+    {
+      "id": "S41",
+      "title": "Move pod log view to bottom drawer",
+      "status": "complete",
+      "description": "The PodLogPanel currently renders in the right-hand detail area of PodsView. Move it to a persistent bottom drawer (like the existing BottomDrawer component) so the log stream is visible while the user continues to interact with the pod list and detail panel above. The drawer slides up from the bottom of the app window and can be resized or closed.",
+      "acceptance_criteria": [
+        "PodLogPanel no longer renders inside the PodsView right-hand detail area; the detail panel remains visible when a pod is selected",
+        "A bottom drawer component renders at the app layout level (not inside PodsView) so it overlays/pushes all views",
+        "Clicking the Logs button on a selected pod opens the bottom drawer and starts the log stream for that pod",
+        "The bottom drawer has a visible header showing the pod name and container selector (if multi-container)",
+        "The drawer has a Close button that stops the log stream and collapses the drawer",
+        "The drawer has a resize handle so the user can drag it to change its height",
+        "Log content scrolls and auto-scrolls to bottom unless user has manually scrolled up, same behaviour as before",
+        "Only one log stream is active at a time; opening logs for a different pod stops the previous stream and starts the new one",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S40"],
+      "notes": "Reuse or extend the existing BottomDrawer component at `src/renderer/src/components/BottomDrawer.tsx`. Lift bottom-drawer state (open, podName, namespace, container) into the Zustand app store so PodsView can trigger it without prop drilling. The drawer should be rendered in App.tsx at the root layout level."
+    },
+    {
+      "id": "S42",
+      "title": "Refactor bottom drawer to tabbed multi-panel",
+      "status": "complete",
+      "description": "Merge PodLogDrawer and BottomDrawer into a single unified tabbed bottom drawer. Any content that opens in the bottom drawer — pod logs, new resource forms, or future panel types — appears as a tab. Multiple tabs can be open simultaneously. The user can switch between tabs, close individual tabs, and the drawer collapses when all tabs are closed.",
+      "acceptance_criteria": [
+        "A single `BottomDrawer` component at app root level replaces all existing bottom-drawer and pod-log-drawer components",
+        "Each panel (pod log, new resource form, etc.) opens as a new tab inside the drawer; tabs show a label (e.g. pod name for logs, resource kind for new-resource forms)",
+        "Clicking an already-open tab's trigger (e.g. Logs button for the same pod) switches focus to that tab rather than opening a duplicate",
+        "Each tab has an individual close (×) button; closing the last tab collapses the drawer",
+        "The drawer resize handle works as before — dragging changes height for all tabs",
+        "Pod log tabs: header shows pod name + container selector; log stream starts when tab becomes active and stops when tab is closed",
+        "Active log streams for non-focused tabs continue running in the background so no data is lost",
+        "Zustand store holds `drawerTabs: DrawerTab[]` and `activeTabId: string | null`; opening a panel dispatches an `openDrawerTab` action",
+        "Old `BottomDrawer.tsx` and any separate pod-log-drawer file are removed; no dead code remains",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S41"],
+      "notes": "Define a discriminated union `DrawerTab = { id, type: 'pod-log', namespace, podName, container } | { id, type: 'new-resource', resourceKind }` in the store. The tabbed drawer renders the correct panel component based on `tab.type`. Use shadcn/ui Tabs (or a custom tab bar if shadcn Tabs don't fit the bottom-drawer layout) for the tab strip."
     }
   ]
 }

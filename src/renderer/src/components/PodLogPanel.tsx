@@ -1,4 +1,4 @@
-import { Square, X } from "lucide-react"
+import { Square } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { Button } from "../../components/ui/button"
@@ -10,17 +10,17 @@ interface K8sPodContainer {
 }
 
 interface PodLogPanelProps {
+  tabKey: string
   namespace: string
   podName: string
   containers: K8sPodContainer[]
-  onClose: () => void
 }
 
 export function PodLogPanel({
+  tabKey,
   namespace,
   podName,
   containers,
-  onClose,
 }: PodLogPanelProps): JSX.Element {
   const [lines, setLines] = useState<string[]>([])
   const [selectedContainer, setSelectedContainer] = useState(
@@ -34,10 +34,12 @@ export function PodLogPanel({
     setLines([])
     setStreaming(true)
     userScrolledRef.current = false
-    window.api.startPodLog(namespace, podName, containerName).catch((err) => {
-      console.error("startPodLog error:", err)
-      setStreaming(false)
-    })
+    window.api
+      .startPodLog(namespace, podName, containerName, tabKey)
+      .catch((err) => {
+        console.error("startPodLog error:", err)
+        setStreaming(false)
+      })
   }
 
   function stopStream(): void {
@@ -45,13 +47,15 @@ export function PodLogPanel({
     setStreaming(false)
   }
 
-  // Subscribe to log data events
+  // Subscribe to log data events — filter by tabKey
   useEffect(() => {
-    const unsubscribe = window.api.onPodLogData((line) => {
-      setLines((prev) => [...prev, line])
+    const unsubscribe = window.api.onPodLogData((data) => {
+      if (data.tabKey === tabKey) {
+        setLines((prev) => [...prev, data.line])
+      }
     })
     return unsubscribe
-  }, [])
+  }, [tabKey])
 
   // Reset selected container when pod changes
   useEffect(() => {
@@ -91,18 +95,13 @@ export function PodLogPanel({
     stopStream()
   }
 
-  function handleClose(): void {
-    stopStream()
-    onClose()
-  }
-
   return (
-    <div className="flex flex-col w-full h-full bg-zinc-950 text-zinc-100 border-l border-border overflow-hidden">
+    <div className="flex flex-col w-full h-full bg-zinc-950 text-zinc-100 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800 shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-zinc-200">
-            Logs: {namespace}/{podName}
+            {namespace}/{podName}
           </span>
           {containers.length > 1 && (
             <select
@@ -133,15 +132,6 @@ export function PodLogPanel({
               <Square className="h-3.5 w-3.5" />
             </Button>
           )}
-          <Button
-            size="icon"
-            variant="ghost"
-            title="Close"
-            onClick={handleClose}
-            className="h-6 w-6 text-zinc-400 hover:text-zinc-100"
-          >
-            <X className="h-3.5 w-3.5" />
-          </Button>
         </div>
       </div>
 

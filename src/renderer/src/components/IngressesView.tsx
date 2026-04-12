@@ -1,5 +1,5 @@
 import { dump as yamlDump } from "js-yaml"
-import { FileCode, Plus, Trash2, X } from "lucide-react"
+import { FileCode, Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Button } from "../../components/ui/button"
@@ -11,8 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog"
-import { Input } from "../../components/ui/input"
-import { Label } from "../../components/ui/label"
 import {
   Table,
   TableBody,
@@ -56,14 +54,6 @@ interface K8sIngress {
   annotations: Record<string, string>
 }
 
-interface FlatRule {
-  host: string
-  path: string
-  pathType: string
-  serviceName: string
-  servicePort: string
-}
-
 function formatAge(timestamp: string): string {
   if (!timestamp) return ""
   const diff = Date.now() - new Date(timestamp).getTime()
@@ -73,115 +63,6 @@ function formatAge(timestamp: string): string {
   if (hours > 0) return `${hours}h`
   const mins = Math.floor(diff / 60000)
   return `${mins}m`
-}
-
-const SELECT_CLASS =
-  "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-
-function RulesEditor({
-  rules,
-  onChange,
-}: {
-  rules: FlatRule[]
-  onChange: (rules: FlatRule[]) => void
-}): JSX.Element {
-  function addRule(): void {
-    onChange([
-      ...rules,
-      {
-        host: "",
-        path: "/",
-        pathType: "Prefix",
-        serviceName: "",
-        servicePort: "80",
-      },
-    ])
-  }
-
-  function removeRule(i: number): void {
-    onChange(rules.filter((_, idx) => idx !== i))
-  }
-
-  function updateRule(i: number, field: keyof FlatRule, value: string): void {
-    onChange(rules.map((r, idx) => (idx === i ? { ...r, [field]: value } : r)))
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label>Rules</Label>
-        <Button type="button" variant="ghost" size="sm" onClick={addRule}>
-          <Plus className="h-3 w-3 mr-1" />
-          Add Rule
-        </Button>
-      </div>
-      {rules.map((r, i) => (
-        <div key={i} className="rounded border p-2 space-y-2">
-          <div className="flex gap-2">
-            <div className="flex-1 space-y-1">
-              <Label className="text-xs">Host</Label>
-              <Input
-                value={r.host}
-                onChange={(e) => updateRule(i, "host", e.target.value)}
-                placeholder="example.com"
-                className="h-7 text-xs"
-              />
-            </div>
-            <div className="w-32 space-y-1">
-              <Label className="text-xs">Path Type</Label>
-              <select
-                value={r.pathType}
-                onChange={(e) => updateRule(i, "pathType", e.target.value)}
-                className={cn(SELECT_CLASS, "h-7 text-xs")}
-              >
-                <option>Prefix</option>
-                <option>Exact</option>
-                <option>ImplementationSpecific</option>
-              </select>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 mt-5"
-              onClick={() => removeRule(i)}
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            <div className="w-24 space-y-1">
-              <Label className="text-xs">Path</Label>
-              <Input
-                value={r.path}
-                onChange={(e) => updateRule(i, "path", e.target.value)}
-                placeholder="/"
-                className="h-7 text-xs"
-              />
-            </div>
-            <div className="flex-1 space-y-1">
-              <Label className="text-xs">Service Name</Label>
-              <Input
-                value={r.serviceName}
-                onChange={(e) => updateRule(i, "serviceName", e.target.value)}
-                placeholder="my-service"
-                className="h-7 text-xs"
-              />
-            </div>
-            <div className="w-20 space-y-1">
-              <Label className="text-xs">Port</Label>
-              <Input
-                value={r.servicePort}
-                onChange={(e) => updateRule(i, "servicePort", e.target.value)}
-                placeholder="80"
-                className="h-7 text-xs"
-              />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
 }
 
 function DetailPanel({
@@ -318,157 +199,6 @@ function DetailPanel({
   )
 }
 
-interface CreateDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  namespaces: string[]
-  onCreated: () => void
-}
-
-function CreateDialog({
-  open,
-  onOpenChange,
-  namespaces,
-  onCreated,
-}: CreateDialogProps): JSX.Element {
-  const [name, setName] = useState("")
-  const [namespace, setNamespace] = useState(namespaces[0] ?? "default")
-  const [ingressClassName, setIngressClassName] = useState("")
-  const [rules, setRules] = useState<FlatRule[]>([
-    {
-      host: "",
-      path: "/",
-      pathType: "Prefix",
-      serviceName: "",
-      servicePort: "80",
-    },
-  ])
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (open) {
-      setName("")
-      setNamespace(namespaces[0] ?? "default")
-      setIngressClassName("")
-      setRules([
-        {
-          host: "",
-          path: "/",
-          pathType: "Prefix",
-          serviceName: "",
-          servicePort: "80",
-        },
-      ])
-      setError(null)
-    }
-  }, [open, namespaces])
-
-  async function handleSubmit(): Promise<void> {
-    if (!name.trim()) {
-      setError("Name is required.")
-      return
-    }
-    if (rules.length === 0) {
-      setError("At least one rule is required.")
-      return
-    }
-    const invalidRule = rules.find(
-      (r) => !r.serviceName.trim() || !r.servicePort.trim(),
-    )
-    if (invalidRule) {
-      setError("All rules must have a service name and port.")
-      return
-    }
-
-    setSubmitting(true)
-    setError(null)
-    try {
-      await window.api.k8s.createIngress(
-        namespace,
-        name.trim(),
-        ingressClassName.trim(),
-        rules.map((r) => ({
-          host: r.host.trim(),
-          path: r.path.trim() || "/",
-          pathType: r.pathType,
-          serviceName: r.serviceName.trim(),
-          servicePort: parseInt(r.servicePort, 10) || r.servicePort,
-        })),
-        [],
-      )
-      onCreated()
-      onOpenChange(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
-        <DialogHeader>
-          <DialogTitle>New Ingress</DialogTitle>
-          <DialogDescription>
-            Create a new Kubernetes Ingress.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
-          <div className="space-y-1">
-            <Label htmlFor="create-ing-name">Name</Label>
-            <Input
-              id="create-ing-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="my-ingress"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="create-ing-namespace">Namespace</Label>
-            <select
-              id="create-ing-namespace"
-              value={namespace}
-              onChange={(e) => setNamespace(e.target.value)}
-              className={SELECT_CLASS}
-            >
-              {namespaces.map((ns) => (
-                <option key={ns} value={ns}>
-                  {ns}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="create-ing-class">Ingress Class Name</Label>
-            <Input
-              id="create-ing-class"
-              value={ingressClassName}
-              onChange={(e) => setIngressClassName(e.target.value)}
-              placeholder="nginx"
-            />
-          </div>
-          <RulesEditor rules={rules} onChange={setRules} />
-          {error && <p className="text-sm text-red-500">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Creating…" : "Create"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 interface DeleteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -543,9 +273,7 @@ export function IngressesView(): JSX.Element {
   const [ingresses, setIngresses] = useState<K8sIngress[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [namespaces, setNamespaces] = useState<string[]>([])
 
-  const [createOpen, setCreateOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<K8sIngress | null>(null)
   const [yamlOpen, setYamlOpen] = useState(false)
   const [yamlInitial, setYamlInitial] = useState("")
@@ -553,35 +281,6 @@ export function IngressesView(): JSX.Element {
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sIngress | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-
-  function openNewYaml(): void {
-    const template = yamlDump({
-      apiVersion: "networking.k8s.io/v1",
-      kind: "Ingress",
-      metadata: { name: "my-ingress", namespace: "default" },
-      spec: {
-        rules: [
-          {
-            host: "example.com",
-            http: {
-              paths: [
-                {
-                  path: "/",
-                  pathType: "Prefix",
-                  backend: {
-                    service: { name: "my-service", port: { number: 80 } },
-                  },
-                },
-              ],
-            },
-          },
-        ],
-      },
-    })
-    setYamlInitial(template)
-    setYamlTitle("New Ingress (YAML)")
-    setYamlOpen(true)
-  }
 
   function openEditYaml(ing: K8sIngress): void {
     const obj = {
@@ -651,10 +350,6 @@ export function IngressesView(): JSX.Element {
 
   useEffect(() => {
     fetchIngresses()
-    window.api.k8s
-      .listNamespaces()
-      .then((data) => setNamespaces(data.map((ns) => ns.name)))
-      .catch(() => setNamespaces(["default"]))
   }, [])
 
   return (
@@ -662,16 +357,6 @@ export function IngressesView(): JSX.Element {
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Ingresses</h1>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={openNewYaml}>
-              <FileCode className="h-4 w-4" />
-              New Resource (YAML)
-            </Button>
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4" />
-              New Ingress
-            </Button>
-          </div>
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -761,16 +446,6 @@ export function IngressesView(): JSX.Element {
           onClose={() => setSelectedItem(null)}
         />
       )}
-
-      <CreateDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        namespaces={namespaces.length > 0 ? namespaces : ["default"]}
-        onCreated={() => {
-          fetchIngresses()
-          setSelectedItem(null)
-        }}
-      />
 
       <DeleteDialog
         open={deleteTarget !== null}

@@ -1,5 +1,5 @@
 import { dump as yamlDump } from "js-yaml"
-import { FileCode, Plus, Trash2, X } from "lucide-react"
+import { FileCode, Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Button } from "../../components/ui/button"
@@ -11,8 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog"
-import { Input } from "../../components/ui/input"
-import { Label } from "../../components/ui/label"
 import {
   Table,
   TableBody,
@@ -45,17 +43,6 @@ interface K8sService {
   selector: Record<string, string>
   labels: Record<string, string>
   annotations: Record<string, string>
-}
-
-interface PortEntry {
-  protocol: string
-  port: string
-  targetPort: string
-}
-
-interface SelectorEntry {
-  key: string
-  value: string
 }
 
 function formatPorts(ports: K8sServicePort[]): string {
@@ -197,299 +184,6 @@ function DetailPanel({
   )
 }
 
-function PortsEditor({
-  ports,
-  onChange,
-}: {
-  ports: PortEntry[]
-  onChange: (ports: PortEntry[]) => void
-}): JSX.Element {
-  function updatePort(
-    idx: number,
-    field: keyof PortEntry,
-    value: string,
-  ): void {
-    const updated = ports.map((p, i) =>
-      i === idx ? { ...p, [field]: value } : p,
-    )
-    onChange(updated)
-  }
-
-  function addPort(): void {
-    onChange([...ports, { protocol: "TCP", port: "", targetPort: "" }])
-  }
-
-  function removePort(idx: number): void {
-    onChange(ports.filter((_, i) => i !== idx))
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label>Ports</Label>
-        <Button type="button" variant="outline" size="sm" onClick={addPort}>
-          <Plus className="h-3 w-3 mr-1" />
-          Add Port
-        </Button>
-      </div>
-      {ports.map((p, i) => (
-        <div key={i} className="flex gap-2 items-center">
-          <select
-            value={p.protocol}
-            onChange={(e) => updatePort(i, "protocol", e.target.value)}
-            className="flex h-8 w-20 rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option>TCP</option>
-            <option>UDP</option>
-            <option>SCTP</option>
-          </select>
-          <Input
-            className="h-8 w-20"
-            placeholder="Port"
-            value={p.port}
-            onChange={(e) => updatePort(i, "port", e.target.value)}
-          />
-          <Input
-            className="h-8 w-24"
-            placeholder="TargetPort"
-            value={p.targetPort}
-            onChange={(e) => updatePort(i, "targetPort", e.target.value)}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0"
-            onClick={() => removePort(i)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      ))}
-      {ports.length === 0 && (
-        <p className="text-xs text-muted-foreground">No ports configured.</p>
-      )}
-    </div>
-  )
-}
-
-function SelectorEditor({
-  entries,
-  onChange,
-}: {
-  entries: SelectorEntry[]
-  onChange: (entries: SelectorEntry[]) => void
-}): JSX.Element {
-  function updateEntry(
-    idx: number,
-    field: keyof SelectorEntry,
-    value: string,
-  ): void {
-    const updated = entries.map((e, i) =>
-      i === idx ? { ...e, [field]: value } : e,
-    )
-    onChange(updated)
-  }
-
-  function addEntry(): void {
-    onChange([...entries, { key: "", value: "" }])
-  }
-
-  function removeEntry(idx: number): void {
-    onChange(entries.filter((_, i) => i !== idx))
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label>Selector</Label>
-        <Button type="button" variant="outline" size="sm" onClick={addEntry}>
-          <Plus className="h-3 w-3 mr-1" />
-          Add
-        </Button>
-      </div>
-      {entries.map((e, i) => (
-        <div key={i} className="flex gap-2 items-center">
-          <Input
-            className="h-8"
-            placeholder="key"
-            value={e.key}
-            onChange={(ev) => updateEntry(i, "key", ev.target.value)}
-          />
-          <span className="text-muted-foreground text-sm">=</span>
-          <Input
-            className="h-8"
-            placeholder="value"
-            value={e.value}
-            onChange={(ev) => updateEntry(i, "value", ev.target.value)}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0"
-            onClick={() => removeEntry(i)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      ))}
-      {entries.length === 0 && (
-        <p className="text-xs text-muted-foreground">No selector labels.</p>
-      )}
-    </div>
-  )
-}
-
-interface CreateDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  namespaces: string[]
-  onCreated: () => void
-}
-
-function CreateDialog({
-  open,
-  onOpenChange,
-  namespaces,
-  onCreated,
-}: CreateDialogProps): JSX.Element {
-  const [name, setName] = useState("")
-  const [namespace, setNamespace] = useState(namespaces[0] ?? "default")
-  const [type, setType] = useState("ClusterIP")
-  const [ports, setPorts] = useState<PortEntry[]>([
-    { protocol: "TCP", port: "", targetPort: "" },
-  ])
-  const [selector, setSelector] = useState<SelectorEntry[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (open) {
-      setName("")
-      setNamespace(namespaces[0] ?? "default")
-      setType("ClusterIP")
-      setPorts([{ protocol: "TCP", port: "", targetPort: "" }])
-      setSelector([])
-      setError(null)
-    }
-  }, [open, namespaces])
-
-  async function handleSubmit(): Promise<void> {
-    if (!name.trim()) {
-      setError("Name is required.")
-      return
-    }
-    if (ports.length === 0) {
-      setError("At least one port is required.")
-      return
-    }
-    const invalidPort = ports.find(
-      (p) => !p.port.trim() || !p.targetPort.trim(),
-    )
-    if (invalidPort) {
-      setError("All port and targetPort fields are required.")
-      return
-    }
-    const parsedPorts = ports.map((p) => ({
-      protocol: p.protocol,
-      port: parseInt(p.port, 10),
-      targetPort: isNaN(parseInt(p.targetPort, 10))
-        ? p.targetPort
-        : parseInt(p.targetPort, 10),
-    }))
-    const selectorMap: Record<string, string> = {}
-    for (const entry of selector) {
-      if (entry.key.trim()) selectorMap[entry.key.trim()] = entry.value.trim()
-    }
-
-    setSubmitting(true)
-    setError(null)
-    try {
-      await window.api.k8s.createService(
-        namespace,
-        name.trim(),
-        type,
-        parsedPorts,
-        selectorMap,
-      )
-      onCreated()
-      onOpenChange(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
-        <DialogHeader>
-          <DialogTitle>New Service</DialogTitle>
-          <DialogDescription>
-            Create a new Kubernetes Service.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-          <div className="space-y-1">
-            <Label htmlFor="create-svc-name">Name</Label>
-            <Input
-              id="create-svc-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="my-service"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="create-svc-namespace">Namespace</Label>
-            <select
-              id="create-svc-namespace"
-              value={namespace}
-              onChange={(e) => setNamespace(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              {namespaces.map((ns) => (
-                <option key={ns} value={ns}>
-                  {ns}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="create-svc-type">Type</Label>
-            <select
-              id="create-svc-type"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option>ClusterIP</option>
-              <option>NodePort</option>
-              <option>LoadBalancer</option>
-            </select>
-          </div>
-          <PortsEditor ports={ports} onChange={setPorts} />
-          <SelectorEditor entries={selector} onChange={setSelector} />
-          {error && <p className="text-sm text-red-500">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Creating…" : "Create"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 interface DeleteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -564,9 +258,7 @@ export function ServicesView(): JSX.Element {
   const [services, setServices] = useState<K8sService[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [namespaces, setNamespaces] = useState<string[]>([])
 
-  const [createOpen, setCreateOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<K8sService | null>(null)
   const [yamlOpen, setYamlOpen] = useState(false)
   const [yamlInitial, setYamlInitial] = useState("")
@@ -574,22 +266,6 @@ export function ServicesView(): JSX.Element {
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sService | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-
-  function openNewYaml(): void {
-    const template = yamlDump({
-      apiVersion: "v1",
-      kind: "Service",
-      metadata: { name: "my-service", namespace: "default" },
-      spec: {
-        type: "ClusterIP",
-        selector: { app: "my-app" },
-        ports: [{ protocol: "TCP", port: 80, targetPort: 8080 }],
-      },
-    })
-    setYamlInitial(template)
-    setYamlTitle("New Service (YAML)")
-    setYamlOpen(true)
-  }
 
   function openEditYaml(svc: K8sService): void {
     const obj = {
@@ -639,10 +315,6 @@ export function ServicesView(): JSX.Element {
 
   useEffect(() => {
     fetchServices()
-    window.api.k8s
-      .listNamespaces()
-      .then((data) => setNamespaces(data.map((ns) => ns.name)))
-      .catch(() => setNamespaces(["default"]))
   }, [])
 
   return (
@@ -650,16 +322,6 @@ export function ServicesView(): JSX.Element {
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Services</h1>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={openNewYaml}>
-              <FileCode className="h-4 w-4" />
-              New Resource (YAML)
-            </Button>
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4" />
-              New Service
-            </Button>
-          </div>
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -742,16 +404,6 @@ export function ServicesView(): JSX.Element {
       {selectedItem && selectedItem.type !== undefined && (
         <DetailPanel svc={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
-
-      <CreateDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        namespaces={namespaces.length > 0 ? namespaces : ["default"]}
-        onCreated={() => {
-          fetchServices()
-          setSelectedItem(null)
-        }}
-      />
 
       <DeleteDialog
         open={deleteTarget !== null}

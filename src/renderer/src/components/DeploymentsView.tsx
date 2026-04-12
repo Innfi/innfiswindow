@@ -1,5 +1,5 @@
 import { dump as yamlDump } from "js-yaml"
-import { FileCode, Plus, Trash2, X } from "lucide-react"
+import { FileCode, Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Button } from "../../components/ui/button"
@@ -11,8 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog"
-import { Input } from "../../components/ui/input"
-import { Label } from "../../components/ui/label"
 import {
   Table,
   TableBody,
@@ -165,132 +163,6 @@ function DetailPanel({
   )
 }
 
-interface CreateDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  namespaces: string[]
-  onCreated: () => void
-}
-
-function CreateDialog({
-  open,
-  onOpenChange,
-  namespaces,
-  onCreated,
-}: CreateDialogProps): JSX.Element {
-  const [name, setName] = useState("")
-  const [namespace, setNamespace] = useState(namespaces[0] ?? "default")
-  const [image, setImage] = useState("")
-  const [replicas, setReplicas] = useState(1)
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  // reset when opened
-  useEffect(() => {
-    if (open) {
-      setName("")
-      setNamespace(namespaces[0] ?? "default")
-      setImage("")
-      setReplicas(1)
-      setError(null)
-    }
-  }, [open, namespaces])
-
-  async function handleSubmit(): Promise<void> {
-    if (!name.trim() || !image.trim()) {
-      setError("Name and image are required.")
-      return
-    }
-    setSubmitting(true)
-    setError(null)
-    try {
-      await window.api.k8s.createDeployment(
-        namespace,
-        name.trim(),
-        image.trim(),
-        replicas,
-      )
-      onCreated()
-      onOpenChange(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
-        <DialogHeader>
-          <DialogTitle>New Deployment</DialogTitle>
-          <DialogDescription>
-            Create a new Kubernetes Deployment.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="create-name">Name</Label>
-            <Input
-              id="create-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="my-deployment"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="create-namespace">Namespace</Label>
-            <select
-              id="create-namespace"
-              value={namespace}
-              onChange={(e) => setNamespace(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              {namespaces.map((ns) => (
-                <option key={ns} value={ns}>
-                  {ns}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="create-image">Image</Label>
-            <Input
-              id="create-image"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="nginx:latest"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="create-replicas">Replicas</Label>
-            <Input
-              id="create-replicas"
-              type="number"
-              min={0}
-              value={replicas}
-              onChange={(e) => setReplicas(Number(e.target.value))}
-            />
-          </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Creating…" : "Create"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 interface DeleteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -368,9 +240,7 @@ export function DeploymentsView(): JSX.Element {
   const [deployments, setDeployments] = useState<K8sDeployment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [namespaces, setNamespaces] = useState<string[]>([])
 
-  const [createOpen, setCreateOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<K8sDeployment | null>(null)
   const [yamlOpen, setYamlOpen] = useState(false)
   const [yamlInitial, setYamlInitial] = useState("")
@@ -399,32 +269,7 @@ export function DeploymentsView(): JSX.Element {
 
   useEffect(() => {
     fetchDeployments()
-    window.api.k8s
-      .listNamespaces()
-      .then((data) => setNamespaces(data.map((ns) => ns.name)))
-      .catch(() => setNamespaces(["default"]))
   }, [])
-
-  function openNewYaml(): void {
-    const template = yamlDump({
-      apiVersion: "apps/v1",
-      kind: "Deployment",
-      metadata: { name: "my-deployment", namespace: "default" },
-      spec: {
-        replicas: 1,
-        selector: { matchLabels: { app: "my-deployment" } },
-        template: {
-          metadata: { labels: { app: "my-deployment" } },
-          spec: {
-            containers: [{ name: "my-container", image: "nginx:latest" }],
-          },
-        },
-      },
-    })
-    setYamlInitial(template)
-    setYamlTitle("New Deployment (YAML)")
-    setYamlOpen(true)
-  }
 
   function openEditYaml(d: K8sDeployment): void {
     const obj = {
@@ -455,16 +300,6 @@ export function DeploymentsView(): JSX.Element {
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Deployments</h1>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={openNewYaml}>
-              <FileCode className="h-4 w-4" />
-              New Resource (YAML)
-            </Button>
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4" />
-              New Deployment
-            </Button>
-          </div>
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -542,16 +377,6 @@ export function DeploymentsView(): JSX.Element {
           onClose={() => setSelectedItem(null)}
         />
       )}
-
-      <CreateDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        namespaces={namespaces.length > 0 ? namespaces : ["default"]}
-        onCreated={() => {
-          fetchDeployments()
-          setSelectedItem(null)
-        }}
-      />
 
       <DeleteDialog
         open={deleteTarget !== null}

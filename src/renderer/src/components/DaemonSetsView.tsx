@@ -1,4 +1,4 @@
-import { Plus, Trash2, X } from "lucide-react"
+import { Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Button } from "../../components/ui/button"
@@ -10,8 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog"
-import { Input } from "../../components/ui/input"
-import { Label } from "../../components/ui/label"
 import {
   Table,
   TableBody,
@@ -164,114 +162,6 @@ function DetailPanel({
   )
 }
 
-interface CreateDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  namespaces: string[]
-  onCreated: () => void
-}
-
-function CreateDialog({
-  open,
-  onOpenChange,
-  namespaces,
-  onCreated,
-}: CreateDialogProps): JSX.Element {
-  const [name, setName] = useState("")
-  const [namespace, setNamespace] = useState(namespaces[0] ?? "default")
-  const [image, setImage] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (open) {
-      setName("")
-      setNamespace(namespaces[0] ?? "default")
-      setImage("")
-      setError(null)
-    }
-  }, [open, namespaces])
-
-  async function handleSubmit(): Promise<void> {
-    if (!name.trim() || !image.trim()) {
-      setError("Name and image are required.")
-      return
-    }
-    setSubmitting(true)
-    setError(null)
-    try {
-      await window.api.k8s.createDaemonSet(namespace, name.trim(), image.trim())
-      onCreated()
-      onOpenChange(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
-        <DialogHeader>
-          <DialogTitle>New DaemonSet</DialogTitle>
-          <DialogDescription>
-            Create a new Kubernetes DaemonSet.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="create-ds-name">Name</Label>
-            <Input
-              id="create-ds-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="my-daemonset"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="create-ds-namespace">Namespace</Label>
-            <select
-              id="create-ds-namespace"
-              value={namespace}
-              onChange={(e) => setNamespace(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              {namespaces.map((ns) => (
-                <option key={ns} value={ns}>
-                  {ns}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="create-ds-image">Image</Label>
-            <Input
-              id="create-ds-image"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="nginx:latest"
-            />
-          </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Creating…" : "Create"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 interface DeleteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -346,9 +236,7 @@ export function DaemonSetsView(): JSX.Element {
   const [daemonSets, setDaemonSets] = useState<K8sDaemonSet[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [namespaces, setNamespaces] = useState<string[]>([])
 
-  const [createOpen, setCreateOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<K8sDaemonSet | null>(null)
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sDaemonSet | null
@@ -372,10 +260,6 @@ export function DaemonSetsView(): JSX.Element {
 
   useEffect(() => {
     fetchDaemonSets()
-    window.api.k8s
-      .listNamespaces()
-      .then((data) => setNamespaces(data.map((ns) => ns.name)))
-      .catch(() => setNamespaces(["default"]))
   }, [])
 
   return (
@@ -383,10 +267,6 @@ export function DaemonSetsView(): JSX.Element {
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">DaemonSets</h1>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" />
-            New DaemonSet
-          </Button>
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -457,16 +337,6 @@ export function DaemonSetsView(): JSX.Element {
       {selectedItem && selectedItem.desiredNumberScheduled !== undefined && (
         <DetailPanel ds={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
-
-      <CreateDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        namespaces={namespaces.length > 0 ? namespaces : ["default"]}
-        onCreated={() => {
-          fetchDaemonSets()
-          setSelectedItem(null)
-        }}
-      />
 
       <DeleteDialog
         open={deleteTarget !== null}

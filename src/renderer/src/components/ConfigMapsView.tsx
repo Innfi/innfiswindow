@@ -151,18 +151,6 @@ export function ConfigMapsView(): JSX.Element {
     fetchConfigMaps()
   }, [])
 
-  function openNewYaml(): void {
-    const template = yamlDump({
-      apiVersion: "v1",
-      kind: "ConfigMap",
-      metadata: { name: "my-configmap", namespace: "default" },
-      data: { key: "value" },
-    })
-    setYamlInitial(template)
-    setYamlTitle("New ConfigMap (YAML)")
-    setYamlOpen(true)
-  }
-
   function openEditYaml(cm: K8sConfigMap): void {
     const obj = {
       apiVersion: "v1",
@@ -184,10 +172,6 @@ export function ConfigMapsView(): JSX.Element {
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">ConfigMaps</h1>
-          <Button size="sm" variant="outline" onClick={openNewYaml}>
-            <FileCode className="h-4 w-4" />
-            New Resource (YAML)
-          </Button>
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}

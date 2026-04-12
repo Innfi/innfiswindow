@@ -160,16 +160,27 @@ const api = {
     applyResource: (yaml: string) =>
       ipcRenderer.invoke("k8s:resource:apply", yaml),
   },
-  startPodLog: (namespace: string, podName: string, containerName?: string) =>
+  startPodLog: (
+    namespace: string,
+    podName: string,
+    containerName?: string,
+    tabKey?: string,
+  ) =>
     ipcRenderer.invoke("k8s:pod:log:start", {
       namespace,
       podName,
       containerName,
+      tabKey,
     }),
   stopPodLog: (namespace: string, podName: string) =>
     ipcRenderer.invoke("k8s:pod:log:stop", { namespace, podName }),
-  onPodLogData: (callback: (line: string) => void) => {
-    const handler = (_e: IpcRendererEvent, line: string) => callback(line)
+  onPodLogData: (
+    callback: (data: { tabKey: string; line: string }) => void,
+  ) => {
+    const handler = (
+      _e: IpcRendererEvent,
+      data: { tabKey: string; line: string },
+    ) => callback(data)
     ipcRenderer.on("k8s:pod:log:data", handler)
     return () => ipcRenderer.removeListener("k8s:pod:log:data", handler)
   },
