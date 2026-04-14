@@ -266,6 +266,11 @@ export function ServicesView(): JSX.Element {
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sService | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+
+  const visibleServices = selectedNamespace
+    ? services.filter((svc) => svc.namespace === selectedNamespace)
+    : services
 
   function openEditYaml(svc: K8sService): void {
     const obj = {
@@ -340,7 +345,7 @@ export function ServicesView(): JSX.Element {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {services.map((svc) => (
+              {visibleServices.map((svc) => (
                 <TableRow
                   key={`${svc.namespace}/${svc.name}`}
                   className={cn(

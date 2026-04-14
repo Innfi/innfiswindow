@@ -34,8 +34,11 @@ function App(): JSX.Element {
   const [colorScheme, setColorScheme] = useState<"light" | "dark">(
     getColorScheme,
   )
+  const [namespaces, setNamespaces] = useState<string[]>([])
   const selectedResourceType = useAppStore((s) => s.selectedResourceType)
   const themeId = useAppStore((s) => s.themeId)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const setSelectedNamespace = useAppStore((s) => s.setSelectedNamespace)
 
   // Apply theme on mount and whenever themeId or colorScheme changes
   useEffect(() => {
@@ -63,6 +66,15 @@ function App(): JSX.Element {
       .catch((err) => handleIpcError(err, "cluster type"))
   }, [])
 
+  useEffect(() => {
+    if (!currentContext) return
+    setSelectedNamespace(null)
+    window.api.k8s
+      .listNamespaces()
+      .then((nsList) => setNamespaces(nsList.map((n) => n.name)))
+      .catch((err) => handleIpcError(err, "namespaces"))
+  }, [currentContext])
+
   return (
     <>
       <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -70,6 +82,18 @@ function App(): JSX.Element {
         <div className="flex h-12 shrink-0 items-center border-b px-4">
           <span className="flex-1 font-semibold">Innfiswindow</span>
           <ThemePicker />
+          <select
+            value={selectedNamespace ?? ""}
+            onChange={(e) => setSelectedNamespace(e.target.value || null)}
+            className="rounded border px-2 py-0.5 text-xs mr-2 ml-2 bg-background text-foreground"
+          >
+            <option value="">All Namespaces</option>
+            {namespaces.map((ns) => (
+              <option key={ns} value={ns}>
+                {ns}
+              </option>
+            ))}
+          </select>
           <span className="rounded border px-2 py-0.5 text-xs mr-2 ml-2">
             {clusterType}
           </span>

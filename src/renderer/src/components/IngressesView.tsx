@@ -281,6 +281,11 @@ export function IngressesView(): JSX.Element {
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sIngress | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+
+  const visibleIngresses = selectedNamespace
+    ? ingresses.filter((ing) => ing.namespace === selectedNamespace)
+    : ingresses
 
   function openEditYaml(ing: K8sIngress): void {
     const obj = {
@@ -375,7 +380,7 @@ export function IngressesView(): JSX.Element {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {ingresses.map((ing) => (
+              {visibleIngresses.map((ing) => (
                 <TableRow
                   key={`${ing.namespace}/${ing.name}`}
                   className={cn(
@@ -425,7 +430,7 @@ export function IngressesView(): JSX.Element {
                   </TableCell>
                 </TableRow>
               ))}
-              {ingresses.length === 0 && (
+              {visibleIngresses.length === 0 && (
                 <TableRow>
                   <TableCell
                     colSpan={8}

@@ -752,6 +752,43 @@
       "notes": "Reuse or extend the existing BottomDrawer component at `src/renderer/src/components/BottomDrawer.tsx`. Lift bottom-drawer state (open, podName, namespace, container) into the Zustand app store so PodsView can trigger it without prop drilling. The drawer should be rendered in App.tsx at the root layout level."
     },
     {
+      "id": "S43",
+      "title": "Namespace filter with persistent selection",
+      "status": "complete",
+      "description": "Add a namespace selector dropdown to the AppBar. The selected namespace is stored in the Zustand app store and applies to all namespace-scoped resource views (Pods, Deployments). When the user switches between resource types the namespace selection is preserved. An 'All Namespaces' option shows unfiltered results.",
+      "acceptance_criteria": [
+        "AppBar renders a namespace selector dropdown next to the context selector; it lists all namespaces fetched from the cluster",
+        "Dropdown includes an 'All Namespaces' option as the default selection",
+        "Zustand store holds `selectedNamespace: string | null` where `null` means all namespaces",
+        "PodsView filters the displayed pods to match `selectedNamespace`; when null, all pods across all namespaces are shown",
+        "DeploymentView (and any other namespace-scoped list view) filters the same way using the same store value",
+        "Switching tree-view selection (e.g. from Pods to Deployments) keeps the current namespace selection unchanged",
+        "Changing the context (cluster) resets `selectedNamespace` to null",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S42"],
+      "notes": "Reuse the existing `k8s:namespaces:list` IPC handler to populate the dropdown. The namespace selector should sit between the context selector and any cluster-type badge in the AppBar. Filter logic lives in the renderer — pass `selectedNamespace` into each resource view and filter the list before rendering."
+    },
+    {
+      "id": "S44",
+      "title": "Apply namespace filter to additional resource views",
+      "status": "complete",
+      "description": "Extend the namespace filter introduced in S43 to the remaining namespace-scoped resource list views: Services, ReplicaSets, StatefulSets, DaemonSets, Ingresses, ConfigMaps, and Secrets. Each view must read `selectedNamespace` from the Zustand store and filter its list accordingly, consistent with the pattern already applied to Pods and Deployments.",
+      "acceptance_criteria": [
+        "ServicesView filters displayed rows by `selectedNamespace`; when null, all namespaces shown",
+        "ReplicaSetsView filters displayed rows by `selectedNamespace`; when null, all namespaces shown",
+        "StatefulSetsView filters displayed rows by `selectedNamespace`; when null, all namespaces shown",
+        "DaemonSetsView filters displayed rows by `selectedNamespace`; when null, all namespaces shown",
+        "IngressesView filters displayed rows by `selectedNamespace`; when null, all namespaces shown",
+        "ConfigMapsView filters displayed rows by `selectedNamespace`; when null, all namespaces shown",
+        "SecretsView filters displayed rows by `selectedNamespace`; when null, all namespaces shown",
+        "Switching between any of these views preserves the current namespace selection",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S43"],
+      "notes": "Filter logic is renderer-side only — no new IPC handlers needed. Each view reads `useAppStore(s => s.selectedNamespace)` and applies `.filter(r => selectedNamespace === null || r.metadata?.namespace === selectedNamespace)` before rendering the table."
+    },
+    {
       "id": "S42",
       "title": "Refactor bottom drawer to tabbed multi-panel",
       "status": "complete",

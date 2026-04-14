@@ -241,6 +241,11 @@ export function DaemonSetsView(): JSX.Element {
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sDaemonSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+
+  const visibleDaemonSets = selectedNamespace
+    ? daemonSets.filter((ds) => ds.namespace === selectedNamespace)
+    : daemonSets
 
   function fetchDaemonSets(): void {
     setLoading(true)
@@ -286,7 +291,7 @@ export function DaemonSetsView(): JSX.Element {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {daemonSets.map((ds) => (
+              {visibleDaemonSets.map((ds) => (
                 <TableRow
                   key={`${ds.namespace}/${ds.name}`}
                   className={cn(

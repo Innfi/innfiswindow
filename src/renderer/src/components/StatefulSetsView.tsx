@@ -227,6 +227,11 @@ export function StatefulSetsView(): JSX.Element {
     (s) => s.selectedItem,
   ) as K8sStatefulSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+
+  const visibleStatefulSets = selectedNamespace
+    ? statefulSets.filter((ss) => ss.namespace === selectedNamespace)
+    : statefulSets
 
   function fetchStatefulSets(): void {
     setLoading(true)
@@ -269,7 +274,7 @@ export function StatefulSetsView(): JSX.Element {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {statefulSets.map((ss) => (
+              {visibleStatefulSets.map((ss) => (
                 <TableRow
                   key={`${ss.namespace}/${ss.name}`}
                   className={cn(

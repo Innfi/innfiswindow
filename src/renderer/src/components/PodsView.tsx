@@ -155,6 +155,11 @@ export function PodsView(): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sPod | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+
+  const visiblePods = selectedNamespace
+    ? pods.filter((p) => p.namespace === selectedNamespace)
+    : pods
 
   function fetchPods(): void {
     setLoading(true)
@@ -221,7 +226,7 @@ export function PodsView(): JSX.Element {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pods.map((p) => (
+              {visiblePods.map((p) => (
                 <TableRow
                   key={`${p.namespace}/${p.name}`}
                   className={cn(

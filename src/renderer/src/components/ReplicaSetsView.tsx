@@ -142,6 +142,11 @@ export function ReplicaSetsView(): JSX.Element {
     (s) => s.selectedItem,
   ) as K8sReplicaSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+
+  const visibleReplicaSets = selectedNamespace
+    ? replicaSets.filter((rs) => rs.namespace === selectedNamespace)
+    : replicaSets
 
   useEffect(() => {
     setLoading(true)
@@ -178,7 +183,7 @@ export function ReplicaSetsView(): JSX.Element {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {replicaSets.map((rs) => (
+              {visibleReplicaSets.map((rs) => (
                 <TableRow
                   key={`${rs.namespace}/${rs.name}`}
                   className={cn(

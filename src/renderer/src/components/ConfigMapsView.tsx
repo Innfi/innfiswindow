@@ -130,6 +130,11 @@ export function ConfigMapsView(): JSX.Element {
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sConfigMap | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+
+  const visibleConfigMaps = selectedNamespace
+    ? configMaps.filter((cm) => cm.namespace === selectedNamespace)
+    : configMaps
 
   function fetchConfigMaps(): void {
     setLoading(true)
@@ -187,7 +192,7 @@ export function ConfigMapsView(): JSX.Element {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {configMaps.map((cm) => (
+              {visibleConfigMaps.map((cm) => (
                 <TableRow
                   key={`${cm.namespace}/${cm.name}`}
                   className={cn(

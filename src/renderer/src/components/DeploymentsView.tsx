@@ -250,6 +250,11 @@ export function DeploymentsView(): JSX.Element {
     (s) => s.selectedItem,
   ) as K8sDeployment | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+
+  const visibleDeployments = selectedNamespace
+    ? deployments.filter((d) => d.namespace === selectedNamespace)
+    : deployments
 
   function fetchDeployments(): void {
     setLoading(true)
@@ -317,7 +322,7 @@ export function DeploymentsView(): JSX.Element {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {deployments.map((d) => (
+              {visibleDeployments.map((d) => (
                 <TableRow
                   key={`${d.namespace}/${d.name}`}
                   className={cn(

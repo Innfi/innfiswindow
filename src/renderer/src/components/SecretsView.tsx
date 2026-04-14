@@ -160,6 +160,11 @@ export function SecretsView(): JSX.Element {
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sSecret | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+
+  const visibleSecrets = selectedNamespace
+    ? secrets.filter((secret) => secret.namespace === selectedNamespace)
+    : secrets
 
   function fetchSecrets(): void {
     setLoading(true)
@@ -221,7 +226,7 @@ export function SecretsView(): JSX.Element {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {secrets.map((secret) => (
+              {visibleSecrets.map((secret) => (
                 <TableRow
                   key={`${secret.namespace}/${secret.name}`}
                   className={cn(
