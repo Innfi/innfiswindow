@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "../../components/ui/table"
 import { handleIpcError } from "../../lib/ipc-error"
-import { cn, formatAge } from "../../lib/utils"
+import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { MetaEntry } from "./MetaEntry"
 import { YamlEditorPanel } from "./YamlEditorPanel"
@@ -251,10 +251,13 @@ export function DeploymentsView(): JSX.Element {
   ) as K8sDeployment | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const nameFilter = useAppStore((s) => s.nameFilter)
 
-  const visibleDeployments = selectedNamespace
-    ? deployments.filter((d) => d.namespace === selectedNamespace)
-    : deployments
+  const visibleDeployments = filterResources(
+    deployments,
+    nameFilter,
+    selectedNamespace,
+  )
 
   function fetchDeployments(): void {
     setLoading(true)

@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "../../components/ui/table"
 import { handleIpcError } from "../../lib/ipc-error"
-import { cn, formatAge } from "../../lib/utils"
+import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { MetaEntry } from "./MetaEntry"
 import { YamlEditorPanel } from "./YamlEditorPanel"
@@ -156,10 +156,9 @@ export function PodsView(): JSX.Element {
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const nameFilter = useAppStore((s) => s.nameFilter)
 
-  const visiblePods = selectedNamespace
-    ? pods.filter((p) => p.namespace === selectedNamespace)
-    : pods
+  const visiblePods = filterResources(pods, nameFilter, selectedNamespace)
 
   function fetchPods(): void {
     setLoading(true)

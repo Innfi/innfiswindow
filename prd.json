@@ -807,6 +807,75 @@
       ],
       "dependencies": ["S41"],
       "notes": "Define a discriminated union `DrawerTab = { id, type: 'pod-log', namespace, podName, container } | { id, type: 'new-resource', resourceKind }` in the store. The tabbed drawer renders the correct panel component based on `tab.type`. Use shadcn/ui Tabs (or a custom tab bar if shadcn Tabs don't fit the bottom-drawer layout) for the tab strip."
+    },
+    {
+      "id": "S45",
+      "title": "Name filter input beside namespace selector",
+      "status": "complete",
+      "description": "Add a text input field to the AppBar, placed beside the namespace selector, that filters all resource list views by resource name. The filter matches any resource whose `metadata.name` contains the input string (case-insensitive substring match). The filter value is stored in the Zustand app store and applies universally to every resource type shown in the main panel.",
+      "acceptance_criteria": [
+        "AppBar renders a text input field immediately beside the namespace selector dropdown",
+        "Input has a placeholder such as 'Filter by name...'",
+        "Zustand store holds `nameFilter: string` (empty string means no filter)",
+        "Every resource list view (Pods, Deployments, Services, ReplicaSets, StatefulSets, DaemonSets, Ingresses, ConfigMaps, Secrets, Nodes, Namespaces) reads `nameFilter` from the store and filters rows where `metadata.name` contains the filter string (case-insensitive)",
+        "Filter is applied in addition to the namespace filter — both filters are AND-ed together",
+        "Switching between resource types preserves the current name filter value",
+        "Changing the cluster context resets `nameFilter` to empty string",
+        "Clearing the input (empty string) shows all resources unfiltered",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S44"],
+      "notes": "Filter logic is renderer-side only — no new IPC handlers needed. Each view reads `useAppStore(s => s.nameFilter)` and applies `.filter(r => !nameFilter || r.metadata?.name?.toLowerCase().includes(nameFilter.toLowerCase()))` after the namespace filter. Reset `nameFilter` in the same store action that resets `selectedNamespace` on context change."
+    },
+    {
+      "id": "S46",
+      "title": "Prometheus endpoint configuration and metrics IPC",
+      "status": "incomplete",
+      "description": "Allow the user to configure a Prometheus base URL (and optional Bearer token) that the app uses to query pod metrics. The configuration is persisted via Electron's electron-store (or a plain JSON config file in userData). Expose IPC handlers in the main process that query Prometheus range queries for CPU, memory, network, and disk metrics for a given pod.",
+      "acceptance_criteria": [
+        "A settings entry stores `prometheusUrl: string` and `prometheusToken: string` (optional); defaults to empty strings",
+        "A settings UI (modal or dedicated settings section reachable from the AppBar) lets the user enter and save the Prometheus base URL and optional Bearer token",
+        "IPC handler `prometheus:config:get` returns `{ prometheusUrl, prometheusToken }`",
+        "IPC handler `prometheus:config:set` accepts `{ prometheusUrl, prometheusToken }` and persists the values",
+        "IPC handler `prometheus:pod:metrics` accepts `{ namespace, podName, step?, rangeMinutes? }` and returns `{ cpu: DataPoint[], memory: DataPoint[], networkRx: DataPoint[], networkTx: DataPoint[], diskRead: DataPoint[], diskWrite: DataPoint[] }` where `DataPoint = { timestamp: number, value: number }`",
+        "Queries use Prometheus HTTP API `/api/v1/query_range`; default range is last 30 minutes, step 60s",
+        "CPU query: `rate(container_cpu_usage_seconds_total{namespace=~'<ns>',pod='<pod>',container!=''}[5m])`",
+        "Memory query: `container_memory_working_set_bytes{namespace=~'<ns>',pod='<pod>',container!=''}`",
+        "Network Rx: `rate(container_network_receive_bytes_total{namespace=~'<ns>',pod='<pod>'}[5m])`",
+        "Network Tx: `rate(container_network_transmit_bytes_total{namespace=~'<ns>',pod='<pod>'}[5m])`",
+        "Disk read: `rate(container_fs_reads_bytes_total{namespace=~'<ns>',pod='<pod>'}[5m])`",
+        "Disk write: `rate(container_fs_writes_bytes_total{namespace=~'<ns>',pod='<pod>'}[5m])`",
+        "If Prometheus URL is not configured, handler returns an error `{ error: 'Prometheus not configured' }`",
+        "If the HTTP request fails, handler returns `{ error: '<message>' }` without crashing the main process",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S45"],
+      "ipc_handlers": [
+        "prometheus:config:get",
+        "prometheus:config:set",
+        "prometheus:pod:metrics"
+      ],
+      "notes": "Use Node's built-in `fetch` (Node 18+) or the `axios` package for HTTP requests in the main process. Store config with `electron-store` package (add to dependencies). Serialize all response data to plain objects before sending over IPC. Sum multi-container series client-side or aggregate with `sum by (pod)` in the PromQL query."
+    },
+    {
+      "id": "S47",
+      "title": "Pod metrics graphs in pod detail panel",
+      "status": "incomplete",
+      "description": "Display CPU, memory, network, and disk I/O metric graphs inside the pod detail panel. When a pod is selected in the resource list, the detail panel shows a 'Metrics' section with four line charts populated via the `prometheus:pod:metrics` IPC handler. Charts auto-refresh every 60 seconds.",
+      "acceptance_criteria": [
+        "Pod detail panel includes a 'Metrics' section below the existing pod info",
+        "Four charts are rendered: CPU Usage (cores), Memory Usage (bytes formatted as MiB/GiB), Network I/O (Rx and Tx on same chart), Disk I/O (Read and Write on same chart)",
+        "Charts use `recharts` (add to dependencies); each is a `LineChart` with a time-based X axis and labeled Y axis",
+        "On mount the component calls `window.api.getPrometheusPodMetrics({ namespace, podName })` and populates the charts",
+        "A loading spinner is shown while the request is in flight",
+        "If Prometheus is not configured, the Metrics section shows a message 'Prometheus not configured — add URL in Settings'",
+        "If the request errors, an inline error message is shown with a retry button",
+        "Charts refresh automatically every 60 seconds while the pod detail panel is open",
+        "Switching to a different pod cancels the pending refresh and starts a fresh fetch for the new pod",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S46"],
+      "notes": "Install `recharts` and `@types/recharts` (if needed). Format bytes on Y axis with a custom tick formatter (`bytes => (bytes / 1024 / 1024).toFixed(1) + ' MiB'`). Use `useEffect` with a `setInterval` for auto-refresh; clear interval on unmount. Network chart: two `<Line>` series (Rx = blue, Tx = orange). Disk chart: two `<Line>` series (Read = green, Write = red). Add `window.api.getPrometheusPodMetrics` and `window.api.getPrometheusConfig` / `window.api.setPrometheusConfig` to the preload `contextBridge`."
     }
   ]
 }

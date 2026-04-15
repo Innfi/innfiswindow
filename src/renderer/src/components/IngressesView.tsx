@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { cn } from "../../lib/utils"
+import { cn, filterResources } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
@@ -282,10 +282,13 @@ export function IngressesView(): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sIngress | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const nameFilter = useAppStore((s) => s.nameFilter)
 
-  const visibleIngresses = selectedNamespace
-    ? ingresses.filter((ing) => ing.namespace === selectedNamespace)
-    : ingresses
+  const visibleIngresses = filterResources(
+    ingresses,
+    nameFilter,
+    selectedNamespace,
+  )
 
   function openEditYaml(ing: K8sIngress): void {
     const obj = {

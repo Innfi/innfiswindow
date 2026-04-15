@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "../../components/ui/table"
 import { handleIpcError } from "../../lib/ipc-error"
-import { cn, formatAge } from "../../lib/utils"
+import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { MetaEntry } from "./MetaEntry"
 
@@ -98,6 +98,9 @@ export function NamespacesView(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sNamespace | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const nameFilter = useAppStore((s) => s.nameFilter)
+
+  const visibleNamespaces = filterResources(namespaces, nameFilter)
 
   useEffect(() => {
     setLoading(true)
@@ -131,7 +134,7 @@ export function NamespacesView(): JSX.Element {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {namespaces.map((ns) => (
+              {visibleNamespaces.map((ns) => (
                 <TableRow
                   key={ns.name}
                   className={cn(

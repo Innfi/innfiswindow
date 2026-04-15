@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "../../components/ui/table"
 import { handleIpcError } from "../../lib/ipc-error"
-import { cn, formatAge } from "../../lib/utils"
+import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { MetaEntry } from "./MetaEntry"
 
@@ -154,6 +154,9 @@ export function NodesView(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sNode | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const nameFilter = useAppStore((s) => s.nameFilter)
+
+  const visibleNodes = filterResources(nodes, nameFilter)
 
   useEffect(() => {
     setLoading(true)
@@ -189,7 +192,7 @@ export function NodesView(): JSX.Element {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {nodes.map((node) => (
+              {visibleNodes.map((node) => (
                 <TableRow
                   key={node.name}
                   className={cn(

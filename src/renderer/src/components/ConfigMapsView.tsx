@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "../../components/ui/table"
 import { handleIpcError } from "../../lib/ipc-error"
-import { cn, formatAge } from "../../lib/utils"
+import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
@@ -131,10 +131,13 @@ export function ConfigMapsView(): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sConfigMap | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const nameFilter = useAppStore((s) => s.nameFilter)
 
-  const visibleConfigMaps = selectedNamespace
-    ? configMaps.filter((cm) => cm.namespace === selectedNamespace)
-    : configMaps
+  const visibleConfigMaps = filterResources(
+    configMaps,
+    nameFilter,
+    selectedNamespace,
+  )
 
   function fetchConfigMaps(): void {
     setLoading(true)

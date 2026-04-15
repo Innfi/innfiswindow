@@ -39,6 +39,8 @@ function App(): JSX.Element {
   const themeId = useAppStore((s) => s.themeId)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const setSelectedNamespace = useAppStore((s) => s.setSelectedNamespace)
+  const nameFilter = useAppStore((s) => s.nameFilter)
+  const setNameFilter = useAppStore((s) => s.setNameFilter)
 
   // Apply theme on mount and whenever themeId or colorScheme changes
   useEffect(() => {
@@ -69,6 +71,7 @@ function App(): JSX.Element {
   useEffect(() => {
     if (!currentContext) return
     setSelectedNamespace(null)
+    setNameFilter("")
     window.api.k8s
       .listNamespaces()
       .then((nsList) => setNamespaces(nsList.map((n) => n.name)))
@@ -94,6 +97,13 @@ function App(): JSX.Element {
               </option>
             ))}
           </select>
+          <input
+            type="text"
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+            placeholder="Filter by name..."
+            className="rounded border px-2 py-0.5 text-xs mr-2 bg-background text-foreground w-40"
+          />
           <span className="rounded border px-2 py-0.5 text-xs mr-2 ml-2">
             {clusterType}
           </span>

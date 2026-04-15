@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "../../components/ui/table"
 import { handleIpcError } from "../../lib/ipc-error"
-import { cn, formatAge } from "../../lib/utils"
+import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { MetaEntry } from "./MetaEntry"
 
@@ -228,10 +228,13 @@ export function StatefulSetsView(): JSX.Element {
   ) as K8sStatefulSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const nameFilter = useAppStore((s) => s.nameFilter)
 
-  const visibleStatefulSets = selectedNamespace
-    ? statefulSets.filter((ss) => ss.namespace === selectedNamespace)
-    : statefulSets
+  const visibleStatefulSets = filterResources(
+    statefulSets,
+    nameFilter,
+    selectedNamespace,
+  )
 
   function fetchStatefulSets(): void {
     setLoading(true)

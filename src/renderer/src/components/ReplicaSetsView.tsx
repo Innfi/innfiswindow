@@ -143,10 +143,14 @@ export function ReplicaSetsView(): JSX.Element {
   ) as K8sReplicaSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const nameFilter = useAppStore((s) => s.nameFilter)
 
-  const visibleReplicaSets = selectedNamespace
-    ? replicaSets.filter((rs) => rs.namespace === selectedNamespace)
-    : replicaSets
+  const visibleReplicaSets = replicaSets
+    .filter((rs) => !selectedNamespace || rs.namespace === selectedNamespace)
+    .filter(
+      (rs) =>
+        !nameFilter || rs.name.toLowerCase().includes(nameFilter.toLowerCase()),
+    )
 
   useEffect(() => {
     setLoading(true)

@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "../../components/ui/table"
 import { handleIpcError } from "../../lib/ipc-error"
-import { cn, formatAge } from "../../lib/utils"
+import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
@@ -267,10 +267,13 @@ export function ServicesView(): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sService | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const nameFilter = useAppStore((s) => s.nameFilter)
 
-  const visibleServices = selectedNamespace
-    ? services.filter((svc) => svc.namespace === selectedNamespace)
-    : services
+  const visibleServices = filterResources(
+    services,
+    nameFilter,
+    selectedNamespace,
+  )
 
   function openEditYaml(svc: K8sService): void {
     const obj = {

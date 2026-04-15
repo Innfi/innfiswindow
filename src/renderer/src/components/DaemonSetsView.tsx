@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "../../components/ui/table"
 import { handleIpcError } from "../../lib/ipc-error"
-import { cn, formatAge } from "../../lib/utils"
+import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { MetaEntry } from "./MetaEntry"
 
@@ -242,10 +242,13 @@ export function DaemonSetsView(): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sDaemonSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const nameFilter = useAppStore((s) => s.nameFilter)
 
-  const visibleDaemonSets = selectedNamespace
-    ? daemonSets.filter((ds) => ds.namespace === selectedNamespace)
-    : daemonSets
+  const visibleDaemonSets = filterResources(
+    daemonSets,
+    nameFilter,
+    selectedNamespace,
+  )
 
   function fetchDaemonSets(): void {
     setLoading(true)
