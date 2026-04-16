@@ -1,6 +1,6 @@
+import { Settings } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Settings } from "lucide-react"
 import { ThemePicker } from "../components/ThemePicker"
 import { Toaster } from "../components/ui/sonner"
 import { handleIpcError } from "../lib/ipc-error"
@@ -15,11 +15,11 @@ import { IngressesView } from "./components/IngressesView"
 import { NamespacesView } from "./components/NamespacesView"
 import { NodesView } from "./components/NodesView"
 import { PodsView } from "./components/PodsView"
+import { PrometheusSettings } from "./components/PrometheusSettings"
 import { ReplicaSetsView } from "./components/ReplicaSetsView"
 import { SecretsView } from "./components/SecretsView"
 import { ServicesView } from "./components/ServicesView"
 import { StatefulSetsView } from "./components/StatefulSetsView"
-import { PrometheusSettings } from "./components/PrometheusSettings"
 import { TreeView } from "./components/TreeView"
 
 function getColorScheme(): "light" | "dark" {

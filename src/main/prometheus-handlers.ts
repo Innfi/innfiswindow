@@ -46,7 +46,9 @@ export function getPrometheusConfig(): PrometheusConfig {
   return loadConfig()
 }
 
-export function setPrometheusConfig(config: PrometheusConfig): { success: boolean } {
+export function setPrometheusConfig(config: PrometheusConfig): {
+  success: boolean
+} {
   saveConfig(config)
   return { success: true }
 }

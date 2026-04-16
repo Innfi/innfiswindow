@@ -12,12 +12,6 @@ import {
 } from "@kubernetes/client-node"
 
 import {
-  getPrometheusConfig,
-  getPodMetrics,
-  setPrometheusConfig,
-} from "./prometheus-handlers"
-
-import {
   applyResource,
   createDaemonSet,
   createDeployment,
@@ -50,6 +44,11 @@ import {
   updateService,
   updateStatefulSet,
 } from "./k8s-handlers"
+import {
+  getPodMetrics,
+  getPrometheusConfig,
+  setPrometheusConfig,
+} from "./prometheus-handlers"
 
 const kc = new KubeConfig()
 kc.loadFromDefault()
@@ -276,10 +275,8 @@ app.whenReady().then(() => {
   ipcMain.handle("prometheus:config:get", () => getPrometheusConfig())
   ipcMain.handle(
     "prometheus:config:set",
-    (
-      _e,
-      config: { prometheusUrl: string; prometheusToken: string },
-    ) => setPrometheusConfig(config),
+    (_e, config: { prometheusUrl: string; prometheusToken: string }) =>
+      setPrometheusConfig(config),
   )
   ipcMain.handle(
     "prometheus:pod:metrics",
