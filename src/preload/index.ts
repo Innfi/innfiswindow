@@ -184,6 +184,17 @@ const api = {
     ipcRenderer.on("k8s:pod:log:data", handler)
     return () => ipcRenderer.removeListener("k8s:pod:log:data", handler)
   },
+  getPrometheusConfig: () => ipcRenderer.invoke("prometheus:config:get"),
+  setPrometheusConfig: (config: {
+    prometheusUrl: string
+    prometheusToken: string
+  }) => ipcRenderer.invoke("prometheus:config:set", config),
+  getPrometheusPodMetrics: (args: {
+    namespace: string
+    podName: string
+    step?: number
+    rangeMinutes?: number
+  }) => ipcRenderer.invoke("prometheus:pod:metrics", args),
   listEvents: () => ipcRenderer.invoke("k8s:events:list"),
   startEventsWatch: () => ipcRenderer.invoke("k8s:events:watch:start"),
   stopEventsWatch: () => ipcRenderer.invoke("k8s:events:watch:stop"),

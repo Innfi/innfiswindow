@@ -12,6 +12,12 @@ import {
 } from "@kubernetes/client-node"
 
 import {
+  getPrometheusConfig,
+  getPodMetrics,
+  setPrometheusConfig,
+} from "./prometheus-handlers"
+
+import {
   applyResource,
   createDaemonSet,
   createDeployment,
@@ -265,6 +271,32 @@ app.whenReady().then(() => {
   )
   ipcMain.handle("k8s:resource:apply", (_e, yaml: string) =>
     applyResource(kc, yaml),
+  )
+
+  ipcMain.handle("prometheus:config:get", () => getPrometheusConfig())
+  ipcMain.handle(
+    "prometheus:config:set",
+    (
+      _e,
+      config: { prometheusUrl: string; prometheusToken: string },
+    ) => setPrometheusConfig(config),
+  )
+  ipcMain.handle(
+    "prometheus:pod:metrics",
+    (
+      _e,
+      {
+        namespace,
+        podName,
+        step,
+        rangeMinutes,
+      }: {
+        namespace: string
+        podName: string
+        step?: number
+        rangeMinutes?: number
+      },
+    ) => getPodMetrics(namespace, podName, step, rangeMinutes),
   )
 
   ipcMain.handle("k8s:events:list", () => listEvents(coreV1Api))

@@ -247,6 +247,20 @@ export interface K8sSecret {
   keys: string[]
 }
 
+export interface DataPoint {
+  timestamp: number
+  value: number
+}
+
+export interface PodMetricsResult {
+  cpu: DataPoint[]
+  memory: DataPoint[]
+  networkRx: DataPoint[]
+  networkTx: DataPoint[]
+  diskRead: DataPoint[]
+  diskWrite: DataPoint[]
+}
+
 export interface K8sAPI {
   listContexts: () => Promise<K8sContext[]>
   getCurrentContext: () => Promise<string>
@@ -382,6 +396,20 @@ export interface API {
   onPodLogData: (
     callback: (data: { tabKey: string; line: string }) => void,
   ) => () => void
+  getPrometheusConfig: () => Promise<{
+    prometheusUrl: string
+    prometheusToken: string
+  }>
+  setPrometheusConfig: (config: {
+    prometheusUrl: string
+    prometheusToken: string
+  }) => Promise<{ success: boolean }>
+  getPrometheusPodMetrics: (args: {
+    namespace: string
+    podName: string
+    step?: number
+    rangeMinutes?: number
+  }) => Promise<PodMetricsResult | { error: string }>
   listEvents: () => Promise<K8sEvent[]>
   startEventsWatch: () => Promise<{ success: boolean }>
   stopEventsWatch: () => Promise<{ success: boolean }>

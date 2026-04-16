@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 
+import { Settings } from "lucide-react"
 import { ThemePicker } from "../components/ThemePicker"
 import { Toaster } from "../components/ui/sonner"
 import { handleIpcError } from "../lib/ipc-error"
@@ -18,6 +19,7 @@ import { ReplicaSetsView } from "./components/ReplicaSetsView"
 import { SecretsView } from "./components/SecretsView"
 import { ServicesView } from "./components/ServicesView"
 import { StatefulSetsView } from "./components/StatefulSetsView"
+import { PrometheusSettings } from "./components/PrometheusSettings"
 import { TreeView } from "./components/TreeView"
 
 function getColorScheme(): "light" | "dark" {
@@ -41,6 +43,7 @@ function App(): JSX.Element {
   const setSelectedNamespace = useAppStore((s) => s.setSelectedNamespace)
   const nameFilter = useAppStore((s) => s.nameFilter)
   const setNameFilter = useAppStore((s) => s.setNameFilter)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Apply theme on mount and whenever themeId or colorScheme changes
   useEffect(() => {
@@ -84,6 +87,13 @@ function App(): JSX.Element {
         {/* Top bar */}
         <div className="flex h-12 shrink-0 items-center border-b px-4">
           <span className="flex-1 font-semibold">Innfiswindow</span>
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="rounded p-1 hover:bg-muted mr-1"
+            aria-label="Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
           <ThemePicker />
           <select
             value={selectedNamespace ?? ""}
@@ -144,6 +154,7 @@ function App(): JSX.Element {
           <BottomDrawer />
         </div>
       </div>
+      <PrometheusSettings open={settingsOpen} onOpenChange={setSettingsOpen} />
       <Toaster position="bottom-right" duration={5000} />
     </>
   )

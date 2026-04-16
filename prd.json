@@ -830,7 +830,7 @@
     {
       "id": "S46",
       "title": "Prometheus endpoint configuration and metrics IPC",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Allow the user to configure a Prometheus base URL (and optional Bearer token) that the app uses to query pod metrics. The configuration is persisted via Electron's electron-store (or a plain JSON config file in userData). Expose IPC handlers in the main process that query Prometheus range queries for CPU, memory, network, and disk metrics for a given pod.",
       "acceptance_criteria": [
         "A settings entry stores `prometheusUrl: string` and `prometheusToken: string` (optional); defaults to empty strings",
@@ -860,7 +860,7 @@
     {
       "id": "S47",
       "title": "Pod metrics graphs in pod detail panel",
-      "status": "incomplete",
+      "status": "pending",
       "description": "Display CPU, memory, network, and disk I/O metric graphs inside the pod detail panel. When a pod is selected in the resource list, the detail panel shows a 'Metrics' section with four line charts populated via the `prometheus:pod:metrics` IPC handler. Charts auto-refresh every 60 seconds.",
       "acceptance_criteria": [
         "Pod detail panel includes a 'Metrics' section below the existing pod info",
