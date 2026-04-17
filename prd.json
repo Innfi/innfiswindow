@@ -860,7 +860,7 @@
     {
       "id": "S47",
       "title": "Pod metrics graphs in pod detail panel",
-      "status": "pending",
+      "status": "incomplete",
       "description": "Display CPU, memory, network, and disk I/O metric graphs inside the pod detail panel. When a pod is selected in the resource list, the detail panel shows a 'Metrics' section with four line charts populated via the `prometheus:pod:metrics` IPC handler. Charts auto-refresh every 60 seconds.",
       "acceptance_criteria": [
         "Pod detail panel includes a 'Metrics' section below the existing pod info",
@@ -876,6 +876,27 @@
       ],
       "dependencies": ["S46"],
       "notes": "Install `recharts` and `@types/recharts` (if needed). Format bytes on Y axis with a custom tick formatter (`bytes => (bytes / 1024 / 1024).toFixed(1) + ' MiB'`). Use `useEffect` with a `setInterval` for auto-refresh; clear interval on unmount. Network chart: two `<Line>` series (Rx = blue, Tx = orange). Disk chart: two `<Line>` series (Read = green, Write = red). Add `window.api.getPrometheusPodMetrics` and `window.api.getPrometheusConfig` / `window.api.setPrometheusConfig` to the preload `contextBridge`."
+    },
+    {
+      "id": "S48",
+      "title": "Multi-cluster tree view",
+      "status": "incomplete",
+      "description": "Restructure the left sidebar tree view to show all kubeconfig contexts as top-level collapsible nodes. Each context node expands to reveal the existing resource groups (Cluster > Namespaces, Nodes; Workloads > Deployments, ReplicaSets, StatefulSets, DaemonSets, Pods; Networking > Services, Ingresses; Config > ConfigMaps, Secrets; Events). Clicking a resource leaf under a context sets both `selectedContext` and `selectedResourceType` in the Zustand store. All IPC resource-fetch handlers accept an optional `contextName` argument and use a per-context API client cache in the main process. The AppBar context badge reflects the active context. The namespace filter continues to work within the active context.",
+      "acceptance_criteria": [
+        "Tree view lists every context from kubeconfig as a top-level collapsible node (node label = context name)",
+        "Each context node contains the same sub-tree structure as the current single-cluster tree (Cluster, Workloads, Networking, Config, Events groups with their leaf items)",
+        "Clicking a resource leaf under a context sets `selectedContext: string` and `selectedResourceType: string` in the Zustand app store; the leaf is highlighted",
+        "Main process maintains a per-context API client cache: `Map<contextName, { coreV1: CoreV1Api, appsV1: AppsV1Api }>`. On first use of a context a new KubeConfig is created with `kc.loadFromDefault(); kc.setCurrentContext(contextName)` and its API clients are stored",
+        "All existing resource-fetch IPC handlers (k8s:namespaces:list, k8s:nodes:list, k8s:pods:list, k8s:deployments:list, k8s:replicasets:list, k8s:statefulsets:list, k8s:daemonsets:list, k8s:services:list, k8s:ingresses:list, k8s:configmaps:list, k8s:secrets:list, k8s:events:list) accept an optional `contextName` parameter and route to the correct per-context client; if omitted they fall back to the current default context",
+        "All renderer resource-view components pass `selectedContext` from the Zustand store when invoking `window.api.*` IPC calls",
+        "AppBar context badge shows the value of `selectedContext` (or the kubeconfig current-context if nothing is selected yet)",
+        "Cluster-type badge (EKS / AKS / Local) is derived per-context from the context's cluster server URL and shown next to each context node label in the tree",
+        "The namespace filter (`selectedNamespace` in Zustand store) resets to `null` whenever `selectedContext` changes",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S04", "S44"],
+      "ipc_handlers": ["k8s:contexts:list"],
+      "notes": "Per-context client cache lives in main process module scope (e.g. `const clientCache = new Map()`). Use `kc.makeApiClient(CoreV1Api)` after setting the context. Do not invalidate the cache on each call — reuse existing clients for the same context. Pass `contextName` as the first property of the args object for each IPC handler, e.g. `ipcMain.handle('k8s:pods:list', async (_e, { contextName, namespace }) => {...})`. Renderer calls become e.g. `window.api.listPods({ contextName: selectedContext, namespace: selectedNamespace })`. Update preload contextBridge accordingly. The existing `k8s:contexts:list` handler (S02) already returns all context names — use it to populate the tree on mount."
     }
   ]
 }
