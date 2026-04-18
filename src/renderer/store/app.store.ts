@@ -20,6 +20,14 @@ export type DrawerTab =
       type: "new-resource"
       resourceKind: string
     }
+  | {
+      id: string
+      type: "pod-shell"
+      sessionId: string
+      namespace: string
+      podName: string
+      containerName: string
+    }
 
 export type DrawerTabInput =
   | {
@@ -29,6 +37,13 @@ export type DrawerTabInput =
       containers: K8sPodContainer[]
     }
   | { type: "new-resource"; resourceKind: string }
+  | {
+      type: "pod-shell"
+      sessionId: string
+      namespace: string
+      podName: string
+      containerName: string
+    }
 
 interface AppState {
   selectedResourceType: string | null

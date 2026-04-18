@@ -5,6 +5,7 @@ import { electronApp, is, optimizer } from "@electron-toolkit/utils"
 import {
   AppsV1Api,
   CoreV1Api,
+  Exec,
   KubeConfig,
   Log,
   NetworkingV1Api,
@@ -63,6 +64,12 @@ export { appsV1Api, coreV1Api, kc, networkingV1Api }
 let mainWindow: BrowserWindow | null = null
 const activeLogRequests = new Map<string, { abort: () => void }>()
 let activeEventsWatch: { abort: () => void } | null = null
+
+type ExecWebSocket = { terminate(): void }
+const activeExecSessions = new Map<
+  string,
+  { ws: ExecWebSocket; stdinStream: PassThrough }
+>()
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -411,6 +418,90 @@ app.whenReady().then(() => {
         activeLogRequests.delete(key)
       }
       return { success: true }
+    },
+  )
+
+  ipcMain.handle(
+    "k8s:pod:exec",
+    async (
+      _e,
+      {
+        sessionId,
+        namespace,
+        podName,
+        containerName,
+      }: {
+        sessionId: string
+        namespace: string
+        podName: string
+        containerName: string
+      },
+    ) => {
+      const stdinStream = new PassThrough()
+      const stdoutStream = new PassThrough()
+      const stderrStream = new PassThrough()
+
+      stdoutStream.on("data", (chunk: Buffer) => {
+        mainWindow?.webContents.send("k8s:pod:exec:output", {
+          sessionId,
+          data: chunk.toString("binary"),
+        })
+      })
+      stderrStream.on("data", (chunk: Buffer) => {
+        mainWindow?.webContents.send("k8s:pod:exec:output", {
+          sessionId,
+          data: chunk.toString("binary"),
+        })
+      })
+
+      const exec = new Exec(kc)
+      const ws = await exec.exec(
+        namespace,
+        podName,
+        containerName,
+        ["/bin/sh"],
+        stdoutStream,
+        stderrStream,
+        stdinStream,
+        true,
+        (status) => {
+          if (status?.status === "Failure") {
+            console.error("Exec failed:", status.message)
+          }
+        },
+      )
+
+      activeExecSessions.set(sessionId, {
+        ws: ws as ExecWebSocket,
+        stdinStream,
+      })
+      return { success: true }
+    },
+  )
+
+  ipcMain.on(
+    "k8s:pod:exec:input",
+    (_e, { sessionId, data }: { sessionId: string; data: string }) => {
+      const session = activeExecSessions.get(sessionId)
+      if (session) {
+        session.stdinStream.write(data)
+      }
+    },
+  )
+
+  ipcMain.on(
+    "k8s:pod:exec:close",
+    (_e, { sessionId }: { sessionId: string }) => {
+      const session = activeExecSessions.get(sessionId)
+      if (session) {
+        try {
+          session.ws.terminate()
+        } catch (_err) {
+          // ignore
+        }
+        session.stdinStream.end()
+        activeExecSessions.delete(sessionId)
+      }
     },
   )
 

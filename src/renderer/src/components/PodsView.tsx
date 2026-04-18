@@ -1,5 +1,5 @@
 import { dump as yamlDump } from "js-yaml"
-import { FileCode, ScrollText, X } from "lucide-react"
+import { FileCode, ScrollText, SquareTerminal, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Button } from "../../components/ui/button"
@@ -15,6 +15,7 @@ import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { MetaEntry } from "./MetaEntry"
+import { PodMetricsSection } from "./PodMetricsSection"
 import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sPodContainer {
@@ -47,11 +48,17 @@ function DetailPanel({
   pod,
   onClose,
   onLogs,
+  onShell,
 }: {
   pod: K8sPod
   onClose: () => void
   onLogs: () => void
+  onShell: (containerName: string) => void
 }): JSX.Element {
+  const [selectedContainer, setSelectedContainer] = useState(
+    pod.containers[0]?.name ?? "",
+  )
+
   return (
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
@@ -63,6 +70,14 @@ function DetailPanel({
           <Button variant="ghost" size="icon" title="Logs" onClick={onLogs}>
             <ScrollText className="h-4 w-4" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Shell"
+            onClick={() => onShell(selectedContainer)}
+          >
+            <SquareTerminal className="h-4 w-4" />
+          </Button>
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -72,6 +87,25 @@ function DetailPanel({
           </button>
         </div>
       </div>
+
+      {pod.containers.length > 1 && (
+        <div className="space-y-1">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+            Shell Container
+          </h3>
+          <select
+            value={selectedContainer}
+            onChange={(e) => setSelectedContainer(e.target.value)}
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+          >
+            {pod.containers.map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
@@ -140,6 +174,8 @@ function DetailPanel({
           ))}
         </div>
       )}
+
+      <PodMetricsSection namespace={pod.namespace} podName={pod.name} />
     </div>
   )
 }
@@ -282,6 +318,15 @@ export function PodsView(): JSX.Element {
               namespace: selectedItem.namespace,
               podName: selectedItem.name,
               containers: selectedItem.containers,
+            })
+          }
+          onShell={(containerName) =>
+            openDrawerTab({
+              type: "pod-shell",
+              sessionId: crypto.randomUUID(),
+              namespace: selectedItem.namespace,
+              podName: selectedItem.name,
+              containerName,
             })
           }
         />

@@ -41,7 +41,10 @@
     "utf-8-validate": "^6.0.6",
     "ws": "^8.19.0",
     "sonner": "^1.7.4",
-    "zustand": "^5.0.12"
+    "recharts": "^2.15.3",
+    "zustand": "^5.0.12",
+    "@xterm/xterm": "^5.5.0",
+    "@xterm/addon-fit": "^0.10.0"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^2.0.0",

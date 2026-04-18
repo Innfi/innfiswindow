@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { Button } from "../../components/ui/button"
 import { useAppStore } from "../../store/app.store"
 import { PodLogPanel } from "./PodLogPanel"
+import { ShellPanel } from "./ShellPanel"
 
 const TABBAR_HEIGHT = 32
 const DEFAULT_DRAWER_HEIGHT = Math.round(window.innerHeight * 0.4)
@@ -182,7 +183,11 @@ export function BottomDrawer(): JSX.Element {
         {/* Tabs */}
         {drawerTabs.map((tab) => {
           const label =
-            tab.type === "pod-log" ? tab.podName : `New ${tab.resourceKind}`
+            tab.type === "pod-log"
+              ? tab.podName
+              : tab.type === "pod-shell"
+                ? `${tab.podName} / ${tab.containerName}`
+                : `New ${tab.resourceKind}`
           const isActive = tab.id === activeTabId
           return (
             <div
@@ -246,6 +251,14 @@ export function BottomDrawer(): JSX.Element {
               )}
               {tab.type === "new-resource" && (
                 <NewResourcePanel onClose={() => closeDrawerTab(tab.id)} />
+              )}
+              {tab.type === "pod-shell" && (
+                <ShellPanel
+                  sessionId={tab.sessionId}
+                  namespace={tab.namespace}
+                  podName={tab.podName}
+                  containerName={tab.containerName}
+                />
               )}
             </div>
           ))}

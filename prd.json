@@ -860,7 +860,7 @@
     {
       "id": "S47",
       "title": "Pod metrics graphs in pod detail panel",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Display CPU, memory, network, and disk I/O metric graphs inside the pod detail panel. When a pod is selected in the resource list, the detail panel shows a 'Metrics' section with four line charts populated via the `prometheus:pod:metrics` IPC handler. Charts auto-refresh every 60 seconds.",
       "acceptance_criteria": [
         "Pod detail panel includes a 'Metrics' section below the existing pod info",
@@ -878,9 +878,35 @@
       "notes": "Install `recharts` and `@types/recharts` (if needed). Format bytes on Y axis with a custom tick formatter (`bytes => (bytes / 1024 / 1024).toFixed(1) + ' MiB'`). Use `useEffect` with a `setInterval` for auto-refresh; clear interval on unmount. Network chart: two `<Line>` series (Rx = blue, Tx = orange). Disk chart: two `<Line>` series (Read = green, Write = red). Add `window.api.getPrometheusPodMetrics` and `window.api.getPrometheusConfig` / `window.api.setPrometheusConfig` to the preload `contextBridge`."
     },
     {
+      "id": "S49",
+      "title": "Pod shell exec in bottom drawer tab",
+      "status": "complete",
+      "description": "Allow users to open an interactive shell inside a pod container. When a pod is selected in the resource list, a 'Shell' button appears in the pod detail panel. Clicking it opens a resizable bottom drawer containing a terminal tab for that shell session. Multiple sessions can be open simultaneously as tabs in the drawer. The terminal is rendered with xterm.js and connected bidirectionally to the pod via `kubectl exec` using `@kubernetes/client-node`'s `Exec` class over a WebSocket-based stream. Each tab shows the pod name and container name as its label. Closing a tab terminates the underlying shell process.",
+      "acceptance_criteria": [
+        "Pod detail panel shows a 'Shell' button (only visible when a pod is selected)",
+        "Clicking 'Shell' opens the bottom drawer (if not already open) and adds a new terminal tab labeled '<podName> / <containerName>'",
+        "If the pod has multiple containers, a dropdown in the detail panel (or in the tab header) lets the user pick which container to exec into; defaults to first container",
+        "Bottom drawer is resizable (drag handle at the top edge); minimum height 150px, default height 300px",
+        "Each tab renders an xterm.js Terminal with the fit addon; the terminal fills the tab panel width and resizes on drawer resize",
+        "IPC handler `k8s:pod:exec` is registered in the main process using `@kubernetes/client-node` `Exec.exec()` with a WebSocket stream; stdin, stdout, stderr are piped bidirectionally",
+        "Terminal input (keystrokes) is sent from renderer to main via `ipcRenderer.send('k8s:pod:exec:input', { sessionId, data })`; main writes to the exec stdin stream",
+        "Terminal output (stdout + stderr) arrives from main via `ipcRenderer.on('k8s:pod:exec:output', ({ sessionId, data }) => ...)` and is written to the xterm Terminal instance",
+        "Closing a tab sends `ipcRenderer.send('k8s:pod:exec:close', { sessionId })` and main terminates the stream; the tab is removed from the drawer",
+        "When all tabs are closed the bottom drawer hides itself",
+        "No TypeScript compile errors after the changes"
+      ],
+      "dependencies": ["S08"],
+      "ipc_handlers": [
+        "k8s:pod:exec",
+        "k8s:pod:exec:input",
+        "k8s:pod:exec:close"
+      ],
+      "notes": "Install `@xterm/xterm` and `@xterm/addon-fit`. Use `Exec` from `@kubernetes/client-node`; call `exec(namespace, podName, containerName, command, stdout, stderr, stdin, tty, statusCallback)` with `command = ['/bin/sh']` (fall back to `/bin/bash` on error). Use a UUID (`crypto.randomUUID()`) as `sessionId` to correlate IPC messages. Store active sessions in a `Map<sessionId, { stream, webSocket }>` in main process module scope. The bottom drawer and tab strip are new renderer components: `BottomDrawer` (position fixed at bottom, z-index above content) and `ShellTabs` (tab list + panels). Use a Zustand slice or local state to hold `shellSessions: Array<{ sessionId, podName, containerName }>`. Terminal resize: call `fitAddon.fit()` inside a `ResizeObserver` on the drawer panel div."
+    },
+    {
       "id": "S48",
       "title": "Multi-cluster tree view",
-      "status": "incomplete",
+      "status": "pending",
       "description": "Restructure the left sidebar tree view to show all kubeconfig contexts as top-level collapsible nodes. Each context node expands to reveal the existing resource groups (Cluster > Namespaces, Nodes; Workloads > Deployments, ReplicaSets, StatefulSets, DaemonSets, Pods; Networking > Services, Ingresses; Config > ConfigMaps, Secrets; Events). Clicking a resource leaf under a context sets both `selectedContext` and `selectedResourceType` in the Zustand store. All IPC resource-fetch handlers accept an optional `contextName` argument and use a per-context API client cache in the main process. The AppBar context badge reflects the active context. The namespace filter continues to work within the active context.",
       "acceptance_criteria": [
         "Tree view lists every context from kubeconfig as a top-level collapsible node (node label = context name)",

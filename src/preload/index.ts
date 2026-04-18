@@ -203,6 +203,32 @@ const api = {
     ipcRenderer.on("k8s:events:data", handler)
     return () => ipcRenderer.removeListener("k8s:events:data", handler)
   },
+  startPodExec: (
+    sessionId: string,
+    namespace: string,
+    podName: string,
+    containerName: string,
+  ) =>
+    ipcRenderer.invoke("k8s:pod:exec", {
+      sessionId,
+      namespace,
+      podName,
+      containerName,
+    }),
+  sendPodExecInput: (sessionId: string, data: string) =>
+    ipcRenderer.send("k8s:pod:exec:input", { sessionId, data }),
+  closePodExec: (sessionId: string) =>
+    ipcRenderer.send("k8s:pod:exec:close", { sessionId }),
+  onPodExecOutput: (
+    callback: (data: { sessionId: string; data: string }) => void,
+  ) => {
+    const handler = (
+      _e: IpcRendererEvent,
+      data: { sessionId: string; data: string },
+    ) => callback(data)
+    ipcRenderer.on("k8s:pod:exec:output", handler)
+    return () => ipcRenderer.removeListener("k8s:pod:exec:output", handler)
+  },
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

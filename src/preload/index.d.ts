@@ -414,6 +414,17 @@ export interface API {
   startEventsWatch: () => Promise<{ success: boolean }>
   stopEventsWatch: () => Promise<{ success: boolean }>
   onEventsData: (callback: (event: K8sEvent) => void) => () => void
+  startPodExec: (
+    sessionId: string,
+    namespace: string,
+    podName: string,
+    containerName: string,
+  ) => Promise<{ success: boolean }>
+  sendPodExecInput: (sessionId: string, data: string) => void
+  closePodExec: (sessionId: string) => void
+  onPodExecOutput: (
+    callback: (data: { sessionId: string; data: string }) => void,
+  ) => () => void
 }
 
 declare global {
