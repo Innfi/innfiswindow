@@ -282,7 +282,7 @@ app.whenReady().then(() => {
   ipcMain.handle("prometheus:config:get", () => getPrometheusConfig())
   ipcMain.handle(
     "prometheus:config:set",
-    (_e, config: { prometheusUrl: string; prometheusToken: string }) =>
+    (_e, config: { namespace: string; service: string; port: number }) =>
       setPrometheusConfig(config),
   )
   ipcMain.handle(

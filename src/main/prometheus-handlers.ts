@@ -1,10 +1,13 @@
 import { app } from "electron"
 import * as fs from "fs"
 import { join } from "path"
+import { PrometheusDriver, RangeVector, SampleValue } from "prometheus-query"
+import { KubeConfig } from "@kubernetes/client-node"
 
 export interface PrometheusConfig {
-  prometheusUrl: string
-  prometheusToken: string
+  namespace: string
+  service: string
+  port: number
 }
 
 export interface DataPoint {
@@ -25,6 +28,12 @@ export interface PodMetricsError {
   error: string
 }
 
+const DEFAULT_CONFIG: PrometheusConfig = {
+  namespace: "monitoring",
+  service: "prometheus-operated",
+  port: 9090,
+}
+
 function getConfigPath(): string {
   return join(app.getPath("userData"), "prometheus-config.json")
 }
@@ -32,9 +41,12 @@ function getConfigPath(): string {
 function loadConfig(): PrometheusConfig {
   try {
     const raw = fs.readFileSync(getConfigPath(), "utf-8")
-    return JSON.parse(raw) as PrometheusConfig
+    return {
+      ...DEFAULT_CONFIG,
+      ...(JSON.parse(raw) as Partial<PrometheusConfig>),
+    }
   } catch {
-    return { prometheusUrl: "", prometheusToken: "" }
+    return { ...DEFAULT_CONFIG }
   }
 }
 
@@ -53,50 +65,41 @@ export function setPrometheusConfig(config: PrometheusConfig): {
   return { success: true }
 }
 
+async function buildDriver(
+  kc: KubeConfig,
+  config: PrometheusConfig,
+): Promise<PrometheusDriver> {
+  const cluster = kc.getCurrentCluster()
+  if (!cluster) throw new Error("No active k8s cluster")
+
+  const reqOpts: { headers: Record<string, string> } = { headers: {} }
+  await kc.applyToRequest(reqOpts as any)
+  const authHeader = reqOpts.headers["Authorization"]
+
+  const { namespace, service, port } = config
+  const endpoint = `${cluster.server}/api/v1/namespaces/${namespace}/services/http:${service}:${port}/proxy`
+
+  return new PrometheusDriver({
+    endpoint,
+    headers: authHeader ? { Authorization: authHeader } : {},
+  })
+}
+
 async function queryPrometheus(
-  baseUrl: string,
-  token: string,
+  driver: PrometheusDriver,
   query: string,
   start: number,
   end: number,
   step: number,
 ): Promise<DataPoint[]> {
-  const url = new URL("/api/v1/query_range", baseUrl)
-  url.searchParams.set("query", query)
-  url.searchParams.set("start", String(start))
-  url.searchParams.set("end", String(end))
-  url.searchParams.set("step", String(step))
+  const result = await driver.rangeQuery(query, start * 1000, end * 1000, step)
 
-  const headers: Record<string, string> = {}
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`
-  }
+  if (!result.result.length) return []
 
-  const response = await fetch(url.toString(), { headers })
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-  }
-
-  const data = (await response.json()) as {
-    status: string
-    data: {
-      resultType: string
-      result: Array<{
-        metric: Record<string, string>
-        values: Array<[number, string]>
-      }>
-    }
-  }
-
-  if (data.status !== "success") {
-    throw new Error("Prometheus query returned non-success status")
-  }
-
-  if (!data.data.result.length) return []
-
-  return data.data.result[0].values.map(([ts, val]) => ({
-    timestamp: ts,
-    value: parseFloat(val),
+  const rangeVector = result.result[0] as RangeVector
+  return rangeVector.values.map((sv: SampleValue) => ({
+    timestamp: sv.time.getTime() / 1000,
+    value: sv.value,
   }))
 }
 
@@ -107,8 +110,15 @@ export async function getPodMetrics(
   rangeMinutes = 30,
 ): Promise<PodMetricsResult | PodMetricsError> {
   const config = loadConfig()
-  if (!config.prometheusUrl) {
-    return { error: "Prometheus not configured" }
+
+  const kc = new KubeConfig()
+  kc.loadFromDefault()
+
+  let driver: PrometheusDriver
+  try {
+    driver = await buildDriver(kc, config)
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) }
   }
 
   const end = Math.floor(Date.now() / 1000)
@@ -127,54 +137,12 @@ export async function getPodMetrics(
   try {
     const [cpu, memory, networkRx, networkTx, diskRead, diskWrite] =
       await Promise.all([
-        queryPrometheus(
-          config.prometheusUrl,
-          config.prometheusToken,
-          cpuQuery,
-          start,
-          end,
-          step,
-        ),
-        queryPrometheus(
-          config.prometheusUrl,
-          config.prometheusToken,
-          memQuery,
-          start,
-          end,
-          step,
-        ),
-        queryPrometheus(
-          config.prometheusUrl,
-          config.prometheusToken,
-          netRxQuery,
-          start,
-          end,
-          step,
-        ),
-        queryPrometheus(
-          config.prometheusUrl,
-          config.prometheusToken,
-          netTxQuery,
-          start,
-          end,
-          step,
-        ),
-        queryPrometheus(
-          config.prometheusUrl,
-          config.prometheusToken,
-          diskReadQuery,
-          start,
-          end,
-          step,
-        ),
-        queryPrometheus(
-          config.prometheusUrl,
-          config.prometheusToken,
-          diskWriteQuery,
-          start,
-          end,
-          step,
-        ),
+        queryPrometheus(driver, cpuQuery, start, end, step),
+        queryPrometheus(driver, memQuery, start, end, step),
+        queryPrometheus(driver, netRxQuery, start, end, step),
+        queryPrometheus(driver, netTxQuery, start, end, step),
+        queryPrometheus(driver, diskReadQuery, start, end, step),
+        queryPrometheus(driver, diskWriteQuery, start, end, step),
       ])
 
     return { cpu, memory, networkRx, networkTx, diskRead, diskWrite }
