@@ -20,8 +20,9 @@ export function PrometheusSettings({
   open,
   onOpenChange,
 }: PrometheusSettingsProps): JSX.Element {
-  const [url, setUrl] = useState("")
-  const [token, setToken] = useState("")
+  const [namespace, setNamespace] = useState("monitoring")
+  const [service, setService] = useState("prometheus-operated")
+  const [port, setPort] = useState("9090")
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -29,8 +30,9 @@ export function PrometheusSettings({
       window.api
         .getPrometheusConfig()
         .then((cfg) => {
-          setUrl(cfg.prometheusUrl)
-          setToken(cfg.prometheusToken)
+          setNamespace(cfg.namespace)
+          setService(cfg.service)
+          setPort(String(cfg.port))
         })
         .catch(console.error)
     }
@@ -40,8 +42,9 @@ export function PrometheusSettings({
     setSaving(true)
     try {
       await window.api.setPrometheusConfig({
-        prometheusUrl: url,
-        prometheusToken: token,
+        namespace,
+        service,
+        port: parseInt(port, 10),
       })
       onOpenChange(false)
     } catch (e) {
@@ -59,22 +62,30 @@ export function PrometheusSettings({
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="prom-url">Prometheus URL</Label>
+            <Label htmlFor="prom-ns">Namespace</Label>
             <Input
-              id="prom-url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="http://prometheus:9090"
+              id="prom-ns"
+              value={namespace}
+              onChange={(e) => setNamespace(e.target.value)}
+              placeholder="monitoring"
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="prom-token">Bearer Token (optional)</Label>
+            <Label htmlFor="prom-svc">Service</Label>
             <Input
-              id="prom-token"
-              type="password"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              placeholder="eyJhbGci..."
+              id="prom-svc"
+              value={service}
+              onChange={(e) => setService(e.target.value)}
+              placeholder="prometheus-operated"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="prom-port">Port</Label>
+            <Input
+              id="prom-port"
+              value={port}
+              onChange={(e) => setPort(e.target.value)}
+              placeholder="9090"
             />
           </div>
         </div>

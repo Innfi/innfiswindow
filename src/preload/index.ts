@@ -186,8 +186,9 @@ const api = {
   },
   getPrometheusConfig: () => ipcRenderer.invoke("prometheus:config:get"),
   setPrometheusConfig: (config: {
-    prometheusUrl: string
-    prometheusToken: string
+    namespace: string
+    service: string
+    port: number
   }) => ipcRenderer.invoke("prometheus:config:set", config),
   getPrometheusPodMetrics: (args: {
     namespace: string

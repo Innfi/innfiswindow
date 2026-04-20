@@ -397,12 +397,14 @@ export interface API {
     callback: (data: { tabKey: string; line: string }) => void,
   ) => () => void
   getPrometheusConfig: () => Promise<{
-    prometheusUrl: string
-    prometheusToken: string
+    namespace: string
+    service: string
+    port: number
   }>
   setPrometheusConfig: (config: {
-    prometheusUrl: string
-    prometheusToken: string
+    namespace: string
+    service: string
+    port: number
   }) => Promise<{ success: boolean }>
   getPrometheusPodMetrics: (args: {
     namespace: string
