@@ -56,7 +56,7 @@ export function PrometheusSettings({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
+      <DialogContent onClose={() => onOpenChange(false)} className="bg-white">
         <DialogHeader>
           <DialogTitle>Prometheus Settings</DialogTitle>
         </DialogHeader>
@@ -90,9 +90,7 @@ export function PrometheusSettings({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+          <Button onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? "Saving..." : "Save"}
           </Button>

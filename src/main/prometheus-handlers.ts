@@ -29,9 +29,9 @@ export interface PodMetricsError {
 }
 
 const DEFAULT_CONFIG: PrometheusConfig = {
-  namespace: "monitoring",
-  service: "prometheus-operated",
-  port: 9090,
+  namespace: "prometheus",
+  service: "prometheus-server",
+  port: 80,
 }
 
 function getConfigPath(): string {
@@ -79,14 +79,14 @@ async function buildDriver(
 
   const { namespace, service, port } = config
   const endpoint = `${cluster.server}/api/v1/namespaces/${namespace}/services/http:${service}:${port}/proxy`
-  console.log(`endpoint: ${endpoint}`)
 
   return new PrometheusDriver({
     endpoint,
     headers: authHeader ? { Authorization: authHeader } : {},
     requestInterceptor: {
       onFulfilled: (config) => {
-        if (httpsAgent) (config as unknown as Record<string, unknown>).httpsAgent = httpsAgent
+        if (httpsAgent)
+          (config as unknown as Record<string, unknown>).httpsAgent = httpsAgent
         return config
       },
     },
@@ -143,7 +143,7 @@ export async function checkPrometheusConnectivity(): Promise<PrometheusDiscovery
     return { ok: true, endpoint }
   } catch (e) {
     const error =
-      e instanceof Error ? e.message : JSON.stringify(e) ?? String(e)
+      e instanceof Error ? e.message : (JSON.stringify(e) ?? String(e))
     return { ok: false, endpoint, error }
   }
 }
@@ -192,6 +192,8 @@ export async function getPodMetrics(
 
     return { cpu, memory, networkRx, networkTx, diskRead, diskWrite }
   } catch (e) {
-    return { error: e instanceof Error ? e.message : JSON.stringify(e) ?? String(e) }
+    return {
+      error: e instanceof Error ? e.message : (JSON.stringify(e) ?? String(e)),
+    }
   }
 }
