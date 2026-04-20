@@ -46,6 +46,7 @@ import {
   updateStatefulSet,
 } from "./k8s-handlers"
 import {
+  checkPrometheusConnectivity,
   getPodMetrics,
   getPrometheusConfig,
   setPrometheusConfig,
@@ -279,6 +280,9 @@ app.whenReady().then(() => {
     applyResource(kc, yaml),
   )
 
+  ipcMain.handle("prometheus:connectivity:check", () =>
+    checkPrometheusConnectivity(),
+  )
   ipcMain.handle("prometheus:config:get", () => getPrometheusConfig())
   ipcMain.handle(
     "prometheus:config:set",
@@ -506,6 +510,10 @@ app.whenReady().then(() => {
   )
 
   createWindow()
+
+  checkPrometheusConnectivity().then((result) => {
+    console.log("[prometheus] connectivity check:", JSON.stringify(result))
+  })
 
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

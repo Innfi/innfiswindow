@@ -72,16 +72,24 @@ async function buildDriver(
   const cluster = kc.getCurrentCluster()
   if (!cluster) throw new Error("No active k8s cluster")
 
-  const reqOpts: { headers: Record<string, string> } = { headers: {} }
-  await kc.applyToRequest(reqOpts as any)
-  const authHeader = reqOpts.headers["Authorization"]
+  const fetchOpts = await kc.applyToFetchOptions({})
+  const authHeader =
+    (fetchOpts.headers as unknown as Headers).get("Authorization") ?? undefined
+  const httpsAgent = fetchOpts.agent
 
   const { namespace, service, port } = config
   const endpoint = `${cluster.server}/api/v1/namespaces/${namespace}/services/http:${service}:${port}/proxy`
+  console.log(`endpoint: ${endpoint}`)
 
   return new PrometheusDriver({
     endpoint,
     headers: authHeader ? { Authorization: authHeader } : {},
+    requestInterceptor: {
+      onFulfilled: (config) => {
+        if (httpsAgent) (config as unknown as Record<string, unknown>).httpsAgent = httpsAgent
+        return config
+      },
+    },
   })
 }
 
@@ -101,6 +109,43 @@ async function queryPrometheus(
     timestamp: sv.time.getTime() / 1000,
     value: sv.value,
   }))
+}
+
+export interface PrometheusDiscoveryResult {
+  ok: boolean
+  endpoint: string
+  error?: string
+}
+
+export async function checkPrometheusConnectivity(): Promise<PrometheusDiscoveryResult> {
+  const config = loadConfig()
+  const kc = new KubeConfig()
+  kc.loadFromDefault()
+
+  let driver: PrometheusDriver
+  let endpoint: string
+  try {
+    const cluster = kc.getCurrentCluster()
+    if (!cluster) throw new Error("No active k8s cluster")
+    const { namespace, service, port } = config
+    endpoint = `${cluster.server}/api/v1/namespaces/${namespace}/services/http:${service}:${port}/proxy`
+    driver = await buildDriver(kc, config)
+  } catch (e) {
+    return {
+      ok: false,
+      endpoint: "",
+      error: e instanceof Error ? e.message : String(e),
+    }
+  }
+
+  try {
+    await driver.instantQuery("1")
+    return { ok: true, endpoint }
+  } catch (e) {
+    const error =
+      e instanceof Error ? e.message : JSON.stringify(e) ?? String(e)
+    return { ok: false, endpoint, error }
+  }
 }
 
 export async function getPodMetrics(
@@ -147,6 +192,6 @@ export async function getPodMetrics(
 
     return { cpu, memory, networkRx, networkTx, diskRead, diskWrite }
   } catch (e) {
-    return { error: e instanceof Error ? e.message : String(e) }
+    return { error: e instanceof Error ? e.message : JSON.stringify(e) ?? String(e) }
   }
 }
