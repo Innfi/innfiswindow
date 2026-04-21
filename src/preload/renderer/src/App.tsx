@@ -7,6 +7,8 @@ import { handleIpcError } from "../lib/ipc-error"
 import { applyTheme } from "../lib/themes"
 import { useAppStore } from "../store/app.store"
 import { BottomDrawer } from "./components/BottomDrawer"
+import { ClusterRoleBindingsView } from "./components/ClusterRoleBindingsView"
+import { ClusterRolesView } from "./components/ClusterRolesView"
 import { ConfigMapsView } from "./components/ConfigMapsView"
 import { DaemonSetsView } from "./components/DaemonSetsView"
 import { DeploymentsView } from "./components/DeploymentsView"
@@ -17,7 +19,10 @@ import { NodesView } from "./components/NodesView"
 import { PodsView } from "./components/PodsView"
 import { PrometheusSettings } from "./components/PrometheusSettings"
 import { ReplicaSetsView } from "./components/ReplicaSetsView"
+import { RoleBindingsView } from "./components/RoleBindingsView"
+import { RolesView } from "./components/RolesView"
 import { SecretsView } from "./components/SecretsView"
+import { ServiceAccountsView } from "./components/ServiceAccountsView"
 import { ServicesView } from "./components/ServicesView"
 import { StatefulSetsView } from "./components/StatefulSetsView"
 import { TreeView } from "./components/TreeView"
@@ -147,6 +152,15 @@ function App(): JSX.Element {
               {selectedResourceType === "Services" && <ServicesView />}
               {selectedResourceType === "Ingresses" && <IngressesView />}
               {selectedResourceType === "Events" && <EventsView />}
+              {selectedResourceType === "ServiceAccounts" && (
+                <ServiceAccountsView />
+              )}
+              {selectedResourceType === "Roles" && <RolesView />}
+              {selectedResourceType === "ClusterRoles" && <ClusterRolesView />}
+              {selectedResourceType === "RoleBindings" && <RoleBindingsView />}
+              {selectedResourceType === "ClusterRoleBindings" && (
+                <ClusterRoleBindingsView />
+              )}
             </div>
           </div>
 

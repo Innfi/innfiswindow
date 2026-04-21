@@ -13,6 +13,16 @@ const groups = [
   },
   { label: "Configuration", items: ["ConfigMaps", "Secrets"] },
   { label: "Networking", items: ["Services", "Ingresses"] },
+  {
+    label: "Auth",
+    items: [
+      "ServiceAccounts",
+      "Roles",
+      "ClusterRoles",
+      "RoleBindings",
+      "ClusterRoleBindings",
+    ],
+  },
 ]
 
 export function TreeView(): JSX.Element {
@@ -21,6 +31,7 @@ export function TreeView(): JSX.Element {
     Workloads: true,
     Configuration: true,
     Networking: true,
+    Auth: true,
   })
   const selectedResourceType = useAppStore((s) => s.selectedResourceType)
   const setSelectedResourceType = useAppStore((s) => s.setSelectedResourceType)

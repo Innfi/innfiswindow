@@ -6,6 +6,7 @@ import {
   KubernetesObjectApi,
   NetworkingV1Api,
   PatchStrategy,
+  RbacAuthorizationV1Api,
 } from "@kubernetes/client-node"
 
 export async function listServices(api: CoreV1Api) {
@@ -323,6 +324,19 @@ export async function listConfigMaps(api: CoreV1Api) {
       keys: [...dataKeys, ...binaryDataKeys],
     }
   })
+}
+
+export async function listServiceAccounts(api: CoreV1Api) {
+  const res = await api.listServiceAccountForAllNamespaces()
+  return res.items.map((sa) => ({
+    name: sa.metadata?.name ?? "",
+    namespace: sa.metadata?.namespace ?? "",
+    creationTimestamp: sa.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: sa.metadata?.labels ?? {},
+    annotations: sa.metadata?.annotations ?? {},
+    secrets: (sa.secrets ?? []).map((s) => s.name ?? ""),
+    imagePullSecrets: (sa.imagePullSecrets ?? []).map((s) => s.name ?? ""),
+  }))
 }
 
 export async function listSecrets(api: CoreV1Api) {
@@ -698,6 +712,82 @@ export async function deleteIngress(
 ) {
   await api.deleteNamespacedIngress({ name, namespace })
   return { success: true, name, namespace }
+}
+
+export async function listRoles(
+  api: RbacAuthorizationV1Api,
+  namespace?: string,
+) {
+  const res = namespace
+    ? await api.listNamespacedRole({ namespace })
+    : await api.listRoleForAllNamespaces()
+  return res.items.map((r) => ({
+    name: r.metadata?.name ?? "",
+    namespace: r.metadata?.namespace ?? "",
+    rulesCount: (r.rules ?? []).length,
+    creationTimestamp: r.metadata?.creationTimestamp?.toISOString() ?? "",
+    rules: (r.rules ?? []).map((rule) => ({
+      apiGroups: rule.apiGroups ?? [],
+      resources: rule.resources ?? [],
+      verbs: rule.verbs ?? [],
+    })),
+  }))
+}
+
+export async function listClusterRoles(api: RbacAuthorizationV1Api) {
+  const res = await api.listClusterRole()
+  return res.items.map((r) => ({
+    name: r.metadata?.name ?? "",
+    rulesCount: (r.rules ?? []).length,
+    creationTimestamp: r.metadata?.creationTimestamp?.toISOString() ?? "",
+    rules: (r.rules ?? []).map((rule) => ({
+      apiGroups: rule.apiGroups ?? [],
+      resources: rule.resources ?? [],
+      verbs: rule.verbs ?? [],
+    })),
+  }))
+}
+
+export async function listRoleBindings(
+  api: RbacAuthorizationV1Api,
+  namespace?: string,
+) {
+  const res = namespace
+    ? await api.listNamespacedRoleBinding({ namespace })
+    : await api.listRoleBindingForAllNamespaces()
+  return res.items.map((rb) => ({
+    name: rb.metadata?.name ?? "",
+    namespace: rb.metadata?.namespace ?? "",
+    roleRef: {
+      kind: rb.roleRef?.kind ?? "",
+      name: rb.roleRef?.name ?? "",
+    },
+    subjects: (rb.subjects ?? []).map((s) => ({
+      kind: s.kind ?? "",
+      name: s.name ?? "",
+      namespace: s.namespace ?? "",
+    })),
+    subjectsCount: (rb.subjects ?? []).length,
+    creationTimestamp: rb.metadata?.creationTimestamp?.toISOString() ?? "",
+  }))
+}
+
+export async function listClusterRoleBindings(api: RbacAuthorizationV1Api) {
+  const res = await api.listClusterRoleBinding()
+  return res.items.map((crb) => ({
+    name: crb.metadata?.name ?? "",
+    roleRef: {
+      kind: crb.roleRef?.kind ?? "",
+      name: crb.roleRef?.name ?? "",
+    },
+    subjects: (crb.subjects ?? []).map((s) => ({
+      kind: s.kind ?? "",
+      name: s.name ?? "",
+      namespace: s.namespace ?? "",
+    })),
+    subjectsCount: (crb.subjects ?? []).length,
+    creationTimestamp: crb.metadata?.creationTimestamp?.toISOString() ?? "",
+  }))
 }
 
 export async function applyResource(kc: KubeConfig, yamlString: string) {

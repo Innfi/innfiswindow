@@ -9,6 +9,7 @@ import {
   KubeConfig,
   Log,
   NetworkingV1Api,
+  RbacAuthorizationV1Api,
   Watch,
 } from "@kubernetes/client-node"
 
@@ -26,6 +27,8 @@ import {
   deleteStatefulSet,
   getClusterType,
   getCurrentContext,
+  listClusterRoleBindings,
+  listClusterRoles,
   listConfigMaps,
   listContexts,
   listDaemonSets,
@@ -36,7 +39,10 @@ import {
   listNodes,
   listPods,
   listReplicaSets,
+  listRoleBindings,
+  listRoles,
   listSecrets,
+  listServiceAccounts,
   listServices,
   listStatefulSets,
   updateDaemonSet,
@@ -58,9 +64,10 @@ kc.loadFromDefault()
 const coreV1Api = kc.makeApiClient(CoreV1Api)
 const appsV1Api = kc.makeApiClient(AppsV1Api)
 const networkingV1Api = kc.makeApiClient(NetworkingV1Api)
+const rbacV1Api = kc.makeApiClient(RbacAuthorizationV1Api)
 
 // Export for use in other modules if needed
-export { appsV1Api, coreV1Api, kc, networkingV1Api }
+export { appsV1Api, coreV1Api, kc, networkingV1Api, rbacV1Api }
 
 let mainWindow: BrowserWindow | null = null
 const activeLogRequests = new Map<string, { abort: () => void }>()
@@ -129,6 +136,19 @@ app.whenReady().then(() => {
   ipcMain.handle("k8s:statefulsets:list", () => listStatefulSets(appsV1Api))
   ipcMain.handle("k8s:configmaps:list", () => listConfigMaps(coreV1Api))
   ipcMain.handle("k8s:secrets:list", () => listSecrets(coreV1Api))
+  ipcMain.handle("k8s:serviceaccounts:list", () =>
+    listServiceAccounts(coreV1Api),
+  )
+  ipcMain.handle("k8s:roles:list", (_e, args?: { namespace?: string }) =>
+    listRoles(rbacV1Api, args?.namespace),
+  )
+  ipcMain.handle("k8s:clusterroles:list", () => listClusterRoles(rbacV1Api))
+  ipcMain.handle("k8s:rolebindings:list", (_e, args?: { namespace?: string }) =>
+    listRoleBindings(rbacV1Api, args?.namespace),
+  )
+  ipcMain.handle("k8s:clusterrolebindings:list", () =>
+    listClusterRoleBindings(rbacV1Api),
+  )
   ipcMain.handle("k8s:services:list", () => listServices(coreV1Api))
   ipcMain.handle("k8s:ingresses:list", () => listIngresses(networkingV1Api))
   ipcMain.handle("k8s:nodes:list", () => listNodes(coreV1Api))

@@ -11,12 +11,18 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
   },
   renderer: {
+    root: resolve("src/preload/renderer"),
+    build: {
+      rollupOptions: {
+        input: resolve("src/preload/renderer/index.html"),
+      },
+    },
     resolve: {
       alias: {
-        "@renderer": resolve("src/renderer/src"),
-        "@components": resolve("src/renderer/components"),
-        "@lib": resolve("src/renderer/lib"),
-        "@store": resolve("src/renderer/store"),
+        "@renderer": resolve("src/preload/renderer/src"),
+        "@components": resolve("src/preload/renderer/components"),
+        "@lib": resolve("src/preload/renderer/lib"),
+        "@store": resolve("src/preload/renderer/store"),
       },
     },
     plugins: [tailwindcss(), react()],

@@ -923,6 +923,58 @@
       "dependencies": ["S04", "S44"],
       "ipc_handlers": ["k8s:contexts:list"],
       "notes": "Per-context client cache lives in main process module scope (e.g. `const clientCache = new Map()`). Use `kc.makeApiClient(CoreV1Api)` after setting the context. Do not invalidate the cache on each call — reuse existing clients for the same context. Pass `contextName` as the first property of the args object for each IPC handler, e.g. `ipcMain.handle('k8s:pods:list', async (_e, { contextName, namespace }) => {...})`. Renderer calls become e.g. `window.api.listPods({ contextName: selectedContext, namespace: selectedNamespace })`. Update preload contextBridge accordingly. The existing `k8s:contexts:list` handler (S02) already returns all context names — use it to populate the tree on mount."
+    },
+    {
+      "id": "S49",
+      "title": "ServiceAccount list view",
+      "status": "complete",
+      "description": "Add ServiceAccounts as a leaf node under a new 'Auth' group in the sidebar tree. Selecting it shows a table of ServiceAccounts for the selected namespace, with columns: Name, Namespace, Secrets count, Age. Clicking a row shows a detail panel with metadata, secrets list, and imagePullSecrets.",
+      "acceptance_criteria": [
+        "Sidebar tree has an 'Auth' group (after Config) with leaf nodes: ServiceAccounts, Roles, ClusterRoles, RoleBindings, ClusterRoleBindings",
+        "Selecting ServiceAccounts loads and displays a table with columns: Name, Namespace, Secrets, Age",
+        "Table respects the active namespace filter (all namespaces when filter is null)",
+        "Clicking a row opens a detail panel showing: metadata labels/annotations, secrets array, imagePullSecrets array",
+        "IPC handler `k8s:serviceaccounts:list` accepts `{ contextName, namespace }` and returns serialized ServiceAccount objects",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S04", "S48"],
+      "ipc_handlers": ["k8s:serviceaccounts:list"]
+    },
+    {
+      "id": "S50",
+      "title": "Role and ClusterRole list view",
+      "status": "complete",
+      "description": "Add Role and ClusterRole list views under the Auth group. Roles are namespace-scoped; ClusterRoles are cluster-scoped. Each shows a table with Name, Namespace (Roles only), Rules count, Age. Detail panel shows the rules array (verbs, resources, apiGroups).",
+      "acceptance_criteria": [
+        "Selecting 'Roles' shows namespace-scoped Role objects in a table: Name, Namespace, Rules count, Age",
+        "Selecting 'ClusterRoles' shows cluster-scoped ClusterRole objects: Name, Rules count, Age (namespace column omitted)",
+        "Clicking a row shows detail panel with full rules array rendered as a table: apiGroups, resources, verbs",
+        "IPC handler `k8s:roles:list` accepts `{ contextName, namespace }` and returns Role list",
+        "IPC handler `k8s:clusterroles:list` accepts `{ contextName }` and returns ClusterRole list",
+        "Namespace filter applies to Roles; ClusterRoles always show all",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S49"],
+      "ipc_handlers": ["k8s:roles:list", "k8s:clusterroles:list"],
+      "notes": "Use `RbacAuthorizationV1Api` from `@kubernetes/client-node`. Add to per-context client cache alongside CoreV1Api and AppsV1Api."
+    },
+    {
+      "id": "S51",
+      "title": "RoleBinding and ClusterRoleBinding list view",
+      "status": "complete",
+      "description": "Add RoleBinding and ClusterRoleBinding list views under the Auth group. Show bindings with their subjects and roleRef. Detail panel shows full subjects list and roleRef.",
+      "acceptance_criteria": [
+        "Selecting 'RoleBindings' shows namespace-scoped RoleBinding objects: Name, Namespace, Role, Subjects count, Age",
+        "Selecting 'ClusterRoleBindings' shows cluster-scoped objects: Name, Role, Subjects count, Age",
+        "Clicking a row shows detail panel with: roleRef (kind, name), subjects table (kind, name, namespace)",
+        "IPC handler `k8s:rolebindings:list` accepts `{ contextName, namespace }` and returns RoleBinding list",
+        "IPC handler `k8s:clusterrolebindings:list` accepts `{ contextName }` and returns ClusterRoleBinding list",
+        "Namespace filter applies to RoleBindings; ClusterRoleBindings always show all",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S50"],
+      "ipc_handlers": ["k8s:rolebindings:list", "k8s:clusterrolebindings:list"],
+      "notes": "Use `RbacAuthorizationV1Api`. Reuse per-context client cache entry — add `rbacV1: RbacAuthorizationV1Api` alongside existing clients."
     }
   ]
 }

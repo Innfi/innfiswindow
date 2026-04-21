@@ -14,6 +14,14 @@ const api = {
     listDaemonSets: () => ipcRenderer.invoke("k8s:daemonsets:list"),
     listConfigMaps: () => ipcRenderer.invoke("k8s:configmaps:list"),
     listSecrets: () => ipcRenderer.invoke("k8s:secrets:list"),
+    listServiceAccounts: () => ipcRenderer.invoke("k8s:serviceaccounts:list"),
+    listRoles: (args?: { namespace?: string }) =>
+      ipcRenderer.invoke("k8s:roles:list", args),
+    listClusterRoles: () => ipcRenderer.invoke("k8s:clusterroles:list"),
+    listRoleBindings: (args?: { namespace?: string }) =>
+      ipcRenderer.invoke("k8s:rolebindings:list", args),
+    listClusterRoleBindings: () =>
+      ipcRenderer.invoke("k8s:clusterrolebindings:list"),
     listPods: () => ipcRenderer.invoke("k8s:pods:list"),
     listServices: () => ipcRenderer.invoke("k8s:services:list"),
     listIngresses: () => ipcRenderer.invoke("k8s:ingresses:list"),

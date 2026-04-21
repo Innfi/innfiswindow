@@ -236,6 +236,16 @@ export interface K8sEvent {
   creationTimestamp: string
 }
 
+export interface K8sServiceAccount {
+  name: string
+  namespace: string
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+  secrets: string[]
+  imagePullSecrets: string[]
+}
+
 export interface K8sSecret {
   name: string
   namespace: string
@@ -245,6 +255,55 @@ export interface K8sSecret {
   annotations: Record<string, string>
   data: Record<string, string>
   keys: string[]
+}
+
+export interface K8sRoleRule {
+  apiGroups: string[]
+  resources: string[]
+  verbs: string[]
+}
+
+export interface K8sRole {
+  name: string
+  namespace: string
+  rulesCount: number
+  creationTimestamp: string
+  rules: K8sRoleRule[]
+}
+
+export interface K8sClusterRole {
+  name: string
+  rulesCount: number
+  creationTimestamp: string
+  rules: K8sRoleRule[]
+}
+
+export interface K8sBindingSubject {
+  kind: string
+  name: string
+  namespace: string
+}
+
+export interface K8sRoleRef {
+  kind: string
+  name: string
+}
+
+export interface K8sRoleBinding {
+  name: string
+  namespace: string
+  roleRef: K8sRoleRef
+  subjects: K8sBindingSubject[]
+  subjectsCount: number
+  creationTimestamp: string
+}
+
+export interface K8sClusterRoleBinding {
+  name: string
+  roleRef: K8sRoleRef
+  subjects: K8sBindingSubject[]
+  subjectsCount: number
+  creationTimestamp: string
 }
 
 export interface DataPoint {
@@ -272,6 +331,11 @@ export interface K8sAPI {
   listDaemonSets: () => Promise<K8sDaemonSet[]>
   listConfigMaps: () => Promise<K8sConfigMap[]>
   listSecrets: () => Promise<K8sSecret[]>
+  listServiceAccounts: () => Promise<K8sServiceAccount[]>
+  listRoles: (args?: { namespace?: string }) => Promise<K8sRole[]>
+  listClusterRoles: () => Promise<K8sClusterRole[]>
+  listRoleBindings: (args?: { namespace?: string }) => Promise<K8sRoleBinding[]>
+  listClusterRoleBindings: () => Promise<K8sClusterRoleBinding[]>
   listPods: () => Promise<K8sPod[]>
   listServices: () => Promise<K8sService[]>
   listIngresses: () => Promise<K8sIngress[]>
