@@ -443,6 +443,24 @@ export interface K8sAPI {
     name: string,
   ) => Promise<{ success: boolean; name: string; namespace: string }>
   applyResource: (yaml: string) => Promise<{ name: string; namespace: string }>
+  updateRole: (
+    namespace: string,
+    name: string,
+    rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
+  ) => Promise<{ name: string; namespace: string; rules: K8sRoleRule[] }>
+  updateClusterRole: (
+    name: string,
+    rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
+  ) => Promise<{ name: string; rules: K8sRoleRule[] }>
+  updateRoleBinding: (
+    namespace: string,
+    name: string,
+    subjects: Array<{ kind: string; name: string; namespace?: string }>,
+  ) => Promise<{ name: string; namespace: string; subjects: K8sBindingSubject[] }>
+  updateClusterRoleBinding: (
+    name: string,
+    subjects: Array<{ kind: string; name: string; namespace?: string }>,
+  ) => Promise<{ name: string; subjects: K8sBindingSubject[] }>
 }
 
 export interface API {

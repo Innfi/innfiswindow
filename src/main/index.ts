@@ -45,9 +45,13 @@ import {
   listServiceAccounts,
   listServices,
   listStatefulSets,
+  updateClusterRole,
+  updateClusterRoleBinding,
   updateDaemonSet,
   updateDeployment,
   updateIngress,
+  updateRole,
+  updateRoleBinding,
   updateService,
   updateStatefulSet,
 } from "./k8s-handlers"
@@ -148,6 +152,40 @@ app.whenReady().then(() => {
   )
   ipcMain.handle("k8s:clusterrolebindings:list", () =>
     listClusterRoleBindings(rbacV1Api),
+  )
+  ipcMain.handle(
+    "k8s:role:update",
+    (
+      _e,
+      namespace: string,
+      name: string,
+      rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
+    ) => updateRole(rbacV1Api, namespace, name, rules),
+  )
+  ipcMain.handle(
+    "k8s:clusterrole:update",
+    (
+      _e,
+      name: string,
+      rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
+    ) => updateClusterRole(rbacV1Api, name, rules),
+  )
+  ipcMain.handle(
+    "k8s:rolebinding:update",
+    (
+      _e,
+      namespace: string,
+      name: string,
+      subjects: Array<{ kind: string; name: string; namespace?: string }>,
+    ) => updateRoleBinding(rbacV1Api, namespace, name, subjects),
+  )
+  ipcMain.handle(
+    "k8s:clusterrolebinding:update",
+    (
+      _e,
+      name: string,
+      subjects: Array<{ kind: string; name: string; namespace?: string }>,
+    ) => updateClusterRoleBinding(rbacV1Api, name, subjects),
   )
   ipcMain.handle("k8s:services:list", () => listServices(coreV1Api))
   ipcMain.handle("k8s:ingresses:list", () => listIngresses(networkingV1Api))

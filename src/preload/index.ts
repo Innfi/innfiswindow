@@ -22,6 +22,24 @@ const api = {
       ipcRenderer.invoke("k8s:rolebindings:list", args),
     listClusterRoleBindings: () =>
       ipcRenderer.invoke("k8s:clusterrolebindings:list"),
+    updateRole: (
+      namespace: string,
+      name: string,
+      rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
+    ) => ipcRenderer.invoke("k8s:role:update", namespace, name, rules),
+    updateClusterRole: (
+      name: string,
+      rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
+    ) => ipcRenderer.invoke("k8s:clusterrole:update", name, rules),
+    updateRoleBinding: (
+      namespace: string,
+      name: string,
+      subjects: Array<{ kind: string; name: string; namespace?: string }>,
+    ) => ipcRenderer.invoke("k8s:rolebinding:update", namespace, name, subjects),
+    updateClusterRoleBinding: (
+      name: string,
+      subjects: Array<{ kind: string; name: string; namespace?: string }>,
+    ) => ipcRenderer.invoke("k8s:clusterrolebinding:update", name, subjects),
     listPods: () => ipcRenderer.invoke("k8s:pods:list"),
     listServices: () => ipcRenderer.invoke("k8s:services:list"),
     listIngresses: () => ipcRenderer.invoke("k8s:ingresses:list"),

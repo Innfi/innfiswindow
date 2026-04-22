@@ -975,6 +975,45 @@
       "dependencies": ["S50"],
       "ipc_handlers": ["k8s:rolebindings:list", "k8s:clusterrolebindings:list"],
       "notes": "Use `RbacAuthorizationV1Api`. Reuse per-context client cache entry — add `rbacV1: RbacAuthorizationV1Api` alongside existing clients."
+    },
+    {
+      "id": "S52",
+      "title": "Role and ClusterRole edit",
+      "status": "complete",
+      "description": "Allow users to edit the rules of an existing Role or ClusterRole. The detail panel gains an Edit button that opens a modal with a YAML editor pre-populated with the current rules array. On save, the updated rules are applied via the k8s API.",
+      "acceptance_criteria": [
+        "Detail panel for Role and ClusterRole shows an 'Edit' button",
+        "Clicking Edit opens a modal with a YAML textarea pre-filled with the current rules array (JSON or YAML)",
+        "User can modify verbs, resources, and apiGroups in the textarea",
+        "Clicking Save calls IPC handler `k8s:role:update` (or `k8s:clusterrole:update`) with the parsed rules",
+        "On success, detail panel refreshes to show updated rules",
+        "On error, a toast notification shows the error message; modal stays open",
+        "Cancel closes the modal without saving",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S50"],
+      "ipc_handlers": ["k8s:role:update", "k8s:clusterrole:update"],
+      "notes": "Use `RbacAuthorizationV1Api` `patchNamespacedRole` / `patchClusterRole` with strategic merge patch. Parse textarea as YAML using `js-yaml`. Only the `rules` field is editable; metadata is read-only."
+    },
+    {
+      "id": "S53",
+      "title": "RoleBinding and ClusterRoleBinding edit",
+      "status": "complete",
+      "description": "Allow users to edit the subjects of an existing RoleBinding or ClusterRoleBinding. The detail panel gains an Edit button that opens a modal with a YAML editor pre-populated with the current subjects array. On save, the updated subjects are applied via the k8s API. The roleRef field is read-only (k8s enforces immutability).",
+      "acceptance_criteria": [
+        "Detail panel for RoleBinding and ClusterRoleBinding shows an 'Edit' button",
+        "Clicking Edit opens a modal with a YAML textarea pre-filled with the current subjects array",
+        "User can add, remove, or modify subjects (kind, name, namespace) in the textarea",
+        "Clicking Save calls IPC handler `k8s:rolebinding:update` (or `k8s:clusterrolebinding:update`) with the parsed subjects",
+        "On success, detail panel refreshes to show updated subjects",
+        "On error, a toast notification shows the error message; modal stays open",
+        "Cancel closes the modal without saving",
+        "roleRef is displayed as read-only text in the modal — not editable",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S51"],
+      "ipc_handlers": ["k8s:rolebinding:update", "k8s:clusterrolebinding:update"],
+      "notes": "Use `RbacAuthorizationV1Api` `patchNamespacedRoleBinding` / `patchClusterRoleBinding` with strategic merge patch. Parse textarea as YAML using `js-yaml`. Only `subjects` is editable; `roleRef` is immutable in k8s and must not be patched."
     }
   ]
 }

@@ -790,6 +790,78 @@ export async function listClusterRoleBindings(api: RbacAuthorizationV1Api) {
   }))
 }
 
+export async function updateRole(
+  api: RbacAuthorizationV1Api,
+  namespace: string,
+  name: string,
+  rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
+) {
+  const body = { rules }
+  const res = await api.patchNamespacedRole({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+    rules: (res.rules ?? []).map((rule) => ({
+      apiGroups: rule.apiGroups ?? [],
+      resources: rule.resources ?? [],
+      verbs: rule.verbs ?? [],
+    })),
+  }
+}
+
+export async function updateClusterRole(
+  api: RbacAuthorizationV1Api,
+  name: string,
+  rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
+) {
+  const body = { rules }
+  const res = await api.patchClusterRole({ name, body })
+  return {
+    name: res.metadata?.name ?? "",
+    rules: (res.rules ?? []).map((rule) => ({
+      apiGroups: rule.apiGroups ?? [],
+      resources: rule.resources ?? [],
+      verbs: rule.verbs ?? [],
+    })),
+  }
+}
+
+export async function updateRoleBinding(
+  api: RbacAuthorizationV1Api,
+  namespace: string,
+  name: string,
+  subjects: Array<{ kind: string; name: string; namespace?: string }>,
+) {
+  const body = { subjects }
+  const res = await api.patchNamespacedRoleBinding({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+    subjects: (res.subjects ?? []).map((s) => ({
+      kind: s.kind ?? "",
+      name: s.name ?? "",
+      namespace: s.namespace ?? "",
+    })),
+  }
+}
+
+export async function updateClusterRoleBinding(
+  api: RbacAuthorizationV1Api,
+  name: string,
+  subjects: Array<{ kind: string; name: string; namespace?: string }>,
+) {
+  const body = { subjects }
+  const res = await api.patchClusterRoleBinding({ name, body })
+  return {
+    name: res.metadata?.name ?? "",
+    subjects: (res.subjects ?? []).map((s) => ({
+      kind: s.kind ?? "",
+      name: s.name ?? "",
+      namespace: s.namespace ?? "",
+    })),
+  }
+}
+
 export async function applyResource(kc: KubeConfig, yamlString: string) {
   const obj = yamlLoad(yamlString) as Record<string, unknown>
   if (!obj || typeof obj !== "object") {
