@@ -1014,6 +1014,25 @@
       "dependencies": ["S51"],
       "ipc_handlers": ["k8s:rolebinding:update", "k8s:clusterrolebinding:update"],
       "notes": "Use `RbacAuthorizationV1Api` `patchNamespacedRoleBinding` / `patchClusterRoleBinding` with strategic merge patch. Parse textarea as YAML using `js-yaml`. Only `subjects` is editable; `roleRef` is immutable in k8s and must not be patched."
+    },
+    {
+      "id": "S54",
+      "title": "EKS credential check",
+      "status": "incomplete",
+      "description": "Before connecting to an EKS cluster, verify that valid AWS credentials exist in the environment. The app must detect either static credentials (AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY) or temporary credentials (AWS_SESSION_TOKEN alongside the static keys, or credentials loaded from ~/.aws/credentials / instance metadata). If no usable credentials are found, show a clear error message rather than silently failing on the first k8s API call.",
+      "acceptance_criteria": [
+        "On app startup, an IPC handler `aws:credentials:check` is registered in the main process",
+        "The handler checks, in order: environment variables (AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY), ~/.aws/credentials file (default profile or AWS_PROFILE), and instance/container metadata (IMDSv2 / ECS task role)",
+        "Handler returns `{ valid: true, type: 'env' | 'file' | 'metadata' | 'none' }` — never throws",
+        "If `valid` is false, the renderer shows a non-dismissible warning banner: 'No AWS credentials found. EKS clusters may not be accessible.'",
+        "If `valid` is true and `type` is `'env'` with AWS_SESSION_TOKEN set, the banner shows an info notice: 'Using temporary AWS credentials.'",
+        "If `valid` is true with static or file/metadata credentials, no banner is shown",
+        "Credential check runs once at startup; a 'Re-check' button in the banner triggers it again",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S02"],
+      "ipc_handlers": ["aws:credentials:check"],
+      "notes": "Do NOT use the AWS SDK — read credentials purely from env vars and ~/.aws/credentials (INI parse). For metadata, attempt a HEAD to http://169.254.169.254/latest/meta-data/ with a 1-second timeout; if it responds, treat as valid metadata credentials. Renderer should call this handler on mount via useEffect."
     }
   ]
 }
