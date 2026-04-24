@@ -154,11 +154,7 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">ClusterRole</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setEditOpen(true)}
-          >
+          <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
             <Pencil className="h-3 w-3 mr-1" />
             Edit
           </Button>
@@ -251,7 +247,11 @@ export function ClusterRolesView(): JSX.Element {
 
   function handleRulesUpdated(updatedRules: K8sRoleRule[]): void {
     if (!selectedItem) return
-    const updated = { ...selectedItem, rules: updatedRules, rulesCount: updatedRules.length }
+    const updated = {
+      ...selectedItem,
+      rules: updatedRules,
+      rulesCount: updatedRules.length,
+    }
     setClusterRoles((prev) =>
       prev.map((r) => (r.name === updated.name ? updated : r)),
     )

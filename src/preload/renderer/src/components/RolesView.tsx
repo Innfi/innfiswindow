@@ -158,11 +158,7 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setEditOpen(true)}
-          >
+          <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
             <Pencil className="h-3 w-3 mr-1" />
             Edit
           </Button>
@@ -250,10 +246,16 @@ export function RolesView(): JSX.Element {
 
   function handleRulesUpdated(updatedRules: K8sRoleRule[]): void {
     if (!selectedItem) return
-    const updated = { ...selectedItem, rules: updatedRules, rulesCount: updatedRules.length }
+    const updated = {
+      ...selectedItem,
+      rules: updatedRules,
+      rulesCount: updatedRules.length,
+    }
     setRoles((prev) =>
       prev.map((r) =>
-        r.name === updated.name && r.namespace === updated.namespace ? updated : r,
+        r.name === updated.name && r.namespace === updated.namespace
+          ? updated
+          : r,
       ),
     )
     setSelectedItem(updated)

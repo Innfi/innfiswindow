@@ -456,15 +456,26 @@ export interface K8sAPI {
     namespace: string,
     name: string,
     subjects: Array<{ kind: string; name: string; namespace?: string }>,
-  ) => Promise<{ name: string; namespace: string; subjects: K8sBindingSubject[] }>
+  ) => Promise<{
+    name: string
+    namespace: string
+    subjects: K8sBindingSubject[]
+  }>
   updateClusterRoleBinding: (
     name: string,
     subjects: Array<{ kind: string; name: string; namespace?: string }>,
   ) => Promise<{ name: string; subjects: K8sBindingSubject[] }>
 }
 
+export interface AwsCredentialResult {
+  valid: boolean
+  type: "env" | "file" | "metadata" | "none"
+  hasSessionToken?: boolean
+}
+
 export interface API {
   k8s: K8sAPI
+  checkAwsCredentials: () => Promise<AwsCredentialResult>
   startPodLog: (
     namespace: string,
     podName: string,

@@ -13,6 +13,7 @@ import {
   Watch,
 } from "@kubernetes/client-node"
 
+import { checkAwsCredentials } from "./aws-handlers"
 import {
   applyResource,
   createDaemonSet,
@@ -159,7 +160,11 @@ app.whenReady().then(() => {
       _e,
       namespace: string,
       name: string,
-      rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
+      rules: Array<{
+        apiGroups: string[]
+        resources: string[]
+        verbs: string[]
+      }>,
     ) => updateRole(rbacV1Api, namespace, name, rules),
   )
   ipcMain.handle(
@@ -167,7 +172,11 @@ app.whenReady().then(() => {
     (
       _e,
       name: string,
-      rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
+      rules: Array<{
+        apiGroups: string[]
+        resources: string[]
+        verbs: string[]
+      }>,
     ) => updateClusterRole(rbacV1Api, name, rules),
   )
   ipcMain.handle(
@@ -337,6 +346,8 @@ app.whenReady().then(() => {
   ipcMain.handle("k8s:resource:apply", (_e, yaml: string) =>
     applyResource(kc, yaml),
   )
+
+  ipcMain.handle("aws:credentials:check", () => checkAwsCredentials())
 
   ipcMain.handle("prometheus:connectivity:check", () =>
     checkPrometheusConnectivity(),

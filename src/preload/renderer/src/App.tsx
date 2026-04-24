@@ -6,6 +6,7 @@ import { Toaster } from "../components/ui/sonner"
 import { handleIpcError } from "../lib/ipc-error"
 import { applyTheme } from "../lib/themes"
 import { useAppStore } from "../store/app.store"
+import { AwsCredentialBanner } from "./components/AwsCredentialBanner"
 import { BottomDrawer } from "./components/BottomDrawer"
 import { ClusterRoleBindingsView } from "./components/ClusterRoleBindingsView"
 import { ClusterRolesView } from "./components/ClusterRolesView"
@@ -49,6 +50,22 @@ function App(): JSX.Element {
   const nameFilter = useAppStore((s) => s.nameFilter)
   const setNameFilter = useAppStore((s) => s.setNameFilter)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [awsCredResult, setAwsCredResult] = useState<{
+    valid: boolean
+    type: "env" | "file" | "metadata" | "none"
+    hasSessionToken?: boolean
+  } | null>(null)
+
+  const runAwsCredCheck = (): void => {
+    window.api
+      .checkAwsCredentials()
+      .then(setAwsCredResult)
+      .catch(() => setAwsCredResult({ valid: false, type: "none" }))
+  }
+
+  useEffect(() => {
+    runAwsCredCheck()
+  }, [])
 
   // Apply theme on mount and whenever themeId or colorScheme changes
   useEffect(() => {
@@ -128,6 +145,12 @@ function App(): JSX.Element {
             </span>
           )}
         </div>
+
+        {/* AWS credential banner */}
+        <AwsCredentialBanner
+          result={awsCredResult}
+          onRecheck={runAwsCredCheck}
+        />
 
         {/* Body */}
         <div className="flex flex-1 flex-col overflow-hidden">

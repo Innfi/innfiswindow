@@ -1012,13 +1012,16 @@
         "No TypeScript compile errors"
       ],
       "dependencies": ["S51"],
-      "ipc_handlers": ["k8s:rolebinding:update", "k8s:clusterrolebinding:update"],
+      "ipc_handlers": [
+        "k8s:rolebinding:update",
+        "k8s:clusterrolebinding:update"
+      ],
       "notes": "Use `RbacAuthorizationV1Api` `patchNamespacedRoleBinding` / `patchClusterRoleBinding` with strategic merge patch. Parse textarea as YAML using `js-yaml`. Only `subjects` is editable; `roleRef` is immutable in k8s and must not be patched."
     },
     {
       "id": "S54",
       "title": "EKS credential check",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Before connecting to an EKS cluster, verify that valid AWS credentials exist in the environment. The app must detect either static credentials (AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY) or temporary credentials (AWS_SESSION_TOKEN alongside the static keys, or credentials loaded from ~/.aws/credentials / instance metadata). If no usable credentials are found, show a clear error message rather than silently failing on the first k8s API call.",
       "acceptance_criteria": [
         "On app startup, an IPC handler `aws:credentials:check` is registered in the main process",

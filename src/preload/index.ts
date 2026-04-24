@@ -25,17 +25,26 @@ const api = {
     updateRole: (
       namespace: string,
       name: string,
-      rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
+      rules: Array<{
+        apiGroups: string[]
+        resources: string[]
+        verbs: string[]
+      }>,
     ) => ipcRenderer.invoke("k8s:role:update", namespace, name, rules),
     updateClusterRole: (
       name: string,
-      rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
+      rules: Array<{
+        apiGroups: string[]
+        resources: string[]
+        verbs: string[]
+      }>,
     ) => ipcRenderer.invoke("k8s:clusterrole:update", name, rules),
     updateRoleBinding: (
       namespace: string,
       name: string,
       subjects: Array<{ kind: string; name: string; namespace?: string }>,
-    ) => ipcRenderer.invoke("k8s:rolebinding:update", namespace, name, subjects),
+    ) =>
+      ipcRenderer.invoke("k8s:rolebinding:update", namespace, name, subjects),
     updateClusterRoleBinding: (
       name: string,
       subjects: Array<{ kind: string; name: string; namespace?: string }>,
@@ -222,6 +231,7 @@ const api = {
     step?: number
     rangeMinutes?: number
   }) => ipcRenderer.invoke("prometheus:pod:metrics", args),
+  checkAwsCredentials: () => ipcRenderer.invoke("aws:credentials:check"),
   listEvents: () => ipcRenderer.invoke("k8s:events:list"),
   startEventsWatch: () => ipcRenderer.invoke("k8s:events:watch:start"),
   stopEventsWatch: () => ipcRenderer.invoke("k8s:events:watch:stop"),

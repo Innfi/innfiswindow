@@ -166,11 +166,7 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setEditOpen(true)}
-          >
+          <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
             <Pencil className="h-3 w-3 mr-1" />
             Edit
           </Button>
