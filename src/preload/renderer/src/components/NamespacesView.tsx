@@ -98,6 +98,7 @@ export function NamespacesView(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sNamespace | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visibleNamespaces = filterResources(namespaces, nameFilter)
@@ -106,7 +107,7 @@ export function NamespacesView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listNamespaces()
+      .listNamespaces({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setNamespaces(data)
         setLoading(false)
@@ -116,7 +117,7 @@ export function NamespacesView(): JSX.Element {
         setError(String(err))
         setLoading(false)
       })
-  }, [])
+  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">

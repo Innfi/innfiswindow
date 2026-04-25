@@ -49,6 +49,7 @@ interface AppState {
   selectedResourceType: string | null
   selectedItem: object | null
   selectedNamespace: string | null
+  selectedContext: string | null
   nameFilter: string
   themeId: string
   drawerTabs: DrawerTab[]
@@ -56,6 +57,7 @@ interface AppState {
   setSelectedResourceType: (type: string | null) => void
   setSelectedItem: (item: object | null) => void
   setSelectedNamespace: (ns: string | null) => void
+  setSelectedContext: (ctx: string | null) => void
   setNameFilter: (filter: string) => void
   setThemeId: (id: string) => void
   openDrawerTab: (tab: DrawerTabInput) => void
@@ -69,6 +71,7 @@ export const useAppStore = create<AppState>()(
       selectedResourceType: null,
       selectedItem: null,
       selectedNamespace: null,
+      selectedContext: null,
       nameFilter: "",
       themeId: "default",
       drawerTabs: [],
@@ -77,6 +80,8 @@ export const useAppStore = create<AppState>()(
         set({ selectedResourceType: type, selectedItem: null }),
       setSelectedItem: (item) => set({ selectedItem: item }),
       setSelectedNamespace: (ns) => set({ selectedNamespace: ns }),
+      setSelectedContext: (ctx) =>
+        set({ selectedContext: ctx, selectedNamespace: null }),
       setNameFilter: (filter) => set({ nameFilter: filter }),
       setThemeId: (id) => set({ themeId: id }),
       openDrawerTab: (tabData: DrawerTabInput) => {

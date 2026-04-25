@@ -4,6 +4,7 @@ export interface K8sContext {
   name: string
   cluster: string
   user: string
+  clusterType: "EKS" | "AKS" | "Local"
 }
 
 export interface K8sNamespace {
@@ -323,22 +324,36 @@ export interface PodMetricsResult {
 export interface K8sAPI {
   listContexts: () => Promise<K8sContext[]>
   getCurrentContext: () => Promise<string>
-  listNamespaces: () => Promise<K8sNamespace[]>
-  listNodes: () => Promise<K8sNode[]>
-  listDeployments: () => Promise<K8sDeployment[]>
-  listReplicaSets: () => Promise<K8sReplicaSet[]>
-  listStatefulSets: () => Promise<K8sStatefulSet[]>
-  listDaemonSets: () => Promise<K8sDaemonSet[]>
-  listConfigMaps: () => Promise<K8sConfigMap[]>
-  listSecrets: () => Promise<K8sSecret[]>
-  listServiceAccounts: () => Promise<K8sServiceAccount[]>
-  listRoles: (args?: { namespace?: string }) => Promise<K8sRole[]>
-  listClusterRoles: () => Promise<K8sClusterRole[]>
-  listRoleBindings: (args?: { namespace?: string }) => Promise<K8sRoleBinding[]>
-  listClusterRoleBindings: () => Promise<K8sClusterRoleBinding[]>
-  listPods: () => Promise<K8sPod[]>
-  listServices: () => Promise<K8sService[]>
-  listIngresses: () => Promise<K8sIngress[]>
+  listNamespaces: (args?: { contextName?: string }) => Promise<K8sNamespace[]>
+  listNodes: (args?: { contextName?: string }) => Promise<K8sNode[]>
+  listDeployments: (args?: { contextName?: string }) => Promise<K8sDeployment[]>
+  listReplicaSets: (args?: { contextName?: string }) => Promise<K8sReplicaSet[]>
+  listStatefulSets: (args?: {
+    contextName?: string
+  }) => Promise<K8sStatefulSet[]>
+  listDaemonSets: (args?: { contextName?: string }) => Promise<K8sDaemonSet[]>
+  listConfigMaps: (args?: { contextName?: string }) => Promise<K8sConfigMap[]>
+  listSecrets: (args?: { contextName?: string }) => Promise<K8sSecret[]>
+  listServiceAccounts: (args?: {
+    contextName?: string
+  }) => Promise<K8sServiceAccount[]>
+  listRoles: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sRole[]>
+  listClusterRoles: (args?: {
+    contextName?: string
+  }) => Promise<K8sClusterRole[]>
+  listRoleBindings: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sRoleBinding[]>
+  listClusterRoleBindings: (args?: {
+    contextName?: string
+  }) => Promise<K8sClusterRoleBinding[]>
+  listPods: (args?: { contextName?: string }) => Promise<K8sPod[]>
+  listServices: (args?: { contextName?: string }) => Promise<K8sService[]>
+  listIngresses: (args?: { contextName?: string }) => Promise<K8sIngress[]>
   getClusterType: () => Promise<"EKS" | "AKS" | "Local">
   createDeployment: (
     namespace: string,
@@ -505,7 +520,7 @@ export interface API {
     step?: number
     rangeMinutes?: number
   }) => Promise<PodMetricsResult | { error: string }>
-  listEvents: () => Promise<K8sEvent[]>
+  listEvents: (args?: { contextName?: string }) => Promise<K8sEvent[]>
   startEventsWatch: () => Promise<{ success: boolean }>
   stopEventsWatch: () => Promise<{ success: boolean }>
   onEventsData: (callback: (event: K8sEvent) => void) => () => void

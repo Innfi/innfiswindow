@@ -251,6 +251,7 @@ export function DeploymentsView(): JSX.Element {
   ) as K8sDeployment | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visibleDeployments = filterResources(
@@ -263,7 +264,7 @@ export function DeploymentsView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listDeployments()
+      .listDeployments({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setDeployments(data)
         setLoading(false)
@@ -277,7 +278,7 @@ export function DeploymentsView(): JSX.Element {
 
   useEffect(() => {
     fetchDeployments()
-  }, [])
+  }, [selectedContext])
 
   function openEditYaml(d: K8sDeployment): void {
     const obj = {

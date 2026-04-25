@@ -11,6 +11,7 @@ import {
 } from "../../components/ui/table"
 import { handleIpcError } from "../../lib/ipc-error"
 import { cn, formatAge } from "../../lib/utils"
+import { useAppStore } from "../../store/app.store"
 
 interface K8sEvent {
   name: string
@@ -33,18 +34,21 @@ export function EventsView(): JSX.Element {
   const [isTailing, setIsTailing] = useState(false)
   const [loading, setLoading] = useState(false)
   const unsubRef = useRef<(() => void) | null>(null)
+  const selectedContext = useAppStore((s) => s.selectedContext)
 
   const fetchEvents = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await window.api.listEvents()
+      const data = await window.api.listEvents({
+        contextName: selectedContext ?? undefined,
+      })
       setEvents(data)
     } catch (err) {
       handleIpcError(err, "events")
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [selectedContext])
 
   useEffect(() => {
     fetchEvents()

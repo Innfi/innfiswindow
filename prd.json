@@ -906,7 +906,7 @@
     {
       "id": "S48",
       "title": "Multi-cluster tree view",
-      "status": "pending",
+      "status": "complete",
       "description": "Restructure the left sidebar tree view to show all kubeconfig contexts as top-level collapsible nodes. Each context node expands to reveal the existing resource groups (Cluster > Namespaces, Nodes; Workloads > Deployments, ReplicaSets, StatefulSets, DaemonSets, Pods; Networking > Services, Ingresses; Config > ConfigMaps, Secrets; Events). Clicking a resource leaf under a context sets both `selectedContext` and `selectedResourceType` in the Zustand store. All IPC resource-fetch handlers accept an optional `contextName` argument and use a per-context API client cache in the main process. The AppBar context badge reflects the active context. The namespace filter continues to work within the active context.",
       "acceptance_criteria": [
         "Tree view lists every context from kubeconfig as a top-level collapsible node (node label = context name)",

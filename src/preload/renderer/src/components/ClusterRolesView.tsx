@@ -221,6 +221,7 @@ export function ClusterRolesView(): JSX.Element {
     (s) => s.selectedItem,
   ) as K8sClusterRole | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visible = nameFilter
@@ -233,7 +234,7 @@ export function ClusterRolesView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listClusterRoles()
+      .listClusterRoles({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setClusterRoles(data)
         setLoading(false)
@@ -243,7 +244,7 @@ export function ClusterRolesView(): JSX.Element {
         setError(String(err))
         setLoading(false)
       })
-  }, [])
+  }, [selectedContext])
 
   function handleRulesUpdated(updatedRules: K8sRoleRule[]): void {
     if (!selectedItem) return

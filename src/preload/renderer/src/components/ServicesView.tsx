@@ -267,6 +267,7 @@ export function ServicesView(): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sService | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visibleServices = filterResources(
@@ -309,7 +310,7 @@ export function ServicesView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listServices()
+      .listServices({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setServices(data)
         setLoading(false)
@@ -323,7 +324,7 @@ export function ServicesView(): JSX.Element {
 
   useEffect(() => {
     fetchServices()
-  }, [])
+  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">

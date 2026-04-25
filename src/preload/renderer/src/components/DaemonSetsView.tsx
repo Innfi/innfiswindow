@@ -242,6 +242,7 @@ export function DaemonSetsView(): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sDaemonSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visibleDaemonSets = filterResources(
@@ -254,7 +255,7 @@ export function DaemonSetsView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listDaemonSets()
+      .listDaemonSets({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setDaemonSets(data)
         setLoading(false)
@@ -268,7 +269,7 @@ export function DaemonSetsView(): JSX.Element {
 
   useEffect(() => {
     fetchDaemonSets()
-  }, [])
+  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">

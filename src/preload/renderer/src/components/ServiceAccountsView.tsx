@@ -126,6 +126,7 @@ export function ServiceAccountsView(): JSX.Element {
   ) as K8sServiceAccount | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visible = filterResources(
@@ -138,7 +139,7 @@ export function ServiceAccountsView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listServiceAccounts()
+      .listServiceAccounts({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setServiceAccounts(data)
         setLoading(false)
@@ -148,7 +149,7 @@ export function ServiceAccountsView(): JSX.Element {
         setError(String(err))
         setLoading(false)
       })
-  }, [])
+  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">

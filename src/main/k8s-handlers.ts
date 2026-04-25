@@ -107,9 +107,20 @@ export async function listEvents(api: CoreV1Api) {
 }
 
 export function listContexts(kc: KubeConfig) {
-  return kc
-    .getContexts()
-    .map((ctx) => ({ name: ctx.name, cluster: ctx.cluster, user: ctx.user }))
+  const clusters = kc.getClusters()
+  const users = kc.getUsers()
+  return kc.getContexts().map((ctx) => {
+    const cluster = clusters.find((c) => c.name === ctx.cluster)
+    const user = users.find((u) => u.name === ctx.user)
+    const server = cluster?.server ?? ""
+    const execCommand = user?.exec?.command ?? ""
+    let clusterType: "EKS" | "AKS" | "Local" = "Local"
+    if (server.includes("eks.amazonaws.com") || execCommand === "aws")
+      clusterType = "EKS"
+    else if (server.includes("azmk8s.io") || execCommand === "az")
+      clusterType = "AKS"
+    return { name: ctx.name, cluster: ctx.cluster, user: ctx.user, clusterType }
+  })
 }
 
 export function getCurrentContext(kc: KubeConfig) {

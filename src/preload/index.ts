@@ -6,22 +6,32 @@ const api = {
   k8s: {
     listContexts: () => ipcRenderer.invoke("k8s:contexts:list"),
     getCurrentContext: () => ipcRenderer.invoke("k8s:context:current"),
-    listNamespaces: () => ipcRenderer.invoke("k8s:namespaces:list"),
-    listNodes: () => ipcRenderer.invoke("k8s:nodes:list"),
-    listDeployments: () => ipcRenderer.invoke("k8s:deployments:list"),
-    listReplicaSets: () => ipcRenderer.invoke("k8s:replicasets:list"),
-    listStatefulSets: () => ipcRenderer.invoke("k8s:statefulsets:list"),
-    listDaemonSets: () => ipcRenderer.invoke("k8s:daemonsets:list"),
-    listConfigMaps: () => ipcRenderer.invoke("k8s:configmaps:list"),
-    listSecrets: () => ipcRenderer.invoke("k8s:secrets:list"),
-    listServiceAccounts: () => ipcRenderer.invoke("k8s:serviceaccounts:list"),
-    listRoles: (args?: { namespace?: string }) =>
+    listNamespaces: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:namespaces:list", args),
+    listNodes: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:nodes:list", args),
+    listDeployments: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:deployments:list", args),
+    listReplicaSets: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:replicasets:list", args),
+    listStatefulSets: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:statefulsets:list", args),
+    listDaemonSets: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:daemonsets:list", args),
+    listConfigMaps: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:configmaps:list", args),
+    listSecrets: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:secrets:list", args),
+    listServiceAccounts: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:serviceaccounts:list", args),
+    listRoles: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:roles:list", args),
-    listClusterRoles: () => ipcRenderer.invoke("k8s:clusterroles:list"),
-    listRoleBindings: (args?: { namespace?: string }) =>
+    listClusterRoles: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:clusterroles:list", args),
+    listRoleBindings: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:rolebindings:list", args),
-    listClusterRoleBindings: () =>
-      ipcRenderer.invoke("k8s:clusterrolebindings:list"),
+    listClusterRoleBindings: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:clusterrolebindings:list", args),
     updateRole: (
       namespace: string,
       name: string,
@@ -49,9 +59,12 @@ const api = {
       name: string,
       subjects: Array<{ kind: string; name: string; namespace?: string }>,
     ) => ipcRenderer.invoke("k8s:clusterrolebinding:update", name, subjects),
-    listPods: () => ipcRenderer.invoke("k8s:pods:list"),
-    listServices: () => ipcRenderer.invoke("k8s:services:list"),
-    listIngresses: () => ipcRenderer.invoke("k8s:ingresses:list"),
+    listPods: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:pods:list", args),
+    listServices: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:services:list", args),
+    listIngresses: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:ingresses:list", args),
     getClusterType: () => ipcRenderer.invoke("k8s:cluster:type"),
     createDeployment: (
       namespace: string,
@@ -232,7 +245,8 @@ const api = {
     rangeMinutes?: number
   }) => ipcRenderer.invoke("prometheus:pod:metrics", args),
   checkAwsCredentials: () => ipcRenderer.invoke("aws:credentials:check"),
-  listEvents: () => ipcRenderer.invoke("k8s:events:list"),
+  listEvents: (args?: { contextName?: string }) =>
+    ipcRenderer.invoke("k8s:events:list", args),
   startEventsWatch: () => ipcRenderer.invoke("k8s:events:watch:start"),
   stopEventsWatch: () => ipcRenderer.invoke("k8s:events:watch:stop"),
   onEventsData: (callback: (event: unknown) => void) => {

@@ -71,6 +71,40 @@ const appsV1Api = kc.makeApiClient(AppsV1Api)
 const networkingV1Api = kc.makeApiClient(NetworkingV1Api)
 const rbacV1Api = kc.makeApiClient(RbacAuthorizationV1Api)
 
+// Per-context API client cache
+const clientCache = new Map<
+  string,
+  {
+    coreV1: CoreV1Api
+    appsV1: AppsV1Api
+    networkingV1: NetworkingV1Api
+    rbacV1: RbacAuthorizationV1Api
+  }
+>()
+
+function getContextClients(contextName?: string | null) {
+  if (!contextName) {
+    return {
+      coreV1: coreV1Api,
+      appsV1: appsV1Api,
+      networkingV1: networkingV1Api,
+      rbacV1: rbacV1Api,
+    }
+  }
+  if (clientCache.has(contextName)) return clientCache.get(contextName)!
+  const ctxKc = new KubeConfig()
+  ctxKc.loadFromDefault()
+  ctxKc.setCurrentContext(contextName)
+  const clients = {
+    coreV1: ctxKc.makeApiClient(CoreV1Api),
+    appsV1: ctxKc.makeApiClient(AppsV1Api),
+    networkingV1: ctxKc.makeApiClient(NetworkingV1Api),
+    rbacV1: ctxKc.makeApiClient(RbacAuthorizationV1Api),
+  }
+  clientCache.set(contextName, clients)
+  return clients
+}
+
 // Export for use in other modules if needed
 export { appsV1Api, coreV1Api, kc, networkingV1Api, rbacV1Api }
 
@@ -133,26 +167,63 @@ app.whenReady().then(() => {
   ipcMain.handle("k8s:contexts:list", () => listContexts(kc))
   ipcMain.handle("k8s:context:current", () => getCurrentContext(kc))
   ipcMain.handle("k8s:cluster:type", () => getClusterType(kc))
-  ipcMain.handle("k8s:namespaces:list", () => listNamespaces(coreV1Api))
-  ipcMain.handle("k8s:deployments:list", () => listDeployments(appsV1Api))
-  ipcMain.handle("k8s:replicasets:list", () => listReplicaSets(appsV1Api))
-  ipcMain.handle("k8s:pods:list", () => listPods(coreV1Api))
-  ipcMain.handle("k8s:daemonsets:list", () => listDaemonSets(appsV1Api))
-  ipcMain.handle("k8s:statefulsets:list", () => listStatefulSets(appsV1Api))
-  ipcMain.handle("k8s:configmaps:list", () => listConfigMaps(coreV1Api))
-  ipcMain.handle("k8s:secrets:list", () => listSecrets(coreV1Api))
-  ipcMain.handle("k8s:serviceaccounts:list", () =>
-    listServiceAccounts(coreV1Api),
+  ipcMain.handle("k8s:namespaces:list", (_e, args?: { contextName?: string }) =>
+    listNamespaces(getContextClients(args?.contextName).coreV1),
   )
-  ipcMain.handle("k8s:roles:list", (_e, args?: { namespace?: string }) =>
-    listRoles(rbacV1Api, args?.namespace),
+  ipcMain.handle(
+    "k8s:deployments:list",
+    (_e, args?: { contextName?: string }) =>
+      listDeployments(getContextClients(args?.contextName).appsV1),
   )
-  ipcMain.handle("k8s:clusterroles:list", () => listClusterRoles(rbacV1Api))
-  ipcMain.handle("k8s:rolebindings:list", (_e, args?: { namespace?: string }) =>
-    listRoleBindings(rbacV1Api, args?.namespace),
+  ipcMain.handle(
+    "k8s:replicasets:list",
+    (_e, args?: { contextName?: string }) =>
+      listReplicaSets(getContextClients(args?.contextName).appsV1),
   )
-  ipcMain.handle("k8s:clusterrolebindings:list", () =>
-    listClusterRoleBindings(rbacV1Api),
+  ipcMain.handle("k8s:pods:list", (_e, args?: { contextName?: string }) =>
+    listPods(getContextClients(args?.contextName).coreV1),
+  )
+  ipcMain.handle("k8s:daemonsets:list", (_e, args?: { contextName?: string }) =>
+    listDaemonSets(getContextClients(args?.contextName).appsV1),
+  )
+  ipcMain.handle(
+    "k8s:statefulsets:list",
+    (_e, args?: { contextName?: string }) =>
+      listStatefulSets(getContextClients(args?.contextName).appsV1),
+  )
+  ipcMain.handle("k8s:configmaps:list", (_e, args?: { contextName?: string }) =>
+    listConfigMaps(getContextClients(args?.contextName).coreV1),
+  )
+  ipcMain.handle("k8s:secrets:list", (_e, args?: { contextName?: string }) =>
+    listSecrets(getContextClients(args?.contextName).coreV1),
+  )
+  ipcMain.handle(
+    "k8s:serviceaccounts:list",
+    (_e, args?: { contextName?: string }) =>
+      listServiceAccounts(getContextClients(args?.contextName).coreV1),
+  )
+  ipcMain.handle(
+    "k8s:roles:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listRoles(getContextClients(args?.contextName).rbacV1, args?.namespace),
+  )
+  ipcMain.handle(
+    "k8s:clusterroles:list",
+    (_e, args?: { contextName?: string }) =>
+      listClusterRoles(getContextClients(args?.contextName).rbacV1),
+  )
+  ipcMain.handle(
+    "k8s:rolebindings:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listRoleBindings(
+        getContextClients(args?.contextName).rbacV1,
+        args?.namespace,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:clusterrolebindings:list",
+    (_e, args?: { contextName?: string }) =>
+      listClusterRoleBindings(getContextClients(args?.contextName).rbacV1),
   )
   ipcMain.handle(
     "k8s:role:update",
@@ -196,9 +267,15 @@ app.whenReady().then(() => {
       subjects: Array<{ kind: string; name: string; namespace?: string }>,
     ) => updateClusterRoleBinding(rbacV1Api, name, subjects),
   )
-  ipcMain.handle("k8s:services:list", () => listServices(coreV1Api))
-  ipcMain.handle("k8s:ingresses:list", () => listIngresses(networkingV1Api))
-  ipcMain.handle("k8s:nodes:list", () => listNodes(coreV1Api))
+  ipcMain.handle("k8s:services:list", (_e, args?: { contextName?: string }) =>
+    listServices(getContextClients(args?.contextName).coreV1),
+  )
+  ipcMain.handle("k8s:ingresses:list", (_e, args?: { contextName?: string }) =>
+    listIngresses(getContextClients(args?.contextName).networkingV1),
+  )
+  ipcMain.handle("k8s:nodes:list", (_e, args?: { contextName?: string }) =>
+    listNodes(getContextClients(args?.contextName).coreV1),
+  )
   ipcMain.handle(
     "k8s:deployment:create",
     (_e, namespace: string, name: string, image: string, replicas: number) =>
@@ -376,7 +453,9 @@ app.whenReady().then(() => {
     ) => getPodMetrics(namespace, podName, step, rangeMinutes),
   )
 
-  ipcMain.handle("k8s:events:list", () => listEvents(coreV1Api))
+  ipcMain.handle("k8s:events:list", (_e, args?: { contextName?: string }) =>
+    listEvents(getContextClients(args?.contextName).coreV1),
+  )
 
   ipcMain.handle("k8s:events:watch:start", async () => {
     if (activeEventsWatch) {

@@ -224,6 +224,7 @@ export function RolesView(): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sRole | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visible = filterResources(roles, nameFilter, selectedNamespace)
@@ -232,7 +233,7 @@ export function RolesView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listRoles()
+      .listRoles({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setRoles(data)
         setLoading(false)
@@ -242,7 +243,7 @@ export function RolesView(): JSX.Element {
         setError(String(err))
         setLoading(false)
       })
-  }, [])
+  }, [selectedContext])
 
   function handleRulesUpdated(updatedRules: K8sRoleRule[]): void {
     if (!selectedItem) return

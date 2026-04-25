@@ -154,6 +154,7 @@ export function NodesView(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sNode | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visibleNodes = filterResources(nodes, nameFilter)
@@ -162,7 +163,7 @@ export function NodesView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listNodes()
+      .listNodes({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setNodes(data)
         setLoading(false)
@@ -172,7 +173,7 @@ export function NodesView(): JSX.Element {
         setError(String(err))
         setLoading(false)
       })
-  }, [])
+  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">

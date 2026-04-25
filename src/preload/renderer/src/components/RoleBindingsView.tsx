@@ -240,6 +240,7 @@ export function RoleBindingsView(): JSX.Element {
   ) as K8sRoleBinding | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visible = filterResources(bindings, nameFilter, selectedNamespace)
@@ -248,7 +249,7 @@ export function RoleBindingsView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listRoleBindings()
+      .listRoleBindings({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setBindings(data)
         setLoading(false)
@@ -258,7 +259,7 @@ export function RoleBindingsView(): JSX.Element {
         setError(String(err))
         setLoading(false)
       })
-  }, [])
+  }, [selectedContext])
 
   function handleSubjectsUpdated(updatedSubjects: BindingSubject[]): void {
     if (!selectedItem) return

@@ -237,6 +237,7 @@ export function ClusterRoleBindingsView(): JSX.Element {
     (s) => s.selectedItem,
   ) as K8sClusterRoleBinding | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visible = nameFilter
@@ -249,7 +250,7 @@ export function ClusterRoleBindingsView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listClusterRoleBindings()
+      .listClusterRoleBindings({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setBindings(data)
         setLoading(false)
@@ -259,7 +260,7 @@ export function ClusterRoleBindingsView(): JSX.Element {
         setError(String(err))
         setLoading(false)
       })
-  }, [])
+  }, [selectedContext])
 
   function handleSubjectsUpdated(updatedSubjects: BindingSubject[]): void {
     if (!selectedItem) return

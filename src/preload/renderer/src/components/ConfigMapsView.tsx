@@ -131,6 +131,7 @@ export function ConfigMapsView(): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sConfigMap | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visibleConfigMaps = filterResources(
@@ -143,7 +144,7 @@ export function ConfigMapsView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listConfigMaps()
+      .listConfigMaps({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setConfigMaps(data)
         setLoading(false)
@@ -157,7 +158,7 @@ export function ConfigMapsView(): JSX.Element {
 
   useEffect(() => {
     fetchConfigMaps()
-  }, [])
+  }, [selectedContext])
 
   function openEditYaml(cm: K8sConfigMap): void {
     const obj = {

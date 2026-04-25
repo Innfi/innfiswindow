@@ -143,6 +143,7 @@ export function ReplicaSetsView(): JSX.Element {
   ) as K8sReplicaSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visibleReplicaSets = replicaSets
@@ -156,7 +157,7 @@ export function ReplicaSetsView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listReplicaSets()
+      .listReplicaSets({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setReplicaSets(data)
         setLoading(false)
@@ -166,7 +167,7 @@ export function ReplicaSetsView(): JSX.Element {
         setError(String(err))
         setLoading(false)
       })
-  }, [])
+  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">

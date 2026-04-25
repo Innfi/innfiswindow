@@ -228,6 +228,7 @@ export function StatefulSetsView(): JSX.Element {
   ) as K8sStatefulSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visibleStatefulSets = filterResources(
@@ -240,7 +241,7 @@ export function StatefulSetsView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listStatefulSets()
+      .listStatefulSets({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setStatefulSets(data)
         setLoading(false)
@@ -254,7 +255,7 @@ export function StatefulSetsView(): JSX.Element {
 
   useEffect(() => {
     fetchStatefulSets()
-  }, [])
+  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">

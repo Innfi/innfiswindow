@@ -192,6 +192,7 @@ export function PodsView(): JSX.Element {
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visiblePods = filterResources(pods, nameFilter, selectedNamespace)
@@ -200,7 +201,7 @@ export function PodsView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listPods()
+      .listPods({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setPods(data)
         setLoading(false)
@@ -214,7 +215,7 @@ export function PodsView(): JSX.Element {
 
   useEffect(() => {
     fetchPods()
-  }, [])
+  }, [selectedContext])
 
   function openEditYaml(pod: K8sPod): void {
     const obj = {

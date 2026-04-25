@@ -47,6 +47,7 @@ function App(): JSX.Element {
   const themeId = useAppStore((s) => s.themeId)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const setSelectedNamespace = useAppStore((s) => s.setSelectedNamespace)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
   const setNameFilter = useAppStore((s) => s.setNameFilter)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -94,14 +95,14 @@ function App(): JSX.Element {
   }, [])
 
   useEffect(() => {
-    if (!currentContext) return
-    setSelectedNamespace(null)
+    const activeContext = selectedContext ?? currentContext
+    if (!activeContext) return
     setNameFilter("")
     window.api.k8s
-      .listNamespaces()
+      .listNamespaces({ contextName: selectedContext ?? undefined })
       .then((nsList) => setNamespaces(nsList.map((n) => n.name)))
       .catch((err) => handleIpcError(err, "namespaces"))
-  }, [currentContext])
+  }, [currentContext, selectedContext])
 
   return (
     <>
@@ -139,9 +140,9 @@ function App(): JSX.Element {
           <span className="rounded border px-2 py-0.5 text-xs mr-2 ml-2">
             {clusterType}
           </span>
-          {currentContext && (
+          {(selectedContext ?? currentContext) && (
             <span className="rounded border px-2 py-0.5 text-xs">
-              {currentContext}
+              {selectedContext ?? currentContext}
             </span>
           )}
         </div>

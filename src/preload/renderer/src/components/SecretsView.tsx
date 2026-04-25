@@ -161,6 +161,7 @@ export function SecretsView(): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sSecret | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const visibleSecrets = filterResources(secrets, nameFilter, selectedNamespace)
@@ -169,7 +170,7 @@ export function SecretsView(): JSX.Element {
     setLoading(true)
     setError(null)
     window.api.k8s
-      .listSecrets()
+      .listSecrets({ contextName: selectedContext ?? undefined })
       .then((data) => {
         setSecrets(data)
         setLoading(false)
@@ -183,7 +184,7 @@ export function SecretsView(): JSX.Element {
 
   useEffect(() => {
     fetchSecrets()
-  }, [])
+  }, [selectedContext])
 
   function openEditYaml(secret: K8sSecret): void {
     const obj = {
