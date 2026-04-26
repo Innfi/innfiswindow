@@ -1036,6 +1036,28 @@
       "dependencies": ["S02"],
       "ipc_handlers": ["aws:credentials:check"],
       "notes": "Do NOT use the AWS SDK — read credentials purely from env vars and ~/.aws/credentials (INI parse). For metadata, attempt a HEAD to http://169.254.169.254/latest/meta-data/ with a 1-second timeout; if it responds, treat as valid metadata credentials. Renderer should call this handler on mount via useEffect."
+    },
+    {
+      "id": "S55",
+      "title": "Edit RBAC resources in BottomDrawer",
+      "status": "complete",
+      "description": "Replace the modal-based edit UX for Role, ClusterRole, RoleBinding, ClusterRoleBinding, and ServiceAccount with a BottomDrawer tab. Clicking 'Edit' on a resource detail panel opens a new drawer tab containing a YAML editor panel. The existing IPC handlers (k8s:role:update, k8s:clusterrole:update, k8s:rolebinding:update, k8s:clusterrolebinding:update) remain unchanged; only the renderer surface changes. ServiceAccount gains a new 'Edit annotations/labels' drawer tab (patches metadata only via k8s:serviceaccount:update).",
+      "acceptance_criteria": [
+        "Zustand store drawer tab union gains an 'edit-resource' variant with fields: resourceKind ('Role'|'ClusterRole'|'RoleBinding'|'ClusterRoleBinding'|'ServiceAccount'), resourceName, namespace (optional for cluster-scoped), and initialYaml (the editable portion pre-serialized as YAML string)",
+        "BottomDrawer renders an EditResourcePanel for 'edit-resource' tabs: textarea pre-filled with initialYaml, Save and Cancel buttons",
+        "Tab label shows '<resourceKind>/<resourceName>'",
+        "Clicking Save in EditResourcePanel parses the textarea as YAML (js-yaml), calls the appropriate IPC handler, shows a toast on success, and closes the tab",
+        "On IPC error, shows a toast with the error message and keeps the tab open",
+        "Cancel button closes the tab without saving",
+        "Role and ClusterRole detail panels: 'Edit' button opens an edit-resource drawer tab with initialYaml set to the rules array as YAML (replaces modal from S52)",
+        "RoleBinding and ClusterRoleBinding detail panels: 'Edit' button opens an edit-resource drawer tab with initialYaml set to the subjects array as YAML, roleRef shown as read-only text above the textarea in the panel (replaces modal from S53)",
+        "ServiceAccount detail panel gains an 'Edit' button that opens an edit-resource drawer tab with initialYaml set to the labels and annotations as YAML",
+        "All existing modal dialogs introduced by S52 and S53 are removed",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S52", "S53"],
+      "ipc_handlers": ["k8s:serviceaccount:update"],
+      "notes": "Add 'k8s:serviceaccount:update' IPC handler in main process using CoreV1Api `patchNamespacedServiceAccount` with strategic merge patch limited to metadata (labels, annotations). EditResourcePanel is a new component at src/renderer/components/EditResourcePanel.tsx. Do not reuse NewResourcePanel — the semantics differ (patch vs apply). The drawer tab store type lives in app.store.ts alongside the existing DrawerTab union."
     }
   ]
 }

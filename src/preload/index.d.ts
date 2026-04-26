@@ -480,6 +480,19 @@ export interface K8sAPI {
     name: string,
     subjects: Array<{ kind: string; name: string; namespace?: string }>,
   ) => Promise<{ name: string; subjects: K8sBindingSubject[] }>
+  updateServiceAccount: (
+    namespace: string,
+    name: string,
+    metadata: {
+      labels?: Record<string, string>
+      annotations?: Record<string, string>
+    },
+  ) => Promise<{
+    name: string
+    namespace: string
+    labels: Record<string, string>
+    annotations: Record<string, string>
+  }>
 }
 
 export interface AwsCredentialResult {

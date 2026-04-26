@@ -1,6 +1,8 @@
-import { X } from "lucide-react"
+import { dump as yamlDump } from "js-yaml"
+import { Pencil, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import { Button } from "../../components/ui/button"
 import {
   Table,
   TableBody,
@@ -30,8 +32,19 @@ function DetailPanel({
   sa: K8sServiceAccount
   onClose: () => void
 }): JSX.Element {
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const labelEntries = Object.entries(sa.labels)
   const annotationEntries = Object.entries(sa.annotations)
+
+  function handleEdit(): void {
+    openDrawerTab({
+      type: "edit-resource",
+      resourceKind: "ServiceAccount",
+      resourceName: sa.name,
+      namespace: sa.namespace,
+      initialYaml: yamlDump({ labels: sa.labels, annotations: sa.annotations }),
+    })
+  }
 
   return (
     <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
@@ -40,13 +53,19 @@ function DetailPanel({
           <h2 className="font-semibold text-base mb-1">{sa.name}</h2>
           <span className="text-xs text-muted-foreground">{sa.namespace}</span>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          aria-label="Close panel"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={handleEdit}>
+            <Pencil className="h-3 w-3 mr-1" />
+            Edit
+          </Button>
+          <button
+            onClick={onClose}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            aria-label="Close panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {labelEntries.length > 0 && (

@@ -5,6 +5,7 @@ import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
 import { useAppStore } from "../../store/app.store"
+import { EditResourcePanel } from "./EditResourcePanel"
 import { PodLogPanel } from "./PodLogPanel"
 import { ShellPanel } from "./ShellPanel"
 
@@ -187,7 +188,9 @@ export function BottomDrawer(): JSX.Element {
               ? tab.podName
               : tab.type === "pod-shell"
                 ? `${tab.podName} / ${tab.containerName}`
-                : `New ${tab.resourceKind}`
+                : tab.type === "edit-resource"
+                  ? `${tab.resourceKind}/${tab.resourceName}`
+                  : `New ${tab.resourceKind}`
           const isActive = tab.id === activeTabId
           return (
             <div
@@ -258,6 +261,12 @@ export function BottomDrawer(): JSX.Element {
                   namespace={tab.namespace}
                   podName={tab.podName}
                   containerName={tab.containerName}
+                />
+              )}
+              {tab.type === "edit-resource" && (
+                <EditResourcePanel
+                  tab={tab}
+                  onClose={() => closeDrawerTab(tab.id)}
                 />
               )}
             </div>

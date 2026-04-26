@@ -54,6 +54,7 @@ import {
   updateRole,
   updateRoleBinding,
   updateService,
+  updateServiceAccount,
   updateStatefulSet,
 } from "./k8s-handlers"
 import {
@@ -266,6 +267,18 @@ app.whenReady().then(() => {
       name: string,
       subjects: Array<{ kind: string; name: string; namespace?: string }>,
     ) => updateClusterRoleBinding(rbacV1Api, name, subjects),
+  )
+  ipcMain.handle(
+    "k8s:serviceaccount:update",
+    (
+      _e,
+      namespace: string,
+      name: string,
+      metadata: {
+        labels?: Record<string, string>
+        annotations?: Record<string, string>
+      },
+    ) => updateServiceAccount(coreV1Api, namespace, name, metadata),
   )
   ipcMain.handle("k8s:services:list", (_e, args?: { contextName?: string }) =>
     listServices(getContextClients(args?.contextName).coreV1),

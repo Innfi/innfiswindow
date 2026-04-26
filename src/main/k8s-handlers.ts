@@ -873,6 +873,25 @@ export async function updateClusterRoleBinding(
   }
 }
 
+export async function updateServiceAccount(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+  metadata: {
+    labels?: Record<string, string>
+    annotations?: Record<string, string>
+  },
+) {
+  const body = { metadata }
+  const res = await api.patchNamespacedServiceAccount({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+    labels: res.metadata?.labels ?? {},
+    annotations: res.metadata?.annotations ?? {},
+  }
+}
+
 export async function applyResource(kc: KubeConfig, yamlString: string) {
   const obj = yamlLoad(yamlString) as Record<string, unknown>
   if (!obj || typeof obj !== "object") {

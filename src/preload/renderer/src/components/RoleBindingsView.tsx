@@ -1,16 +1,8 @@
-import { dump as yamlDump, load as yamlLoad } from "js-yaml"
+import { dump as yamlDump } from "js-yaml"
 import { Pencil, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../components/ui/dialog"
 import {
   Table,
   TableBody,
@@ -43,120 +35,25 @@ interface K8sRoleBinding {
   creationTimestamp: string
 }
 
-interface EditSubjectsDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  binding: K8sRoleBinding
-  onSaved: (updatedSubjects: BindingSubject[]) => void
-}
-
-function EditSubjectsDialog({
-  open,
-  onOpenChange,
-  binding,
-  onSaved,
-}: EditSubjectsDialogProps): JSX.Element {
-  const [yaml, setYaml] = useState("")
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (open) {
-      setYaml(yamlDump(binding.subjects))
-      setError(null)
-    }
-  }, [open, binding.subjects])
-
-  async function handleSave(): Promise<void> {
-    let parsed: unknown
-    try {
-      parsed = yamlLoad(yaml)
-    } catch (e) {
-      setError(`YAML syntax error: ${String(e)}`)
-      return
-    }
-    if (!Array.isArray(parsed)) {
-      setError("Subjects must be a YAML array")
-      return
-    }
-
-    setSaving(true)
-    setError(null)
-    try {
-      const result = await window.api.k8s.updateRoleBinding(
-        binding.namespace,
-        binding.name,
-        parsed as BindingSubject[],
-      )
-      onSaved(result.subjects)
-      onOpenChange(false)
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      toast.error(`Failed to update RoleBinding: ${msg}`)
-      setError(msg)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-2xl w-full flex flex-col p-0 overflow-hidden"
-        style={{ height: "70vh" }}
-        onClose={() => onOpenChange(false)}
-      >
-        <div className="p-6 pb-3 bg-card text-card-foreground border-b border-border shrink-0">
-          <DialogHeader>
-            <DialogTitle>Edit Subjects — {binding.name}</DialogTitle>
-          </DialogHeader>
-          <div className="mt-2 text-sm text-muted-foreground">
-            <span className="font-medium">Role Ref (read-only):</span>{" "}
-            {binding.roleRef.kind}/{binding.roleRef.name}
-          </div>
-        </div>
-        <div className="flex-1 min-h-0">
-          <textarea
-            value={yaml}
-            onChange={(e) => setYaml(e.target.value)}
-            className="w-full h-full resize-none p-4 font-mono text-sm bg-muted text-foreground border-border focus:outline-none focus:ring-1 focus:ring-ring"
-            spellCheck={false}
-          />
-        </div>
-        <div className="p-6 pt-3 space-y-3 bg-card text-card-foreground border-t border-border">
-          {error && (
-            <p className="text-sm text-destructive font-mono whitespace-pre-wrap">
-              {error}
-            </p>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={saving}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Saving…" : "Save"}
-            </Button>
-          </DialogFooter>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 function DetailPanel({
   binding,
   onClose,
-  onSubjectsUpdated,
 }: {
   binding: K8sRoleBinding
   onClose: () => void
-  onSubjectsUpdated: (subjects: BindingSubject[]) => void
 }): JSX.Element {
-  const [editOpen, setEditOpen] = useState(false)
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+
+  function handleEdit(): void {
+    openDrawerTab({
+      type: "edit-resource",
+      resourceKind: "RoleBinding",
+      resourceName: binding.name,
+      namespace: binding.namespace,
+      initialYaml: yamlDump(binding.subjects),
+      roleRef: { kind: binding.roleRef.kind, name: binding.roleRef.name },
+    })
+  }
 
   return (
     <div className="w-[480px] shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
@@ -168,7 +65,7 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+          <Button size="sm" variant="outline" onClick={handleEdit}>
             <Pencil className="h-3 w-3 mr-1" />
             Edit
           </Button>
@@ -219,13 +116,6 @@ function DetailPanel({
           </Table>
         )}
       </div>
-
-      <EditSubjectsDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        binding={binding}
-        onSaved={onSubjectsUpdated}
-      />
     </div>
   )
 }
@@ -260,23 +150,6 @@ export function RoleBindingsView(): JSX.Element {
         setLoading(false)
       })
   }, [selectedContext])
-
-  function handleSubjectsUpdated(updatedSubjects: BindingSubject[]): void {
-    if (!selectedItem) return
-    const updated = {
-      ...selectedItem,
-      subjects: updatedSubjects,
-      subjectsCount: updatedSubjects.length,
-    }
-    setBindings((prev) =>
-      prev.map((b) =>
-        b.name === updated.name && b.namespace === updated.namespace
-          ? updated
-          : b,
-      ),
-    )
-    setSelectedItem(updated)
-  }
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -334,7 +207,6 @@ export function RoleBindingsView(): JSX.Element {
           <DetailPanel
             binding={selectedItem}
             onClose={() => setSelectedItem(null)}
-            onSubjectsUpdated={handleSubjectsUpdated}
           />
         )}
     </div>

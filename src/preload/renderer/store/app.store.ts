@@ -28,6 +28,20 @@ export type DrawerTab =
       podName: string
       containerName: string
     }
+  | {
+      id: string
+      type: "edit-resource"
+      resourceKind:
+        | "Role"
+        | "ClusterRole"
+        | "RoleBinding"
+        | "ClusterRoleBinding"
+        | "ServiceAccount"
+      resourceName: string
+      namespace?: string
+      initialYaml: string
+      roleRef?: { kind: string; name: string }
+    }
 
 export type DrawerTabInput =
   | {
@@ -43,6 +57,19 @@ export type DrawerTabInput =
       namespace: string
       podName: string
       containerName: string
+    }
+  | {
+      type: "edit-resource"
+      resourceKind:
+        | "Role"
+        | "ClusterRole"
+        | "RoleBinding"
+        | "ClusterRoleBinding"
+        | "ServiceAccount"
+      resourceName: string
+      namespace?: string
+      initialYaml: string
+      roleRef?: { kind: string; name: string }
     }
 
 interface AppState {
@@ -100,6 +127,14 @@ export const useAppStore = create<AppState>()(
             (t) =>
               t.type === "new-resource" &&
               t.resourceKind === tabData.resourceKind,
+          )
+        } else if (tabData.type === "edit-resource") {
+          existing = drawerTabs.find(
+            (t) =>
+              t.type === "edit-resource" &&
+              t.resourceKind === tabData.resourceKind &&
+              t.resourceName === tabData.resourceName &&
+              t.namespace === tabData.namespace,
           )
         }
         if (existing) {

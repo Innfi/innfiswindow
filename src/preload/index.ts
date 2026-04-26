@@ -59,6 +59,20 @@ const api = {
       name: string,
       subjects: Array<{ kind: string; name: string; namespace?: string }>,
     ) => ipcRenderer.invoke("k8s:clusterrolebinding:update", name, subjects),
+    updateServiceAccount: (
+      namespace: string,
+      name: string,
+      metadata: {
+        labels?: Record<string, string>
+        annotations?: Record<string, string>
+      },
+    ) =>
+      ipcRenderer.invoke(
+        "k8s:serviceaccount:update",
+        namespace,
+        name,
+        metadata,
+      ),
     listPods: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:pods:list", args),
     listServices: (args?: { contextName?: string }) =>
