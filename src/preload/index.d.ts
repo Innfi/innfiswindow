@@ -364,8 +364,7 @@ export interface K8sAPI {
   updateDeployment: (
     namespace: string,
     name: string,
-    image: string,
-    replicas: number,
+    yaml: string,
   ) => Promise<{ name: string; namespace: string }>
   deleteDeployment: (
     namespace: string,
@@ -381,8 +380,7 @@ export interface K8sAPI {
   updateStatefulSet: (
     namespace: string,
     name: string,
-    image: string,
-    replicas: number,
+    yaml: string,
   ) => Promise<{ name: string; namespace: string }>
   deleteStatefulSet: (
     namespace: string,
@@ -396,7 +394,7 @@ export interface K8sAPI {
   updateDaemonSet: (
     namespace: string,
     name: string,
-    image: string,
+    yaml: string,
   ) => Promise<{ name: string; namespace: string }>
   deleteDaemonSet: (
     namespace: string,
@@ -416,12 +414,7 @@ export interface K8sAPI {
   updateService: (
     namespace: string,
     name: string,
-    type: string,
-    ports: Array<{
-      protocol: string
-      port: number
-      targetPort: number | string
-    }>,
+    yaml: string,
   ) => Promise<{ name: string; namespace: string }>
   deleteService: (
     namespace: string,
@@ -443,15 +436,7 @@ export interface K8sAPI {
   updateIngress: (
     namespace: string,
     name: string,
-    ingressClassName: string,
-    rules: Array<{
-      host: string
-      path: string
-      pathType: string
-      serviceName: string
-      servicePort: number | string
-    }>,
-    tls: Array<{ hosts: string[]; secretName: string }>,
+    yaml: string,
   ) => Promise<{ name: string; namespace: string }>
   deleteIngress: (
     namespace: string,

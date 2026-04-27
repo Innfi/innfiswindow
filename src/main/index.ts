@@ -46,14 +46,16 @@ import {
   listServiceAccounts,
   listServices,
   listStatefulSets,
+  replaceDaemonSetFromYaml,
+  replaceDeploymentFromYaml,
+  replaceIngressFromYaml,
+  replaceServiceFromYaml,
+  replaceStatefulSetFromYaml,
   updateClusterRole,
   updateClusterRoleBinding,
   updateDaemonSet,
-  updateDeployment,
-  updateIngress,
   updateRole,
   updateRoleBinding,
-  updateService,
   updateServiceAccount,
   updateStatefulSet,
 } from "./k8s-handlers"
@@ -296,8 +298,8 @@ app.whenReady().then(() => {
   )
   ipcMain.handle(
     "k8s:deployment:update",
-    (_e, namespace: string, name: string, image: string, replicas: number) =>
-      updateDeployment(appsV1Api, namespace, name, image, replicas),
+    (_e, namespace: string, name: string, yaml: string) =>
+      replaceDeploymentFromYaml(appsV1Api, namespace, name, yaml),
   )
   ipcMain.handle(
     "k8s:deployment:delete",
@@ -325,8 +327,8 @@ app.whenReady().then(() => {
   )
   ipcMain.handle(
     "k8s:statefulset:update",
-    (_e, namespace: string, name: string, image: string, replicas: number) =>
-      updateStatefulSet(appsV1Api, namespace, name, image, replicas),
+    (_e, namespace: string, name: string, yaml: string) =>
+      replaceStatefulSetFromYaml(appsV1Api, namespace, name, yaml),
   )
   ipcMain.handle(
     "k8s:statefulset:delete",
@@ -340,8 +342,8 @@ app.whenReady().then(() => {
   )
   ipcMain.handle(
     "k8s:daemonset:update",
-    (_e, namespace: string, name: string, image: string) =>
-      updateDaemonSet(appsV1Api, namespace, name, image),
+    (_e, namespace: string, name: string, yaml: string) =>
+      replaceDaemonSetFromYaml(appsV1Api, namespace, name, yaml),
   )
   ipcMain.handle(
     "k8s:daemonset:delete",
@@ -365,17 +367,8 @@ app.whenReady().then(() => {
   )
   ipcMain.handle(
     "k8s:service:update",
-    (
-      _e,
-      namespace: string,
-      name: string,
-      type: string,
-      ports: Array<{
-        protocol: string
-        port: number
-        targetPort: number | string
-      }>,
-    ) => updateService(coreV1Api, namespace, name, type, ports),
+    (_e, namespace: string, name: string, yaml: string) =>
+      replaceServiceFromYaml(coreV1Api, namespace, name, yaml),
   )
   ipcMain.handle("k8s:service:delete", (_e, namespace: string, name: string) =>
     deleteService(coreV1Api, namespace, name),
@@ -407,28 +400,8 @@ app.whenReady().then(() => {
   )
   ipcMain.handle(
     "k8s:ingress:update",
-    (
-      _e,
-      namespace: string,
-      name: string,
-      ingressClassName: string,
-      rules: Array<{
-        host: string
-        path: string
-        pathType: string
-        serviceName: string
-        servicePort: number | string
-      }>,
-      tls: Array<{ hosts: string[]; secretName: string }>,
-    ) =>
-      updateIngress(
-        networkingV1Api,
-        namespace,
-        name,
-        ingressClassName,
-        rules,
-        tls,
-      ),
+    (_e, namespace: string, name: string, yaml: string) =>
+      replaceIngressFromYaml(networkingV1Api, namespace, name, yaml),
   )
   ipcMain.handle("k8s:ingress:delete", (_e, namespace: string, name: string) =>
     deleteIngress(networkingV1Api, namespace, name),

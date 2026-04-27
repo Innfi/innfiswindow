@@ -1058,6 +1058,126 @@
       "dependencies": ["S52", "S53"],
       "ipc_handlers": ["k8s:serviceaccount:update"],
       "notes": "Add 'k8s:serviceaccount:update' IPC handler in main process using CoreV1Api `patchNamespacedServiceAccount` with strategic merge patch limited to metadata (labels, annotations). EditResourcePanel is a new component at src/renderer/components/EditResourcePanel.tsx. Do not reuse NewResourcePanel — the semantics differ (patch vs apply). The drawer tab store type lives in app.store.ts alongside the existing DrawerTab union."
+    },
+    {
+      "id": "S56",
+      "title": "Move Deployment/Service/Ingress buttons from list to detail panel",
+      "status": "complete",
+      "description": "DeploymentsView, ServicesView, and IngressesView currently render Edit YAML and Delete action buttons inside each list row. This clutters the table and mixes list and action concerns. Remove those buttons from the list rows and relocate them to the respective resource detail panels. The Edit button opens a BottomDrawer tab with a full-resource YAML editor; the Delete button shows a confirmation dialog.",
+      "acceptance_criteria": [
+        "Edit YAML button removed from every list row in DeploymentsView, ServicesView, and IngressesView; the YamlEditorPanel modal and all associated state (openEditYaml, yamlTitle, yamlContent, etc.) removed from these three view components",
+        "Delete button (and its DeleteDialog modal + deleteTarget state) removed from every list row in DeploymentsView, ServicesView, and IngressesView",
+        "Zustand DrawerTab union in app.store.ts gains a 'yaml-edit' variant with fields: resourceKind ('Deployment'|'Service'|'Ingress'|'DaemonSet'|'StatefulSet'|'ConfigMap'|'Secret'), resourceName (string), namespace (string), initialYaml (string)",
+        "BottomDrawer renders a new YamlEditPanel component for 'yaml-edit' tabs: a full-width textarea pre-filled with initialYaml, Save and Cancel buttons; tab label shows '<resourceKind>/<resourceName>'",
+        "Save in YamlEditPanel parses textarea as YAML (js-yaml dump of js-yaml load), calls the appropriate IPC handler (k8s:deployment:update | k8s:service:update | k8s:ingress:update), shows a toast on success and closes the tab; on IPC error shows toast and keeps the tab open",
+        "Cancel closes the tab without saving",
+        "Each DetailPanel for Deployments, Services, and Ingresses gains an 'Edit' button and a 'Delete' button in its header action area",
+        "Edit button calls openDrawerTab with a 'yaml-edit' tab populated from the current resource; initialYaml is the full resource object (all fields) serialized with js-yaml",
+        "Delete button shows an inline shadcn AlertDialog for confirmation, then calls k8s:deployment:delete | k8s:service:delete | k8s:ingress:delete, shows a success toast, and closes the detail panel",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S55"],
+      "ipc_handlers": [
+        "k8s:deployment:update",
+        "k8s:deployment:delete",
+        "k8s:service:update",
+        "k8s:service:delete",
+        "k8s:ingress:update",
+        "k8s:ingress:delete"
+      ],
+      "notes": "All listed IPC handlers already exist in the main process — no new backend code needed. YamlEditPanel is a new component at src/preload/renderer/src/components/YamlEditPanel.tsx. It is similar to EditResourcePanel but dispatches to different IPC handlers based on resourceKind. The 'yaml-edit' DrawerTab variant lives in app.store.ts alongside the existing DrawerTab union. Use js-yaml dump(load(text)) round-trip to normalize YAML before sending to IPC. DetailPanel components are defined inside their respective view files (DeploymentsView, ServicesView, IngressesView)."
+    },
+    {
+      "id": "S57",
+      "title": "Move DaemonSet/StatefulSet Delete from list to detail panel, add Edit+Delete to detail",
+      "status": "complete",
+      "description": "DaemonSetsView and StatefulSetsView render a Delete button inside each list row but have no Edit YAML capability at all. Remove the list-row Delete button and add both an Edit button (opens BottomDrawer yaml-edit tab) and a Delete button to each resource's detail panel.",
+      "acceptance_criteria": [
+        "Delete button (and its DeleteDialog modal + deleteTarget state) removed from every list row in DaemonSetsView and StatefulSetsView",
+        "Each DetailPanel for DaemonSets and StatefulSets gains an 'Edit' button and a 'Delete' button in its header action area",
+        "Edit button opens a 'yaml-edit' BottomDrawer tab (type defined in S56) with initialYaml set to the full resource object serialized with js-yaml",
+        "YamlEditPanel Save dispatches to k8s:daemonset:update or k8s:statefulset:update based on resourceKind, shows success toast, closes tab",
+        "Delete button shows an AlertDialog confirmation, then calls k8s:daemonset:delete or k8s:statefulset:delete, shows success toast, closes detail panel",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S56"],
+      "ipc_handlers": [
+        "k8s:daemonset:update",
+        "k8s:daemonset:delete",
+        "k8s:statefulset:update",
+        "k8s:statefulset:delete"
+      ],
+      "notes": "All listed IPC handlers already exist. Extend the YamlEditPanel IPC dispatch map (from S56) to include 'DaemonSet' and 'StatefulSet' resourceKind values. DetailPanel components are defined inside DaemonSetsView.tsx and StatefulSetsView.tsx."
+    },
+    {
+      "id": "S58",
+      "title": "Move ConfigMap/Secret Edit from list to detail panel, add Edit+Delete to detail",
+      "status": "incomplete",
+      "description": "ConfigMapsView and SecretsView render Edit YAML buttons in list rows using the YamlEditorPanel modal. Remove those list-row buttons and move the edit action to each resource's detail panel as a BottomDrawer tab. Also add a Delete button to each detail panel. New main-process IPC handlers are required for update and delete of ConfigMaps and Secrets.",
+      "acceptance_criteria": [
+        "Edit YAML button removed from every list row in ConfigMapsView and SecretsView; YamlEditorPanel modal and associated state removed from both views",
+        "Each DetailPanel for ConfigMaps and Secrets gains an 'Edit' button and a 'Delete' button in its header action area",
+        "Edit button opens a 'yaml-edit' BottomDrawer tab with initialYaml set to the full resource object serialized with js-yaml",
+        "YamlEditPanel Save dispatches to k8s:configmap:update or k8s:secret:update, shows success toast, closes tab",
+        "Delete button shows AlertDialog confirmation, calls k8s:configmap:delete or k8s:secret:delete, shows success toast, closes detail panel",
+        "New IPC handler k8s:configmap:update in main process: accepts (namespace: string, name: string, yaml: string), parses yaml with js-yaml, calls CoreV1Api replaceNamespacedConfigMap",
+        "New IPC handler k8s:configmap:delete in main process: accepts (namespace: string, name: string), calls CoreV1Api deleteNamespacedConfigMap",
+        "New IPC handler k8s:secret:update in main process: accepts (namespace: string, name: string, yaml: string), parses yaml with js-yaml, calls CoreV1Api replaceNamespacedSecret",
+        "New IPC handler k8s:secret:delete in main process: accepts (namespace: string, name: string), calls CoreV1Api deleteNamespacedSecret",
+        "window.api exposes the four new handlers via preload contextBridge",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S56"],
+      "ipc_handlers": [
+        "k8s:configmap:update",
+        "k8s:configmap:delete",
+        "k8s:secret:update",
+        "k8s:secret:delete"
+      ],
+      "notes": "Extend the YamlEditPanel IPC dispatch map to include 'ConfigMap' and 'Secret' resourceKind values. ConfigMap YAML round-trip: load full object (apiVersion, kind, metadata, data, binaryData) with js-yaml, send to replaceNamespacedConfigMap. Secret data values are base64 strings — do not re-encode them; pass the parsed object as-is. DetailPanel components are defined inside ConfigMapsView.tsx and SecretsView.tsx."
+    },
+    {
+      "id": "S59",
+      "title": "Remove Pod Edit YAML from list rows, add Delete to Pod detail panel",
+      "status": "incomplete",
+      "description": "PodsView renders an Edit YAML button in each list row using YamlEditorPanel. Pods are ephemeral and direct YAML updates are uncommon — remove the Edit button entirely. Add a Delete button to the Pod detail panel so users can delete a selected pod from the detail view.",
+      "acceptance_criteria": [
+        "Edit YAML button removed from every list row in PodsView; YamlEditorPanel modal and associated state (openEditYaml, yamlTitle, yamlContent, etc.) removed from PodsView",
+        "Pod DetailPanel gains a 'Delete' button in its header action area (no Edit button)",
+        "Delete button shows an AlertDialog confirmation, calls k8s:pod:delete, shows success toast, closes detail panel and refreshes pod list",
+        "New IPC handler k8s:pod:delete in main process: accepts (namespace: string, name: string), calls CoreV1Api deleteNamespacedPod",
+        "window.api exposes k8s:pod:delete via preload contextBridge",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S56"],
+      "ipc_handlers": ["k8s:pod:delete"],
+      "notes": "Pod detail panel (DetailPanel component inside PodsView.tsx) already shows container info, logs button, and shell button — add the Delete button alongside these. Deleting a pod triggers Kubernetes to recreate it if managed by a Deployment/DaemonSet, which is expected behavior; no need to warn about this specifically."
+    },
+    {
+      "id": "S60",
+      "title": "Add Delete button to RBAC resource detail panels",
+      "status": "incomplete",
+      "description": "Roles, ClusterRoles, RoleBindings, ClusterRoleBindings, and ServiceAccounts already have an Edit button in their detail panels (from S55) but have no Delete capability. Add a Delete button to each of these five detail panels backed by new main-process IPC handlers.",
+      "acceptance_criteria": [
+        "Delete button added to the detail panel header action area in RolesView, ClusterRolesView, RoleBindingsView, ClusterRoleBindingsView, and ServiceAccountsView (alongside the existing Edit button)",
+        "Delete button shows an AlertDialog confirmation, calls the appropriate IPC handler, shows success toast, and closes the detail panel",
+        "New IPC handler k8s:role:delete: accepts (namespace: string, name: string), calls RbacAuthorizationV1Api deleteNamespacedRole",
+        "New IPC handler k8s:clusterrole:delete: accepts (name: string), calls RbacAuthorizationV1Api deleteClusterRole",
+        "New IPC handler k8s:rolebinding:delete: accepts (namespace: string, name: string), calls RbacAuthorizationV1Api deleteNamespacedRoleBinding",
+        "New IPC handler k8s:clusterrolebinding:delete: accepts (name: string), calls RbacAuthorizationV1Api deleteClusterRoleBinding",
+        "New IPC handler k8s:serviceaccount:delete: accepts (namespace: string, name: string), calls CoreV1Api deleteNamespacedServiceAccount",
+        "window.api exposes all five new handlers via preload contextBridge",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S55"],
+      "ipc_handlers": [
+        "k8s:role:delete",
+        "k8s:clusterrole:delete",
+        "k8s:rolebinding:delete",
+        "k8s:clusterrolebinding:delete",
+        "k8s:serviceaccount:delete"
+      ],
+      "notes": "ClusterRole and ClusterRoleBinding are cluster-scoped (no namespace parameter). Role and RoleBinding are namespace-scoped. ServiceAccount is namespace-scoped. Detail panel components for all five are defined inside their respective view files. After successful delete, call the store's setSelectedItem(null) to close the detail panel."
     }
   ]
 }

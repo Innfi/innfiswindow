@@ -8,6 +8,7 @@ import { useAppStore } from "../../store/app.store"
 import { EditResourcePanel } from "./EditResourcePanel"
 import { PodLogPanel } from "./PodLogPanel"
 import { ShellPanel } from "./ShellPanel"
+import { YamlEditPanel } from "./YamlEditPanel"
 
 const TABBAR_HEIGHT = 32
 const DEFAULT_DRAWER_HEIGHT = Math.round(window.innerHeight * 0.4)
@@ -190,7 +191,9 @@ export function BottomDrawer(): JSX.Element {
                 ? `${tab.podName} / ${tab.containerName}`
                 : tab.type === "edit-resource"
                   ? `${tab.resourceKind}/${tab.resourceName}`
-                  : `New ${tab.resourceKind}`
+                  : tab.type === "yaml-edit"
+                    ? `${tab.resourceKind}/${tab.resourceName}`
+                    : `New ${tab.resourceKind}`
           const isActive = tab.id === activeTabId
           return (
             <div
@@ -265,6 +268,12 @@ export function BottomDrawer(): JSX.Element {
               )}
               {tab.type === "edit-resource" && (
                 <EditResourcePanel
+                  tab={tab}
+                  onClose={() => closeDrawerTab(tab.id)}
+                />
+              )}
+              {tab.type === "yaml-edit" && (
+                <YamlEditPanel
                   tab={tab}
                   onClose={() => closeDrawerTab(tab.id)}
                 />

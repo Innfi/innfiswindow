@@ -1,6 +1,7 @@
 import { dump as yamlDump } from "js-yaml"
-import { FileCode, Trash2, X } from "lucide-react"
+import { X } from "lucide-react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
 import {
@@ -22,7 +23,6 @@ import {
 import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sServicePort {
   name: string
@@ -53,13 +53,69 @@ function formatPorts(ports: K8sServicePort[]): string {
 function DetailPanel({
   svc,
   onClose,
+  onDeleted,
 }: {
   svc: K8sService
   onClose: () => void
+  onDeleted: () => void
 }): JSX.Element {
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const selectorEntries = Object.entries(svc.selector)
   const labelEntries = Object.entries(svc.labels)
   const annotationEntries = Object.entries(svc.annotations)
+
+  function handleEdit(): void {
+    const obj = {
+      apiVersion: "v1",
+      kind: "Service",
+      metadata: {
+        name: svc.name,
+        namespace: svc.namespace,
+        ...(Object.keys(svc.labels).length > 0 ? { labels: svc.labels } : {}),
+      },
+      spec: {
+        type: svc.type,
+        ...(Object.keys(svc.selector).length > 0
+          ? { selector: svc.selector }
+          : {}),
+        ports: svc.ports.map((p) => ({
+          name: p.name || undefined,
+          protocol: p.protocol,
+          port: p.port,
+          targetPort: isNaN(Number(p.targetPort))
+            ? p.targetPort
+            : Number(p.targetPort),
+          ...(p.nodePort ? { nodePort: p.nodePort } : {}),
+        })),
+      },
+    }
+    openDrawerTab({
+      type: "yaml-edit",
+      resourceKind: "Service",
+      resourceName: svc.name,
+      namespace: svc.namespace,
+      initialYaml: yamlDump(obj),
+    })
+  }
+
+  async function handleDelete(): Promise<void> {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await window.api.k8s.deleteService(svc.namespace, svc.name)
+      toast.success(`Service ${svc.name} deleted`)
+      setDeleteOpen(false)
+      onDeleted()
+      onClose()
+    } catch (e) {
+      setDeleteError(String(e))
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
@@ -68,13 +124,31 @@ function DetailPanel({
           <h2 className="font-semibold text-base mb-1">{svc.name}</h2>
           <span className="text-xs text-muted-foreground">{svc.namespace}</span>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          aria-label="Close panel"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={handleEdit}
+          >
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-7 text-xs"
+            onClick={() => setDeleteOpen(true)}
+          >
+            Delete
+          </Button>
+          <button
+            onClick={onClose}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
+            aria-label="Close panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-1">
@@ -180,77 +254,39 @@ function DetailPanel({
           ))}
         </div>
       )}
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent onClose={() => setDeleteOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>Delete Service</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <strong>
+                {svc.namespace}/{svc.name}
+              </strong>
+              ? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  )
-}
-
-interface DeleteDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  service: K8sService | null
-  onDeleted: () => void
-}
-
-function DeleteDialog({
-  open,
-  onOpenChange,
-  service,
-  onDeleted,
-}: DeleteDialogProps): JSX.Element {
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (open) setError(null)
-  }, [open])
-
-  async function handleDelete(): Promise<void> {
-    if (!service) return
-    setSubmitting(true)
-    setError(null)
-    try {
-      await window.api.k8s.deleteService(service.namespace, service.name)
-      onDeleted()
-      onOpenChange(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
-        <DialogHeader>
-          <DialogTitle>Delete Service</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to delete{" "}
-            <strong>
-              {service ? `${service.namespace}/${service.name}` : ""}
-            </strong>
-            ? This action cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={submitting}
-          >
-            {submitting ? "Deleting…" : "Delete"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -258,11 +294,6 @@ export function ServicesView(): JSX.Element {
   const [services, setServices] = useState<K8sService[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  const [deleteTarget, setDeleteTarget] = useState<K8sService | null>(null)
-  const [yamlOpen, setYamlOpen] = useState(false)
-  const [yamlInitial, setYamlInitial] = useState("")
-  const [yamlTitle, setYamlTitle] = useState("")
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sService | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
@@ -275,36 +306,6 @@ export function ServicesView(): JSX.Element {
     nameFilter,
     selectedNamespace,
   )
-
-  function openEditYaml(svc: K8sService): void {
-    const obj = {
-      apiVersion: "v1",
-      kind: "Service",
-      metadata: {
-        name: svc.name,
-        namespace: svc.namespace,
-        ...(Object.keys(svc.labels).length > 0 ? { labels: svc.labels } : {}),
-      },
-      spec: {
-        type: svc.type,
-        ...(Object.keys(svc.selector).length > 0
-          ? { selector: svc.selector }
-          : {}),
-        ports: svc.ports.map((p) => ({
-          name: p.name || undefined,
-          protocol: p.protocol,
-          port: p.port,
-          targetPort: isNaN(Number(p.targetPort))
-            ? p.targetPort
-            : Number(p.targetPort),
-          ...(p.nodePort ? { nodePort: p.nodePort } : {}),
-        })),
-      },
-    }
-    setYamlInitial(yamlDump(obj))
-    setYamlTitle(`Edit Service: ${svc.namespace}/${svc.name}`)
-    setYamlOpen(true)
-  }
 
   function fetchServices(): void {
     setLoading(true)
@@ -345,7 +346,6 @@ export function ServicesView(): JSX.Element {
                 <TableHead>External IP</TableHead>
                 <TableHead>Ports</TableHead>
                 <TableHead>Age</TableHead>
-                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -380,29 +380,6 @@ export function ServicesView(): JSX.Element {
                     {formatPorts(svc.ports)}
                   </TableCell>
                   <TableCell>{formatAge(svc.creationTimestamp)}</TableCell>
-                  <TableCell>
-                    <div
-                      className="flex gap-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Edit YAML"
-                        onClick={() => openEditYaml(svc)}
-                      >
-                        <FileCode className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Delete"
-                        onClick={() => setDeleteTarget(svc)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -411,31 +388,12 @@ export function ServicesView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.type !== undefined && (
-        <DetailPanel svc={selectedItem} onClose={() => setSelectedItem(null)} />
+        <DetailPanel
+          svc={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onDeleted={fetchServices}
+        />
       )}
-
-      <DeleteDialog
-        open={deleteTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null)
-        }}
-        service={deleteTarget}
-        onDeleted={() => {
-          fetchServices()
-          setSelectedItem(null)
-        }}
-      />
-
-      <YamlEditorPanel
-        open={yamlOpen}
-        onOpenChange={setYamlOpen}
-        initialYaml={yamlInitial}
-        title={yamlTitle}
-        onApplied={() => {
-          fetchServices()
-          setSelectedItem(null)
-        }}
-      />
     </div>
   )
 }

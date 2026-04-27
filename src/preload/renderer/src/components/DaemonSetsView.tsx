@@ -1,5 +1,7 @@
-import { Trash2, X } from "lucide-react"
+import { dump as yamlDump } from "js-yaml"
+import { X } from "lucide-react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
 import {
@@ -54,12 +56,66 @@ interface K8sDaemonSet {
 function DetailPanel({
   ds,
   onClose,
+  onDeleted,
 }: {
   ds: K8sDaemonSet
   onClose: () => void
+  onDeleted: () => void
 }): JSX.Element {
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const selectorEntries = Object.entries(ds.selector)
   const nodeSelectorEntries = Object.entries(ds.nodeSelector)
+
+  function handleEdit(): void {
+    const obj = {
+      apiVersion: "apps/v1",
+      kind: "DaemonSet",
+      metadata: { name: ds.name, namespace: ds.namespace },
+      spec: {
+        selector: { matchLabels: ds.selector },
+        updateStrategy: { type: ds.updateStrategy },
+        template: {
+          metadata: { labels: ds.selector },
+          spec: {
+            containers: ds.containers.map((c) => ({
+              name: c.name,
+              image: c.image,
+            })),
+            ...(Object.keys(ds.nodeSelector).length
+              ? { nodeSelector: ds.nodeSelector }
+              : {}),
+            ...(ds.tolerations.length ? { tolerations: ds.tolerations } : {}),
+          },
+        },
+      },
+    }
+    openDrawerTab({
+      type: "yaml-edit",
+      resourceKind: "DaemonSet",
+      resourceName: ds.name,
+      namespace: ds.namespace,
+      initialYaml: yamlDump(obj),
+    })
+  }
+
+  async function handleDelete(): Promise<void> {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await window.api.k8s.deleteDaemonSet(ds.namespace, ds.name)
+      toast.success(`DaemonSet ${ds.name} deleted`)
+      setDeleteOpen(false)
+      onDeleted()
+      onClose()
+    } catch (e) {
+      setDeleteError(String(e))
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
@@ -68,13 +124,31 @@ function DetailPanel({
           <h2 className="font-semibold text-base mb-1">{ds.name}</h2>
           <span className="text-xs text-muted-foreground">{ds.namespace}</span>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          aria-label="Close panel"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={handleEdit}
+          >
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-7 text-xs"
+            onClick={() => setDeleteOpen(true)}
+          >
+            Delete
+          </Button>
+          <button
+            onClick={onClose}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
+            aria-label="Close panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-1">
@@ -158,77 +232,39 @@ function DetailPanel({
           ))}
         </div>
       )}
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent onClose={() => setDeleteOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>Delete DaemonSet</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <strong>
+                {ds.namespace}/{ds.name}
+              </strong>
+              ? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  )
-}
-
-interface DeleteDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  daemonSet: K8sDaemonSet | null
-  onDeleted: () => void
-}
-
-function DeleteDialog({
-  open,
-  onOpenChange,
-  daemonSet,
-  onDeleted,
-}: DeleteDialogProps): JSX.Element {
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (open) setError(null)
-  }, [open])
-
-  async function handleDelete(): Promise<void> {
-    if (!daemonSet) return
-    setSubmitting(true)
-    setError(null)
-    try {
-      await window.api.k8s.deleteDaemonSet(daemonSet.namespace, daemonSet.name)
-      onDeleted()
-      onOpenChange(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
-        <DialogHeader>
-          <DialogTitle>Delete DaemonSet</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to delete{" "}
-            <strong>
-              {daemonSet ? `${daemonSet.namespace}/${daemonSet.name}` : ""}
-            </strong>
-            ? This action cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={submitting}
-          >
-            {submitting ? "Deleting…" : "Delete"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -236,8 +272,6 @@ export function DaemonSetsView(): JSX.Element {
   const [daemonSets, setDaemonSets] = useState<K8sDaemonSet[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  const [deleteTarget, setDeleteTarget] = useState<K8sDaemonSet | null>(null)
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sDaemonSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
@@ -291,7 +325,6 @@ export function DaemonSetsView(): JSX.Element {
                 <TableHead>Up-to-date</TableHead>
                 <TableHead>Available</TableHead>
                 <TableHead>Age</TableHead>
-                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -321,21 +354,6 @@ export function DaemonSetsView(): JSX.Element {
                   <TableCell>{ds.updatedNumberScheduled}</TableCell>
                   <TableCell>{ds.numberAvailable}</TableCell>
                   <TableCell>{formatAge(ds.creationTimestamp)}</TableCell>
-                  <TableCell>
-                    <div
-                      className="flex gap-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Delete"
-                        onClick={() => setDeleteTarget(ds)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -344,20 +362,15 @@ export function DaemonSetsView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.desiredNumberScheduled !== undefined && (
-        <DetailPanel ds={selectedItem} onClose={() => setSelectedItem(null)} />
+        <DetailPanel
+          ds={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onDeleted={() => {
+            fetchDaemonSets()
+            setSelectedItem(null)
+          }}
+        />
       )}
-
-      <DeleteDialog
-        open={deleteTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null)
-        }}
-        daemonSet={deleteTarget}
-        onDeleted={() => {
-          fetchDaemonSets()
-          setSelectedItem(null)
-        }}
-      />
     </div>
   )
 }

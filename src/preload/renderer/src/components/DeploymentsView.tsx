@@ -1,6 +1,7 @@
 import { dump as yamlDump } from "js-yaml"
-import { FileCode, Trash2, X } from "lucide-react"
+import { X } from "lucide-react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
 import {
@@ -23,7 +24,6 @@ import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { MetaEntry } from "./MetaEntry"
-import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sDeploymentCondition {
   type: string
@@ -54,11 +54,64 @@ interface K8sDeployment {
 function DetailPanel({
   deployment,
   onClose,
+  onDeleted,
 }: {
   deployment: K8sDeployment
   onClose: () => void
+  onDeleted: () => void
 }): JSX.Element {
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const selectorEntries = Object.entries(deployment.selector)
+
+  function handleEdit(): void {
+    const obj = {
+      apiVersion: "apps/v1",
+      kind: "Deployment",
+      metadata: { name: deployment.name, namespace: deployment.namespace },
+      spec: {
+        replicas: deployment.replicas,
+        selector: { matchLabels: deployment.selector },
+        template: {
+          metadata: { labels: deployment.selector },
+          spec: {
+            containers: deployment.containers.map((c) => ({
+              name: c.name,
+              image: c.image,
+            })),
+          },
+        },
+      },
+    }
+    openDrawerTab({
+      type: "yaml-edit",
+      resourceKind: "Deployment",
+      resourceName: deployment.name,
+      namespace: deployment.namespace,
+      initialYaml: yamlDump(obj),
+    })
+  }
+
+  async function handleDelete(): Promise<void> {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await window.api.k8s.deleteDeployment(
+        deployment.namespace,
+        deployment.name,
+      )
+      toast.success(`Deployment ${deployment.name} deleted`)
+      setDeleteOpen(false)
+      onDeleted()
+      onClose()
+    } catch (e) {
+      setDeleteError(String(e))
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
@@ -69,13 +122,31 @@ function DetailPanel({
             {deployment.namespace}
           </span>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          aria-label="Close panel"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={handleEdit}
+          >
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-7 text-xs"
+            onClick={() => setDeleteOpen(true)}
+          >
+            Delete
+          </Button>
+          <button
+            onClick={onClose}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
+            aria-label="Close panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-1">
@@ -159,80 +230,39 @@ function DetailPanel({
           ))}
         </div>
       )}
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent onClose={() => setDeleteOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>Delete Deployment</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <strong>
+                {deployment.namespace}/{deployment.name}
+              </strong>
+              ? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  )
-}
-
-interface DeleteDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  deployment: K8sDeployment | null
-  onDeleted: () => void
-}
-
-function DeleteDialog({
-  open,
-  onOpenChange,
-  deployment,
-  onDeleted,
-}: DeleteDialogProps): JSX.Element {
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (open) setError(null)
-  }, [open])
-
-  async function handleDelete(): Promise<void> {
-    if (!deployment) return
-    setSubmitting(true)
-    setError(null)
-    try {
-      await window.api.k8s.deleteDeployment(
-        deployment.namespace,
-        deployment.name,
-      )
-      onDeleted()
-      onOpenChange(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
-        <DialogHeader>
-          <DialogTitle>Delete Deployment</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to delete{" "}
-            <strong>
-              {deployment ? `${deployment.namespace}/${deployment.name}` : ""}
-            </strong>
-            ? This action cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={submitting}
-          >
-            {submitting ? "Deleting…" : "Delete"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -240,11 +270,6 @@ export function DeploymentsView(): JSX.Element {
   const [deployments, setDeployments] = useState<K8sDeployment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  const [deleteTarget, setDeleteTarget] = useState<K8sDeployment | null>(null)
-  const [yamlOpen, setYamlOpen] = useState(false)
-  const [yamlInitial, setYamlInitial] = useState("")
-  const [yamlTitle, setYamlTitle] = useState("")
 
   const selectedItem = useAppStore(
     (s) => s.selectedItem,
@@ -280,30 +305,6 @@ export function DeploymentsView(): JSX.Element {
     fetchDeployments()
   }, [selectedContext])
 
-  function openEditYaml(d: K8sDeployment): void {
-    const obj = {
-      apiVersion: "apps/v1",
-      kind: "Deployment",
-      metadata: { name: d.name, namespace: d.namespace },
-      spec: {
-        replicas: d.replicas,
-        selector: { matchLabels: d.selector },
-        template: {
-          metadata: { labels: d.selector },
-          spec: {
-            containers: d.containers.map((c) => ({
-              name: c.name,
-              image: c.image,
-            })),
-          },
-        },
-      },
-    }
-    setYamlInitial(yamlDump(obj))
-    setYamlTitle(`Edit Deployment: ${d.namespace}/${d.name}`)
-    setYamlOpen(true)
-  }
-
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
@@ -322,7 +323,6 @@ export function DeploymentsView(): JSX.Element {
                 <TableHead>Up-to-date</TableHead>
                 <TableHead>Available</TableHead>
                 <TableHead>Age</TableHead>
-                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -350,29 +350,6 @@ export function DeploymentsView(): JSX.Element {
                   <TableCell>{d.updatedReplicas}</TableCell>
                   <TableCell>{d.availableReplicas}</TableCell>
                   <TableCell>{formatAge(d.creationTimestamp)}</TableCell>
-                  <TableCell>
-                    <div
-                      className="flex gap-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Edit YAML"
-                        onClick={() => openEditYaml(d)}
-                      >
-                        <FileCode className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Delete"
-                        onClick={() => setDeleteTarget(d)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -384,31 +361,9 @@ export function DeploymentsView(): JSX.Element {
         <DetailPanel
           deployment={selectedItem}
           onClose={() => setSelectedItem(null)}
+          onDeleted={fetchDeployments}
         />
       )}
-
-      <DeleteDialog
-        open={deleteTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null)
-        }}
-        deployment={deleteTarget}
-        onDeleted={() => {
-          fetchDeployments()
-          setSelectedItem(null)
-        }}
-      />
-
-      <YamlEditorPanel
-        open={yamlOpen}
-        onOpenChange={setYamlOpen}
-        initialYaml={yamlInitial}
-        title={yamlTitle}
-        onApplied={() => {
-          fetchDeployments()
-          setSelectedItem(null)
-        }}
-      />
     </div>
   )
 }

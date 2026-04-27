@@ -93,19 +93,8 @@ const api = {
         image,
         replicas,
       ),
-    updateDeployment: (
-      namespace: string,
-      name: string,
-      image: string,
-      replicas: number,
-    ) =>
-      ipcRenderer.invoke(
-        "k8s:deployment:update",
-        namespace,
-        name,
-        image,
-        replicas,
-      ),
+    updateDeployment: (namespace: string, name: string, yaml: string) =>
+      ipcRenderer.invoke("k8s:deployment:update", namespace, name, yaml),
     deleteDeployment: (namespace: string, name: string) =>
       ipcRenderer.invoke("k8s:deployment:delete", namespace, name),
     createStatefulSet: (
@@ -123,25 +112,14 @@ const api = {
         replicas,
         serviceName,
       ),
-    updateStatefulSet: (
-      namespace: string,
-      name: string,
-      image: string,
-      replicas: number,
-    ) =>
-      ipcRenderer.invoke(
-        "k8s:statefulset:update",
-        namespace,
-        name,
-        image,
-        replicas,
-      ),
+    updateStatefulSet: (namespace: string, name: string, yaml: string) =>
+      ipcRenderer.invoke("k8s:statefulset:update", namespace, name, yaml),
     deleteStatefulSet: (namespace: string, name: string) =>
       ipcRenderer.invoke("k8s:statefulset:delete", namespace, name),
     createDaemonSet: (namespace: string, name: string, image: string) =>
       ipcRenderer.invoke("k8s:daemonset:create", namespace, name, image),
-    updateDaemonSet: (namespace: string, name: string, image: string) =>
-      ipcRenderer.invoke("k8s:daemonset:update", namespace, name, image),
+    updateDaemonSet: (namespace: string, name: string, yaml: string) =>
+      ipcRenderer.invoke("k8s:daemonset:update", namespace, name, yaml),
     deleteDaemonSet: (namespace: string, name: string) =>
       ipcRenderer.invoke("k8s:daemonset:delete", namespace, name),
     createService: (
@@ -163,16 +141,8 @@ const api = {
         ports,
         selector,
       ),
-    updateService: (
-      namespace: string,
-      name: string,
-      type: string,
-      ports: Array<{
-        protocol: string
-        port: number
-        targetPort: number | string
-      }>,
-    ) => ipcRenderer.invoke("k8s:service:update", namespace, name, type, ports),
+    updateService: (namespace: string, name: string, yaml: string) =>
+      ipcRenderer.invoke("k8s:service:update", namespace, name, yaml),
     deleteService: (namespace: string, name: string) =>
       ipcRenderer.invoke("k8s:service:delete", namespace, name),
     createIngress: (
@@ -196,27 +166,8 @@ const api = {
         rules,
         tls,
       ),
-    updateIngress: (
-      namespace: string,
-      name: string,
-      ingressClassName: string,
-      rules: Array<{
-        host: string
-        path: string
-        pathType: string
-        serviceName: string
-        servicePort: number | string
-      }>,
-      tls: Array<{ hosts: string[]; secretName: string }>,
-    ) =>
-      ipcRenderer.invoke(
-        "k8s:ingress:update",
-        namespace,
-        name,
-        ingressClassName,
-        rules,
-        tls,
-      ),
+    updateIngress: (namespace: string, name: string, yaml: string) =>
+      ipcRenderer.invoke("k8s:ingress:update", namespace, name, yaml),
     deleteIngress: (namespace: string, name: string) =>
       ipcRenderer.invoke("k8s:ingress:delete", namespace, name),
     applyResource: (yaml: string) =>

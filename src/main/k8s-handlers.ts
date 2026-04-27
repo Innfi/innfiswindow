@@ -725,6 +725,76 @@ export async function deleteIngress(
   return { success: true, name, namespace }
 }
 
+export async function replaceDeploymentFromYaml(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+  yamlStr: string,
+) {
+  const body = yamlLoad(yamlStr) as object
+  const res = await api.replaceNamespacedDeployment({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+  }
+}
+
+export async function replaceServiceFromYaml(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+  yamlStr: string,
+) {
+  const body = yamlLoad(yamlStr) as object
+  const res = await api.replaceNamespacedService({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+  }
+}
+
+export async function replaceIngressFromYaml(
+  api: NetworkingV1Api,
+  namespace: string,
+  name: string,
+  yamlStr: string,
+) {
+  const body = yamlLoad(yamlStr) as object
+  const res = await api.replaceNamespacedIngress({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+  }
+}
+
+export async function replaceDaemonSetFromYaml(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+  yamlStr: string,
+) {
+  const body = yamlLoad(yamlStr) as object
+  const res = await api.replaceNamespacedDaemonSet({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+  }
+}
+
+export async function replaceStatefulSetFromYaml(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+  yamlStr: string,
+) {
+  const body = yamlLoad(yamlStr) as object
+  const res = await api.replaceNamespacedStatefulSet({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+  }
+}
+
 export async function listRoles(
   api: RbacAuthorizationV1Api,
   namespace?: string,

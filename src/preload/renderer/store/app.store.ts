@@ -42,6 +42,21 @@ export type DrawerTab =
       initialYaml: string
       roleRef?: { kind: string; name: string }
     }
+  | {
+      id: string
+      type: "yaml-edit"
+      resourceKind:
+        | "Deployment"
+        | "Service"
+        | "Ingress"
+        | "DaemonSet"
+        | "StatefulSet"
+        | "ConfigMap"
+        | "Secret"
+      resourceName: string
+      namespace: string
+      initialYaml: string
+    }
 
 export type DrawerTabInput =
   | {
@@ -70,6 +85,20 @@ export type DrawerTabInput =
       namespace?: string
       initialYaml: string
       roleRef?: { kind: string; name: string }
+    }
+  | {
+      type: "yaml-edit"
+      resourceKind:
+        | "Deployment"
+        | "Service"
+        | "Ingress"
+        | "DaemonSet"
+        | "StatefulSet"
+        | "ConfigMap"
+        | "Secret"
+      resourceName: string
+      namespace: string
+      initialYaml: string
     }
 
 interface AppState {
@@ -132,6 +161,14 @@ export const useAppStore = create<AppState>()(
           existing = drawerTabs.find(
             (t) =>
               t.type === "edit-resource" &&
+              t.resourceKind === tabData.resourceKind &&
+              t.resourceName === tabData.resourceName &&
+              t.namespace === tabData.namespace,
+          )
+        } else if (tabData.type === "yaml-edit") {
+          existing = drawerTabs.find(
+            (t) =>
+              t.type === "yaml-edit" &&
               t.resourceKind === tabData.resourceKind &&
               t.resourceName === tabData.resourceName &&
               t.namespace === tabData.namespace,

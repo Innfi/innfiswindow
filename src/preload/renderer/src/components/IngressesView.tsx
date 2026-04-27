@@ -1,6 +1,7 @@
 import { dump as yamlDump } from "js-yaml"
-import { FileCode, Trash2, X } from "lucide-react"
+import { X } from "lucide-react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
 import {
@@ -21,7 +22,6 @@ import {
 } from "../../components/ui/table"
 import { cn, filterResources } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sIngressTLS {
   secretName: string
@@ -68,10 +68,88 @@ function formatAge(timestamp: string): string {
 function DetailPanel({
   item,
   onClose,
+  onDeleted,
 }: {
   item: K8sIngress
   onClose: () => void
+  onDeleted: () => void
 }): JSX.Element {
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  function handleEdit(): void {
+    const obj = {
+      apiVersion: "networking.k8s.io/v1",
+      kind: "Ingress",
+      metadata: {
+        name: item.name,
+        namespace: item.namespace,
+        ...(Object.keys(item.labels).length > 0 ? { labels: item.labels } : {}),
+        ...(Object.keys(item.annotations).length > 0
+          ? { annotations: item.annotations }
+          : {}),
+      },
+      spec: {
+        ...(item.ingressClassName
+          ? { ingressClassName: item.ingressClassName }
+          : {}),
+        rules: item.rules.map((r) => ({
+          host: r.host,
+          http: {
+            paths: r.paths.map((p) => ({
+              path: p.path,
+              pathType: p.pathType,
+              backend: {
+                service: {
+                  name: p.serviceName,
+                  port: {
+                    number:
+                      typeof p.servicePort === "number"
+                        ? p.servicePort
+                        : parseInt(String(p.servicePort), 10) || 80,
+                  },
+                },
+              },
+            })),
+          },
+        })),
+        ...(item.tls.length > 0
+          ? {
+              tls: item.tls.map((t) => ({
+                hosts: t.hosts,
+                secretName: t.secretName,
+              })),
+            }
+          : {}),
+      },
+    }
+    openDrawerTab({
+      type: "yaml-edit",
+      resourceKind: "Ingress",
+      resourceName: item.name,
+      namespace: item.namespace,
+      initialYaml: yamlDump(obj),
+    })
+  }
+
+  async function handleDelete(): Promise<void> {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await window.api.k8s.deleteIngress(item.namespace, item.name)
+      toast.success(`Ingress ${item.name} deleted`)
+      setDeleteOpen(false)
+      onDeleted()
+      onClose()
+    } catch (e) {
+      setDeleteError(String(e))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
@@ -79,13 +157,31 @@ function DetailPanel({
           <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
           <p className="text-xs text-muted-foreground">{item.namespace}</p>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          aria-label="Close panel"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={handleEdit}
+          >
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-7 text-xs"
+            onClick={() => setDeleteOpen(true)}
+          >
+            Delete
+          </Button>
+          <button
+            onClick={onClose}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
+            aria-label="Close panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div>
@@ -195,77 +291,39 @@ function DetailPanel({
           </div>
         </div>
       )}
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent onClose={() => setDeleteOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>Delete Ingress</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <strong>
+                {item.namespace}/{item.name}
+              </strong>
+              ? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  )
-}
-
-interface DeleteDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  ingress: K8sIngress | null
-  onDeleted: () => void
-}
-
-function DeleteDialog({
-  open,
-  onOpenChange,
-  ingress,
-  onDeleted,
-}: DeleteDialogProps): JSX.Element {
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (open) setError(null)
-  }, [open])
-
-  async function handleDelete(): Promise<void> {
-    if (!ingress) return
-    setSubmitting(true)
-    setError(null)
-    try {
-      await window.api.k8s.deleteIngress(ingress.namespace, ingress.name)
-      onDeleted()
-      onOpenChange(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
-        <DialogHeader>
-          <DialogTitle>Delete Ingress</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to delete{" "}
-            <strong>
-              {ingress ? `${ingress.namespace}/${ingress.name}` : ""}
-            </strong>
-            ? This action cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={submitting}
-          >
-            {submitting ? "Deleting…" : "Delete"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -273,11 +331,6 @@ export function IngressesView(): JSX.Element {
   const [ingresses, setIngresses] = useState<K8sIngress[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  const [deleteTarget, setDeleteTarget] = useState<K8sIngress | null>(null)
-  const [yamlOpen, setYamlOpen] = useState(false)
-  const [yamlInitial, setYamlInitial] = useState("")
-  const [yamlTitle, setYamlTitle] = useState("")
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sIngress | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
@@ -290,57 +343,6 @@ export function IngressesView(): JSX.Element {
     nameFilter,
     selectedNamespace,
   )
-
-  function openEditYaml(ing: K8sIngress): void {
-    const obj = {
-      apiVersion: "networking.k8s.io/v1",
-      kind: "Ingress",
-      metadata: {
-        name: ing.name,
-        namespace: ing.namespace,
-        ...(Object.keys(ing.labels).length > 0 ? { labels: ing.labels } : {}),
-        ...(Object.keys(ing.annotations).length > 0
-          ? { annotations: ing.annotations }
-          : {}),
-      },
-      spec: {
-        ...(ing.ingressClassName
-          ? { ingressClassName: ing.ingressClassName }
-          : {}),
-        rules: ing.rules.map((r) => ({
-          host: r.host,
-          http: {
-            paths: r.paths.map((p) => ({
-              path: p.path,
-              pathType: p.pathType,
-              backend: {
-                service: {
-                  name: p.serviceName,
-                  port: {
-                    number:
-                      typeof p.servicePort === "number"
-                        ? p.servicePort
-                        : parseInt(String(p.servicePort), 10) || 80,
-                  },
-                },
-              },
-            })),
-          },
-        })),
-        ...(ing.tls.length > 0
-          ? {
-              tls: ing.tls.map((t) => ({
-                hosts: t.hosts,
-                secretName: t.secretName,
-              })),
-            }
-          : {}),
-      },
-    }
-    setYamlInitial(yamlDump(obj))
-    setYamlTitle(`Edit Ingress: ${ing.namespace}/${ing.name}`)
-    setYamlOpen(true)
-  }
 
   function fetchIngresses(): void {
     setLoading(true)
@@ -380,7 +382,6 @@ export function IngressesView(): JSX.Element {
                 <TableHead>Address</TableHead>
                 <TableHead>Ports</TableHead>
                 <TableHead>Age</TableHead>
-                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -409,35 +410,12 @@ export function IngressesView(): JSX.Element {
                   <TableCell>{ing.address || "-"}</TableCell>
                   <TableCell>{ing.ports}</TableCell>
                   <TableCell>{formatAge(ing.creationTimestamp)}</TableCell>
-                  <TableCell>
-                    <div
-                      className="flex gap-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Edit YAML"
-                        onClick={() => openEditYaml(ing)}
-                      >
-                        <FileCode className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Delete"
-                        onClick={() => setDeleteTarget(ing)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
                 </TableRow>
               ))}
               {visibleIngresses.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={7}
                     className="text-center text-muted-foreground"
                   >
                     No ingresses found
@@ -453,31 +431,9 @@ export function IngressesView(): JSX.Element {
         <DetailPanel
           item={selectedItem}
           onClose={() => setSelectedItem(null)}
+          onDeleted={fetchIngresses}
         />
       )}
-
-      <DeleteDialog
-        open={deleteTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null)
-        }}
-        ingress={deleteTarget}
-        onDeleted={() => {
-          fetchIngresses()
-          setSelectedItem(null)
-        }}
-      />
-
-      <YamlEditorPanel
-        open={yamlOpen}
-        onOpenChange={setYamlOpen}
-        initialYaml={yamlInitial}
-        title={yamlTitle}
-        onApplied={() => {
-          fetchIngresses()
-          setSelectedItem(null)
-        }}
-      />
     </div>
   )
 }

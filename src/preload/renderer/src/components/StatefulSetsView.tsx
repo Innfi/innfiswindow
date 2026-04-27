@@ -1,5 +1,7 @@
-import { Trash2, X } from "lucide-react"
+import { dump as yamlDump } from "js-yaml"
+import { X } from "lucide-react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
 import {
@@ -49,11 +51,63 @@ interface K8sStatefulSet {
 function DetailPanel({
   ss,
   onClose,
+  onDeleted,
 }: {
   ss: K8sStatefulSet
   onClose: () => void
+  onDeleted: () => void
 }): JSX.Element {
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const selectorEntries = Object.entries(ss.selector)
+
+  function handleEdit(): void {
+    const obj = {
+      apiVersion: "apps/v1",
+      kind: "StatefulSet",
+      metadata: { name: ss.name, namespace: ss.namespace },
+      spec: {
+        replicas: ss.replicas,
+        serviceName: ss.serviceName,
+        selector: { matchLabels: ss.selector },
+        updateStrategy: { type: ss.updateStrategy },
+        template: {
+          metadata: { labels: ss.selector },
+          spec: {
+            containers: ss.containers.map((c) => ({
+              name: c.name,
+              image: c.image,
+            })),
+          },
+        },
+      },
+    }
+    openDrawerTab({
+      type: "yaml-edit",
+      resourceKind: "StatefulSet",
+      resourceName: ss.name,
+      namespace: ss.namespace,
+      initialYaml: yamlDump(obj),
+    })
+  }
+
+  async function handleDelete(): Promise<void> {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await window.api.k8s.deleteStatefulSet(ss.namespace, ss.name)
+      toast.success(`StatefulSet ${ss.name} deleted`)
+      setDeleteOpen(false)
+      onDeleted()
+      onClose()
+    } catch (e) {
+      setDeleteError(String(e))
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
@@ -62,13 +116,31 @@ function DetailPanel({
           <h2 className="font-semibold text-base mb-1">{ss.name}</h2>
           <span className="text-xs text-muted-foreground">{ss.namespace}</span>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          aria-label="Close panel"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={handleEdit}
+          >
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-7 text-xs"
+            onClick={() => setDeleteOpen(true)}
+          >
+            Delete
+          </Button>
+          <button
+            onClick={onClose}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
+            aria-label="Close panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-1">
@@ -137,82 +209,39 @@ function DetailPanel({
           ))}
         </div>
       )}
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent onClose={() => setDeleteOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>Delete StatefulSet</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <strong>
+                {ss.namespace}/{ss.name}
+              </strong>
+              ? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  )
-}
-
-interface DeleteDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  statefulSet: K8sStatefulSet | null
-  onDeleted: () => void
-}
-
-function DeleteDialog({
-  open,
-  onOpenChange,
-  statefulSet,
-  onDeleted,
-}: DeleteDialogProps): JSX.Element {
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    if (open) setError(null)
-  }, [open])
-
-  async function handleDelete(): Promise<void> {
-    if (!statefulSet) return
-    setSubmitting(true)
-    setError(null)
-    try {
-      await window.api.k8s.deleteStatefulSet(
-        statefulSet.namespace,
-        statefulSet.name,
-      )
-      onDeleted()
-      onOpenChange(false)
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)}>
-        <DialogHeader>
-          <DialogTitle>Delete StatefulSet</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to delete{" "}
-            <strong>
-              {statefulSet
-                ? `${statefulSet.namespace}/${statefulSet.name}`
-                : ""}
-            </strong>
-            ? This action cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={submitting}
-          >
-            {submitting ? "Deleting…" : "Delete"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -220,8 +249,6 @@ export function StatefulSetsView(): JSX.Element {
   const [statefulSets, setStatefulSets] = useState<K8sStatefulSet[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  const [deleteTarget, setDeleteTarget] = useState<K8sStatefulSet | null>(null)
 
   const selectedItem = useAppStore(
     (s) => s.selectedItem,
@@ -274,7 +301,6 @@ export function StatefulSetsView(): JSX.Element {
                 <TableHead>Ready</TableHead>
                 <TableHead>Age</TableHead>
                 <TableHead>Service</TableHead>
-                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -303,21 +329,6 @@ export function StatefulSetsView(): JSX.Element {
                   </TableCell>
                   <TableCell>{formatAge(ss.creationTimestamp)}</TableCell>
                   <TableCell>{ss.serviceName}</TableCell>
-                  <TableCell>
-                    <div
-                      className="flex gap-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Delete"
-                        onClick={() => setDeleteTarget(ss)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -326,20 +337,15 @@ export function StatefulSetsView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.serviceName !== undefined && (
-        <DetailPanel ss={selectedItem} onClose={() => setSelectedItem(null)} />
+        <DetailPanel
+          ss={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onDeleted={() => {
+            fetchStatefulSets()
+            setSelectedItem(null)
+          }}
+        />
       )}
-
-      <DeleteDialog
-        open={deleteTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null)
-        }}
-        statefulSet={deleteTarget}
-        onDeleted={() => {
-          fetchStatefulSets()
-          setSelectedItem(null)
-        }}
-      />
     </div>
   )
 }
