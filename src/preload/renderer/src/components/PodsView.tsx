@@ -1,8 +1,16 @@
-import { dump as yamlDump } from "js-yaml"
-import { FileCode, ScrollText, SquareTerminal, X } from "lucide-react"
+import { ScrollText, SquareTerminal, X } from "lucide-react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog"
 import {
   Table,
   TableBody,
@@ -16,7 +24,6 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { MetaEntry } from "./MetaEntry"
 import { PodMetricsSection } from "./PodMetricsSection"
-import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sPodContainer {
   name: string
@@ -49,15 +56,36 @@ function DetailPanel({
   onClose,
   onLogs,
   onShell,
+  onDeleteSuccess,
 }: {
   pod: K8sPod
   onClose: () => void
   onLogs: () => void
   onShell: (containerName: string) => void
+  onDeleteSuccess: () => void
 }): JSX.Element {
   const [selectedContainer, setSelectedContainer] = useState(
     pod.containers[0]?.name ?? "",
   )
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  async function handleDelete(): Promise<void> {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await window.api.k8s.deletePod(pod.namespace, pod.name)
+      toast.success(`Pod ${pod.name} deleted`)
+      setDeleteOpen(false)
+      onDeleteSuccess()
+      onClose()
+    } catch (e) {
+      setDeleteError(String(e))
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
@@ -78,9 +106,17 @@ function DetailPanel({
           >
             <SquareTerminal className="h-4 w-4" />
           </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-7 text-xs"
+            onClick={() => setDeleteOpen(true)}
+          >
+            Delete
+          </Button>
           <button
             onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
             aria-label="Close panel"
           >
             <X className="h-4 w-4" />
@@ -176,6 +212,38 @@ function DetailPanel({
       )}
 
       <PodMetricsSection namespace={pod.namespace} podName={pod.name} />
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent onClose={() => setDeleteOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>Delete Pod</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <strong>
+                {pod.namespace}/{pod.name}
+              </strong>
+              ? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -184,9 +252,6 @@ export function PodsView(): JSX.Element {
   const [pods, setPods] = useState<K8sPod[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [yamlOpen, setYamlOpen] = useState(false)
-  const [yamlInitial, setYamlInitial] = useState("")
-  const [yamlTitle, setYamlTitle] = useState("")
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sPod | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
@@ -217,28 +282,6 @@ export function PodsView(): JSX.Element {
     fetchPods()
   }, [selectedContext])
 
-  function openEditYaml(pod: K8sPod): void {
-    const obj = {
-      apiVersion: "v1",
-      kind: "Pod",
-      metadata: {
-        name: pod.name,
-        namespace: pod.namespace,
-        ...(pod.app ? { labels: { app: pod.app } } : {}),
-      },
-      spec: {
-        ...(pod.nodeName ? { nodeName: pod.nodeName } : {}),
-        containers: pod.containers.map((c) => ({
-          name: c.name,
-          image: c.image,
-        })),
-      },
-    }
-    setYamlInitial(yamlDump(obj))
-    setYamlTitle(`Edit Pod: ${pod.namespace}/${pod.name}`)
-    setYamlOpen(true)
-  }
-
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
@@ -258,7 +301,6 @@ export function PodsView(): JSX.Element {
                 <TableHead>Status</TableHead>
                 <TableHead>Restarts</TableHead>
                 <TableHead>Age</TableHead>
-                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -287,21 +329,6 @@ export function PodsView(): JSX.Element {
                   <TableCell>{p.status}</TableCell>
                   <TableCell>{p.restarts}</TableCell>
                   <TableCell>{formatAge(p.creationTimestamp)}</TableCell>
-                  <TableCell>
-                    <div
-                      className="flex gap-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Edit YAML"
-                        onClick={() => openEditYaml(p)}
-                      >
-                        <FileCode className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -330,19 +357,12 @@ export function PodsView(): JSX.Element {
               containerName,
             })
           }
+          onDeleteSuccess={() => {
+            setSelectedItem(null)
+            fetchPods()
+          }}
         />
       )}
-
-      <YamlEditorPanel
-        open={yamlOpen}
-        onOpenChange={setYamlOpen}
-        initialYaml={yamlInitial}
-        title={yamlTitle}
-        onApplied={() => {
-          fetchPods()
-          setSelectedItem(null)
-        }}
-      />
     </div>
   )
 }

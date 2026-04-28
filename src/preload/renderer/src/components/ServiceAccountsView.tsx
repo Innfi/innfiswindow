@@ -1,8 +1,17 @@
 import { dump as yamlDump } from "js-yaml"
-import { Pencil, X } from "lucide-react"
+import { Pencil, Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog"
 import {
   Table,
   TableBody,
@@ -28,13 +37,19 @@ interface K8sServiceAccount {
 function DetailPanel({
   sa,
   onClose,
+  onDeleteSuccess,
 }: {
   sa: K8sServiceAccount
   onClose: () => void
+  onDeleteSuccess: () => void
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const labelEntries = Object.entries(sa.labels)
   const annotationEntries = Object.entries(sa.annotations)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   function handleEdit(): void {
     openDrawerTab({
@@ -44,6 +59,22 @@ function DetailPanel({
       namespace: sa.namespace,
       initialYaml: yamlDump({ labels: sa.labels, annotations: sa.annotations }),
     })
+  }
+
+  async function handleDelete(): Promise<void> {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await window.api.k8s.deleteServiceAccount(sa.namespace, sa.name)
+      toast.success(`ServiceAccount ${sa.name} deleted`)
+      setDeleteOpen(false)
+      setSelectedItem(null)
+      onDeleteSuccess()
+    } catch (e) {
+      setDeleteError(String(e))
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -58,6 +89,15 @@ function DetailPanel({
             <Pencil className="h-3 w-3 mr-1" />
             Edit
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-destructive hover:text-destructive"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="h-3 w-3 mr-1" />
+            Delete
+          </Button>
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -67,6 +107,34 @@ function DetailPanel({
           </button>
         </div>
       </div>
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete ServiceAccount</DialogTitle>
+            <DialogDescription>
+              Delete service account <strong>{sa.name}</strong> in namespace{" "}
+              <strong>{sa.namespace}</strong>? This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {labelEntries.length > 0 && (
         <div className="space-y-1">
@@ -219,7 +287,19 @@ export function ServiceAccountsView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.secrets !== undefined && (
-        <DetailPanel sa={selectedItem} onClose={() => setSelectedItem(null)} />
+        <DetailPanel
+          sa={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onDeleteSuccess={() => {
+            setServiceAccounts((prev) =>
+              prev.filter(
+                (a) =>
+                  a.name !== selectedItem.name ||
+                  a.namespace !== selectedItem.namespace,
+              ),
+            )
+          }}
+        />
       )}
     </div>
   )

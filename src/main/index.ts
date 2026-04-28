@@ -21,10 +21,18 @@ import {
   createIngress,
   createService,
   createStatefulSet,
+  deleteClusterRole,
+  deleteClusterRoleBinding,
+  deleteConfigMap,
   deleteDaemonSet,
   deleteDeployment,
   deleteIngress,
+  deletePod,
+  deleteRole,
+  deleteRoleBinding,
+  deleteSecret,
   deleteService,
+  deleteServiceAccount,
   deleteStatefulSet,
   getClusterType,
   getCurrentContext,
@@ -46,18 +54,18 @@ import {
   listServiceAccounts,
   listServices,
   listStatefulSets,
+  replaceConfigMapFromYaml,
   replaceDaemonSetFromYaml,
   replaceDeploymentFromYaml,
   replaceIngressFromYaml,
+  replaceSecretFromYaml,
   replaceServiceFromYaml,
   replaceStatefulSetFromYaml,
   updateClusterRole,
   updateClusterRoleBinding,
-  updateDaemonSet,
   updateRole,
   updateRoleBinding,
   updateServiceAccount,
-  updateStatefulSet,
 } from "./k8s-handlers"
 import {
   checkPrometheusConnectivity,
@@ -282,6 +290,25 @@ app.whenReady().then(() => {
       },
     ) => updateServiceAccount(coreV1Api, namespace, name, metadata),
   )
+  ipcMain.handle("k8s:role:delete", (_e, namespace: string, name: string) =>
+    deleteRole(rbacV1Api, namespace, name),
+  )
+  ipcMain.handle("k8s:clusterrole:delete", (_e, name: string) =>
+    deleteClusterRole(rbacV1Api, name),
+  )
+  ipcMain.handle(
+    "k8s:rolebinding:delete",
+    (_e, namespace: string, name: string) =>
+      deleteRoleBinding(rbacV1Api, namespace, name),
+  )
+  ipcMain.handle("k8s:clusterrolebinding:delete", (_e, name: string) =>
+    deleteClusterRoleBinding(rbacV1Api, name),
+  )
+  ipcMain.handle(
+    "k8s:serviceaccount:delete",
+    (_e, namespace: string, name: string) =>
+      deleteServiceAccount(coreV1Api, namespace, name),
+  )
   ipcMain.handle("k8s:services:list", (_e, args?: { contextName?: string }) =>
     listServices(getContextClients(args?.contextName).coreV1),
   )
@@ -349,6 +376,24 @@ app.whenReady().then(() => {
     "k8s:daemonset:delete",
     (_e, namespace: string, name: string) =>
       deleteDaemonSet(appsV1Api, namespace, name),
+  )
+  ipcMain.handle(
+    "k8s:configmap:update",
+    (_e, namespace: string, name: string, yaml: string) =>
+      replaceConfigMapFromYaml(coreV1Api, namespace, name, yaml),
+  )
+  ipcMain.handle(
+    "k8s:configmap:delete",
+    (_e, namespace: string, name: string) =>
+      deleteConfigMap(coreV1Api, namespace, name),
+  )
+  ipcMain.handle(
+    "k8s:secret:update",
+    (_e, namespace: string, name: string, yaml: string) =>
+      replaceSecretFromYaml(coreV1Api, namespace, name, yaml),
+  )
+  ipcMain.handle("k8s:secret:delete", (_e, namespace: string, name: string) =>
+    deleteSecret(coreV1Api, namespace, name),
   )
   ipcMain.handle(
     "k8s:service:create",
@@ -625,6 +670,10 @@ app.whenReady().then(() => {
         session.stdinStream.write(data)
       }
     },
+  )
+
+  ipcMain.handle("k8s:pod:delete", (_e, namespace: string, name: string) =>
+    deletePod(coreV1Api, namespace, name),
   )
 
   ipcMain.on(

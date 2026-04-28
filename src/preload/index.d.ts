@@ -443,6 +443,46 @@ export interface K8sAPI {
     name: string,
   ) => Promise<{ success: boolean; name: string; namespace: string }>
   applyResource: (yaml: string) => Promise<{ name: string; namespace: string }>
+  updateConfigMap: (
+    namespace: string,
+    name: string,
+    yaml: string,
+  ) => Promise<{ name: string; namespace: string }>
+  deleteConfigMap: (
+    namespace: string,
+    name: string,
+  ) => Promise<{ success: boolean; name: string; namespace: string }>
+  updateSecret: (
+    namespace: string,
+    name: string,
+    yaml: string,
+  ) => Promise<{ name: string; namespace: string }>
+  deleteSecret: (
+    namespace: string,
+    name: string,
+  ) => Promise<{ success: boolean; name: string; namespace: string }>
+  deletePod: (
+    namespace: string,
+    name: string,
+  ) => Promise<{ success: boolean; name: string; namespace: string }>
+  deleteRole: (
+    namespace: string,
+    name: string,
+  ) => Promise<{ success: boolean; name: string; namespace: string }>
+  deleteClusterRole: (
+    name: string,
+  ) => Promise<{ success: boolean; name: string }>
+  deleteRoleBinding: (
+    namespace: string,
+    name: string,
+  ) => Promise<{ success: boolean; name: string; namespace: string }>
+  deleteClusterRoleBinding: (
+    name: string,
+  ) => Promise<{ success: boolean; name: string }>
+  deleteServiceAccount: (
+    namespace: string,
+    name: string,
+  ) => Promise<{ success: boolean; name: string; namespace: string }>
   updateRole: (
     namespace: string,
     name: string,

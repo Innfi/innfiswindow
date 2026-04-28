@@ -1,8 +1,17 @@
 import { dump as yamlDump } from "js-yaml"
-import { FileCode, X } from "lucide-react"
+import { X } from "lucide-react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog"
 import {
   Table,
   TableBody,
@@ -14,7 +23,6 @@ import {
 import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sConfigMap {
   name: string
@@ -30,14 +38,62 @@ interface K8sConfigMap {
 function DetailPanel({
   cm,
   onClose,
+  onDeleted,
 }: {
   cm: K8sConfigMap
   onClose: () => void
+  onDeleted: () => void
 }): JSX.Element {
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const dataEntries = Object.entries(cm.data)
   const binaryEntries = Object.entries(cm.binaryData)
   const labelEntries = Object.entries(cm.labels)
   const annotationEntries = Object.entries(cm.annotations)
+
+  function handleEdit(): void {
+    const obj = {
+      apiVersion: "v1",
+      kind: "ConfigMap",
+      metadata: {
+        name: cm.name,
+        namespace: cm.namespace,
+        ...(Object.keys(cm.labels).length > 0 ? { labels: cm.labels } : {}),
+        ...(Object.keys(cm.annotations).length > 0
+          ? { annotations: cm.annotations }
+          : {}),
+      },
+      ...(Object.keys(cm.data).length > 0 ? { data: cm.data } : {}),
+      ...(Object.keys(cm.binaryData).length > 0
+        ? { binaryData: cm.binaryData }
+        : {}),
+    }
+    openDrawerTab({
+      type: "yaml-edit",
+      resourceKind: "ConfigMap",
+      resourceName: cm.name,
+      namespace: cm.namespace,
+      initialYaml: yamlDump(obj),
+    })
+  }
+
+  async function handleDelete(): Promise<void> {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await window.api.k8s.deleteConfigMap(cm.namespace, cm.name)
+      toast.success(`ConfigMap ${cm.name} deleted`)
+      setDeleteOpen(false)
+      onDeleted()
+      onClose()
+    } catch (e) {
+      setDeleteError(String(e))
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
@@ -46,14 +102,64 @@ function DetailPanel({
           <h2 className="font-semibold text-base mb-1">{cm.name}</h2>
           <span className="text-xs text-muted-foreground">{cm.namespace}</span>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          aria-label="Close panel"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={handleEdit}
+          >
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-7 text-xs"
+            onClick={() => setDeleteOpen(true)}
+          >
+            Delete
+          </Button>
+          <button
+            onClick={onClose}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
+            aria-label="Close panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete ConfigMap</DialogTitle>
+            <DialogDescription>
+              Delete <span className="font-mono">{cm.name}</span> from namespace{" "}
+              <span className="font-mono">{cm.namespace}</span>? This cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && (
+            <p className="text-sm text-destructive">{deleteError}</p>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {dataEntries.length > 0 && (
         <div className="space-y-2">
@@ -124,9 +230,6 @@ export function ConfigMapsView(): JSX.Element {
   const [configMaps, setConfigMaps] = useState<K8sConfigMap[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [yamlOpen, setYamlOpen] = useState(false)
-  const [yamlInitial, setYamlInitial] = useState("")
-  const [yamlTitle, setYamlTitle] = useState("")
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sConfigMap | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
@@ -160,22 +263,6 @@ export function ConfigMapsView(): JSX.Element {
     fetchConfigMaps()
   }, [selectedContext])
 
-  function openEditYaml(cm: K8sConfigMap): void {
-    const obj = {
-      apiVersion: "v1",
-      kind: "ConfigMap",
-      metadata: {
-        name: cm.name,
-        namespace: cm.namespace,
-        ...(Object.keys(cm.labels).length > 0 ? { labels: cm.labels } : {}),
-      },
-      ...(Object.keys(cm.data).length > 0 ? { data: cm.data } : {}),
-    }
-    setYamlInitial(yamlDump(obj))
-    setYamlTitle(`Edit ConfigMap: ${cm.namespace}/${cm.name}`)
-    setYamlOpen(true)
-  }
-
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
@@ -192,7 +279,6 @@ export function ConfigMapsView(): JSX.Element {
                 <TableHead>Namespace</TableHead>
                 <TableHead>Keys</TableHead>
                 <TableHead>Age</TableHead>
-                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -220,21 +306,6 @@ export function ConfigMapsView(): JSX.Element {
                     {cm.keys.join(", ") || "-"}
                   </TableCell>
                   <TableCell>{formatAge(cm.creationTimestamp)}</TableCell>
-                  <TableCell>
-                    <div
-                      className="flex gap-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Edit YAML"
-                        onClick={() => openEditYaml(cm)}
-                      >
-                        <FileCode className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -243,19 +314,12 @@ export function ConfigMapsView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.keys !== undefined && (
-        <DetailPanel cm={selectedItem} onClose={() => setSelectedItem(null)} />
+        <DetailPanel
+          cm={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onDeleted={() => fetchConfigMaps()}
+        />
       )}
-
-      <YamlEditorPanel
-        open={yamlOpen}
-        onOpenChange={setYamlOpen}
-        initialYaml={yamlInitial}
-        title={yamlTitle}
-        onApplied={() => {
-          fetchConfigMaps()
-          setSelectedItem(null)
-        }}
-      />
     </div>
   )
 }

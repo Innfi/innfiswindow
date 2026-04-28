@@ -1112,7 +1112,7 @@
     {
       "id": "S58",
       "title": "Move ConfigMap/Secret Edit from list to detail panel, add Edit+Delete to detail",
-      "status": "incomplete",
+      "status": "complete",
       "description": "ConfigMapsView and SecretsView render Edit YAML buttons in list rows using the YamlEditorPanel modal. Remove those list-row buttons and move the edit action to each resource's detail panel as a BottomDrawer tab. Also add a Delete button to each detail panel. New main-process IPC handlers are required for update and delete of ConfigMaps and Secrets.",
       "acceptance_criteria": [
         "Edit YAML button removed from every list row in ConfigMapsView and SecretsView; YamlEditorPanel modal and associated state removed from both views",
@@ -1139,7 +1139,7 @@
     {
       "id": "S59",
       "title": "Remove Pod Edit YAML from list rows, add Delete to Pod detail panel",
-      "status": "incomplete",
+      "status": "complete",
       "description": "PodsView renders an Edit YAML button in each list row using YamlEditorPanel. Pods are ephemeral and direct YAML updates are uncommon — remove the Edit button entirely. Add a Delete button to the Pod detail panel so users can delete a selected pod from the detail view.",
       "acceptance_criteria": [
         "Edit YAML button removed from every list row in PodsView; YamlEditorPanel modal and associated state (openEditYaml, yamlTitle, yamlContent, etc.) removed from PodsView",
@@ -1156,7 +1156,7 @@
     {
       "id": "S60",
       "title": "Add Delete button to RBAC resource detail panels",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Roles, ClusterRoles, RoleBindings, ClusterRoleBindings, and ServiceAccounts already have an Edit button in their detail panels (from S55) but have no Delete capability. Add a Delete button to each of these five detail panels backed by new main-process IPC handlers.",
       "acceptance_criteria": [
         "Delete button added to the detail panel header action area in RolesView, ClusterRolesView, RoleBindingsView, ClusterRoleBindingsView, and ServiceAccountsView (alongside the existing Edit button)",

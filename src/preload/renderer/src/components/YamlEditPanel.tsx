@@ -62,6 +62,18 @@ export function YamlEditPanel({
           tab.resourceName,
           yamlStr,
         )
+      } else if (tab.resourceKind === "ConfigMap") {
+        await window.api.k8s.updateConfigMap(
+          tab.namespace,
+          tab.resourceName,
+          yamlStr,
+        )
+      } else if (tab.resourceKind === "Secret") {
+        await window.api.k8s.updateSecret(
+          tab.namespace,
+          tab.resourceName,
+          yamlStr,
+        )
       }
       toast.success(`${tab.resourceKind}/${tab.resourceName} saved`)
       onClose()

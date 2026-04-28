@@ -1,8 +1,17 @@
 import { dump as yamlDump } from "js-yaml"
-import { Eye, EyeOff, FileCode, X } from "lucide-react"
+import { Eye, EyeOff, X } from "lucide-react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog"
 import {
   Table,
   TableBody,
@@ -14,7 +23,6 @@ import {
 import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { YamlEditorPanel } from "./YamlEditorPanel"
 
 interface K8sSecret {
   name: string
@@ -30,11 +38,17 @@ interface K8sSecret {
 function DetailPanel({
   secret,
   onClose,
+  onDeleted,
 }: {
   secret: K8sSecret
   onClose: () => void
+  onDeleted: () => void
 }): JSX.Element {
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set())
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const dataEntries = Object.entries(secret.data)
   const labelEntries = Object.entries(secret.labels)
   const annotationEntries = Object.entries(secret.annotations)
@@ -51,6 +65,48 @@ function DetailPanel({
     })
   }
 
+  function handleEdit(): void {
+    const obj = {
+      apiVersion: "v1",
+      kind: "Secret",
+      metadata: {
+        name: secret.name,
+        namespace: secret.namespace,
+        ...(Object.keys(secret.labels).length > 0
+          ? { labels: secret.labels }
+          : {}),
+        ...(Object.keys(secret.annotations).length > 0
+          ? { annotations: secret.annotations }
+          : {}),
+      },
+      type: secret.type,
+      ...(Object.keys(secret.data).length > 0 ? { data: secret.data } : {}),
+    }
+    openDrawerTab({
+      type: "yaml-edit",
+      resourceKind: "Secret",
+      resourceName: secret.name,
+      namespace: secret.namespace,
+      initialYaml: yamlDump(obj),
+    })
+  }
+
+  async function handleDelete(): Promise<void> {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await window.api.k8s.deleteSecret(secret.namespace, secret.name)
+      toast.success(`Secret ${secret.name} deleted`)
+      setDeleteOpen(false)
+      onDeleted()
+      onClose()
+    } catch (e) {
+      setDeleteError(String(e))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
@@ -60,14 +116,64 @@ function DetailPanel({
             {secret.namespace}
           </span>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          aria-label="Close panel"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={handleEdit}
+          >
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-7 text-xs"
+            onClick={() => setDeleteOpen(true)}
+          >
+            Delete
+          </Button>
+          <button
+            onClick={onClose}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
+            aria-label="Close panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Secret</DialogTitle>
+            <DialogDescription>
+              Delete <span className="font-mono">{secret.name}</span> from
+              namespace <span className="font-mono">{secret.namespace}</span>?
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && (
+            <p className="text-sm text-destructive">{deleteError}</p>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div>
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-1">
@@ -154,9 +260,6 @@ export function SecretsView(): JSX.Element {
   const [secrets, setSecrets] = useState<K8sSecret[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [yamlOpen, setYamlOpen] = useState(false)
-  const [yamlInitial, setYamlInitial] = useState("")
-  const [yamlTitle, setYamlTitle] = useState("")
 
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sSecret | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
@@ -186,25 +289,6 @@ export function SecretsView(): JSX.Element {
     fetchSecrets()
   }, [selectedContext])
 
-  function openEditYaml(secret: K8sSecret): void {
-    const obj = {
-      apiVersion: "v1",
-      kind: "Secret",
-      metadata: {
-        name: secret.name,
-        namespace: secret.namespace,
-        ...(Object.keys(secret.labels).length > 0
-          ? { labels: secret.labels }
-          : {}),
-      },
-      type: secret.type,
-      ...(Object.keys(secret.data).length > 0 ? { data: secret.data } : {}),
-    }
-    setYamlInitial(yamlDump(obj))
-    setYamlTitle(`Edit Secret: ${secret.namespace}/${secret.name}`)
-    setYamlOpen(true)
-  }
-
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
@@ -222,7 +306,6 @@ export function SecretsView(): JSX.Element {
                 <TableHead>Type</TableHead>
                 <TableHead>Keys</TableHead>
                 <TableHead>Age</TableHead>
-                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -251,21 +334,6 @@ export function SecretsView(): JSX.Element {
                     {secret.keys.join(", ") || "-"}
                   </TableCell>
                   <TableCell>{formatAge(secret.creationTimestamp)}</TableCell>
-                  <TableCell>
-                    <div
-                      className="flex gap-1"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Edit YAML"
-                        onClick={() => openEditYaml(secret)}
-                      >
-                        <FileCode className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -277,19 +345,9 @@ export function SecretsView(): JSX.Element {
         <DetailPanel
           secret={selectedItem}
           onClose={() => setSelectedItem(null)}
+          onDeleted={() => fetchSecrets()}
         />
       )}
-
-      <YamlEditorPanel
-        open={yamlOpen}
-        onOpenChange={setYamlOpen}
-        initialYaml={yamlInitial}
-        title={yamlTitle}
-        onApplied={() => {
-          fetchSecrets()
-          setSelectedItem(null)
-        }}
-      />
     </div>
   )
 }

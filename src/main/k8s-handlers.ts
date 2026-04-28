@@ -795,6 +795,104 @@ export async function replaceStatefulSetFromYaml(
   }
 }
 
+export async function replaceConfigMapFromYaml(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+  yamlStr: string,
+) {
+  const body = yamlLoad(yamlStr) as object
+  const res = await api.replaceNamespacedConfigMap({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+  }
+}
+
+export async function deleteConfigMap(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+) {
+  await api.deleteNamespacedConfigMap({ name, namespace })
+  return { success: true, name, namespace }
+}
+
+export async function replaceSecretFromYaml(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+  yamlStr: string,
+) {
+  const body = yamlLoad(yamlStr) as object
+  const res = await api.replaceNamespacedSecret({ name, namespace, body })
+  return {
+    name: res.metadata?.name ?? "",
+    namespace: res.metadata?.namespace ?? "",
+  }
+}
+
+export async function deleteSecret(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+) {
+  await api.deleteNamespacedSecret({ name, namespace })
+  return { success: true, name, namespace }
+}
+
+export async function deletePod(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+) {
+  await api.deleteNamespacedPod({ name, namespace })
+  return { success: true, name, namespace }
+}
+
+export async function deleteRole(
+  api: RbacAuthorizationV1Api,
+  namespace: string,
+  name: string,
+) {
+  await api.deleteNamespacedRole({ name, namespace })
+  return { success: true, name, namespace }
+}
+
+export async function deleteClusterRole(
+  api: RbacAuthorizationV1Api,
+  name: string,
+) {
+  await api.deleteClusterRole({ name })
+  return { success: true, name }
+}
+
+export async function deleteRoleBinding(
+  api: RbacAuthorizationV1Api,
+  namespace: string,
+  name: string,
+) {
+  await api.deleteNamespacedRoleBinding({ name, namespace })
+  return { success: true, name, namespace }
+}
+
+export async function deleteClusterRoleBinding(
+  api: RbacAuthorizationV1Api,
+  name: string,
+) {
+  await api.deleteClusterRoleBinding({ name })
+  return { success: true, name }
+}
+
+export async function deleteServiceAccount(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+) {
+  await api.deleteNamespacedServiceAccount({ name, namespace })
+  return { success: true, name, namespace }
+}
+
 export async function listRoles(
   api: RbacAuthorizationV1Api,
   namespace?: string,
