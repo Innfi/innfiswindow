@@ -1,5 +1,4 @@
 import { X } from "lucide-react"
-import { useEffect, useState } from "react"
 
 import {
   Table,
@@ -9,9 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useK8sResource } from "../hooks/useK8sResource"
 import { MetaEntry } from "./MetaEntry"
 
 interface K8sNamespace {
@@ -93,31 +92,21 @@ function DetailPanel({
 }
 
 export function NamespacesView(): JSX.Element {
-  const [namespaces, setNamespaces] = useState<K8sNamespace[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sNamespace | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
-  const visibleNamespaces = filterResources(namespaces, nameFilter)
+  const {
+    data: namespaces,
+    loading,
+    error,
+  } = useK8sResource(
+    (ctx) => window.api.k8s.listNamespaces({ contextName: ctx }),
+    selectedContext,
+  )
 
-  useEffect(() => {
-    setLoading(true)
-    setError(null)
-    window.api.k8s
-      .listNamespaces({ contextName: selectedContext ?? undefined })
-      .then((data) => {
-        setNamespaces(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        handleIpcError(err, "Namespaces")
-        setError(String(err))
-        setLoading(false)
-      })
-  }, [selectedContext])
+  const visibleNamespaces = filterResources(namespaces, nameFilter)
 
   return (
     <div className="flex h-full overflow-hidden">

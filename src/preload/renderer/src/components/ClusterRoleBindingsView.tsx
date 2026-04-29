@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { Pencil, Trash2, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
@@ -20,9 +20,9 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { handleIpcError } from "../../lib/ipc-error"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useK8sResource } from "../hooks/useK8sResource"
 
 interface BindingSubject {
   kind: string
@@ -187,10 +187,6 @@ function DetailPanel({
 }
 
 export function ClusterRoleBindingsView(): JSX.Element {
-  const [bindings, setBindings] = useState<K8sClusterRoleBinding[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const selectedItem = useAppStore(
     (s) => s.selectedItem,
   ) as K8sClusterRoleBinding | null
@@ -198,27 +194,21 @@ export function ClusterRoleBindingsView(): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
+  const {
+    data: bindings,
+    loading,
+    error,
+    reload,
+  } = useK8sResource(
+    (ctx) => window.api.k8s.listClusterRoleBindings({ contextName: ctx }),
+    selectedContext,
+  )
+
   const visible = nameFilter
     ? bindings.filter((b) =>
         b.name.toLowerCase().includes(nameFilter.toLowerCase()),
       )
     : bindings
-
-  useEffect(() => {
-    setLoading(true)
-    setError(null)
-    window.api.k8s
-      .listClusterRoleBindings({ contextName: selectedContext ?? undefined })
-      .then((data) => {
-        setBindings(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        handleIpcError(err, "ClusterRoleBindings")
-        setError(String(err))
-        setLoading(false)
-      })
-  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -274,11 +264,7 @@ export function ClusterRoleBindingsView(): JSX.Element {
           <DetailPanel
             binding={selectedItem}
             onClose={() => setSelectedItem(null)}
-            onDeleteSuccess={() => {
-              setBindings((prev) =>
-                prev.filter((b) => b.name !== selectedItem.name),
-              )
-            }}
+            onDeleteSuccess={reload}
           />
         )}
     </div>

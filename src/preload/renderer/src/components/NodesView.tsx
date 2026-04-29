@@ -1,5 +1,4 @@
 import { X } from "lucide-react"
-import { useEffect, useState } from "react"
 
 import {
   Table,
@@ -9,9 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useK8sResource } from "../hooks/useK8sResource"
 import { MetaEntry } from "./MetaEntry"
 
 interface K8sNodeCondition {
@@ -149,31 +148,21 @@ function DetailPanel({
 }
 
 export function NodesView(): JSX.Element {
-  const [nodes, setNodes] = useState<K8sNode[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sNode | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
-  const visibleNodes = filterResources(nodes, nameFilter)
+  const {
+    data: nodes,
+    loading,
+    error,
+  } = useK8sResource(
+    (ctx) => window.api.k8s.listNodes({ contextName: ctx }),
+    selectedContext,
+  )
 
-  useEffect(() => {
-    setLoading(true)
-    setError(null)
-    window.api.k8s
-      .listNodes({ contextName: selectedContext ?? undefined })
-      .then((data) => {
-        setNodes(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        handleIpcError(err, "Nodes")
-        setError(String(err))
-        setLoading(false)
-      })
-  }, [selectedContext])
+  const visibleNodes = filterResources(nodes, nameFilter)
 
   return (
     <div className="flex h-full overflow-hidden">

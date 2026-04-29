@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { Pencil, Trash2, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
@@ -20,9 +20,9 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useK8sResource } from "../hooks/useK8sResource"
 
 interface K8sRoleRule {
   apiGroups: string[]
@@ -178,33 +178,23 @@ function DetailPanel({
 }
 
 export function RolesView(): JSX.Element {
-  const [roles, setRoles] = useState<K8sRole[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sRole | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
-  const visible = filterResources(roles, nameFilter, selectedNamespace)
+  const {
+    data: roles,
+    loading,
+    error,
+    reload,
+  } = useK8sResource(
+    (ctx) => window.api.k8s.listRoles({ contextName: ctx }),
+    selectedContext,
+  )
 
-  useEffect(() => {
-    setLoading(true)
-    setError(null)
-    window.api.k8s
-      .listRoles({ contextName: selectedContext ?? undefined })
-      .then((data) => {
-        setRoles(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        handleIpcError(err, "Roles")
-        setError(String(err))
-        setLoading(false)
-      })
-  }, [selectedContext])
+  const visible = filterResources(roles, nameFilter, selectedNamespace)
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -258,15 +248,7 @@ export function RolesView(): JSX.Element {
         <DetailPanel
           role={selectedItem}
           onClose={() => setSelectedItem(null)}
-          onDeleteSuccess={() => {
-            setRoles((prev) =>
-              prev.filter(
-                (r) =>
-                  r.name !== selectedItem.name ||
-                  r.namespace !== selectedItem.namespace,
-              ),
-            )
-          }}
+          onDeleteSuccess={reload}
         />
       )}
     </div>

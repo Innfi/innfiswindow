@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
@@ -20,9 +20,9 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useK8sResource } from "../hooks/useK8sResource"
 import { MetaEntry } from "./MetaEntry"
 
 interface K8sDeploymentCondition {
@@ -267,10 +267,6 @@ function DetailPanel({
 }
 
 export function DeploymentsView(): JSX.Element {
-  const [deployments, setDeployments] = useState<K8sDeployment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const selectedItem = useAppStore(
     (s) => s.selectedItem,
   ) as K8sDeployment | null
@@ -279,31 +275,21 @@ export function DeploymentsView(): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
+  const {
+    data: deployments,
+    loading,
+    error,
+    reload,
+  } = useK8sResource(
+    (ctx) => window.api.k8s.listDeployments({ contextName: ctx }),
+    selectedContext,
+  )
+
   const visibleDeployments = filterResources(
     deployments,
     nameFilter,
     selectedNamespace,
   )
-
-  function fetchDeployments(): void {
-    setLoading(true)
-    setError(null)
-    window.api.k8s
-      .listDeployments({ contextName: selectedContext ?? undefined })
-      .then((data) => {
-        setDeployments(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        handleIpcError(err, "Deployments")
-        setError(String(err))
-        setLoading(false)
-      })
-  }
-
-  useEffect(() => {
-    fetchDeployments()
-  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -361,7 +347,7 @@ export function DeploymentsView(): JSX.Element {
         <DetailPanel
           deployment={selectedItem}
           onClose={() => setSelectedItem(null)}
-          onDeleted={fetchDeployments}
+          onDeleted={reload}
         />
       )}
     </div>

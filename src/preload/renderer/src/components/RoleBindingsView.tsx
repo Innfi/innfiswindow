@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { Pencil, Trash2, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
@@ -20,9 +20,9 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useK8sResource } from "../hooks/useK8sResource"
 
 interface BindingSubject {
   kind: string
@@ -189,10 +189,6 @@ function DetailPanel({
 }
 
 export function RoleBindingsView(): JSX.Element {
-  const [bindings, setBindings] = useState<K8sRoleBinding[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const selectedItem = useAppStore(
     (s) => s.selectedItem,
   ) as K8sRoleBinding | null
@@ -201,23 +197,17 @@ export function RoleBindingsView(): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
-  const visible = filterResources(bindings, nameFilter, selectedNamespace)
+  const {
+    data: bindings,
+    loading,
+    error,
+    reload,
+  } = useK8sResource(
+    (ctx) => window.api.k8s.listRoleBindings({ contextName: ctx }),
+    selectedContext,
+  )
 
-  useEffect(() => {
-    setLoading(true)
-    setError(null)
-    window.api.k8s
-      .listRoleBindings({ contextName: selectedContext ?? undefined })
-      .then((data) => {
-        setBindings(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        handleIpcError(err, "RoleBindings")
-        setError(String(err))
-        setLoading(false)
-      })
-  }, [selectedContext])
+  const visible = filterResources(bindings, nameFilter, selectedNamespace)
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -275,15 +265,7 @@ export function RoleBindingsView(): JSX.Element {
           <DetailPanel
             binding={selectedItem}
             onClose={() => setSelectedItem(null)}
-            onDeleteSuccess={() => {
-              setBindings((prev) =>
-                prev.filter(
-                  (b) =>
-                    b.name !== selectedItem.name ||
-                    b.namespace !== selectedItem.namespace,
-                ),
-              )
-            }}
+            onDeleteSuccess={reload}
           />
         )}
     </div>

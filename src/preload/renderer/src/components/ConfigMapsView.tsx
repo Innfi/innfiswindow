@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
@@ -20,9 +20,9 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useK8sResource } from "../hooks/useK8sResource"
 
 interface K8sConfigMap {
   name: string
@@ -227,41 +227,27 @@ function DetailPanel({
 }
 
 export function ConfigMapsView(): JSX.Element {
-  const [configMaps, setConfigMaps] = useState<K8sConfigMap[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sConfigMap | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
+  const {
+    data: configMaps,
+    loading,
+    error,
+    reload,
+  } = useK8sResource(
+    (ctx) => window.api.k8s.listConfigMaps({ contextName: ctx }),
+    selectedContext,
+  )
+
   const visibleConfigMaps = filterResources(
     configMaps,
     nameFilter,
     selectedNamespace,
   )
-
-  function fetchConfigMaps(): void {
-    setLoading(true)
-    setError(null)
-    window.api.k8s
-      .listConfigMaps({ contextName: selectedContext ?? undefined })
-      .then((data) => {
-        setConfigMaps(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        handleIpcError(err, "ConfigMaps")
-        setError(String(err))
-        setLoading(false)
-      })
-  }
-
-  useEffect(() => {
-    fetchConfigMaps()
-  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -317,7 +303,7 @@ export function ConfigMapsView(): JSX.Element {
         <DetailPanel
           cm={selectedItem}
           onClose={() => setSelectedItem(null)}
-          onDeleted={() => fetchConfigMaps()}
+          onDeleted={reload}
         />
       )}
     </div>

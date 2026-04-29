@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { Pencil, Trash2, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
@@ -20,9 +20,9 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { handleIpcError } from "../../lib/ipc-error"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useK8sResource } from "../hooks/useK8sResource"
 
 interface K8sRoleRule {
   apiGroups: string[]
@@ -174,10 +174,6 @@ function DetailPanel({
 }
 
 export function ClusterRolesView(): JSX.Element {
-  const [clusterRoles, setClusterRoles] = useState<K8sClusterRole[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const selectedItem = useAppStore(
     (s) => s.selectedItem,
   ) as K8sClusterRole | null
@@ -185,27 +181,21 @@ export function ClusterRolesView(): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
+  const {
+    data: clusterRoles,
+    loading,
+    error,
+    reload,
+  } = useK8sResource(
+    (ctx) => window.api.k8s.listClusterRoles({ contextName: ctx }),
+    selectedContext,
+  )
+
   const visible = nameFilter
     ? clusterRoles.filter((r) =>
         r.name.toLowerCase().includes(nameFilter.toLowerCase()),
       )
     : clusterRoles
-
-  useEffect(() => {
-    setLoading(true)
-    setError(null)
-    window.api.k8s
-      .listClusterRoles({ contextName: selectedContext ?? undefined })
-      .then((data) => {
-        setClusterRoles(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        handleIpcError(err, "ClusterRoles")
-        setError(String(err))
-        setLoading(false)
-      })
-  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -254,11 +244,7 @@ export function ClusterRolesView(): JSX.Element {
           <DetailPanel
             role={selectedItem}
             onClose={() => setSelectedItem(null)}
-            onDeleteSuccess={() => {
-              setClusterRoles((prev) =>
-                prev.filter((r) => r.name !== selectedItem.name),
-              )
-            }}
+            onDeleteSuccess={reload}
           />
         )}
     </div>

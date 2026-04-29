@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { Eye, EyeOff, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
@@ -20,9 +20,9 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useK8sResource } from "../hooks/useK8sResource"
 
 interface K8sSecret {
   name: string
@@ -257,37 +257,23 @@ function DetailPanel({
 }
 
 export function SecretsView(): JSX.Element {
-  const [secrets, setSecrets] = useState<K8sSecret[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sSecret | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
+  const {
+    data: secrets,
+    loading,
+    error,
+    reload,
+  } = useK8sResource(
+    (ctx) => window.api.k8s.listSecrets({ contextName: ctx }),
+    selectedContext,
+  )
+
   const visibleSecrets = filterResources(secrets, nameFilter, selectedNamespace)
-
-  function fetchSecrets(): void {
-    setLoading(true)
-    setError(null)
-    window.api.k8s
-      .listSecrets({ contextName: selectedContext ?? undefined })
-      .then((data) => {
-        setSecrets(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        handleIpcError(err, "Secrets")
-        setError(String(err))
-        setLoading(false)
-      })
-  }
-
-  useEffect(() => {
-    fetchSecrets()
-  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -345,7 +331,7 @@ export function SecretsView(): JSX.Element {
         <DetailPanel
           secret={selectedItem}
           onClose={() => setSelectedItem(null)}
-          onDeleted={() => fetchSecrets()}
+          onDeleted={reload}
         />
       )}
     </div>

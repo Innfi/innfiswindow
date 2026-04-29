@@ -1178,6 +1178,89 @@
         "k8s:serviceaccount:delete"
       ],
       "notes": "ClusterRole and ClusterRoleBinding are cluster-scoped (no namespace parameter). Role and RoleBinding are namespace-scoped. ServiceAccount is namespace-scoped. Detail panel components for all five are defined inside their respective view files. After successful delete, call the store's setSelectedItem(null) to close the detail panel."
+    },
+    {
+      "id": "S61",
+      "title": "Extract useK8sResource shared data-fetching hook",
+      "status": "complete",
+      "description": "Every *View.tsx duplicates the same three-piece boilerplate: useState for items/loading/error, a fetch function that calls a window.api.k8s method, and a useEffect that re-runs on selectedContext change. This pattern appears in 13+ view components (~11 lines each). Extract it into a single reusable hook at src/preload/renderer/src/hooks/useK8sResource.ts, then migrate all view components to use it.",
+      "acceptance_criteria": [
+        "New file src/preload/renderer/src/hooks/useK8sResource.ts exports a generic hook: useK8sResource<T>(fetcher: (ctx?: string) => Promise<T[]>, context: string | null): { data: T[]; loading: boolean; error: string | null; reload: () => void }",
+        "Hook internally manages loading/error/data state and calls fetcher on mount and whenever context changes",
+        "reload() re-invokes fetcher with the current context and resets loading/error accordingly",
+        "All *View.tsx components that currently have manual loading/error/data useState + useEffect fetch patterns are migrated to useK8sResource: DeploymentsView, DaemonSetsView, StatefulSetsView, ReplicaSetsView, PodsView, ServicesView, IngressesView, ConfigMapsView, SecretsView, ServiceAccountsView, RolesView, ClusterRolesView, RoleBindingsView, ClusterRoleBindingsView, NamespacesView, NodesView",
+        "After migration, each view component no longer declares its own loading, error, or items state for the primary resource list",
+        "Existing reload-after-delete patterns (currently onDeleted callbacks that call fetch*()) are replaced by calling reload() from the hook return value",
+        "No behavioral regressions: loading indicator shows while fetching, error message shows on failure, list renders on success",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S01"],
+      "notes": "Do not change the visual output of any view — this is a pure refactor. The hook should not manage selectedContext itself; callers pass it as a parameter so the hook remains a pure data concern. Existing filterResources() calls (name filter, namespace filter) stay in the view component and operate on hook data."
+    },
+    {
+      "id": "S62",
+      "title": "Extract shared K8s type definitions to types/k8s.ts",
+      "status": "incomplete",
+      "description": "Each *View.tsx file defines its own local interface K8s* types (K8sDeployment, K8sPod, K8sService, etc.) — 36 definitions spread across 16 files. When a resource shape changes all relevant files must be updated. Consolidate all renderer-side K8s type definitions into a single shared file.",
+      "acceptance_criteria": [
+        "New file src/preload/renderer/src/types/k8s.ts created; contains all K8s* interface definitions previously declared inside view files",
+        "All *View.tsx files import their K8s* types from ../../types/k8s instead of declaring them locally",
+        "No interface is defined in more than one file after migration (K8sRoleRule was duplicated — deduplicated to one canonical definition)",
+        "The shared type file does not import from any view component (no circular dependency)",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S01"],
+      "notes": "Pure refactor — no runtime behavior changes. Include all sub-interfaces too (K8sDeploymentCondition, K8sPodContainer, K8sServicePort, K8sIngressTLS, etc.). Do not merge or rename types; keep exact same field names and shapes so view components require only an import change."
+    },
+    {
+      "id": "S63",
+      "title": "Standardize delete confirmation to AlertDialog across all views",
+      "status": "incomplete",
+      "description": "Delete confirmation dialogs are implemented inconsistently: some views use a hand-rolled shadcn Dialog with custom footer buttons (DeploymentsView, DaemonSetsView, StatefulSetsView, ServicesView, IngressesView), while views added in S56-S60 use AlertDialog. Standardize all delete confirmations to use shadcn AlertDialog.",
+      "acceptance_criteria": [
+        "shadcn AlertDialog component file exists at src/preload/renderer/components/ui/alert-dialog.tsx (copy from shadcn source if not present)",
+        "AlertDialog added to window.api type definitions if needed; no IPC changes required",
+        "All hand-rolled DeleteDialog components that use Dialog for delete confirmation are replaced with inline AlertDialog usage in the detail panel",
+        "Affected views: any *View.tsx that still has a DeleteDialog sub-component using Dialog — check DeploymentsView, DaemonSetsView, StatefulSetsView, ServicesView, IngressesView",
+        "AlertDialog trigger is the Delete button in the detail panel header; AlertDialog content shows resource kind and name, Cancel and Confirm (destructive) buttons",
+        "Behavior unchanged: confirmed delete calls the same IPC handler, shows same toast, closes detail panel",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S60"],
+      "notes": "AlertDialog is semantically correct for destructive confirms (it uses role=alertdialog). The goal is visual and behavioral consistency — every delete confirm looks and works the same way across the app. If AlertDialog is already present in some views from S56-S60, use those as the reference implementation."
+    },
+    {
+      "id": "S64",
+      "title": "Add EmptyState component to all resource list views",
+      "status": "incomplete",
+      "description": "When a resource list is empty (no resources exist, or the name/namespace filter matches nothing), all views silently render an empty table with no message. Users cannot distinguish 'no resources exist' from 'still loading' or 'filter too narrow'. Add a shared EmptyState component rendered when the filtered list has zero items.",
+      "acceptance_criteria": [
+        "New component EmptyState at src/preload/renderer/src/components/EmptyState.tsx; accepts props: message (string)",
+        "EmptyState renders a centered, muted-foreground message inside the list area (below the table header or in place of the table body)",
+        "All *View.tsx components render <EmptyState message=\"No <ResourceKind> found\" /> when their visible (post-filter) list is empty and loading is false and error is null",
+        "Affected views: DeploymentsView, DaemonSetsView, StatefulSetsView, ReplicaSetsView, PodsView, ServicesView, IngressesView, ConfigMapsView, SecretsView, ServiceAccountsView, RolesView, ClusterRolesView, RoleBindingsView, ClusterRoleBindingsView, NamespacesView, NodesView, EventsView",
+        "EmptyState does not render while loading is true or error is non-null (those states have their own messages)",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S01"],
+      "notes": "Keep EmptyState simple — no icon required, just a centered text message. The message string is passed by each view so it can say 'No Deployments found' rather than a generic fallback. If S61 is also implemented, use the hook's data array for the empty check."
+    },
+    {
+      "id": "S65",
+      "title": "Replace openDrawerTab if/else chain with tabKey deduplication",
+      "status": "incomplete",
+      "description": "The openDrawerTab action in app.store.ts uses a growing if/else chain to determine whether an incoming tab already exists (to focus it instead of opening a duplicate). Every new DrawerTab variant added to the union requires adding another else-if branch. Replace this with a tabKey string field on DrawerTabInput that callers compute; openDrawerTab then simply checks for an existing tab with the same tabKey.",
+      "acceptance_criteria": [
+        "DrawerTabInput union gains a required tabKey: string field on every variant",
+        "DrawerTab union also gains tabKey: string (set from input at open time)",
+        "openDrawerTab action replaces the if/else chain with: find existing tab where t.tabKey === tabData.tabKey; if found, focus it; otherwise create new tab",
+        "All callers of openDrawerTab updated to pass a tabKey computed from the tab's identity: e.g. 'pod-log:<namespace>/<podName>', 'yaml-edit:Deployment:<namespace>/<name>', 'edit-resource:Role:<namespace>/<name>', 'new-resource:<resourceKind>', 'pod-shell:<sessionId>'",
+        "DrawerTab id field (currently used for active tab tracking) is kept and continues to be set to tabKey for new tabs (or to tabKey directly — they can be the same value)",
+        "No change in user-visible deduplication behavior: opening the same tab twice focuses the existing one",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S55"],
+      "notes": "Pure refactor of app.store.ts and all openDrawerTab call sites in view components. The tabKey scheme makes the deduplication logic trivially extensible — new tab types need no changes to the store. Use a consistent separator like ':' between segments of the tabKey."
     }
   ]
 }

@@ -32,6 +32,7 @@ export function YamlEditPanel({
     setSaving(true)
     setError(null)
     try {
+      // FIXME: too much if/else
       if (tab.resourceKind === "Deployment") {
         await window.api.k8s.updateDeployment(
           tab.namespace,

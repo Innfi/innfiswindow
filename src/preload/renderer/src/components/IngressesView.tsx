@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
@@ -22,6 +22,7 @@ import {
 } from "../../components/ui/table"
 import { cn, filterResources } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useK8sResource } from "../hooks/useK8sResource"
 
 interface K8sIngressTLS {
   secretName: string
@@ -328,40 +329,27 @@ function DetailPanel({
 }
 
 export function IngressesView(): JSX.Element {
-  const [ingresses, setIngresses] = useState<K8sIngress[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sIngress | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
+  const {
+    data: ingresses,
+    loading,
+    error,
+    reload,
+  } = useK8sResource(
+    (ctx) => window.api.k8s.listIngresses({ contextName: ctx }),
+    selectedContext,
+  )
+
   const visibleIngresses = filterResources(
     ingresses,
     nameFilter,
     selectedNamespace,
   )
-
-  function fetchIngresses(): void {
-    setLoading(true)
-    setError(null)
-    window.api.k8s
-      .listIngresses({ contextName: selectedContext ?? undefined })
-      .then((data) => {
-        setIngresses(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        setError(String(err))
-        setLoading(false)
-      })
-  }
-
-  useEffect(() => {
-    fetchIngresses()
-  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -431,7 +419,7 @@ export function IngressesView(): JSX.Element {
         <DetailPanel
           item={selectedItem}
           onClose={() => setSelectedItem(null)}
-          onDeleted={fetchIngresses}
+          onDeleted={reload}
         />
       )}
     </div>

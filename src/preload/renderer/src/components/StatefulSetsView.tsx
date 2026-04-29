@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
@@ -20,9 +20,9 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useK8sResource } from "../hooks/useK8sResource"
 import { MetaEntry } from "./MetaEntry"
 
 interface K8sStatefulSetContainer {
@@ -246,10 +246,6 @@ function DetailPanel({
 }
 
 export function StatefulSetsView(): JSX.Element {
-  const [statefulSets, setStatefulSets] = useState<K8sStatefulSet[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const selectedItem = useAppStore(
     (s) => s.selectedItem,
   ) as K8sStatefulSet | null
@@ -258,31 +254,21 @@ export function StatefulSetsView(): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
+  const {
+    data: statefulSets,
+    loading,
+    error,
+    reload,
+  } = useK8sResource(
+    (ctx) => window.api.k8s.listStatefulSets({ contextName: ctx }),
+    selectedContext,
+  )
+
   const visibleStatefulSets = filterResources(
     statefulSets,
     nameFilter,
     selectedNamespace,
   )
-
-  function fetchStatefulSets(): void {
-    setLoading(true)
-    setError(null)
-    window.api.k8s
-      .listStatefulSets({ contextName: selectedContext ?? undefined })
-      .then((data) => {
-        setStatefulSets(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        handleIpcError(err, "StatefulSets")
-        setError(String(err))
-        setLoading(false)
-      })
-  }
-
-  useEffect(() => {
-    fetchStatefulSets()
-  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -341,7 +327,7 @@ export function StatefulSetsView(): JSX.Element {
           ss={selectedItem}
           onClose={() => setSelectedItem(null)}
           onDeleted={() => {
-            fetchStatefulSets()
+            reload()
             setSelectedItem(null)
           }}
         />

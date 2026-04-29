@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
@@ -20,9 +20,9 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { handleIpcError } from "../../lib/ipc-error"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useK8sResource } from "../hooks/useK8sResource"
 import { MetaEntry } from "./MetaEntry"
 
 interface K8sDaemonSetContainer {
@@ -269,41 +269,27 @@ function DetailPanel({
 }
 
 export function DaemonSetsView(): JSX.Element {
-  const [daemonSets, setDaemonSets] = useState<K8sDaemonSet[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sDaemonSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
+  const {
+    data: daemonSets,
+    loading,
+    error,
+    reload,
+  } = useK8sResource(
+    (ctx) => window.api.k8s.listDaemonSets({ contextName: ctx }),
+    selectedContext,
+  )
+
   const visibleDaemonSets = filterResources(
     daemonSets,
     nameFilter,
     selectedNamespace,
   )
-
-  function fetchDaemonSets(): void {
-    setLoading(true)
-    setError(null)
-    window.api.k8s
-      .listDaemonSets({ contextName: selectedContext ?? undefined })
-      .then((data) => {
-        setDaemonSets(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        handleIpcError(err, "DaemonSets")
-        setError(String(err))
-        setLoading(false)
-      })
-  }
-
-  useEffect(() => {
-    fetchDaemonSets()
-  }, [selectedContext])
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -366,7 +352,7 @@ export function DaemonSetsView(): JSX.Element {
           ds={selectedItem}
           onClose={() => setSelectedItem(null)}
           onDeleted={() => {
-            fetchDaemonSets()
+            reload()
             setSelectedItem(null)
           }}
         />

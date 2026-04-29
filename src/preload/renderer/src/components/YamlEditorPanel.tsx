@@ -18,6 +18,7 @@ interface YamlEditorPanelProps {
   onApplied: () => void
 }
 
+// FIXME: obsolete
 export function YamlEditorPanel({
   open,
   onOpenChange,
