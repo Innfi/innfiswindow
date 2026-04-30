@@ -11,30 +11,8 @@ import {
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
+import { K8sReplicaSet } from "../types/k8s"
 import { MetaEntry } from "./MetaEntry"
-
-interface K8sOwnerRef {
-  kind: string
-  name: string
-}
-
-interface K8sReplicaSetContainer {
-  name: string
-  image: string
-}
-
-interface K8sReplicaSet {
-  name: string
-  namespace: string
-  desiredReplicas: number
-  currentReplicas: number
-  readyReplicas: number
-  creationTimestamp: string
-  selector: Record<string, string>
-  containers: K8sReplicaSetContainer[]
-  ownerReferences: K8sOwnerRef[]
-  podTemplateLabels: Record<string, string>
-}
 
 function DetailPanel({
   rs,

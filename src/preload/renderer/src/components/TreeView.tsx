@@ -4,13 +4,7 @@ import * as Collapsible from "@radix-ui/react-collapsible"
 
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-
-interface K8sContext {
-  name: string
-  cluster: string
-  user: string
-  clusterType: "EKS" | "AKS" | "Local"
-}
+import { K8sContext } from "../types/k8s"
 
 const groups = [
   { label: "Cluster", items: ["Namespaces", "Nodes", "Events"] },

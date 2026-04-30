@@ -23,30 +23,8 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
+import { K8sStatefulSet } from "../types/k8s"
 import { MetaEntry } from "./MetaEntry"
-
-interface K8sStatefulSetContainer {
-  name: string
-  image: string
-}
-
-interface K8sStatefulSetVolumeClaimTemplate {
-  name: string
-  storage: string
-}
-
-interface K8sStatefulSet {
-  name: string
-  namespace: string
-  replicas: number
-  readyReplicas: number
-  creationTimestamp: string
-  serviceName: string
-  updateStrategy: string
-  selector: Record<string, string>
-  containers: K8sStatefulSetContainer[]
-  volumeClaimTemplates: K8sStatefulSetVolumeClaimTemplate[]
-}
 
 function DetailPanel({
   ss,

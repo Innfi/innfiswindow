@@ -23,33 +23,8 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
+import { K8sDeployment } from "../types/k8s"
 import { MetaEntry } from "./MetaEntry"
-
-interface K8sDeploymentCondition {
-  type: string
-  status: string
-  reason: string
-  message: string
-}
-
-interface K8sDeploymentContainer {
-  name: string
-  image: string
-}
-
-interface K8sDeployment {
-  name: string
-  namespace: string
-  replicas: number
-  readyReplicas: number
-  updatedReplicas: number
-  availableReplicas: number
-  strategy: string
-  creationTimestamp: string
-  selector: Record<string, string>
-  containers: K8sDeploymentContainer[]
-  conditions: K8sDeploymentCondition[]
-}
 
 function DetailPanel({
   deployment,

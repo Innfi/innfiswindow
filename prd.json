@@ -1200,7 +1200,7 @@
     {
       "id": "S62",
       "title": "Extract shared K8s type definitions to types/k8s.ts",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Each *View.tsx file defines its own local interface K8s* types (K8sDeployment, K8sPod, K8sService, etc.) — 36 definitions spread across 16 files. When a resource shape changes all relevant files must be updated. Consolidate all renderer-side K8s type definitions into a single shared file.",
       "acceptance_criteria": [
         "New file src/preload/renderer/src/types/k8s.ts created; contains all K8s* interface definitions previously declared inside view files",

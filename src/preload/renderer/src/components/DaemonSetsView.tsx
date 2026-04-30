@@ -23,35 +23,8 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
+import { K8sDaemonSet } from "../types/k8s"
 import { MetaEntry } from "./MetaEntry"
-
-interface K8sDaemonSetContainer {
-  name: string
-  image: string
-}
-
-interface K8sDaemonSetToleration {
-  key: string
-  operator: string
-  value: string
-  effect: string
-}
-
-interface K8sDaemonSet {
-  name: string
-  namespace: string
-  desiredNumberScheduled: number
-  currentNumberScheduled: number
-  numberReady: number
-  updatedNumberScheduled: number
-  numberAvailable: number
-  creationTimestamp: string
-  updateStrategy: string
-  selector: Record<string, string>
-  nodeSelector: Record<string, string>
-  containers: K8sDaemonSetContainer[]
-  tolerations: K8sDaemonSetToleration[]
-}
 
 function DetailPanel({
   ds,

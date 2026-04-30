@@ -11,15 +11,8 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
+import { K8sNamespace } from "../types/k8s"
 import { MetaEntry } from "./MetaEntry"
-
-interface K8sNamespace {
-  name: string
-  status: string
-  creationTimestamp: string
-  labels: Record<string, string>
-  annotations: Record<string, string>
-}
 
 function DetailPanel({
   ns,

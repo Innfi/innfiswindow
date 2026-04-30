@@ -12,20 +12,7 @@ import {
 import { handleIpcError } from "../../lib/ipc-error"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-
-interface K8sEvent {
-  name: string
-  namespace: string
-  type: string
-  reason: string
-  involvedObjectKind: string
-  involvedObjectName: string
-  message: string
-  count: number
-  firstTimestamp: string
-  lastTimestamp: string
-  creationTimestamp: string
-}
+import { K8sEvent } from "../types/k8s"
 
 const MAX_EVENTS = 500
 

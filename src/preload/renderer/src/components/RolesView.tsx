@@ -23,20 +23,7 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
-
-interface K8sRoleRule {
-  apiGroups: string[]
-  resources: string[]
-  verbs: string[]
-}
-
-interface K8sRole {
-  name: string
-  namespace: string
-  rulesCount: number
-  creationTimestamp: string
-  rules: K8sRoleRule[]
-}
+import { K8sRole } from "../types/k8s"
 
 function DetailPanel({
   role,

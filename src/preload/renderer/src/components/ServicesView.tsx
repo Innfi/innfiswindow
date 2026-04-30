@@ -23,27 +23,7 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
-
-interface K8sServicePort {
-  name: string
-  protocol: string
-  port: number
-  targetPort: string
-  nodePort: number | null
-}
-
-interface K8sService {
-  name: string
-  namespace: string
-  type: string
-  clusterIP: string
-  externalIP: string
-  ports: K8sServicePort[]
-  creationTimestamp: string
-  selector: Record<string, string>
-  labels: Record<string, string>
-  annotations: Record<string, string>
-}
+import { K8sService, K8sServicePort } from "../types/k8s"
 
 function formatPorts(ports: K8sServicePort[]): string {
   if (ports.length === 0) return "-"

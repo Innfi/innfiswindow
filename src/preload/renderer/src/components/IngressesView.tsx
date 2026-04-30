@@ -23,37 +23,7 @@ import {
 import { cn, filterResources } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
-
-interface K8sIngressTLS {
-  secretName: string
-  hosts: string[]
-}
-
-interface K8sIngressPath {
-  path: string
-  pathType: string
-  serviceName: string
-  servicePort: string | number
-}
-
-interface K8sIngressRule {
-  host: string
-  paths: K8sIngressPath[]
-}
-
-interface K8sIngress {
-  name: string
-  namespace: string
-  ingressClassName: string
-  hosts: string
-  address: string
-  ports: string
-  creationTimestamp: string
-  tls: K8sIngressTLS[]
-  rules: K8sIngressRule[]
-  labels: Record<string, string>
-  annotations: Record<string, string>
-}
+import { K8sIngress, K8sIngressRule, K8sIngressTLS } from "../types/k8s"
 
 function formatAge(timestamp: string): string {
   if (!timestamp) return ""

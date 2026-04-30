@@ -22,34 +22,9 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
+import { K8sPod } from "../types/k8s"
 import { MetaEntry } from "./MetaEntry"
 import { PodMetricsSection } from "./PodMetricsSection"
-
-interface K8sPodContainer {
-  name: string
-  image: string
-  restartCount: number
-}
-
-interface K8sPodCondition {
-  type: string
-  status: string
-  reason: string
-  message: string
-}
-
-interface K8sPod {
-  name: string
-  namespace: string
-  deployment: string
-  app: string
-  status: string
-  restarts: number
-  creationTimestamp: string
-  nodeName: string
-  containers: K8sPodContainer[]
-  conditions: K8sPodCondition[]
-}
 
 function DetailPanel({
   pod,

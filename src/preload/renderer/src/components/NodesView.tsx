@@ -11,26 +11,8 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
+import { K8sNode } from "../types/k8s"
 import { MetaEntry } from "./MetaEntry"
-
-interface K8sNodeCondition {
-  type: string
-  status: string
-  reason: string
-  message: string
-}
-
-interface K8sNode {
-  name: string
-  status: string
-  roles: string
-  creationTimestamp: string
-  version: string
-  labels: Record<string, string>
-  capacity: Record<string, string>
-  allocatable: Record<string, string>
-  conditions: K8sNodeCondition[]
-}
 
 function DetailPanel({
   node,

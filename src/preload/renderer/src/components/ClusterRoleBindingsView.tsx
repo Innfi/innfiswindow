@@ -23,25 +23,7 @@ import {
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
-
-interface BindingSubject {
-  kind: string
-  name: string
-  namespace: string
-}
-
-interface RoleRef {
-  kind: string
-  name: string
-}
-
-interface K8sClusterRoleBinding {
-  name: string
-  roleRef: RoleRef
-  subjects: BindingSubject[]
-  subjectsCount: number
-  creationTimestamp: string
-}
+import { K8sClusterRoleBinding } from "../types/k8s"
 
 function DetailPanel({
   binding,

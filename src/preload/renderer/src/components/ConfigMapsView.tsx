@@ -23,17 +23,7 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
-
-interface K8sConfigMap {
-  name: string
-  namespace: string
-  creationTimestamp: string
-  labels: Record<string, string>
-  annotations: Record<string, string>
-  data: Record<string, string>
-  binaryData: Record<string, number>
-  keys: string[]
-}
+import { K8sConfigMap } from "../types/k8s"
 
 function DetailPanel({
   cm,

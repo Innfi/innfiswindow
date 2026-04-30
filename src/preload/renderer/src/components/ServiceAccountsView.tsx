@@ -23,16 +23,7 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
-
-interface K8sServiceAccount {
-  name: string
-  namespace: string
-  creationTimestamp: string
-  labels: Record<string, string>
-  annotations: Record<string, string>
-  secrets: string[]
-  imagePullSecrets: string[]
-}
+import { K8sServiceAccount } from "../types/k8s"
 
 function DetailPanel({
   sa,
