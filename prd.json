@@ -1215,7 +1215,7 @@
     {
       "id": "S63",
       "title": "Standardize delete confirmation to AlertDialog across all views",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Delete confirmation dialogs are implemented inconsistently: some views use a hand-rolled shadcn Dialog with custom footer buttons (DeploymentsView, DaemonSetsView, StatefulSetsView, ServicesView, IngressesView), while views added in S56-S60 use AlertDialog. Standardize all delete confirmations to use shadcn AlertDialog.",
       "acceptance_criteria": [
         "shadcn AlertDialog component file exists at src/preload/renderer/components/ui/alert-dialog.tsx (copy from shadcn source if not present)",

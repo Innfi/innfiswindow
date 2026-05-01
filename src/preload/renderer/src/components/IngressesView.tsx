@@ -3,15 +3,15 @@ import { X } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { Button } from "../../components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../components/ui/dialog"
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../components/ui/alert-dialog"
+import { Button } from "../../components/ui/button"
 import {
   Table,
   TableBody,
@@ -48,7 +48,6 @@ function DetailPanel({
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   function handleEdit(): void {
     const obj = {
@@ -107,7 +106,6 @@ function DetailPanel({
 
   async function handleDelete(): Promise<void> {
     setDeleting(true)
-    setDeleteError(null)
     try {
       await window.api.k8s.deleteIngress(item.namespace, item.name)
       toast.success(`Ingress ${item.name} deleted`)
@@ -115,7 +113,8 @@ function DetailPanel({
       onDeleted()
       onClose()
     } catch (e) {
-      setDeleteError(String(e))
+      toast.error(String(e))
+      setDeleteOpen(false)
     } finally {
       setDeleting(false)
     }
@@ -263,20 +262,19 @@ function DetailPanel({
         </div>
       )}
 
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent onClose={() => setDeleteOpen(false)}>
-          <DialogHeader>
-            <DialogTitle>Delete Ingress</DialogTitle>
-            <DialogDescription>
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Ingress</AlertDialogTitle>
+            <AlertDialogDescription>
               Are you sure you want to delete{" "}
               <strong>
                 {item.namespace}/{item.name}
               </strong>
               ? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
-          <DialogFooter>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
             <Button
               variant="outline"
               onClick={() => setDeleteOpen(false)}
@@ -291,9 +289,9 @@ function DetailPanel({
             >
               {deleting ? "Deleting…" : "Delete"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
