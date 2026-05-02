@@ -10,6 +10,7 @@ interface K8sPodContainer {
 export type DrawerTab =
   | {
       id: string
+      tabKey: string
       type: "pod-log"
       namespace: string
       podName: string
@@ -17,11 +18,13 @@ export type DrawerTab =
     }
   | {
       id: string
+      tabKey: string
       type: "new-resource"
       resourceKind: string
     }
   | {
       id: string
+      tabKey: string
       type: "pod-shell"
       sessionId: string
       namespace: string
@@ -30,6 +33,7 @@ export type DrawerTab =
     }
   | {
       id: string
+      tabKey: string
       type: "edit-resource"
       resourceKind:
         | "Role"
@@ -44,6 +48,7 @@ export type DrawerTab =
     }
   | {
       id: string
+      tabKey: string
       type: "yaml-edit"
       resourceKind:
         | "Deployment"
@@ -60,13 +65,15 @@ export type DrawerTab =
 
 export type DrawerTabInput =
   | {
+      tabKey: string
       type: "pod-log"
       namespace: string
       podName: string
       containers: K8sPodContainer[]
     }
-  | { type: "new-resource"; resourceKind: string }
+  | { tabKey: string; type: "new-resource"; resourceKind: string }
   | {
+      tabKey: string
       type: "pod-shell"
       sessionId: string
       namespace: string
@@ -74,6 +81,7 @@ export type DrawerTabInput =
       containerName: string
     }
   | {
+      tabKey: string
       type: "edit-resource"
       resourceKind:
         | "Role"
@@ -87,6 +95,7 @@ export type DrawerTabInput =
       roleRef?: { kind: string; name: string }
     }
   | {
+      tabKey: string
       type: "yaml-edit"
       resourceKind:
         | "Deployment"
@@ -142,43 +151,12 @@ export const useAppStore = create<AppState>()(
       setThemeId: (id) => set({ themeId: id }),
       openDrawerTab: (tabData: DrawerTabInput) => {
         const { drawerTabs } = get()
-        // Find existing tab of same type with same identity
-        let existing: DrawerTab | undefined
-        if (tabData.type === "pod-log") {
-          existing = drawerTabs.find(
-            (t) =>
-              t.type === "pod-log" &&
-              t.namespace === tabData.namespace &&
-              t.podName === tabData.podName,
-          )
-        } else if (tabData.type === "new-resource") {
-          existing = drawerTabs.find(
-            (t) =>
-              t.type === "new-resource" &&
-              t.resourceKind === tabData.resourceKind,
-          )
-        } else if (tabData.type === "edit-resource") {
-          existing = drawerTabs.find(
-            (t) =>
-              t.type === "edit-resource" &&
-              t.resourceKind === tabData.resourceKind &&
-              t.resourceName === tabData.resourceName &&
-              t.namespace === tabData.namespace,
-          )
-        } else if (tabData.type === "yaml-edit") {
-          existing = drawerTabs.find(
-            (t) =>
-              t.type === "yaml-edit" &&
-              t.resourceKind === tabData.resourceKind &&
-              t.resourceName === tabData.resourceName &&
-              t.namespace === tabData.namespace,
-          )
-        }
+        const existing = drawerTabs.find((t) => t.tabKey === tabData.tabKey)
         if (existing) {
           set({ activeTabId: existing.id })
           return
         }
-        const id = `${tabData.type}-${Date.now()}`
+        const id = tabData.tabKey
         const newTab: DrawerTab = { id, ...tabData } as DrawerTab
         set({ drawerTabs: [...drawerTabs, newTab], activeTabId: id })
       },

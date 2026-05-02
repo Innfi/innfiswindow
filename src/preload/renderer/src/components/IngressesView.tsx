@@ -24,6 +24,7 @@ import { cn, filterResources } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sIngress, K8sIngressRule, K8sIngressTLS } from "../types/k8s"
+import { EmptyState } from "./EmptyState"
 
 function formatAge(timestamp: string): string {
   if (!timestamp) return ""
@@ -96,6 +97,7 @@ function DetailPanel({
       },
     }
     openDrawerTab({
+      tabKey: `yaml-edit:Ingress:${item.namespace}/${item.name}`,
       type: "yaml-edit",
       resourceKind: "Ingress",
       resourceName: item.name,
@@ -327,7 +329,10 @@ export function IngressesView(): JSX.Element {
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && !error && visibleIngresses.length === 0 && (
+          <EmptyState message="No Ingresses found" />
+        )}
+        {!loading && !error && visibleIngresses.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>
@@ -368,16 +373,6 @@ export function IngressesView(): JSX.Element {
                   <TableCell>{formatAge(ing.creationTimestamp)}</TableCell>
                 </TableRow>
               ))}
-              {visibleIngresses.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-center text-muted-foreground"
-                  >
-                    No ingresses found
-                  </TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
         )}

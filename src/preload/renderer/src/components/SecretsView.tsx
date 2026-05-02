@@ -24,6 +24,7 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sSecret } from "../types/k8s"
+import { EmptyState } from "./EmptyState"
 
 function DetailPanel({
   secret,
@@ -73,6 +74,7 @@ function DetailPanel({
       ...(Object.keys(secret.data).length > 0 ? { data: secret.data } : {}),
     }
     openDrawerTab({
+      tabKey: `yaml-edit:Secret:${secret.namespace}/${secret.name}`,
       type: "yaml-edit",
       resourceKind: "Secret",
       resourceName: secret.name,
@@ -273,7 +275,10 @@ export function SecretsView(): JSX.Element {
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && !error && visibleSecrets.length === 0 && (
+          <EmptyState message="No Secrets found" />
+        )}
+        {!loading && !error && visibleSecrets.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>

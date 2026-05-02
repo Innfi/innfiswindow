@@ -23,6 +23,7 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sPod } from "../types/k8s"
+import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { PodMetricsSection } from "./PodMetricsSection"
 
@@ -251,7 +252,10 @@ export function PodsView(): JSX.Element {
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && !error && visiblePods.length === 0 && (
+          <EmptyState message="No Pods found" />
+        )}
+        {!loading && !error && visiblePods.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>
@@ -303,21 +307,24 @@ export function PodsView(): JSX.Element {
           onClose={() => setSelectedItem(null)}
           onLogs={() =>
             openDrawerTab({
+              tabKey: `pod-log:${selectedItem.namespace}/${selectedItem.name}`,
               type: "pod-log",
               namespace: selectedItem.namespace,
               podName: selectedItem.name,
               containers: selectedItem.containers,
             })
           }
-          onShell={(containerName) =>
+          onShell={(containerName) => {
+            const sessionId = crypto.randomUUID()
             openDrawerTab({
+              tabKey: `pod-shell:${sessionId}`,
               type: "pod-shell",
-              sessionId: crypto.randomUUID(),
+              sessionId,
               namespace: selectedItem.namespace,
               podName: selectedItem.name,
               containerName,
             })
-          }
+          }}
           onDeleteSuccess={() => {
             setSelectedItem(null)
             reload()

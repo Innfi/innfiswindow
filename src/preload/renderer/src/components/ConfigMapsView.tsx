@@ -24,6 +24,7 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sConfigMap } from "../types/k8s"
+import { EmptyState } from "./EmptyState"
 
 function DetailPanel({
   cm,
@@ -61,6 +62,7 @@ function DetailPanel({
         : {}),
     }
     openDrawerTab({
+      tabKey: `yaml-edit:ConfigMap:${cm.namespace}/${cm.name}`,
       type: "yaml-edit",
       resourceKind: "ConfigMap",
       resourceName: cm.name,
@@ -247,7 +249,10 @@ export function ConfigMapsView(): JSX.Element {
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && !error && visibleConfigMaps.length === 0 && (
+          <EmptyState message="No ConfigMaps found" />
+        )}
+        {!loading && !error && visibleConfigMaps.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>

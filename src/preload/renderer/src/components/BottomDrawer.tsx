@@ -140,7 +140,11 @@ export function BottomDrawer(): JSX.Element {
           variant="ghost"
           className="h-6 gap-1 text-xs px-2"
           onClick={() =>
-            openDrawerTab({ type: "new-resource", resourceKind: "Resource" })
+            openDrawerTab({
+              tabKey: "new-resource:Resource",
+              type: "new-resource",
+              resourceKind: "Resource",
+            })
           }
         >
           <Plus className="h-3.5 w-3.5" />
@@ -176,7 +180,11 @@ export function BottomDrawer(): JSX.Element {
           variant="ghost"
           className="h-6 gap-1 text-xs px-2 shrink-0"
           onClick={() =>
-            openDrawerTab({ type: "new-resource", resourceKind: "Resource" })
+            openDrawerTab({
+              tabKey: "new-resource:Resource",
+              type: "new-resource",
+              resourceKind: "Resource",
+            })
           }
         >
           <Plus className="h-3.5 w-3.5" />

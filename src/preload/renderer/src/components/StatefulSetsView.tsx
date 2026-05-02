@@ -24,6 +24,7 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sStatefulSet } from "../types/k8s"
+import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 
 function DetailPanel({
@@ -62,6 +63,7 @@ function DetailPanel({
       },
     }
     openDrawerTab({
+      tabKey: `yaml-edit:StatefulSet:${ss.namespace}/${ss.name}`,
       type: "yaml-edit",
       resourceKind: "StatefulSet",
       resourceName: ss.name,
@@ -254,7 +256,10 @@ export function StatefulSetsView(): JSX.Element {
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && !error && visibleStatefulSets.length === 0 && (
+          <EmptyState message="No Stateful Sets found" />
+        )}
+        {!loading && !error && visibleStatefulSets.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>

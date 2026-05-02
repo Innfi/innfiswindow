@@ -24,6 +24,7 @@ import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sClusterRoleBinding } from "../types/k8s"
+import { EmptyState } from "./EmptyState"
 
 function DetailPanel({
   binding,
@@ -42,6 +43,7 @@ function DetailPanel({
 
   function handleEdit(): void {
     openDrawerTab({
+      tabKey: `edit-resource:ClusterRoleBinding:${binding.name}`,
       type: "edit-resource",
       resourceKind: "ClusterRoleBinding",
       resourceName: binding.name,
@@ -200,7 +202,10 @@ export function ClusterRoleBindingsView(): JSX.Element {
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && !error && visible.length === 0 && (
+          <EmptyState message="No Cluster Role Bindings found" />
+        )}
+        {!loading && !error && visible.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>

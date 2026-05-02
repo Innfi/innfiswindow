@@ -24,6 +24,7 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sRole } from "../types/k8s"
+import { EmptyState } from "./EmptyState"
 
 function DetailPanel({
   role,
@@ -42,6 +43,7 @@ function DetailPanel({
 
   function handleEdit(): void {
     openDrawerTab({
+      tabKey: `edit-resource:Role:${role.namespace}/${role.name}`,
       type: "edit-resource",
       resourceKind: "Role",
       resourceName: role.name,
@@ -191,7 +193,10 @@ export function RolesView(): JSX.Element {
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && !error && visible.length === 0 && (
+          <EmptyState message="No Roles found" />
+        )}
+        {!loading && !error && visible.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>

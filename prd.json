@@ -1232,7 +1232,7 @@
     {
       "id": "S64",
       "title": "Add EmptyState component to all resource list views",
-      "status": "incomplete",
+      "status": "complete",
       "description": "When a resource list is empty (no resources exist, or the name/namespace filter matches nothing), all views silently render an empty table with no message. Users cannot distinguish 'no resources exist' from 'still loading' or 'filter too narrow'. Add a shared EmptyState component rendered when the filtered list has zero items.",
       "acceptance_criteria": [
         "New component EmptyState at src/preload/renderer/src/components/EmptyState.tsx; accepts props: message (string)",
@@ -1248,7 +1248,7 @@
     {
       "id": "S65",
       "title": "Replace openDrawerTab if/else chain with tabKey deduplication",
-      "status": "incomplete",
+      "status": "complete",
       "description": "The openDrawerTab action in app.store.ts uses a growing if/else chain to determine whether an incoming tab already exists (to focus it instead of opening a duplicate). Every new DrawerTab variant added to the union requires adding another else-if branch. Replace this with a tabKey string field on DrawerTabInput that callers compute; openDrawerTab then simply checks for an existing tab with the same tabKey.",
       "acceptance_criteria": [
         "DrawerTabInput union gains a required tabKey: string field on every variant",

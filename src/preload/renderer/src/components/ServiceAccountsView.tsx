@@ -24,6 +24,7 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sServiceAccount } from "../types/k8s"
+import { EmptyState } from "./EmptyState"
 
 function DetailPanel({
   sa,
@@ -44,6 +45,7 @@ function DetailPanel({
 
   function handleEdit(): void {
     openDrawerTab({
+      tabKey: `edit-resource:ServiceAccount:${sa.namespace}/${sa.name}`,
       type: "edit-resource",
       resourceKind: "ServiceAccount",
       resourceName: sa.name,
@@ -225,7 +227,10 @@ export function ServiceAccountsView(): JSX.Element {
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && !error && visible.length === 0 && (
+          <EmptyState message="No Service Accounts found" />
+        )}
+        {!loading && !error && visible.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>

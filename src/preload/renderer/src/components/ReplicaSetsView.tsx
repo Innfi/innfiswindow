@@ -12,6 +12,7 @@ import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sReplicaSet } from "../types/k8s"
+import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 
 function DetailPanel({
@@ -142,7 +143,10 @@ export function ReplicaSetsView(): JSX.Element {
         <h1 className="text-lg font-semibold mb-4">ReplicaSets</h1>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && !error && visibleReplicaSets.length === 0 && (
+          <EmptyState message="No Replica Sets found" />
+        )}
+        {!loading && !error && visibleReplicaSets.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>

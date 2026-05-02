@@ -24,6 +24,7 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sService, K8sServicePort } from "../types/k8s"
+import { EmptyState } from "./EmptyState"
 
 function formatPorts(ports: K8sServicePort[]): string {
   if (ports.length === 0) return "-"
@@ -72,6 +73,7 @@ function DetailPanel({
       },
     }
     openDrawerTab({
+      tabKey: `yaml-edit:Service:${svc.namespace}/${svc.name}`,
       type: "yaml-edit",
       resourceKind: "Service",
       resourceName: svc.name,
@@ -299,7 +301,10 @@ export function ServicesView(): JSX.Element {
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && (
+        {!loading && !error && visibleServices.length === 0 && (
+          <EmptyState message="No Services found" />
+        )}
+        {!loading && !error && visibleServices.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>
