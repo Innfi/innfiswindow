@@ -1261,6 +1261,25 @@
       ],
       "dependencies": ["S55"],
       "notes": "Pure refactor of app.store.ts and all openDrawerTab call sites in view components. The tabKey scheme makes the deduplication logic trivially extensible — new tab types need no changes to the store. Use a consistent separator like ':' between segments of the tabKey."
+    },
+    {
+      "id": "S66",
+      "title": "Periodic auto-refresh of resource lists",
+      "status": "incomplete",
+      "description": "Resource lists (Deployments, Pods, etc.) only refresh when the user changes context or manually triggers a reload. Pod restarts, deployment rollouts, and node status changes are invisible until the user navigates away and back. Add a configurable auto-refresh interval that re-fetches the active resource list in the background without disrupting the selected item or scroll position.",
+      "acceptance_criteria": [
+        "A refresh interval setting is stored in the Zustand store (default: 30 seconds); valid values are 10, 30, 60, 120 seconds, and 'off'",
+        "Each *View.tsx component (or useK8sResource hook if S61 is complete) sets up a setInterval on mount that calls the same fetch function used for initial load; the interval is cleared on unmount and restarted when selectedContext changes",
+        "Auto-refresh does not run while the component is not visible (selectedResourceType in store does not match the view's resource type); setInterval is only active for the currently displayed resource type",
+        "On each auto-refresh tick, the list data updates silently: selectedItem identity is preserved (re-matched by namespace+name after refresh so detail panel stays open), name filter is preserved, scroll position is not reset",
+        "A 'Last refreshed: Xs ago' indicator is shown in the list header, updating every second via a separate display interval",
+        "A manual 'Refresh' button (refresh icon, ghost variant) in the list header triggers an immediate fetch and resets the auto-refresh countdown",
+        "The refresh interval setting is accessible from a settings area or a dropdown next to the Refresh button; changing it takes effect immediately",
+        "Auto-refresh is paused while a delete confirmation dialog is open (to avoid list updates while the user is confirming a destructive action)",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S02"],
+      "notes": "If S61 (useK8sResource hook) is complete, implement the interval logic inside the hook using a useEffect that depends on the interval setting from the store. If S61 is not complete, add the interval to each view component's existing fetch useEffect pattern. The 'Last refreshed' counter uses a separate 1-second setInterval for display only — it does not re-fetch. Re-matching selectedItem after refresh: after receiving new data, find the item where name === selectedItem.name && namespace === selectedItem.namespace and call setSelectedItem with the fresh object so detail panel shows updated values."
     }
   ]
 }
