@@ -1,4 +1,5 @@
 import { X } from "lucide-react"
+import { useEffect } from "react"
 
 import {
   Table,
@@ -14,6 +15,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sNode } from "../types/k8s"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
+import { RefreshBar } from "./RefreshBar"
 
 function DetailPanel({
   node,
@@ -140,17 +142,29 @@ export function NodesView(): JSX.Element {
     data: nodes,
     loading,
     error,
+    reload,
+    lastRefreshedAt,
   } = useK8sResource(
     (ctx) => window.api.k8s.listNodes({ contextName: ctx }),
     selectedContext,
   )
+
+  useEffect(() => {
+    if (!selectedItem || nodes.length === 0) return
+    const item = selectedItem as { name: string }
+    const fresh = nodes.find((n) => n.name === item.name)
+    if (fresh) setSelectedItem(fresh as object)
+  }, [nodes]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const visibleNodes = filterResources(nodes, nameFilter)
 
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
-        <h1 className="text-lg font-semibold mb-4">Nodes</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-lg font-semibold">Nodes</h1>
+          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
+        </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
         {!loading && !error && visibleNodes.length === 0 && (

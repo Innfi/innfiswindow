@@ -110,6 +110,8 @@ export type DrawerTabInput =
       initialYaml: string
     }
 
+export type RefreshIntervalValue = 10 | 30 | 60 | 120 | "off"
+
 interface AppState {
   selectedResourceType: string | null
   selectedItem: object | null
@@ -117,6 +119,7 @@ interface AppState {
   selectedContext: string | null
   nameFilter: string
   themeId: string
+  refreshInterval: RefreshIntervalValue
   drawerTabs: DrawerTab[]
   activeTabId: string | null
   setSelectedResourceType: (type: string | null) => void
@@ -125,6 +128,7 @@ interface AppState {
   setSelectedContext: (ctx: string | null) => void
   setNameFilter: (filter: string) => void
   setThemeId: (id: string) => void
+  setRefreshInterval: (interval: RefreshIntervalValue) => void
   openDrawerTab: (tab: DrawerTabInput) => void
   closeDrawerTab: (id: string) => void
   setActiveDrawerTab: (id: string) => void
@@ -139,6 +143,7 @@ export const useAppStore = create<AppState>()(
       selectedContext: null,
       nameFilter: "",
       themeId: "default",
+      refreshInterval: 30,
       drawerTabs: [],
       activeTabId: null,
       setSelectedResourceType: (type) =>
@@ -149,6 +154,7 @@ export const useAppStore = create<AppState>()(
         set({ selectedContext: ctx, selectedNamespace: null }),
       setNameFilter: (filter) => set({ nameFilter: filter }),
       setThemeId: (id) => set({ themeId: id }),
+      setRefreshInterval: (interval) => set({ refreshInterval: interval }),
       openDrawerTab: (tabData: DrawerTabInput) => {
         const { drawerTabs } = get()
         const existing = drawerTabs.find((t) => t.tabKey === tabData.tabKey)
@@ -174,7 +180,10 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "innfiswindow-app-store",
-      partialize: (state) => ({ themeId: state.themeId }),
+      partialize: (state) => ({
+        themeId: state.themeId,
+        refreshInterval: state.refreshInterval,
+      }),
     },
   ),
 )

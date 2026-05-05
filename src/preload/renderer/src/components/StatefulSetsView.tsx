@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -26,20 +26,28 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sStatefulSet } from "../types/k8s"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
+import { RefreshBar } from "./RefreshBar"
 
 function DetailPanel({
   ss,
   onClose,
   onDeleted,
+  onDeleteDialogChange,
 }: {
   ss: K8sStatefulSet
   onClose: () => void
   onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const selectorEntries = Object.entries(ss.selector)
+
+  function setDeleteOpenNotify(open: boolean): void {
+    setDeleteOpen(open)
+    onDeleteDialogChange(open)
+  }
 
   function handleEdit(): void {
     const obj = {
@@ -77,12 +85,12 @@ function DetailPanel({
     try {
       await window.api.k8s.deleteStatefulSet(ss.namespace, ss.name)
       toast.success(`StatefulSet ${ss.name} deleted`)
-      setDeleteOpen(false)
+      setDeleteOpenNotify(false)
       onDeleted()
       onClose()
     } catch (e) {
       toast.error(String(e))
-      setDeleteOpen(false)
+      setDeleteOpenNotify(false)
     } finally {
       setDeleting(false)
     }
@@ -108,7 +116,7 @@ function DetailPanel({
             size="sm"
             variant="destructive"
             className="h-7 text-xs"
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => setDeleteOpenNotify(true)}
           >
             Delete
           </Button>
@@ -189,7 +197,7 @@ function DetailPanel({
         </div>
       )}
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete StatefulSet</AlertDialogTitle>
@@ -204,7 +212,7 @@ function DetailPanel({
           <AlertDialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDeleteOpen(false)}
+              onClick={() => setDeleteOpenNotify(false)}
               disabled={deleting}
             >
               Cancel
@@ -231,16 +239,28 @@ export function StatefulSetsView(): JSX.Element {
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const {
     data: statefulSets,
     loading,
     error,
     reload,
+    lastRefreshedAt,
   } = useK8sResource(
     (ctx) => window.api.k8s.listStatefulSets({ contextName: ctx }),
     selectedContext,
+    { paused: deleteDialogOpen },
   )
+
+  useEffect(() => {
+    if (!selectedItem || statefulSets.length === 0) return
+    const item = selectedItem as { name: string; namespace: string }
+    const fresh = statefulSets.find(
+      (ss) => ss.name === item.name && ss.namespace === item.namespace,
+    )
+    if (fresh) setSelectedItem(fresh as object)
+  }, [statefulSets]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const visibleStatefulSets = filterResources(
     statefulSets,
@@ -253,6 +273,7 @@ export function StatefulSetsView(): JSX.Element {
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">StatefulSets</h1>
+          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -311,6 +332,7 @@ export function StatefulSetsView(): JSX.Element {
             reload()
             setSelectedItem(null)
           }}
+          onDeleteDialogChange={setDeleteDialogOpen}
         />
       )}
     </div>

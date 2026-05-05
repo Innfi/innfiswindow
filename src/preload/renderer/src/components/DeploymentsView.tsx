@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -26,20 +26,28 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sDeployment } from "../types/k8s"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
+import { RefreshBar } from "./RefreshBar"
 
 function DetailPanel({
   deployment,
   onClose,
   onDeleted,
+  onDeleteDialogChange,
 }: {
   deployment: K8sDeployment
   onClose: () => void
   onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const selectorEntries = Object.entries(deployment.selector)
+
+  function setDeleteOpenNotify(open: boolean): void {
+    setDeleteOpen(open)
+    onDeleteDialogChange(open)
+  }
 
   function handleEdit(): void {
     const obj = {
@@ -78,12 +86,12 @@ function DetailPanel({
         deployment.name,
       )
       toast.success(`Deployment ${deployment.name} deleted`)
-      setDeleteOpen(false)
+      setDeleteOpenNotify(false)
       onDeleted()
       onClose()
     } catch (e) {
       toast.error(String(e))
-      setDeleteOpen(false)
+      setDeleteOpenNotify(false)
     } finally {
       setDeleting(false)
     }
@@ -111,7 +119,7 @@ function DetailPanel({
             size="sm"
             variant="destructive"
             className="h-7 text-xs"
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => setDeleteOpenNotify(true)}
           >
             Delete
           </Button>
@@ -207,7 +215,7 @@ function DetailPanel({
         </div>
       )}
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Deployment</AlertDialogTitle>
@@ -222,7 +230,7 @@ function DetailPanel({
           <AlertDialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDeleteOpen(false)}
+              onClick={() => setDeleteOpenNotify(false)}
               disabled={deleting}
             >
               Cancel
@@ -249,16 +257,28 @@ export function DeploymentsView(): JSX.Element {
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const {
     data: deployments,
     loading,
     error,
     reload,
+    lastRefreshedAt,
   } = useK8sResource(
     (ctx) => window.api.k8s.listDeployments({ contextName: ctx }),
     selectedContext,
+    { paused: deleteDialogOpen },
   )
+
+  useEffect(() => {
+    if (!selectedItem || deployments.length === 0) return
+    const item = selectedItem as { name: string; namespace: string }
+    const fresh = deployments.find(
+      (d) => d.name === item.name && d.namespace === item.namespace,
+    )
+    if (fresh) setSelectedItem(fresh as object)
+  }, [deployments]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const visibleDeployments = filterResources(
     deployments,
@@ -271,6 +291,7 @@ export function DeploymentsView(): JSX.Element {
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Deployments</h1>
+          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -326,6 +347,7 @@ export function DeploymentsView(): JSX.Element {
           deployment={selectedItem}
           onClose={() => setSelectedItem(null)}
           onDeleted={reload}
+          onDeleteDialogChange={setDeleteDialogOpen}
         />
       )}
     </div>

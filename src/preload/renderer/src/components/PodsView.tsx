@@ -1,5 +1,5 @@
 import { ScrollText, SquareTerminal, X } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
@@ -26,6 +26,7 @@ import { K8sPod } from "../types/k8s"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { PodMetricsSection } from "./PodMetricsSection"
+import { RefreshBar } from "./RefreshBar"
 
 function DetailPanel({
   pod,
@@ -33,12 +34,14 @@ function DetailPanel({
   onLogs,
   onShell,
   onDeleteSuccess,
+  onDeleteDialogChange,
 }: {
   pod: K8sPod
   onClose: () => void
   onLogs: () => void
   onShell: (containerName: string) => void
   onDeleteSuccess: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [selectedContainer, setSelectedContainer] = useState(
     pod.containers[0]?.name ?? "",
@@ -47,13 +50,18 @@ function DetailPanel({
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  function setDeleteOpenNotify(open: boolean): void {
+    setDeleteOpen(open)
+    onDeleteDialogChange(open)
+  }
+
   async function handleDelete(): Promise<void> {
     setDeleting(true)
     setDeleteError(null)
     try {
       await window.api.k8s.deletePod(pod.namespace, pod.name)
       toast.success(`Pod ${pod.name} deleted`)
-      setDeleteOpen(false)
+      setDeleteOpenNotify(false)
       onDeleteSuccess()
       onClose()
     } catch (e) {
@@ -86,7 +94,7 @@ function DetailPanel({
             size="sm"
             variant="destructive"
             className="h-7 text-xs"
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => setDeleteOpenNotify(true)}
           >
             Delete
           </Button>
@@ -189,8 +197,8 @@ function DetailPanel({
 
       <PodMetricsSection namespace={pod.namespace} podName={pod.name} />
 
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent onClose={() => setDeleteOpen(false)}>
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
+        <DialogContent onClose={() => setDeleteOpenNotify(false)}>
           <DialogHeader>
             <DialogTitle>Delete Pod</DialogTitle>
             <DialogDescription>
@@ -205,7 +213,7 @@ function DetailPanel({
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDeleteOpen(false)}
+              onClick={() => setDeleteOpenNotify(false)}
               disabled={deleting}
             >
               Cancel
@@ -231,24 +239,37 @@ export function PodsView(): JSX.Element {
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const {
     data: pods,
     loading,
     error,
     reload,
+    lastRefreshedAt,
   } = useK8sResource(
     (ctx) => window.api.k8s.listPods({ contextName: ctx }),
     selectedContext,
+    { paused: deleteDialogOpen },
   )
+
+  useEffect(() => {
+    if (!selectedItem || pods.length === 0) return
+    const item = selectedItem as { name: string; namespace: string }
+    const fresh = pods.find(
+      (p) => p.name === item.name && p.namespace === item.namespace,
+    )
+    if (fresh) setSelectedItem(fresh as object)
+  }, [pods]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const visiblePods = filterResources(pods, nameFilter, selectedNamespace)
 
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
-        <div className="mb-4">
+        <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Pods</h1>
+          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -329,6 +350,7 @@ export function PodsView(): JSX.Element {
             setSelectedItem(null)
             reload()
           }}
+          onDeleteDialogChange={setDeleteDialogOpen}
         />
       )}
     </div>
