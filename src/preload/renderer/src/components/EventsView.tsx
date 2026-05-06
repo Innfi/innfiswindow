@@ -14,6 +14,7 @@ import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { K8sEvent } from "../types/k8s"
 import { EmptyState } from "./EmptyState"
+import { RefreshBar } from "./RefreshBar"
 
 const MAX_EVENTS = 500
 
@@ -21,22 +22,28 @@ export function EventsView(): JSX.Element {
   const [events, setEvents] = useState<K8sEvent[]>([])
   const [isTailing, setIsTailing] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null)
   const unsubRef = useRef<(() => void) | null>(null)
   const selectedContext = useAppStore((s) => s.selectedContext)
+  const refreshInterval = useAppStore((s) => s.refreshInterval)
 
-  const fetchEvents = useCallback(async () => {
-    setLoading(true)
-    try {
-      const data = await window.api.listEvents({
-        contextName: selectedContext ?? undefined,
-      })
-      setEvents(data)
-    } catch (err) {
-      handleIpcError(err, "events")
-    } finally {
-      setLoading(false)
-    }
-  }, [selectedContext])
+  const fetchEvents = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true)
+      try {
+        const data = await window.api.listEvents({
+          contextName: selectedContext ?? undefined,
+        })
+        setEvents(data)
+        setLastRefreshedAt(Date.now())
+      } catch (err) {
+        handleIpcError(err, "events")
+      } finally {
+        setLoading(false)
+      }
+    },
+    [selectedContext],
+  )
 
   useEffect(() => {
     fetchEvents()
@@ -45,6 +52,13 @@ export function EventsView(): JSX.Element {
       unsubRef.current?.()
     }
   }, [fetchEvents])
+
+  useEffect(() => {
+    if (refreshInterval === "off" || isTailing) return
+    const ms = (refreshInterval as number) * 1000
+    const id = setInterval(() => fetchEvents(true), ms)
+    return () => clearInterval(id)
+  }, [refreshInterval, isTailing, fetchEvents])
 
   const startTail = async () => {
     try {
@@ -91,14 +105,10 @@ export function EventsView(): JSX.Element {
         >
           {isTailing ? "Stop Tail" : "Tail"}
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchEvents}
-          disabled={loading}
-        >
-          Refresh
-        </Button>
+        <RefreshBar
+          lastRefreshedAt={lastRefreshedAt}
+          onRefresh={() => fetchEvents(false)}
+        />
       </div>
       <div className="flex-1 overflow-auto">
         {!loading && events.length === 0 && (

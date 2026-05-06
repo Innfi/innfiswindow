@@ -1,4 +1,5 @@
 import { X } from "lucide-react"
+import { useEffect } from "react"
 
 import {
   Table,
@@ -14,6 +15,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sReplicaSet } from "../types/k8s"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
+import { RefreshBar } from "./RefreshBar"
 
 function DetailPanel({
   rs,
@@ -125,10 +127,21 @@ export function ReplicaSetsView(): JSX.Element {
     data: replicaSets,
     loading,
     error,
+    reload,
+    lastRefreshedAt,
   } = useK8sResource(
     (ctx) => window.api.k8s.listReplicaSets({ contextName: ctx }),
     selectedContext,
   )
+
+  useEffect(() => {
+    if (!selectedItem || replicaSets.length === 0) return
+    const item = selectedItem as { name: string; namespace: string }
+    const fresh = replicaSets.find(
+      (rs) => rs.name === item.name && rs.namespace === item.namespace,
+    )
+    if (fresh) setSelectedItem(fresh as object)
+  }, [replicaSets])
 
   const visibleReplicaSets = replicaSets
     .filter((rs) => !selectedNamespace || rs.namespace === selectedNamespace)
@@ -140,7 +153,10 @@ export function ReplicaSetsView(): JSX.Element {
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
-        <h1 className="text-lg font-semibold mb-4">ReplicaSets</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-lg font-semibold">ReplicaSets</h1>
+          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
+        </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
         {!loading && !error && visibleReplicaSets.length === 0 && (

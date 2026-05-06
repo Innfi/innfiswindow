@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { Pencil, Trash2, X } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
@@ -25,21 +25,29 @@ import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sClusterRole } from "../types/k8s"
 import { EmptyState } from "./EmptyState"
+import { RefreshBar } from "./RefreshBar"
 
 function DetailPanel({
   role,
   onClose,
   onDeleteSuccess,
+  onDeleteDialogChange,
 }: {
   role: K8sClusterRole
   onClose: () => void
   onDeleteSuccess: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  function setDeleteOpenNotify(open: boolean): void {
+    setDeleteOpen(open)
+    onDeleteDialogChange(open)
+  }
 
   function handleEdit(): void {
     openDrawerTab({
@@ -57,7 +65,7 @@ function DetailPanel({
     try {
       await window.api.k8s.deleteClusterRole(role.name)
       toast.success(`ClusterRole ${role.name} deleted`)
-      setDeleteOpen(false)
+      setDeleteOpenNotify(false)
       setSelectedItem(null)
       onDeleteSuccess()
     } catch (e) {
@@ -83,7 +91,7 @@ function DetailPanel({
             size="sm"
             variant="outline"
             className="text-destructive hover:text-destructive"
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => setDeleteOpenNotify(true)}
           >
             <Trash2 className="h-3 w-3 mr-1" />
             Delete
@@ -97,7 +105,7 @@ function DetailPanel({
           </button>
         </div>
       </div>
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete ClusterRole</DialogTitle>
@@ -110,7 +118,7 @@ function DetailPanel({
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDeleteOpen(false)}
+              onClick={() => setDeleteOpenNotify(false)}
               disabled={deleting}
             >
               Cancel
@@ -170,16 +178,25 @@ export function ClusterRolesView(): JSX.Element {
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const {
     data: clusterRoles,
     loading,
     error,
     reload,
+    lastRefreshedAt,
   } = useK8sResource(
     (ctx) => window.api.k8s.listClusterRoles({ contextName: ctx }),
     selectedContext,
+    { paused: deleteDialogOpen },
   )
+
+  useEffect(() => {
+    if (!selectedItem || clusterRoles.length === 0) return
+    const fresh = clusterRoles.find((r) => r.name === selectedItem.name)
+    if (fresh) setSelectedItem(fresh as object)
+  }, [clusterRoles])
 
   const visible = nameFilter
     ? clusterRoles.filter((r) =>
@@ -192,6 +209,7 @@ export function ClusterRolesView(): JSX.Element {
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Cluster Roles</h1>
+          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -238,6 +256,7 @@ export function ClusterRolesView(): JSX.Element {
             role={selectedItem}
             onClose={() => setSelectedItem(null)}
             onDeleteSuccess={reload}
+            onDeleteDialogChange={setDeleteDialogOpen}
           />
         )}
     </div>

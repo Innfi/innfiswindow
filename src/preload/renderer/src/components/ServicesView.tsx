@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -25,6 +25,7 @@ import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sService, K8sServicePort } from "../types/k8s"
 import { EmptyState } from "./EmptyState"
+import { RefreshBar } from "./RefreshBar"
 
 function formatPorts(ports: K8sServicePort[]): string {
   if (ports.length === 0) return "-"
@@ -35,14 +36,21 @@ function DetailPanel({
   svc,
   onClose,
   onDeleted,
+  onDeleteDialogChange,
 }: {
   svc: K8sService
   onClose: () => void
   onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  function setDeleteOpenNotify(open: boolean): void {
+    setDeleteOpen(open)
+    onDeleteDialogChange(open)
+  }
   const selectorEntries = Object.entries(svc.selector)
   const labelEntries = Object.entries(svc.labels)
   const annotationEntries = Object.entries(svc.annotations)
@@ -87,12 +95,12 @@ function DetailPanel({
     try {
       await window.api.k8s.deleteService(svc.namespace, svc.name)
       toast.success(`Service ${svc.name} deleted`)
-      setDeleteOpen(false)
+      setDeleteOpenNotify(false)
       onDeleted()
       onClose()
     } catch (e) {
       toast.error(String(e))
-      setDeleteOpen(false)
+      setDeleteOpenNotify(false)
     } finally {
       setDeleting(false)
     }
@@ -118,7 +126,7 @@ function DetailPanel({
             size="sm"
             variant="destructive"
             className="h-7 text-xs"
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => setDeleteOpenNotify(true)}
           >
             Delete
           </Button>
@@ -236,7 +244,7 @@ function DetailPanel({
         </div>
       )}
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Service</AlertDialogTitle>
@@ -251,7 +259,7 @@ function DetailPanel({
           <AlertDialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDeleteOpen(false)}
+              onClick={() => setDeleteOpenNotify(false)}
               disabled={deleting}
             >
               Cancel
@@ -276,16 +284,28 @@ export function ServicesView(): JSX.Element {
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const {
     data: services,
     loading,
     error,
     reload,
+    lastRefreshedAt,
   } = useK8sResource(
     (ctx) => window.api.k8s.listServices({ contextName: ctx }),
     selectedContext,
+    { paused: deleteDialogOpen },
   )
+
+  useEffect(() => {
+    if (!selectedItem || services.length === 0) return
+    const fresh = services.find(
+      (d) =>
+        d.name === selectedItem.name && d.namespace === selectedItem.namespace,
+    )
+    if (fresh) setSelectedItem(fresh)
+  }, [services])
 
   const visibleServices = filterResources(
     services,
@@ -298,6 +318,7 @@ export function ServicesView(): JSX.Element {
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Services</h1>
+          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -361,6 +382,7 @@ export function ServicesView(): JSX.Element {
           svc={selectedItem}
           onClose={() => setSelectedItem(null)}
           onDeleted={reload}
+          onDeleteDialogChange={setDeleteDialogOpen}
         />
       )}
     </div>
