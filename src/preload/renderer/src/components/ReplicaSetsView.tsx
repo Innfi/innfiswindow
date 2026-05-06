@@ -141,7 +141,7 @@ export function ReplicaSetsView(): JSX.Element {
       (rs) => rs.name === item.name && rs.namespace === item.namespace,
     )
     if (fresh) setSelectedItem(fresh as object)
-  }, [replicaSets]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [replicaSets])
 
   const visibleReplicaSets = replicaSets
     .filter((rs) => !selectedNamespace || rs.namespace === selectedNamespace)

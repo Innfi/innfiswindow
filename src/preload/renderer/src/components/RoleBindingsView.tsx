@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { Pencil, Trash2, X } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
@@ -25,21 +25,29 @@ import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sRoleBinding } from "../types/k8s"
 import { EmptyState } from "./EmptyState"
+import { RefreshBar } from "./RefreshBar"
 
 function DetailPanel({
   binding,
   onClose,
   onDeleteSuccess,
+  onDeleteDialogChange,
 }: {
   binding: K8sRoleBinding
   onClose: () => void
   onDeleteSuccess: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  function setDeleteOpenNotify(open: boolean): void {
+    setDeleteOpen(open)
+    onDeleteDialogChange(open)
+  }
 
   function handleEdit(): void {
     openDrawerTab({
@@ -59,7 +67,7 @@ function DetailPanel({
     try {
       await window.api.k8s.deleteRoleBinding(binding.namespace, binding.name)
       toast.success(`RoleBinding ${binding.name} deleted`)
-      setDeleteOpen(false)
+      setDeleteOpenNotify(false)
       setSelectedItem(null)
       onDeleteSuccess()
     } catch (e) {
@@ -87,7 +95,7 @@ function DetailPanel({
             size="sm"
             variant="outline"
             className="text-destructive hover:text-destructive"
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => setDeleteOpenNotify(true)}
           >
             <Trash2 className="h-3 w-3 mr-1" />
             Delete
@@ -101,7 +109,7 @@ function DetailPanel({
           </button>
         </div>
       </div>
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete RoleBinding</DialogTitle>
@@ -114,7 +122,7 @@ function DetailPanel({
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDeleteOpen(false)}
+              onClick={() => setDeleteOpenNotify(false)}
               disabled={deleting}
             >
               Cancel
@@ -179,16 +187,28 @@ export function RoleBindingsView(): JSX.Element {
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const {
     data: bindings,
     loading,
     error,
     reload,
+    lastRefreshedAt,
   } = useK8sResource(
     (ctx) => window.api.k8s.listRoleBindings({ contextName: ctx }),
     selectedContext,
+    { paused: deleteDialogOpen },
   )
+
+  useEffect(() => {
+    if (!selectedItem || bindings.length === 0) return
+    const item = selectedItem as { name: string; namespace: string }
+    const fresh = bindings.find(
+      (b) => b.name === item.name && b.namespace === item.namespace,
+    )
+    if (fresh) setSelectedItem(fresh as object)
+  }, [bindings])
 
   const visible = filterResources(bindings, nameFilter, selectedNamespace)
 
@@ -197,6 +217,7 @@ export function RoleBindingsView(): JSX.Element {
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Role Bindings</h1>
+          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -252,6 +273,7 @@ export function RoleBindingsView(): JSX.Element {
             binding={selectedItem}
             onClose={() => setSelectedItem(null)}
             onDeleteSuccess={reload}
+            onDeleteDialogChange={setDeleteDialogOpen}
           />
         )}
     </div>

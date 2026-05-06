@@ -260,7 +260,7 @@ export function PodsView(): JSX.Element {
       (p) => p.name === item.name && p.namespace === item.namespace,
     )
     if (fresh) setSelectedItem(fresh as object)
-  }, [pods]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pods])
 
   const visiblePods = filterResources(pods, nameFilter, selectedNamespace)
 

@@ -301,7 +301,8 @@ export function ServicesView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || services.length === 0) return
     const fresh = services.find(
-      (d) => d.name === selectedItem.name && d.namespace === selectedItem.namespace,
+      (d) =>
+        d.name === selectedItem.name && d.namespace === selectedItem.namespace,
     )
     if (fresh) setSelectedItem(fresh)
   }, [services])

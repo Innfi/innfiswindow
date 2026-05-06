@@ -260,7 +260,7 @@ export function StatefulSetsView(): JSX.Element {
       (ss) => ss.name === item.name && ss.namespace === item.namespace,
     )
     if (fresh) setSelectedItem(fresh as object)
-  }, [statefulSets]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [statefulSets])
 
   const visibleStatefulSets = filterResources(
     statefulSets,

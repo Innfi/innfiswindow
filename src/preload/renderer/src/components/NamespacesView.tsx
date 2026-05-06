@@ -109,7 +109,7 @@ export function NamespacesView(): JSX.Element {
     const item = selectedItem as { name: string }
     const fresh = namespaces.find((n) => n.name === item.name)
     if (fresh) setSelectedItem(fresh as object)
-  }, [namespaces]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [namespaces])
 
   const visibleNamespaces = filterResources(namespaces, nameFilter)
 

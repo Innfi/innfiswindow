@@ -1265,7 +1265,7 @@
     {
       "id": "S66",
       "title": "Periodic auto-refresh of resource lists",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Resource lists (Deployments, Pods, etc.) only refresh when the user changes context or manually triggers a reload. Pod restarts, deployment rollouts, and node status changes are invisible until the user navigates away and back. Add a configurable auto-refresh interval that re-fetches the active resource list in the background without disrupting the selected item or scroll position.",
       "acceptance_criteria": [
         "A refresh interval setting is stored in the Zustand store (default: 30 seconds); valid values are 10, 30, 60, 120 seconds, and 'off'",

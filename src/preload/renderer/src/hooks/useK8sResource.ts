@@ -47,7 +47,7 @@ export function useK8sResource<T>(
 
   useEffect(() => {
     load(false)
-  }, [context]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [context])
 
   useEffect(() => {
     if (refreshInterval === "off" || paused) return

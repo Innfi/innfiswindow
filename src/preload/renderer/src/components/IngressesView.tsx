@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -25,6 +25,7 @@ import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sIngress, K8sIngressRule, K8sIngressTLS } from "../types/k8s"
 import { EmptyState } from "./EmptyState"
+import { RefreshBar } from "./RefreshBar"
 
 function formatAge(timestamp: string): string {
   if (!timestamp) return ""
@@ -41,14 +42,21 @@ function DetailPanel({
   item,
   onClose,
   onDeleted,
+  onDeleteDialogChange,
 }: {
   item: K8sIngress
   onClose: () => void
   onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  function setDeleteOpenNotify(open: boolean): void {
+    setDeleteOpen(open)
+    onDeleteDialogChange(open)
+  }
 
   function handleEdit(): void {
     const obj = {
@@ -111,12 +119,12 @@ function DetailPanel({
     try {
       await window.api.k8s.deleteIngress(item.namespace, item.name)
       toast.success(`Ingress ${item.name} deleted`)
-      setDeleteOpen(false)
+      setDeleteOpenNotify(false)
       onDeleted()
       onClose()
     } catch (e) {
       toast.error(String(e))
-      setDeleteOpen(false)
+      setDeleteOpenNotify(false)
     } finally {
       setDeleting(false)
     }
@@ -142,7 +150,7 @@ function DetailPanel({
             size="sm"
             variant="destructive"
             className="h-7 text-xs"
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => setDeleteOpenNotify(true)}
           >
             Delete
           </Button>
@@ -264,7 +272,7 @@ function DetailPanel({
         </div>
       )}
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Ingress</AlertDialogTitle>
@@ -279,7 +287,7 @@ function DetailPanel({
           <AlertDialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDeleteOpen(false)}
+              onClick={() => setDeleteOpenNotify(false)}
               disabled={deleting}
             >
               Cancel
@@ -304,16 +312,28 @@ export function IngressesView(): JSX.Element {
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const {
     data: ingresses,
     loading,
     error,
     reload,
+    lastRefreshedAt,
   } = useK8sResource(
     (ctx) => window.api.k8s.listIngresses({ contextName: ctx }),
     selectedContext,
+    { paused: deleteDialogOpen },
   )
+
+  useEffect(() => {
+    if (!selectedItem || ingresses.length === 0) return
+    const item = selectedItem as { name: string; namespace: string }
+    const fresh = ingresses.find(
+      (i) => i.name === item.name && i.namespace === item.namespace,
+    )
+    if (fresh) setSelectedItem(fresh as object)
+  }, [ingresses])
 
   const visibleIngresses = filterResources(
     ingresses,
@@ -326,6 +346,7 @@ export function IngressesView(): JSX.Element {
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Ingresses</h1>
+          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -383,6 +404,7 @@ export function IngressesView(): JSX.Element {
           item={selectedItem}
           onClose={() => setSelectedItem(null)}
           onDeleted={reload}
+          onDeleteDialogChange={setDeleteDialogOpen}
         />
       )}
     </div>

@@ -272,7 +272,8 @@ export function DaemonSetsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || daemonSets.length === 0) return
     const fresh = daemonSets.find(
-      (d) => d.name === selectedItem.name && d.namespace === selectedItem.namespace,
+      (d) =>
+        d.name === selectedItem.name && d.namespace === selectedItem.namespace,
     )
     if (fresh) setSelectedItem(fresh)
   }, [daemonSets])

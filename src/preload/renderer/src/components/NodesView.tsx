@@ -154,7 +154,7 @@ export function NodesView(): JSX.Element {
     const item = selectedItem as { name: string }
     const fresh = nodes.find((n) => n.name === item.name)
     if (fresh) setSelectedItem(fresh as object)
-  }, [nodes]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nodes])
 
   const visibleNodes = filterResources(nodes, nameFilter)
 

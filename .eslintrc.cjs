@@ -4,8 +4,12 @@ module.exports = {
     "@electron-toolkit/eslint-config-ts",
     "@electron-toolkit/eslint-config-prettier",
   ],
-  plugins: ["simple-import-sort"],
+  plugins: ["simple-import-sort", "eslint-comments"],
   rules: {
+    "eslint-comments/no-restricted-disable": [
+      "error",
+      "react-hooks/exhaustive-deps",
+    ],
     "simple-import-sort/imports": [
       "error",
       {

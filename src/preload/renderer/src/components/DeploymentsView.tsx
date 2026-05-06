@@ -278,7 +278,7 @@ export function DeploymentsView(): JSX.Element {
       (d) => d.name === item.name && d.namespace === item.namespace,
     )
     if (fresh) setSelectedItem(fresh as object)
-  }, [deployments]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [deployments])
 
   const visibleDeployments = filterResources(
     deployments,
