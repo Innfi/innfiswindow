@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron"
+import { createConnection, Socket } from "net"
 import { join } from "path"
 import { PassThrough } from "stream"
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
@@ -128,6 +129,8 @@ const activeExecSessions = new Map<
   string,
   { ws: ExecWebSocket; stdinStream: PassThrough }
 >()
+
+const activeSocketStreams = new Map<string, Socket>()
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -689,6 +692,67 @@ app.whenReady().then(() => {
         session.stdinStream.end()
         activeExecSessions.delete(sessionId)
       }
+    },
+  )
+
+  ipcMain.handle(
+    "stream:socket:start",
+    (
+      _e,
+      { socketPath, sessionId }: { socketPath: string; sessionId: string },
+    ) => {
+      // Clean up any existing session with same id
+      const existing = activeSocketStreams.get(sessionId)
+      if (existing) {
+        existing.destroy()
+        activeSocketStreams.delete(sessionId)
+      }
+
+      const sock = createConnection(socketPath)
+      activeSocketStreams.set(sessionId, sock)
+
+      let buffer = ""
+      sock.on("data", (chunk: Buffer) => {
+        buffer += chunk.toString()
+        const parts = buffer.split("\n")
+        buffer = parts.pop() ?? ""
+        for (const line of parts) {
+          mainWindow?.webContents.send("stream:socket:data", {
+            sessionId,
+            line,
+          })
+        }
+      })
+
+      sock.on("error", (err) => {
+        activeSocketStreams.delete(sessionId)
+        mainWindow?.webContents.send("stream:socket:end", {
+          sessionId,
+          reason: err.message,
+        })
+      })
+
+      sock.on("close", () => {
+        activeSocketStreams.delete(sessionId)
+        mainWindow?.webContents.send("stream:socket:end", {
+          sessionId,
+          reason: "",
+        })
+      })
+
+      return { success: true }
+    },
+  )
+
+  ipcMain.handle(
+    "stream:socket:stop",
+    (_e, { sessionId }: { sessionId: string }) => {
+      const sock = activeSocketStreams.get(sessionId)
+      if (sock) {
+        sock.destroy()
+        activeSocketStreams.delete(sessionId)
+      }
+      return { success: true }
     },
   )
 

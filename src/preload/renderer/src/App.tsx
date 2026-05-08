@@ -11,6 +11,7 @@ import { BottomDrawer } from "./components/BottomDrawer"
 import { ClusterRoleBindingsView } from "./components/ClusterRoleBindingsView"
 import { ClusterRolesView } from "./components/ClusterRolesView"
 import { ConfigMapsView } from "./components/ConfigMapsView"
+import { CustomStreamView } from "./components/CustomStreamView"
 import { DaemonSetsView } from "./components/DaemonSetsView"
 import { DeploymentsView } from "./components/DeploymentsView"
 import { EventsView } from "./components/EventsView"
@@ -185,6 +186,7 @@ function App(): JSX.Element {
               {selectedResourceType === "ClusterRoleBindings" && (
                 <ClusterRoleBindingsView />
               )}
+              {selectedResourceType === "custom-stream" && <CustomStreamView />}
             </div>
           </div>
 

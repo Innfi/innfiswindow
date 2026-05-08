@@ -9,6 +9,7 @@ Innfiswindow lets you browse, inspect, and manage Kubernetes resources from a na
 ## Features
 
 ### Resource browsing
+
 - **Cluster**: Namespaces, Nodes
 - **Workloads**: Pods, Deployments, ReplicaSets, StatefulSets, DaemonSets
 - **Networking**: Services, Ingresses
@@ -17,6 +18,7 @@ Innfiswindow lets you browse, inspect, and manage Kubernetes resources from a na
 - **Events**: live-tailing Kubernetes events
 
 ### Navigation & layout
+
 - Tree sidebar groups resources by category (Cluster / Workloads / Networking / Config / Access Control)
 - Click any row to open a detail panel; list shows summary fields only
 - Namespace filter + name filter persist across resource type switches
@@ -25,6 +27,7 @@ Innfiswindow lets you browse, inspect, and manage Kubernetes resources from a na
 - Auto-refresh: lists re-fetch on a configurable interval (10s / 30s / 60s / 120s / off) with "Last refreshed" indicator and manual Refresh button
 
 ### CRUD operations
+
 - Create resources via YAML editor in BottomDrawer "New" tab
 - Edit resources via YAML editor in BottomDrawer "Edit" tab (opened from detail panel)
 - Delete resources with AlertDialog confirmation (Delete button in detail panel)
@@ -33,16 +36,19 @@ Innfiswindow lets you browse, inspect, and manage Kubernetes resources from a na
 - RBAC edit (Roles, ClusterRoles, RoleBindings, ClusterRoleBindings, ServiceAccounts) patches specific fields via dedicated BottomDrawer tab
 
 ### BottomDrawer tabs
+
 - **New resource** — YAML editor for `kubectl apply`-style creation
 - **Edit resource** — YAML editor pre-filled with current resource YAML, saves via IPC
 - **Pod logs** — live-tailing log stream per container
 - **Pod shell** — interactive exec session inside a running container
 
 ### Observability & auth
+
 - Prometheus endpoint configuration with metrics graphs in Pod detail panel
 - EKS credential check on startup; warning banner if AWS credentials are missing or temporary
 
 ### Developer quality
+
 - `useK8sResource<T>` shared hook encapsulates loading/error/data/reload across all views
 - Shared `src/types/k8s.ts` — all K8s TypeScript interfaces in one place
 - Consistent AlertDialog for all destructive confirmations
@@ -167,7 +173,7 @@ All resource views use the `useK8sResource<T>` hook:
 ```ts
 const { data, loading, error, reload } = useK8sResource(
   (ctx) => window.api.k8s.listDeployments({ contextName: ctx }),
-  selectedContext
+  selectedContext,
 )
 ```
 

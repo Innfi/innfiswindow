@@ -5,6 +5,7 @@ import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
 import { useAppStore } from "../../store/app.store"
+import { CustomStreamPanel } from "./CustomStreamPanel"
 import { EditResourcePanel } from "./EditResourcePanel"
 import { PodLogPanel } from "./PodLogPanel"
 import { ShellPanel } from "./ShellPanel"
@@ -201,7 +202,9 @@ export function BottomDrawer(): JSX.Element {
                   ? `${tab.resourceKind}/${tab.resourceName}`
                   : tab.type === "yaml-edit"
                     ? `${tab.resourceKind}/${tab.resourceName}`
-                    : `New ${tab.resourceKind}`
+                    : tab.type === "custom-stream"
+                      ? tab.label
+                      : `New ${tab.resourceKind}`
           const isActive = tab.id === activeTabId
           return (
             <div
@@ -218,6 +221,9 @@ export function BottomDrawer(): JSX.Element {
                 className="ml-1 rounded hover:bg-destructive/20 p-0.5"
                 onClick={(e) => {
                   e.stopPropagation()
+                  if (tab.type === "custom-stream") {
+                    window.api.stopSocketStream(tab.id)
+                  }
                   closeDrawerTab(tab.id)
                 }}
                 title="Close tab"
@@ -284,6 +290,13 @@ export function BottomDrawer(): JSX.Element {
                 <YamlEditPanel
                   tab={tab}
                   onClose={() => closeDrawerTab(tab.id)}
+                />
+              )}
+              {tab.type === "custom-stream" && (
+                <CustomStreamPanel
+                  sessionId={tab.id}
+                  socketPath={tab.socketPath}
+                  label={tab.label}
                 />
               )}
             </div>

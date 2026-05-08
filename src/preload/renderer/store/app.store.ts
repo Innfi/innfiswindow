@@ -62,6 +62,13 @@ export type DrawerTab =
       namespace: string
       initialYaml: string
     }
+  | {
+      id: string
+      tabKey: string
+      type: "custom-stream"
+      socketPath: string
+      label: string
+    }
 
 export type DrawerTabInput =
   | {
@@ -108,6 +115,12 @@ export type DrawerTabInput =
       resourceName: string
       namespace: string
       initialYaml: string
+    }
+  | {
+      tabKey: string
+      type: "custom-stream"
+      socketPath: string
+      label: string
     }
 
 export type RefreshIntervalValue = 10 | 30 | 60 | 120 | "off"

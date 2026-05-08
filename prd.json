@@ -1280,6 +1280,29 @@
       ],
       "dependencies": ["S02"],
       "notes": "If S61 (useK8sResource hook) is complete, implement the interval logic inside the hook using a useEffect that depends on the interval setting from the store. If S61 is not complete, add the interval to each view component's existing fetch useEffect pattern. The 'Last refreshed' counter uses a separate 1-second setInterval for display only — it does not re-fetch. Re-matching selectedItem after refresh: after receiving new data, find the item where name === selectedItem.name && namespace === selectedItem.namespace and call setSelectedItem with the fresh object so detail panel shows updated values."
+    },
+    {
+      "id": "S67",
+      "title": "Custom stream view: tail data from a Unix socket",
+      "status": "complete",
+      "description": "Add a 'Custom Stream' section to the tree view sidebar. When selected, the main panel shows a form where the user enters a Unix socket path. Connecting opens a live-tail view that reads all data emitted by the socket and appends it line-by-line to a scrolling log panel, similar to the pod log tail. The connection can be stopped and restarted. Multiple named streams can be opened simultaneously as BottomDrawer tabs.",
+      "acceptance_criteria": [
+        "TreeView gains a top-level 'Custom Stream' item (below the existing k8s resource groups); clicking it sets selectedResourceType to 'custom-stream' in the Zustand store",
+        "When selectedResourceType is 'custom-stream', the main panel renders CustomStreamView at src/preload/renderer/src/components/CustomStreamView.tsx",
+        "CustomStreamView shows a text input for the socket path (e.g. /tmp/myapp.sock) and a 'Connect' button",
+        "Clicking 'Connect' opens a new BottomDrawer tab of type 'custom-stream' with fields: tabKey ('custom-stream:<socketPath>'), socketPath (string), label (basename of socketPath)",
+        "DrawerTab union and DrawerTabInput union gain a 'custom-stream' variant with fields: socketPath (string)",
+        "BottomDrawer renders a CustomStreamPanel component for 'custom-stream' tabs: a scrolling pre/div showing received lines, a 'Stop' / 'Connect' toggle button, and a 'Clear' button",
+        "Main process IPC handler 'stream:socket:start' accepts { socketPath: string, sessionId: string }; connects to the Unix domain socket using Node.js net.createConnection; sends each received data chunk split by newline back to the renderer via webContents.send('stream:socket:data', { sessionId, line })",
+        "Main process IPC handler 'stream:socket:stop' accepts { sessionId: string }; destroys the socket connection for that session",
+        "On socket error or close, renderer receives 'stream:socket:end' event with { sessionId, reason } and displays the reason in the panel",
+        "If the socket path does not exist or connection is refused, the error message is shown in the panel (not a toast) and the tab stays open",
+        "window.api exposes startSocketStream(socketPath, sessionId), stopSocketStream(sessionId), onSocketData(handler), onSocketEnd(handler) via preload contextBridge",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S42"],
+      "ipc_handlers": ["stream:socket:start", "stream:socket:stop"],
+      "notes": "Use Node.js built-in 'net' module — no new npm packages needed. Session IDs follow the same pattern as pod shell: generate with crypto.randomUUID() or Date.now() in the renderer before calling start. Multiple tabs with different socket paths are independent sessions. The 'custom-stream' BottomDrawer tab is opened from CustomStreamView on Connect click, not from the tree item click. Tab label shows the socket basename (e.g. 'myapp.sock'). CustomStreamPanel auto-scrolls to bottom on new data unless the user has scrolled up (same pattern as PodLogPanel). Socket connections are cleaned up on tab close (closeDrawerTab should call stopSocketStream for custom-stream tabs)."
     }
   ]
 }

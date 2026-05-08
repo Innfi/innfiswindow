@@ -573,6 +573,17 @@ export interface API {
   onPodExecOutput: (
     callback: (data: { sessionId: string; data: string }) => void,
   ) => () => void
+  startSocketStream: (
+    socketPath: string,
+    sessionId: string,
+  ) => Promise<{ success: boolean }>
+  stopSocketStream: (sessionId: string) => Promise<{ success: boolean }>
+  onSocketData: (
+    callback: (data: { sessionId: string; line: string }) => void,
+  ) => () => void
+  onSocketEnd: (
+    callback: (data: { sessionId: string; reason: string }) => void,
+  ) => () => void
 }
 
 declare global {

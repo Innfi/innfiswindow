@@ -265,6 +265,30 @@ const api = {
     ipcRenderer.on("k8s:pod:exec:output", handler)
     return () => ipcRenderer.removeListener("k8s:pod:exec:output", handler)
   },
+  startSocketStream: (socketPath: string, sessionId: string) =>
+    ipcRenderer.invoke("stream:socket:start", { socketPath, sessionId }),
+  stopSocketStream: (sessionId: string) =>
+    ipcRenderer.invoke("stream:socket:stop", { sessionId }),
+  onSocketData: (
+    callback: (data: { sessionId: string; line: string }) => void,
+  ) => {
+    const handler = (
+      _e: IpcRendererEvent,
+      data: { sessionId: string; line: string },
+    ) => callback(data)
+    ipcRenderer.on("stream:socket:data", handler)
+    return () => ipcRenderer.removeListener("stream:socket:data", handler)
+  },
+  onSocketEnd: (
+    callback: (data: { sessionId: string; reason: string }) => void,
+  ) => {
+    const handler = (
+      _e: IpcRendererEvent,
+      data: { sessionId: string; reason: string },
+    ) => callback(data)
+    ipcRenderer.on("stream:socket:end", handler)
+    return () => ipcRenderer.removeListener("stream:socket:end", handler)
+  },
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
