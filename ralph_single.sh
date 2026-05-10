@@ -57,5 +57,16 @@ if ! npx electron-vite build; then
 fi
 echo "--- Build guardrail passed ---"
 
+echo "--- Format + lint guardrail ---"
+if ! npm run format; then
+  echo "=== FORMAT FAILED after story $next_story. Stopping loop. ==="
+  exit 1
+fi
+if ! npm run lint; then
+  echo "=== LINT FAILED after story $next_story. Stopping loop. ==="
+  exit 1
+fi
+echo "--- Format + lint guardrail passed ---"
+
 echo ""
 echo "--- Job complete ---"

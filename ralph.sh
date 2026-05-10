@@ -60,6 +60,18 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   echo "--- Build guardrail passed ---"
 
   echo ""
+  echo "--- Format + lint guardrail ---"
+  if ! npm run format; then
+    echo "=== FORMAT FAILED after story $next_story. Stopping loop. ==="
+    exit 1
+  fi
+  if ! npm run lint; then
+    echo "=== LINT FAILED after story $next_story. Stopping loop. ==="
+    exit 1
+  fi
+  echo "--- Format + lint guardrail passed ---"
+
+  echo ""
   echo "--- Iteration $i complete ---"
 done
 
