@@ -18,6 +18,7 @@ import { EventsView } from "./components/EventsView"
 import { IngressesView } from "./components/IngressesView"
 import { NamespacesView } from "./components/NamespacesView"
 import { NodesView } from "./components/NodesView"
+import { OverviewView } from "./components/OverviewView"
 import { PodsView } from "./components/PodsView"
 import { PrometheusSettings } from "./components/PrometheusSettings"
 import { ReplicaSetsView } from "./components/ReplicaSetsView"
@@ -186,6 +187,7 @@ function App(): JSX.Element {
               {selectedResourceType === "ClusterRoleBindings" && (
                 <ClusterRoleBindingsView />
               )}
+              {selectedResourceType === "overview" && <OverviewView />}
               {selectedResourceType === "custom-stream" && <CustomStreamView />}
             </div>
           </div>

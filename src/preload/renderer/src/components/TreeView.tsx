@@ -80,6 +80,20 @@ export function TreeView(): JSX.Element {
 
   return (
     <div className="py-2">
+      {/* Overview — top-level item */}
+      <div
+        className={cn(
+          "cursor-pointer py-1.5 px-3 text-xs font-bold hover:bg-accent",
+          selectedResourceType === "overview" && "bg-accent font-medium",
+        )}
+        onClick={() => {
+          setSelectedContext(null)
+          setSelectedResourceType("overview")
+        }}
+      >
+        Overview
+      </div>
+
       {contexts.map((ctx) => (
         <Collapsible.Root
           key={ctx.name}

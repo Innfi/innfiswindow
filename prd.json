@@ -1307,7 +1307,7 @@
     {
       "id": "S68",
       "title": "Cluster health overview dashboard",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add a top-level 'Overview' item to the tree view that opens a cluster health dashboard — the first thing ops users open. The dashboard shows at-a-glance counts and warnings: unhealthy pods (CrashLoopBackOff, OOMKilled, Pending), node pressure conditions, failed/stalled deployments, and recent error-level events. All data is fetched from existing IPC handlers; no new backend calls needed.",
       "acceptance_criteria": [
         "TreeView gains an 'Overview' item at the top of the tree (above Cluster group); clicking it sets selectedResourceType to 'overview'",
