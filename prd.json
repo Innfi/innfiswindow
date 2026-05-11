@@ -1303,6 +1303,310 @@
       "dependencies": ["S42"],
       "ipc_handlers": ["stream:socket:start", "stream:socket:stop"],
       "notes": "Use Node.js built-in 'net' module — no new npm packages needed. Session IDs follow the same pattern as pod shell: generate with crypto.randomUUID() or Date.now() in the renderer before calling start. Multiple tabs with different socket paths are independent sessions. The 'custom-stream' BottomDrawer tab is opened from CustomStreamView on Connect click, not from the tree item click. Tab label shows the socket basename (e.g. 'myapp.sock'). CustomStreamPanel auto-scrolls to bottom on new data unless the user has scrolled up (same pattern as PodLogPanel). Socket connections are cleaned up on tab close (closeDrawerTab should call stopSocketStream for custom-stream tabs)."
+    },
+    {
+      "id": "S68",
+      "title": "Cluster health overview dashboard",
+      "status": "incomplete",
+      "description": "Add a top-level 'Overview' item to the tree view that opens a cluster health dashboard — the first thing ops users open. The dashboard shows at-a-glance counts and warnings: unhealthy pods (CrashLoopBackOff, OOMKilled, Pending), node pressure conditions, failed/stalled deployments, and recent error-level events. All data is fetched from existing IPC handlers; no new backend calls needed.",
+      "acceptance_criteria": [
+        "TreeView gains an 'Overview' item at the top of the tree (above Cluster group); clicking it sets selectedResourceType to 'overview'",
+        "When selectedResourceType is 'overview', the main panel renders OverviewView at src/preload/renderer/src/components/OverviewView.tsx",
+        "OverviewView shows four summary cards: Unhealthy Pods (count of pods not in Running/Succeeded phase or with restartCount > 5), Node Pressure (count of nodes with any True condition for MemoryPressure, DiskPressure, or PIDPressure), Failed Deployments (count of deployments where availableReplicas < replicas), Recent Errors (count of Warning-level events in the last hour)",
+        "Each summary card is clickable and navigates to the relevant resource type (sets selectedResourceType accordingly)",
+        "Below the cards, a 'Unhealthy Pods' table lists pods with phase != Running/Succeeded or high restart count, showing name, namespace, phase, restartCount, and age",
+        "Below that, a 'Recent Warning Events' table lists the 20 most recent Warning events with type, reason, message, object, and age",
+        "Data refreshes automatically using the same interval as the global auto-refresh setting from S66",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S08", "S06", "S07", "S36"],
+      "notes": "Reuse existing IPC handlers: k8s:pods:list, k8s:nodes:list, k8s:deployments:list, k8s:events:list. No new IPC needed. Filter pods and nodes client-side after fetch. The OverviewView does not use useK8sResource since it fetches multiple resource types simultaneously — use parallel Promise.all calls inside a single useEffect."
+    },
+    {
+      "id": "S69",
+      "title": "HorizontalPodAutoscaler (HPA) list view and detail view",
+      "status": "incomplete",
+      "description": "Add HorizontalPodAutoscaler to the Workloads section of the tree. The list view shows current vs desired vs min/max replica counts and target metrics. The detail panel shows the full HPA spec including metrics targets and current values.",
+      "acceptance_criteria": [
+        "TreeView Workloads group gains an 'HPAs' item; clicking sets selectedResourceType to 'hpas'",
+        "New IPC handler k8s:hpas:list fetches all HPAs across namespaces using AutoscalingV2Api listHorizontalPodAutoscalerForAllNamespaces; returns serialized objects with fields: name, namespace, targetRef (kind+name), minReplicas, maxReplicas, currentReplicas, desiredReplicas, conditions, metrics (current and target), creationTimestamp",
+        "HPAsView list table columns: Name, Namespace, Target, Min, Max, Replicas (current/desired), Age",
+        "Clicking a row opens the detail panel showing: targetRef, minReplicas, maxReplicas, currentReplicas, desiredReplicas, each metric with target and current value, conditions list, labels/annotations, age",
+        "Namespace filter and name filter apply to the list",
+        "EmptyState shown when list is empty",
+        "window.api exposes listHPAs via preload contextBridge",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S03", "S61"],
+      "ipc_handlers": ["k8s:hpas:list"],
+      "notes": "Use AutoscalingV2Api (autoscaling/v2). If the cluster only supports v1, fall back gracefully with a warning. The metrics field in the response can be complex — serialize only the essential target/current values as plain strings for display. No create/edit/delete needed for this story."
+    },
+    {
+      "id": "S70",
+      "title": "PersistentVolume and PersistentVolumeClaim list view and detail view",
+      "status": "incomplete",
+      "description": "Add PersistentVolumes (cluster-scoped) and PersistentVolumeClaims (namespace-scoped) to the tree under a new 'Storage' group. PVC status (Pending/Bound/Lost) is a common production issue. The list shows binding status and capacity; the detail panel shows the full spec.",
+      "acceptance_criteria": [
+        "TreeView gains a 'Storage' group with two items: 'PersistentVolumes' and 'PersistentVolumeClaims'",
+        "New IPC handler k8s:pvs:list uses CoreV1Api listPersistentVolume; returns: name, capacity, accessModes, reclaimPolicy, status (phase), claimRef (namespace/name), storageClass, creationTimestamp",
+        "New IPC handler k8s:pvcs:list uses CoreV1Api listPersistentVolumeClaimForAllNamespaces; returns: name, namespace, status (phase), volumeName, capacity, accessModes, storageClass, creationTimestamp",
+        "PVsView list columns: Name, Capacity, Access Modes, Reclaim Policy, Status, Claim, StorageClass, Age",
+        "PVCsView list columns: Name, Namespace, Status, Volume, Capacity, Access Modes, StorageClass, Age",
+        "Status cell colored: Bound=green, Pending=yellow, Lost=red",
+        "Detail panel for PV shows: capacity, accessModes, reclaimPolicy, status, claimRef, storageClass, volumeMode, labels, annotations, age",
+        "Detail panel for PVC shows: status, volumeName, capacity, accessModes, storageClass, labels, annotations, age",
+        "Namespace filter applies to PVCsView; PVsView has no namespace filter (cluster-scoped)",
+        "window.api exposes listPVs and listPVCs via preload contextBridge",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S03", "S61"],
+      "ipc_handlers": ["k8s:pvs:list", "k8s:pvcs:list"],
+      "notes": "PVs are cluster-scoped so no namespace filter. PVC status phase values: Pending, Bound, Lost. Color-code the Status cell using Tailwind classes directly on the TableCell. No CRUD operations in this story."
+    },
+    {
+      "id": "S71",
+      "title": "Job and CronJob list view and detail view",
+      "status": "incomplete",
+      "description": "Add Jobs and CronJobs to the Workloads section. Jobs show completion status and active/succeeded/failed pod counts. CronJobs show last schedule time, active jobs, and schedule expression.",
+      "acceptance_criteria": [
+        "TreeView Workloads group gains 'Jobs' and 'CronJobs' items",
+        "New IPC handler k8s:jobs:list uses BatchV1Api listJobForAllNamespaces; returns: name, namespace, completions, succeeded, failed, active, startTime, completionTime, conditions, creationTimestamp",
+        "New IPC handler k8s:cronjobs:list uses BatchV1Api listCronJobForAllNamespaces; returns: name, namespace, schedule, lastScheduleTime, active (count), suspend, creationTimestamp",
+        "JobsView list columns: Name, Namespace, Completions (succeeded/completions), Active, Failed, Duration, Age",
+        "CronJobsView list columns: Name, Namespace, Schedule, Last Schedule, Active, Suspended, Age",
+        "Job detail panel shows: completions, succeeded, failed, active, startTime, completionTime, conditions, labels, annotations",
+        "CronJob detail panel shows: schedule, concurrencyPolicy, suspend, lastScheduleTime, active job names, labels, annotations",
+        "Namespace filter and name filter apply to both views",
+        "window.api exposes listJobs and listCronJobs via preload contextBridge",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S03", "S61"],
+      "ipc_handlers": ["k8s:jobs:list", "k8s:cronjobs:list"],
+      "notes": "Use BatchV1Api for both Jobs and CronJobs. Duration = completionTime - startTime formatted as '2m30s'. For CronJobs, active is an array of ObjectReferences — serialize as count + array of name strings."
+    },
+    {
+      "id": "S72",
+      "title": "Node resource usage metrics in Node detail panel",
+      "status": "incomplete",
+      "description": "The Node list and detail panel currently show conditions and status but no CPU or memory usage. Add live CPU and memory usage metrics to each Node's detail panel using the Kubernetes Metrics API (metrics.k8s.io), the same source used for pod metrics in S46-S47.",
+      "acceptance_criteria": [
+        "New IPC handler k8s:node:metrics fetches node metrics from the Metrics API using CustomObjectsApi getClusterCustomObject for group 'metrics.k8s.io', version 'v1beta1', plural 'nodes'; returns array of { nodeName, cpuUsage (nanocores as string), memoryUsage (bytes as string) }",
+        "Node detail panel gains a 'Resource Usage' section showing CPU and memory as progress bars: usage / allocatable capacity expressed as percentage",
+        "Allocatable CPU and memory come from node.status.allocatable already available in the k8s:nodes:list response; add these fields to the serialized node object if not already present",
+        "If Metrics API is unavailable (404 or 403), show a muted 'Metrics unavailable' message in the section instead of an error",
+        "Node list table gains two new columns: CPU% and Mem% showing the same percentage values (fetched once on load alongside the node list)",
+        "Metrics refresh on the same interval as the node list auto-refresh",
+        "window.api exposes getNodeMetrics via preload contextBridge",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S06", "S46"],
+      "ipc_handlers": ["k8s:node:metrics"],
+      "notes": "Metrics API must be installed in the cluster (metrics-server). Handle gracefully when absent. CPU nanocores: divide by 1e9 for cores. Memory bytes: display in Mi or Gi. Allocatable values from node.status.allocatable are strings like '4' (CPU cores) or '8Gi' (memory) — parse them to compute percentage."
+    },
+    {
+      "id": "S73",
+      "title": "Log search and filter in pod log panel",
+      "status": "incomplete",
+      "description": "The PodLogPanel tails logs but provides no way to search or filter lines. Add a search input that filters displayed log lines client-side by substring or regex. Matching text is highlighted within each line. A match count indicator shows how many lines match.",
+      "acceptance_criteria": [
+        "PodLogPanel gains a search input above the log output area; placeholder text 'Filter logs…'",
+        "Typing in the search input filters the displayed lines to only those containing the search string (case-insensitive substring match by default)",
+        "A toggle button next to the input switches between substring and regex mode; in regex mode, invalid regex shows a red border on the input but does not crash",
+        "Matching text within each displayed line is wrapped in a <mark> or highlighted <span> with a distinct background color",
+        "A match count badge shows 'N lines match' updated as the user types",
+        "When search is active, auto-scroll to bottom is paused; clearing the search input resumes auto-scroll",
+        "The search input and mode toggle are preserved when the tab is re-activated (state lives in the tab component, not the store)",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S41"],
+      "notes": "All filtering is client-side — the log buffer is already in component state. Do not re-fetch or re-start the log stream when filtering. Keep the full unfiltered log buffer in state; derive the displayed lines from it using useMemo with the search term as dependency. For regex mode, wrap the match attempt in try/catch."
+    },
+    {
+      "id": "S74",
+      "title": "Pod and Service port-forward to localhost",
+      "status": "incomplete",
+      "description": "Add a 'Port Forward' button to Pod and Service detail panels. Clicking it opens a BottomDrawer tab with a form to specify local port and target port. The main process creates a TCP server on the local port and proxies data to/from the pod port using the Kubernetes port-forward protocol over the API server WebSocket.",
+      "acceptance_criteria": [
+        "Pod detail panel gains a 'Port Forward' button in the header action area",
+        "Service detail panel gains a 'Port Forward' button in the header action area",
+        "Clicking 'Port Forward' opens a BottomDrawer tab of type 'port-forward' with fields: tabKey ('port-forward:<kind>:<namespace>/<name>'), resourceKind ('Pod'|'Service'), resourceName, namespace, localPort (number), targetPort (number)",
+        "DrawerTab and DrawerTabInput unions gain a 'port-forward' variant",
+        "The tab renders a PortForwardPanel with: local port input (default 8080), target port input (pre-filled from first pod/service port), Start/Stop button, status line showing 'Forwarding localhost:<localPort> → <resourceName>:<targetPort>' or error message",
+        "New IPC handler 'portforward:start' accepts { resourceKind, namespace, name, localPort, targetPort, sessionId }; for Pod kind uses the k8s port-forward API (POST to /api/v1/namespaces/{ns}/pods/{name}/portforward with SPDY upgrade); for Service kind resolves to a backing pod first then forwards; returns { success: boolean, error?: string }",
+        "New IPC handler 'portforward:stop' accepts { sessionId }; closes the TCP server and WebSocket",
+        "On successful start, status shows the forwarding address; on error, shows error inline in panel",
+        "window.api exposes startPortForward and stopPortForward via preload contextBridge",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S42", "S08", "S22"],
+      "ipc_handlers": ["portforward:start", "portforward:stop"],
+      "notes": "Port-forwarding via k8s API requires SPDY or WebSocket upgrade — use the @kubernetes/client-node PortForward helper class (it handles the SPDY framing). Import it from '@kubernetes/client-node'. For Services, list endpoints to find a ready pod IP, then forward to that pod. Local TCP server: use Node.js net.createServer. One session per tab; stop on tab close."
+    },
+    {
+      "id": "S75",
+      "title": "ResourceQuota and LimitRange view with usage visualization",
+      "status": "incomplete",
+      "description": "Add ResourceQuota and LimitRange to the tree under a new 'Governance' group. ResourceQuota detail shows a usage bar for each resource (used vs hard limit), making it immediately obvious when a namespace is near its limits.",
+      "acceptance_criteria": [
+        "TreeView gains a 'Governance' group with items: 'ResourceQuotas' and 'LimitRanges'",
+        "New IPC handler k8s:resourcequotas:list uses CoreV1Api listResourceQuotaForAllNamespaces; returns: name, namespace, hard (map of resource→limit string), used (map of resource→used string), creationTimestamp",
+        "New IPC handler k8s:limitranges:list uses CoreV1Api listLimitRangeForAllNamespaces; returns: name, namespace, limits (array of {type, max, min, default, defaultRequest}), creationTimestamp",
+        "ResourceQuotasView list columns: Name, Namespace, Resources (count of tracked resources), Age",
+        "ResourceQuota detail panel shows each tracked resource as a row: resource name, used value, hard limit, and a progress bar (used/hard as percentage); rows where used > 80% of hard are highlighted in yellow, rows where used >= hard in red",
+        "LimitRangesView list columns: Name, Namespace, Types (Container/Pod/PersistentVolumeClaim), Age",
+        "LimitRange detail panel shows each limit type with max, min, default, defaultRequest values in a table",
+        "Namespace filter applies to both views",
+        "window.api exposes listResourceQuotas and listLimitRanges via preload contextBridge",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S03", "S61"],
+      "ipc_handlers": ["k8s:resourcequotas:list", "k8s:limitranges:list"],
+      "notes": "ResourceQuota used/hard values are strings like '500m', '1Gi', '10'. Parse them for the progress bar percentage: for CPU use parseCpuString, for memory use parseMemoryString, for counts use parseInt. A simple parseResourceValue(value: string): number utility in utils.ts handles the conversion."
+    },
+    {
+      "id": "S76",
+      "title": "Global resource search across all resource types",
+      "status": "incomplete",
+      "description": "Add a global search bar in the AppBar that lets users find any resource by name across all resource types and namespaces. Results appear in a dropdown list grouped by resource type. Clicking a result navigates to that resource type and selects the item.",
+      "acceptance_criteria": [
+        "AppBar gains a search input (Command+K or Ctrl+K keyboard shortcut focuses it)",
+        "Typing at least 2 characters triggers a search: calls all existing list IPC handlers in parallel and filters results client-side by name substring (case-insensitive)",
+        "Results shown in a dropdown popover grouped by resource type (Pods, Deployments, Services, etc.); up to 5 results per group",
+        "Each result shows: resource name, namespace (if applicable), resource kind icon or label",
+        "Clicking a result sets selectedResourceType to the resource's type and selectedItem to the matching resource object, then closes the dropdown",
+        "Pressing Escape or clicking outside closes the dropdown without navigating",
+        "A loading indicator shows while IPC calls are in flight; if all return empty, shows 'No results found'",
+        "Search state (query, open/closed) is local component state — not persisted to the store",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S03", "S45"],
+      "notes": "No new IPC handlers — reuse all existing list handlers. Debounce the search trigger by 300ms to avoid firing on every keystroke. The search fetches with the currently selected context. Resource kind grouping order: Pods, Deployments, StatefulSets, DaemonSets, ReplicaSets, Services, Ingresses, ConfigMaps, Secrets, Namespaces, Nodes, ServiceAccounts, Roles, ClusterRoles, RoleBindings, ClusterRoleBindings. Use a shadcn Popover or Command component for the dropdown."
+    },
+    {
+      "id": "S77",
+      "title": "YAML diff view before applying edits",
+      "status": "incomplete",
+      "description": "When editing a resource in the yaml-edit BottomDrawer tab, show a diff between the original YAML (as loaded) and the current textarea content before the user clicks Save. This prevents accidental overwrites and makes it clear what will change.",
+      "acceptance_criteria": [
+        "YamlEditPanel gains a 'Show diff' toggle button next to the Save button",
+        "When toggled on, the textarea is replaced by a side-by-side or unified diff view showing removed lines (red background) and added lines (green background) between initialYaml and the current textarea content",
+        "When toggled off, the textarea is shown again with the user's current edits preserved",
+        "The diff is computed client-side using the 'diff' npm package (diff.createPatch or diff.diffLines); no IPC call needed",
+        "If the textarea content is identical to initialYaml, the diff view shows 'No changes' and the Save button is disabled",
+        "The diff view is read-only; the user must toggle back to textarea to make further edits",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S56"],
+      "notes": "Install the 'diff' npm package (MIT license, no native deps). Use diff.diffLines(initialYaml, currentYaml) to get an array of change objects. Render each line with appropriate background color using Tailwind. The diff view does not need to be a full Monaco diff editor — a simple line-by-line render is sufficient."
+    },
+    {
+      "id": "S78",
+      "title": "Deployment rollout history and rollback",
+      "status": "incomplete",
+      "description": "Add rollout history and rollback capability to the Deployment detail panel. Users can see previous ReplicaSet revisions, view the pod template diff between revisions, and roll back to a specific revision.",
+      "acceptance_criteria": [
+        "Deployment detail panel gains a 'Rollout History' section showing past revisions as a table: revision number, change-cause annotation, image(s), created date",
+        "New IPC handler k8s:deployment:history fetches ReplicaSets owned by the deployment (using AppsV1Api listNamespacedReplicaSet with labelSelector matching the deployment's selector), extracts the 'deployment.kubernetes.io/revision' annotation, and returns them sorted by revision descending",
+        "Each row in the history table has a 'Rollback to this revision' button",
+        "New IPC handler k8s:deployment:rollback accepts { namespace, name, revision } and patches the deployment with the rollback annotation (sets spec.rollbackTo.revision or patches the pod template from the target ReplicaSet)",
+        "Clicking rollback shows an AlertDialog confirmation, then calls the IPC handler, shows a success toast, and refreshes the deployment detail",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S07", "S56"],
+      "ipc_handlers": ["k8s:deployment:history", "k8s:deployment:rollback"],
+      "notes": "Rollback implementation: fetch the target ReplicaSet's pod template spec (from the RS with the matching revision annotation), then patch the Deployment's spec.template with that spec using AppsV1Api patchNamespacedDeployment. This is equivalent to kubectl rollout undo --to-revision=N. The change-cause annotation key is 'kubernetes.io/change-cause'."
+    },
+    {
+      "id": "S79",
+      "title": "NetworkPolicy list view and detail view",
+      "status": "incomplete",
+      "description": "Add NetworkPolicy to the tree under the Networking group. The list shows which namespaces have policies and the pod selector. The detail panel shows ingress and egress rules in a readable format.",
+      "acceptance_criteria": [
+        "TreeView Networking group gains a 'NetworkPolicies' item",
+        "New IPC handler k8s:networkpolicies:list uses NetworkingV1Api listNetworkPolicyForAllNamespaces; returns: name, namespace, podSelector (as label string), policyTypes (Ingress/Egress), ingressRuleCount, egressRuleCount, creationTimestamp",
+        "NetworkPoliciesView list columns: Name, Namespace, Pod Selector, Policy Types, Ingress Rules, Egress Rules, Age",
+        "Detail panel shows: podSelector labels, policyTypes, each ingress rule (from CIDRs/namespaceSelectors/podSelectors + ports), each egress rule in the same format",
+        "Namespace filter and name filter apply",
+        "window.api exposes listNetworkPolicies via preload contextBridge",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S03", "S61"],
+      "ipc_handlers": ["k8s:networkpolicies:list"],
+      "notes": "NetworkingV1Api is already imported in k8s-handlers.ts for Ingress. Reuse it. Pod selector with empty matchLabels means 'all pods in namespace' — display as 'All pods'. Rules with empty from/to array mean 'deny all'. Serialize ingress/egress rules as plain objects; render them as collapsible rows in the detail panel."
+    },
+    {
+      "id": "S80",
+      "title": "PodDisruptionBudget (PDB) list view and detail view",
+      "status": "incomplete",
+      "description": "Add PodDisruptionBudget to the tree under Governance. PDBs are critical during node drains and rollouts. The list shows current disruption allowance (how many pods can be disrupted right now).",
+      "acceptance_criteria": [
+        "TreeView Governance group (from S75) gains a 'PodDisruptionBudgets' item",
+        "New IPC handler k8s:pdbs:list uses PolicyV1Api listPodDisruptionBudgetForAllNamespaces; returns: name, namespace, minAvailable, maxUnavailable, currentHealthy, desiredHealthy, disruptionsAllowed, creationTimestamp",
+        "PDBsView list columns: Name, Namespace, Min Available, Max Unavailable, Current Healthy, Disruptions Allowed, Age",
+        "Disruptions Allowed cell colored red when value is 0 (no disruptions allowed)",
+        "Detail panel shows: selector, minAvailable, maxUnavailable, currentHealthy, desiredHealthy, disruptionsAllowed, expectedPods, labels, annotations",
+        "Namespace filter and name filter apply",
+        "window.api exposes listPDBs via preload contextBridge",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S75"],
+      "ipc_handlers": ["k8s:pdbs:list"],
+      "notes": "Use PolicyV1Api (policy/v1), available in k8s 1.21+. If cluster uses older policy/v1beta1, handle the 404 gracefully with a 'PDB API not available on this cluster' message. disruptionsAllowed=0 means a node drain would block — highlight clearly."
+    },
+    {
+      "id": "S81",
+      "title": "Endpoints and EndpointSlices view",
+      "status": "incomplete",
+      "description": "Add Endpoints to the Networking group. Endpoints show which pod IPs back a Service, which is essential for debugging 503s and service routing issues. The detail panel shows ready vs not-ready addresses and their target pod names.",
+      "acceptance_criteria": [
+        "TreeView Networking group gains an 'Endpoints' item",
+        "New IPC handler k8s:endpoints:list uses CoreV1Api listEndpointsForAllNamespaces; returns: name, namespace, readyAddressCount, notReadyAddressCount, ports, creationTimestamp",
+        "EndpointsView list columns: Name, Namespace, Ready, Not Ready, Ports, Age",
+        "Detail panel shows: for each subset — ready addresses (IP + target pod name/namespace), not-ready addresses, ports",
+        "Not-ready addresses highlighted in yellow/amber",
+        "Namespace filter and name filter apply",
+        "window.api exposes listEndpoints via preload contextBridge",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S03", "S61"],
+      "ipc_handlers": ["k8s:endpoints:list"],
+      "notes": "Endpoints name matches Service name in same namespace — this is a k8s convention. The detail panel implicitly shows which Service these endpoints back. notReadyAddresses exist in the subset when pods fail readiness probes. Do not add EndpointSlices in this story to keep scope small."
+    },
+    {
+      "id": "S82",
+      "title": "Multi-container log merge in pod log panel",
+      "status": "incomplete",
+      "description": "The current PodLogPanel shows one container's log at a time. Add a 'Merge all containers' mode that interleaves log lines from all containers in the pod, prefixed with the container name, in a single scrolling view. Useful for debugging init containers and sidecars.",
+      "acceptance_criteria": [
+        "PodLogPanel gains a 'Merge containers' toggle button in the header (only shown when the pod has more than one container)",
+        "When merge mode is active, the panel starts log streams for all containers simultaneously and interleaves their lines in arrival order",
+        "Each line is prefixed with '[container-name] ' in a muted color to distinguish sources",
+        "Each container stream uses a separate sessionId (e.g. 'pod-log-<podName>-<containerName>-<ts>'); all are tracked in component state and stopped on unmount or toggle-off",
+        "The container selector dropdown is hidden when merge mode is active",
+        "The search/filter from S73 applies to the merged output",
+        "Switching merge mode off returns to single-container mode showing the previously selected container",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S73"],
+      "notes": "Each container's stream calls the existing k8s:pod:log:start IPC handler with its own sessionId. The merged buffer is a useState array of { containerName, line } objects; display is derived via useMemo. Order of lines is insertion order (arrival from IPC events), not timestamp-sorted — timestamp sorting would require parsing log lines which is format-dependent."
+    },
+    {
+      "id": "S83",
+      "title": "kubectl-style resource copy to clipboard",
+      "status": "incomplete",
+      "description": "Add a copy-to-clipboard menu to resource detail panels. Users frequently need to copy a pod name, namespace, or full kubectl command to paste into a terminal. A small copy button or dropdown in the detail panel header provides one-click access.",
+      "acceptance_criteria": [
+        "Resource detail panels (Pods, Deployments, Services, and all other resource types with detail panels) gain a copy dropdown button in the header action area (copy icon, ghost variant)",
+        "The dropdown menu has three options: 'Copy name', 'Copy namespace/name', 'Copy kubectl command'",
+        "'Copy name' copies the resource name to the clipboard (e.g. 'nginx-abc123')",
+        "'Copy namespace/name' copies '<namespace>/<name>' (e.g. 'production/nginx-abc123'); for cluster-scoped resources copies only the name",
+        "'Copy kubectl command' copies a full kubectl get command (e.g. 'kubectl get pod nginx-abc123 -n production -o yaml') using the correct resource kind singular (pod, deployment, service, etc.)",
+        "After clicking any option, a brief 'Copied!' toast appears",
+        "Clipboard write uses navigator.clipboard.writeText (renderer process has clipboard access in Electron)",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S28"],
+      "notes": "Resource kind to kubectl noun mapping: Pod→pod, Deployment→deployment, StatefulSet→statefulset, DaemonSet→daemonset, ReplicaSet→replicaset, Service→service, Ingress→ingress, ConfigMap→configmap, Secret→secret, Namespace→namespace, Node→node, ServiceAccount→serviceaccount, Role→role, ClusterRole→clusterrole, RoleBinding→rolebinding, ClusterRoleBinding→clusterrolebinding. Use a shadcn DropdownMenu component. No IPC needed — clipboard.writeText runs in renderer."
     }
   ]
 }
