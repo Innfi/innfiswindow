@@ -1325,7 +1325,7 @@
     {
       "id": "S69",
       "title": "HorizontalPodAutoscaler (HPA) list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add HorizontalPodAutoscaler to the Workloads section of the tree. The list view shows current vs desired vs min/max replica counts and target metrics. The detail panel shows the full HPA spec including metrics targets and current values.",
       "acceptance_criteria": [
         "TreeView Workloads group gains an 'HPAs' item; clicking sets selectedResourceType to 'hpas'",

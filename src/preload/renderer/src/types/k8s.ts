@@ -306,3 +306,31 @@ export interface K8sEvent {
   lastTimestamp: string
   creationTimestamp: string
 }
+
+export interface K8sHPAMetric {
+  type: string
+  target: string
+  current: string
+}
+
+export interface K8sHPACondition {
+  type: string
+  status: string
+  reason: string
+  message: string
+}
+
+export interface K8sHPA {
+  name: string
+  namespace: string
+  targetRef: { kind: string; name: string }
+  minReplicas: number
+  maxReplicas: number
+  currentReplicas: number
+  desiredReplicas: number
+  conditions: K8sHPACondition[]
+  metrics: K8sHPAMetric[]
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}

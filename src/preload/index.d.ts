@@ -237,6 +237,34 @@ export interface K8sEvent {
   creationTimestamp: string
 }
 
+export interface K8sHPAMetric {
+  type: string
+  target: string
+  current: string
+}
+
+export interface K8sHPACondition {
+  type: string
+  status: string
+  reason: string
+  message: string
+}
+
+export interface K8sHPA {
+  name: string
+  namespace: string
+  targetRef: { kind: string; name: string }
+  minReplicas: number
+  maxReplicas: number
+  currentReplicas: number
+  desiredReplicas: number
+  conditions: K8sHPACondition[]
+  metrics: K8sHPAMetric[]
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 export interface K8sServiceAccount {
   name: string
   namespace: string
@@ -351,6 +379,7 @@ export interface K8sAPI {
   listClusterRoleBindings: (args?: {
     contextName?: string
   }) => Promise<K8sClusterRoleBinding[]>
+  listHPAs: (args?: { contextName?: string }) => Promise<K8sHPA[]>
   listPods: (args?: { contextName?: string }) => Promise<K8sPod[]>
   listServices: (args?: { contextName?: string }) => Promise<K8sService[]>
   listIngresses: (args?: { contextName?: string }) => Promise<K8sIngress[]>

@@ -5,6 +5,7 @@ import { PassThrough } from "stream"
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
 import {
   AppsV1Api,
+  AutoscalingV2Api,
   CoreV1Api,
   Exec,
   KubeConfig,
@@ -44,6 +45,7 @@ import {
   listDaemonSets,
   listDeployments,
   listEvents,
+  listHPAs,
   listIngresses,
   listNamespaces,
   listNodes,
@@ -82,6 +84,7 @@ const coreV1Api = kc.makeApiClient(CoreV1Api)
 const appsV1Api = kc.makeApiClient(AppsV1Api)
 const networkingV1Api = kc.makeApiClient(NetworkingV1Api)
 const rbacV1Api = kc.makeApiClient(RbacAuthorizationV1Api)
+const autoscalingV2Api = kc.makeApiClient(AutoscalingV2Api)
 
 // Per-context API client cache
 const clientCache = new Map<
@@ -91,6 +94,7 @@ const clientCache = new Map<
     appsV1: AppsV1Api
     networkingV1: NetworkingV1Api
     rbacV1: RbacAuthorizationV1Api
+    autoscalingV2: AutoscalingV2Api
   }
 >()
 
@@ -101,6 +105,7 @@ function getContextClients(contextName?: string | null) {
       appsV1: appsV1Api,
       networkingV1: networkingV1Api,
       rbacV1: rbacV1Api,
+      autoscalingV2: autoscalingV2Api,
     }
   }
   if (clientCache.has(contextName)) return clientCache.get(contextName)!
@@ -112,13 +117,21 @@ function getContextClients(contextName?: string | null) {
     appsV1: ctxKc.makeApiClient(AppsV1Api),
     networkingV1: ctxKc.makeApiClient(NetworkingV1Api),
     rbacV1: ctxKc.makeApiClient(RbacAuthorizationV1Api),
+    autoscalingV2: ctxKc.makeApiClient(AutoscalingV2Api),
   }
   clientCache.set(contextName, clients)
   return clients
 }
 
 // Export for use in other modules if needed
-export { appsV1Api, coreV1Api, kc, networkingV1Api, rbacV1Api }
+export {
+  appsV1Api,
+  autoscalingV2Api,
+  coreV1Api,
+  kc,
+  networkingV1Api,
+  rbacV1Api,
+}
 
 let mainWindow: BrowserWindow | null = null
 const activeLogRequests = new Map<string, { abort: () => void }>()
@@ -320,6 +333,9 @@ app.whenReady().then(() => {
   )
   ipcMain.handle("k8s:nodes:list", (_e, args?: { contextName?: string }) =>
     listNodes(getContextClients(args?.contextName).coreV1),
+  )
+  ipcMain.handle("k8s:hpas:list", (_e, args?: { contextName?: string }) =>
+    listHPAs(getContextClients(args?.contextName).autoscalingV2),
   )
   ipcMain.handle(
     "k8s:deployment:create",

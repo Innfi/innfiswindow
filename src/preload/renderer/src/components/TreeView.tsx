@@ -10,7 +10,14 @@ const groups = [
   { label: "Cluster", items: ["Namespaces", "Nodes", "Events"] },
   {
     label: "Workloads",
-    items: ["Deployments", "ReplicaSets", "StatefulSets", "DaemonSets", "Pods"],
+    items: [
+      "Deployments",
+      "ReplicaSets",
+      "StatefulSets",
+      "DaemonSets",
+      "Pods",
+      "HPAs",
+    ],
   },
   { label: "Configuration", items: ["ConfigMaps", "Secrets"] },
   { label: "Networking", items: ["Services", "Ingresses"] },

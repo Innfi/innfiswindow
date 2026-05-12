@@ -15,6 +15,7 @@ import { CustomStreamView } from "./components/CustomStreamView"
 import { DaemonSetsView } from "./components/DaemonSetsView"
 import { DeploymentsView } from "./components/DeploymentsView"
 import { EventsView } from "./components/EventsView"
+import { HPAsView } from "./components/HPAsView"
 import { IngressesView } from "./components/IngressesView"
 import { NamespacesView } from "./components/NamespacesView"
 import { NodesView } from "./components/NodesView"
@@ -178,6 +179,7 @@ function App(): JSX.Element {
               {selectedResourceType === "Services" && <ServicesView />}
               {selectedResourceType === "Ingresses" && <IngressesView />}
               {selectedResourceType === "Events" && <EventsView />}
+              {selectedResourceType === "HPAs" && <HPAsView />}
               {selectedResourceType === "ServiceAccounts" && (
                 <ServiceAccountsView />
               )}

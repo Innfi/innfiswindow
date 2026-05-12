@@ -73,6 +73,8 @@ const api = {
         name,
         metadata,
       ),
+    listHPAs: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:hpas:list", args),
     listPods: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:pods:list", args),
     listServices: (args?: { contextName?: string }) =>
