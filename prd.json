@@ -1344,7 +1344,7 @@
     {
       "id": "S70",
       "title": "PersistentVolume and PersistentVolumeClaim list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add PersistentVolumes (cluster-scoped) and PersistentVolumeClaims (namespace-scoped) to the tree under a new 'Storage' group. PVC status (Pending/Bound/Lost) is a common production issue. The list shows binding status and capacity; the detail panel shows the full spec.",
       "acceptance_criteria": [
         "TreeView gains a 'Storage' group with two items: 'PersistentVolumes' and 'PersistentVolumeClaims'",

@@ -334,3 +334,30 @@ export interface K8sHPA {
   labels: Record<string, string>
   annotations: Record<string, string>
 }
+
+export interface K8sPV {
+  name: string
+  capacity: string
+  accessModes: string[]
+  reclaimPolicy: string
+  status: string
+  claimRef: { namespace: string; name: string } | null
+  storageClass: string
+  volumeMode: string
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
+export interface K8sPVC {
+  name: string
+  namespace: string
+  status: string
+  volumeName: string
+  capacity: string
+  accessModes: string[]
+  storageClass: string
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}

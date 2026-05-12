@@ -265,6 +265,33 @@ export interface K8sHPA {
   annotations: Record<string, string>
 }
 
+export interface K8sPV {
+  name: string
+  capacity: string
+  accessModes: string[]
+  reclaimPolicy: string
+  status: string
+  claimRef: { namespace: string; name: string } | null
+  storageClass: string
+  volumeMode: string
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
+export interface K8sPVC {
+  name: string
+  namespace: string
+  status: string
+  volumeName: string
+  capacity: string
+  accessModes: string[]
+  storageClass: string
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 export interface K8sServiceAccount {
   name: string
   namespace: string
@@ -380,6 +407,8 @@ export interface K8sAPI {
     contextName?: string
   }) => Promise<K8sClusterRoleBinding[]>
   listHPAs: (args?: { contextName?: string }) => Promise<K8sHPA[]>
+  listPVs: (args?: { contextName?: string }) => Promise<K8sPV[]>
+  listPVCs: (args?: { contextName?: string }) => Promise<K8sPVC[]>
   listPods: (args?: { contextName?: string }) => Promise<K8sPod[]>
   listServices: (args?: { contextName?: string }) => Promise<K8sService[]>
   listIngresses: (args?: { contextName?: string }) => Promise<K8sIngress[]>

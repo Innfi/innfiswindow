@@ -31,6 +31,10 @@ const groups = [
       "ClusterRoleBindings",
     ],
   },
+  {
+    label: "Storage",
+    items: ["PersistentVolumes", "PersistentVolumeClaims"],
+  },
 ]
 
 const clusterTypeBadgeClass: Record<string, string> = {

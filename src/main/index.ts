@@ -47,6 +47,8 @@ import {
   listEvents,
   listHPAs,
   listIngresses,
+  listPVCs,
+  listPVs,
   listNamespaces,
   listNodes,
   listPods,
@@ -336,6 +338,12 @@ app.whenReady().then(() => {
   )
   ipcMain.handle("k8s:hpas:list", (_e, args?: { contextName?: string }) =>
     listHPAs(getContextClients(args?.contextName).autoscalingV2),
+  )
+  ipcMain.handle("k8s:pvs:list", (_e, args?: { contextName?: string }) =>
+    listPVs(getContextClients(args?.contextName).coreV1),
+  )
+  ipcMain.handle("k8s:pvcs:list", (_e, args?: { contextName?: string }) =>
+    listPVCs(getContextClients(args?.contextName).coreV1),
   )
   ipcMain.handle(
     "k8s:deployment:create",

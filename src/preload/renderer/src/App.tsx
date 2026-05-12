@@ -16,6 +16,8 @@ import { DaemonSetsView } from "./components/DaemonSetsView"
 import { DeploymentsView } from "./components/DeploymentsView"
 import { EventsView } from "./components/EventsView"
 import { HPAsView } from "./components/HPAsView"
+import { PVCsView } from "./components/PVCsView"
+import { PVsView } from "./components/PVsView"
 import { IngressesView } from "./components/IngressesView"
 import { NamespacesView } from "./components/NamespacesView"
 import { NodesView } from "./components/NodesView"
@@ -189,6 +191,8 @@ function App(): JSX.Element {
               {selectedResourceType === "ClusterRoleBindings" && (
                 <ClusterRoleBindingsView />
               )}
+              {selectedResourceType === "PersistentVolumes" && <PVsView />}
+              {selectedResourceType === "PersistentVolumeClaims" && <PVCsView />}
               {selectedResourceType === "overview" && <OverviewView />}
               {selectedResourceType === "custom-stream" && <CustomStreamView />}
             </div>
