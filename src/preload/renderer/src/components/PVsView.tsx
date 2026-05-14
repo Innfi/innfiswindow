@@ -18,9 +18,12 @@ import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 
 function pvStatusClass(status: string): string {
-  if (status === "Bound") return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-  if (status === "Pending") return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-  if (status === "Lost") return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+  if (status === "Bound")
+    return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+  if (status === "Pending")
+    return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+  if (status === "Lost")
+    return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
   return "bg-muted text-muted-foreground"
 }
 
@@ -37,7 +40,9 @@ function DetailPanel({
   return (
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
-        <h2 className="font-semibold text-base mb-1 flex-1 truncate">{pv.name}</h2>
+        <h2 className="font-semibold text-base mb-1 flex-1 truncate">
+          {pv.name}
+        </h2>
         <button
           onClick={onClose}
           className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
@@ -52,7 +57,10 @@ function DetailPanel({
           Spec
         </h3>
         <MetaEntry label="Capacity" value={pv.capacity || "-"} />
-        <MetaEntry label="Access Modes" value={pv.accessModes.join(", ") || "-"} />
+        <MetaEntry
+          label="Access Modes"
+          value={pv.accessModes.join(", ") || "-"}
+        />
         <MetaEntry label="Reclaim Policy" value={pv.reclaimPolicy || "-"} />
         <MetaEntry label="Volume Mode" value={pv.volumeMode || "-"} />
         <MetaEntry label="Storage Class" value={pv.storageClass || "-"} />
@@ -63,12 +71,20 @@ function DetailPanel({
           Status
         </h3>
         <div className="flex items-center gap-2">
-          <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", pvStatusClass(pv.status))}>
+          <span
+            className={cn(
+              "rounded px-1.5 py-0.5 text-xs font-medium",
+              pvStatusClass(pv.status),
+            )}
+          >
             {pv.status || "-"}
           </span>
         </div>
         {pv.claimRef && (
-          <MetaEntry label="Claim" value={`${pv.claimRef.namespace}/${pv.claimRef.name}`} />
+          <MetaEntry
+            label="Claim"
+            value={`${pv.claimRef.namespace}/${pv.claimRef.name}`}
+          />
         )}
       </div>
 
@@ -129,7 +145,8 @@ export function PVsView(): JSX.Element {
   }, [pvs])
 
   const visiblePVs = pvs.filter(
-    (p) => !nameFilter || p.name.toLowerCase().includes(nameFilter.toLowerCase()),
+    (p) =>
+      !nameFilter || p.name.toLowerCase().includes(nameFilter.toLowerCase()),
   )
 
   return (
@@ -175,7 +192,12 @@ export function PVsView(): JSX.Element {
                   <TableCell>{pv.accessModes.join(", ")}</TableCell>
                   <TableCell>{pv.reclaimPolicy}</TableCell>
                   <TableCell>
-                    <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", pvStatusClass(pv.status))}>
+                    <span
+                      className={cn(
+                        "rounded px-1.5 py-0.5 text-xs font-medium",
+                        pvStatusClass(pv.status),
+                      )}
+                    >
                       {pv.status}
                     </span>
                   </TableCell>

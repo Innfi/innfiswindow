@@ -6,6 +6,7 @@ import { electronApp, is, optimizer } from "@electron-toolkit/utils"
 import {
   AppsV1Api,
   AutoscalingV2Api,
+  BatchV1Api,
   CoreV1Api,
   Exec,
   KubeConfig,
@@ -42,16 +43,18 @@ import {
   listClusterRoles,
   listConfigMaps,
   listContexts,
+  listCronJobs,
   listDaemonSets,
   listDeployments,
   listEvents,
   listHPAs,
   listIngresses,
-  listPVCs,
-  listPVs,
+  listJobs,
   listNamespaces,
   listNodes,
   listPods,
+  listPVCs,
+  listPVs,
   listReplicaSets,
   listRoleBindings,
   listRoles,
@@ -87,6 +90,7 @@ const appsV1Api = kc.makeApiClient(AppsV1Api)
 const networkingV1Api = kc.makeApiClient(NetworkingV1Api)
 const rbacV1Api = kc.makeApiClient(RbacAuthorizationV1Api)
 const autoscalingV2Api = kc.makeApiClient(AutoscalingV2Api)
+const batchV1Api = kc.makeApiClient(BatchV1Api)
 
 // Per-context API client cache
 const clientCache = new Map<
@@ -97,6 +101,7 @@ const clientCache = new Map<
     networkingV1: NetworkingV1Api
     rbacV1: RbacAuthorizationV1Api
     autoscalingV2: AutoscalingV2Api
+    batchV1: BatchV1Api
   }
 >()
 
@@ -108,6 +113,7 @@ function getContextClients(contextName?: string | null) {
       networkingV1: networkingV1Api,
       rbacV1: rbacV1Api,
       autoscalingV2: autoscalingV2Api,
+      batchV1: batchV1Api,
     }
   }
   if (clientCache.has(contextName)) return clientCache.get(contextName)!
@@ -120,6 +126,7 @@ function getContextClients(contextName?: string | null) {
     networkingV1: ctxKc.makeApiClient(NetworkingV1Api),
     rbacV1: ctxKc.makeApiClient(RbacAuthorizationV1Api),
     autoscalingV2: ctxKc.makeApiClient(AutoscalingV2Api),
+    batchV1: ctxKc.makeApiClient(BatchV1Api),
   }
   clientCache.set(contextName, clients)
   return clients
@@ -129,6 +136,7 @@ function getContextClients(contextName?: string | null) {
 export {
   appsV1Api,
   autoscalingV2Api,
+  batchV1Api,
   coreV1Api,
   kc,
   networkingV1Api,
@@ -344,6 +352,12 @@ app.whenReady().then(() => {
   )
   ipcMain.handle("k8s:pvcs:list", (_e, args?: { contextName?: string }) =>
     listPVCs(getContextClients(args?.contextName).coreV1),
+  )
+  ipcMain.handle("k8s:jobs:list", (_e, args?: { contextName?: string }) =>
+    listJobs(getContextClients(args?.contextName).batchV1),
+  )
+  ipcMain.handle("k8s:cronjobs:list", (_e, args?: { contextName?: string }) =>
+    listCronJobs(getContextClients(args?.contextName).batchV1),
   )
   ipcMain.handle(
     "k8s:deployment:create",

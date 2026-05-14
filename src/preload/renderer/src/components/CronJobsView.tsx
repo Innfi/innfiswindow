@@ -12,37 +12,29 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
-import { K8sPVC } from "../types/k8s"
+import { K8sCronJob } from "../types/k8s"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 
-function pvcStatusClass(status: string): string {
-  if (status === "Bound")
-    return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-  if (status === "Pending")
-    return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-  if (status === "Lost")
-    return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-  return "bg-muted text-muted-foreground"
-}
-
 function DetailPanel({
-  pvc,
+  cronJob,
   onClose,
 }: {
-  pvc: K8sPVC
+  cronJob: K8sCronJob
   onClose: () => void
 }): JSX.Element {
-  const labelEntries = Object.entries(pvc.labels)
-  const annotationEntries = Object.entries(pvc.annotations)
+  const labelEntries = Object.entries(cronJob.labels)
+  const annotationEntries = Object.entries(cronJob.annotations)
 
   return (
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="font-semibold text-base mb-1">{pvc.name}</h2>
-          <span className="text-xs text-muted-foreground">{pvc.namespace}</span>
+          <h2 className="font-semibold text-base mb-1">{cronJob.name}</h2>
+          <span className="text-xs text-muted-foreground">
+            {cronJob.namespace}
+          </span>
         </div>
         <button
           onClick={onClose}
@@ -55,38 +47,44 @@ function DetailPanel({
 
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Status
+          Spec
         </h3>
-        <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "rounded px-1.5 py-0.5 text-xs font-medium",
-              pvcStatusClass(pvc.status),
-            )}
-          >
-            {pvc.status || "-"}
-          </span>
-        </div>
-        <MetaEntry label="Volume" value={pvc.volumeName || "-"} />
+        <MetaEntry label="Schedule" value={cronJob.schedule} />
+        <MetaEntry
+          label="Concurrency Policy"
+          value={cronJob.concurrencyPolicy || "-"}
+        />
+        <MetaEntry label="Suspended" value={cronJob.suspend ? "Yes" : "No"} />
       </div>
 
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Spec
+          Status
         </h3>
-        <MetaEntry label="Capacity" value={pvc.capacity || "-"} />
-        <MetaEntry
-          label="Access Modes"
-          value={pvc.accessModes.join(", ") || "-"}
-        />
-        <MetaEntry label="Storage Class" value={pvc.storageClass || "-"} />
+        <MetaEntry label="Active Jobs" value={String(cronJob.activeCount)} />
+        {cronJob.lastScheduleTime && (
+          <MetaEntry label="Last Schedule" value={cronJob.lastScheduleTime} />
+        )}
       </div>
+
+      {cronJob.activeJobNames.length > 0 && (
+        <div className="space-y-1">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+            Active Job Names
+          </h3>
+          {cronJob.activeJobNames.map((name) => (
+            <div key={name} className="text-xs font-mono truncate">
+              {name}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
           Metadata
         </h3>
-        <MetaEntry label="Age" value={formatAge(pvc.creationTimestamp)} />
+        <MetaEntry label="Age" value={formatAge(cronJob.creationTimestamp)} />
       </div>
 
       {labelEntries.length > 0 && (
@@ -114,97 +112,94 @@ function DetailPanel({
   )
 }
 
-export function PVCsView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sPVC | null
+export function CronJobsView(): JSX.Element {
+  const selectedItem = useAppStore((s) => s.selectedItem) as K8sCronJob | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const {
-    data: pvcs,
+    data: cronJobs,
     loading,
     error,
     reload,
     lastRefreshedAt,
   } = useK8sResource(
-    (ctx) => window.api.k8s.listPVCs({ contextName: ctx }),
+    (ctx) => window.api.k8s.listCronJobs({ contextName: ctx }),
     selectedContext,
   )
 
   useEffect(() => {
-    if (!selectedItem || pvcs.length === 0) return
+    if (!selectedItem || cronJobs.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = pvcs.find(
-      (p) => p.name === item.name && p.namespace === item.namespace,
+    const fresh = cronJobs.find(
+      (c) => c.name === item.name && c.namespace === item.namespace,
     )
     if (fresh) setSelectedItem(fresh as object)
-  }, [pvcs])
+  }, [cronJobs])
 
-  const visiblePVCs = filterResources(pvcs, nameFilter, selectedNamespace)
+  const visibleCronJobs = filterResources(
+    cronJobs,
+    selectedNamespace,
+    nameFilter,
+  )
 
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">PersistentVolumeClaims</h1>
+          <h1 className="text-lg font-semibold">CronJobs</h1>
           <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visiblePVCs.length === 0 && (
-          <EmptyState message="No PersistentVolumeClaims found" />
+        {!loading && !error && visibleCronJobs.length === 0 && (
+          <EmptyState message="No CronJobs found" />
         )}
-        {!loading && !error && visiblePVCs.length > 0 && (
+        {!loading && !error && visibleCronJobs.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Namespace</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Volume</TableHead>
-                <TableHead>Capacity</TableHead>
-                <TableHead>Access Modes</TableHead>
-                <TableHead>StorageClass</TableHead>
+                <TableHead>Schedule</TableHead>
+                <TableHead>Last Schedule</TableHead>
+                <TableHead>Active</TableHead>
+                <TableHead>Suspended</TableHead>
                 <TableHead>Age</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visiblePVCs.map((pvc) => (
+              {visibleCronJobs.map((cj) => (
                 <TableRow
-                  key={`${pvc.namespace}/${pvc.name}`}
+                  key={`${cj.namespace}/${cj.name}`}
                   className={cn(
                     "cursor-pointer",
-                    selectedItem?.name === pvc.name &&
-                      selectedItem?.namespace === pvc.namespace &&
+                    selectedItem?.name === cj.name &&
+                      (selectedItem as K8sCronJob).namespace === cj.namespace &&
                       "bg-muted",
                   )}
                   onClick={() =>
                     setSelectedItem(
-                      selectedItem?.name === pvc.name &&
-                        selectedItem?.namespace === pvc.namespace
+                      selectedItem?.name === cj.name &&
+                        (selectedItem as K8sCronJob).namespace === cj.namespace
                         ? null
-                        : pvc,
+                        : cj,
                     )
                   }
                 >
-                  <TableCell>{pvc.name}</TableCell>
-                  <TableCell>{pvc.namespace}</TableCell>
-                  <TableCell>
-                    <span
-                      className={cn(
-                        "rounded px-1.5 py-0.5 text-xs font-medium",
-                        pvcStatusClass(pvc.status),
-                      )}
-                    >
-                      {pvc.status}
-                    </span>
+                  <TableCell>{cj.name}</TableCell>
+                  <TableCell>{cj.namespace}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {cj.schedule}
                   </TableCell>
-                  <TableCell>{pvc.volumeName || "-"}</TableCell>
-                  <TableCell>{pvc.capacity || "-"}</TableCell>
-                  <TableCell>{pvc.accessModes.join(", ")}</TableCell>
-                  <TableCell>{pvc.storageClass || "-"}</TableCell>
-                  <TableCell>{formatAge(pvc.creationTimestamp)}</TableCell>
+                  <TableCell>
+                    {cj.lastScheduleTime ? formatAge(cj.lastScheduleTime) : "-"}
+                  </TableCell>
+                  <TableCell>{cj.activeCount}</TableCell>
+                  <TableCell>{cj.suspend ? "Yes" : "No"}</TableCell>
+                  <TableCell>{formatAge(cj.creationTimestamp)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -212,8 +207,11 @@ export function PVCsView(): JSX.Element {
         )}
       </div>
 
-      {selectedItem && selectedItem.namespace !== undefined && (
-        <DetailPanel pvc={selectedItem} onClose={() => setSelectedItem(null)} />
+      {selectedItem && "schedule" in selectedItem && (
+        <DetailPanel
+          cronJob={selectedItem as K8sCronJob}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
     </div>
   )

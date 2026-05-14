@@ -361,3 +361,40 @@ export interface K8sPVC {
   labels: Record<string, string>
   annotations: Record<string, string>
 }
+
+export interface K8sJobCondition {
+  type: string
+  status: string
+  reason: string
+  message: string
+}
+
+export interface K8sJob {
+  name: string
+  namespace: string
+  completions: number | null
+  succeeded: number
+  failed: number
+  active: number
+  startTime: string
+  completionTime: string
+  duration: string
+  conditions: K8sJobCondition[]
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
+export interface K8sCronJob {
+  name: string
+  namespace: string
+  schedule: string
+  concurrencyPolicy: string
+  suspend: boolean
+  lastScheduleTime: string
+  activeCount: number
+  activeJobNames: string[]
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}

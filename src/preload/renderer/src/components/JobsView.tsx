@@ -12,37 +12,27 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
-import { K8sPVC } from "../types/k8s"
+import { K8sJob } from "../types/k8s"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 
-function pvcStatusClass(status: string): string {
-  if (status === "Bound")
-    return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-  if (status === "Pending")
-    return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-  if (status === "Lost")
-    return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-  return "bg-muted text-muted-foreground"
-}
-
 function DetailPanel({
-  pvc,
+  job,
   onClose,
 }: {
-  pvc: K8sPVC
+  job: K8sJob
   onClose: () => void
 }): JSX.Element {
-  const labelEntries = Object.entries(pvc.labels)
-  const annotationEntries = Object.entries(pvc.annotations)
+  const labelEntries = Object.entries(job.labels)
+  const annotationEntries = Object.entries(job.annotations)
 
   return (
     <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="font-semibold text-base mb-1">{pvc.name}</h2>
-          <span className="text-xs text-muted-foreground">{pvc.namespace}</span>
+          <h2 className="font-semibold text-base mb-1">{job.name}</h2>
+          <span className="text-xs text-muted-foreground">{job.namespace}</span>
         </div>
         <button
           onClick={onClose}
@@ -57,36 +47,55 @@ function DetailPanel({
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
           Status
         </h3>
-        <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "rounded px-1.5 py-0.5 text-xs font-medium",
-              pvcStatusClass(pvc.status),
-            )}
-          >
-            {pvc.status || "-"}
-          </span>
-        </div>
-        <MetaEntry label="Volume" value={pvc.volumeName || "-"} />
+        <MetaEntry
+          label="Completions"
+          value={
+            job.completions !== null
+              ? `${job.succeeded}/${job.completions}`
+              : String(job.succeeded)
+          }
+        />
+        <MetaEntry label="Succeeded" value={String(job.succeeded)} />
+        <MetaEntry label="Failed" value={String(job.failed)} />
+        <MetaEntry label="Active" value={String(job.active)} />
+        {job.duration && <MetaEntry label="Duration" value={job.duration} />}
       </div>
 
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Spec
+          Timing
         </h3>
-        <MetaEntry label="Capacity" value={pvc.capacity || "-"} />
-        <MetaEntry
-          label="Access Modes"
-          value={pvc.accessModes.join(", ") || "-"}
-        />
-        <MetaEntry label="Storage Class" value={pvc.storageClass || "-"} />
+        {job.startTime && (
+          <MetaEntry label="Start Time" value={job.startTime} />
+        )}
+        {job.completionTime && (
+          <MetaEntry label="Completion Time" value={job.completionTime} />
+        )}
       </div>
+
+      {job.conditions.length > 0 && (
+        <div className="space-y-1">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+            Conditions
+          </h3>
+          {job.conditions.map((c, i) => (
+            <div key={i} className="text-xs">
+              <span className="font-medium">{c.type}</span>
+              {": "}
+              <span>{c.status}</span>
+              {c.reason && (
+                <span className="text-muted-foreground"> ({c.reason})</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
           Metadata
         </h3>
-        <MetaEntry label="Age" value={formatAge(pvc.creationTimestamp)} />
+        <MetaEntry label="Age" value={formatAge(job.creationTimestamp)} />
       </div>
 
       {labelEntries.length > 0 && (
@@ -114,97 +123,90 @@ function DetailPanel({
   )
 }
 
-export function PVCsView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sPVC | null
+export function JobsView(): JSX.Element {
+  const selectedItem = useAppStore((s) => s.selectedItem) as K8sJob | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const nameFilter = useAppStore((s) => s.nameFilter)
 
   const {
-    data: pvcs,
+    data: jobs,
     loading,
     error,
     reload,
     lastRefreshedAt,
   } = useK8sResource(
-    (ctx) => window.api.k8s.listPVCs({ contextName: ctx }),
+    (ctx) => window.api.k8s.listJobs({ contextName: ctx }),
     selectedContext,
   )
 
   useEffect(() => {
-    if (!selectedItem || pvcs.length === 0) return
+    if (!selectedItem || jobs.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = pvcs.find(
-      (p) => p.name === item.name && p.namespace === item.namespace,
+    const fresh = jobs.find(
+      (j) => j.name === item.name && j.namespace === item.namespace,
     )
     if (fresh) setSelectedItem(fresh as object)
-  }, [pvcs])
+  }, [jobs])
 
-  const visiblePVCs = filterResources(pvcs, nameFilter, selectedNamespace)
+  const visibleJobs = filterResources(jobs, selectedNamespace, nameFilter)
 
   return (
     <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">PersistentVolumeClaims</h1>
+          <h1 className="text-lg font-semibold">Jobs</h1>
           <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visiblePVCs.length === 0 && (
-          <EmptyState message="No PersistentVolumeClaims found" />
+        {!loading && !error && visibleJobs.length === 0 && (
+          <EmptyState message="No Jobs found" />
         )}
-        {!loading && !error && visiblePVCs.length > 0 && (
+        {!loading && !error && visibleJobs.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Namespace</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Volume</TableHead>
-                <TableHead>Capacity</TableHead>
-                <TableHead>Access Modes</TableHead>
-                <TableHead>StorageClass</TableHead>
+                <TableHead>Completions</TableHead>
+                <TableHead>Active</TableHead>
+                <TableHead>Failed</TableHead>
+                <TableHead>Duration</TableHead>
                 <TableHead>Age</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visiblePVCs.map((pvc) => (
+              {visibleJobs.map((job) => (
                 <TableRow
-                  key={`${pvc.namespace}/${pvc.name}`}
+                  key={`${job.namespace}/${job.name}`}
                   className={cn(
                     "cursor-pointer",
-                    selectedItem?.name === pvc.name &&
-                      selectedItem?.namespace === pvc.namespace &&
+                    selectedItem?.name === job.name &&
+                      (selectedItem as K8sJob).namespace === job.namespace &&
                       "bg-muted",
                   )}
                   onClick={() =>
                     setSelectedItem(
-                      selectedItem?.name === pvc.name &&
-                        selectedItem?.namespace === pvc.namespace
+                      selectedItem?.name === job.name &&
+                        (selectedItem as K8sJob).namespace === job.namespace
                         ? null
-                        : pvc,
+                        : job,
                     )
                   }
                 >
-                  <TableCell>{pvc.name}</TableCell>
-                  <TableCell>{pvc.namespace}</TableCell>
+                  <TableCell>{job.name}</TableCell>
+                  <TableCell>{job.namespace}</TableCell>
                   <TableCell>
-                    <span
-                      className={cn(
-                        "rounded px-1.5 py-0.5 text-xs font-medium",
-                        pvcStatusClass(pvc.status),
-                      )}
-                    >
-                      {pvc.status}
-                    </span>
+                    {job.completions !== null
+                      ? `${job.succeeded}/${job.completions}`
+                      : String(job.succeeded)}
                   </TableCell>
-                  <TableCell>{pvc.volumeName || "-"}</TableCell>
-                  <TableCell>{pvc.capacity || "-"}</TableCell>
-                  <TableCell>{pvc.accessModes.join(", ")}</TableCell>
-                  <TableCell>{pvc.storageClass || "-"}</TableCell>
-                  <TableCell>{formatAge(pvc.creationTimestamp)}</TableCell>
+                  <TableCell>{job.active}</TableCell>
+                  <TableCell>{job.failed}</TableCell>
+                  <TableCell>{job.duration || "-"}</TableCell>
+                  <TableCell>{formatAge(job.creationTimestamp)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -212,8 +214,11 @@ export function PVCsView(): JSX.Element {
         )}
       </div>
 
-      {selectedItem && selectedItem.namespace !== undefined && (
-        <DetailPanel pvc={selectedItem} onClose={() => setSelectedItem(null)} />
+      {selectedItem && "active" in selectedItem && (
+        <DetailPanel
+          job={selectedItem as K8sJob}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
     </div>
   )

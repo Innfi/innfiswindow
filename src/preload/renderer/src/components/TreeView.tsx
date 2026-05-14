@@ -17,6 +17,8 @@ const groups = [
       "DaemonSets",
       "Pods",
       "HPAs",
+      "Jobs",
+      "CronJobs",
     ],
   },
   { label: "Configuration", items: ["ConfigMaps", "Secrets"] },

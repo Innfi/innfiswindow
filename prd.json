@@ -1366,7 +1366,7 @@
     {
       "id": "S71",
       "title": "Job and CronJob list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add Jobs and CronJobs to the Workloads section. Jobs show completion status and active/succeeded/failed pod counts. CronJobs show last schedule time, active jobs, and schedule expression.",
       "acceptance_criteria": [
         "TreeView Workloads group gains 'Jobs' and 'CronJobs' items",

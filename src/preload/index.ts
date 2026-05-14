@@ -79,6 +79,10 @@ const api = {
       ipcRenderer.invoke("k8s:pvs:list", args),
     listPVCs: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:pvcs:list", args),
+    listJobs: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:jobs:list", args),
+    listCronJobs: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:cronjobs:list", args),
     listPods: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:pods:list", args),
     listServices: (args?: { contextName?: string }) =>

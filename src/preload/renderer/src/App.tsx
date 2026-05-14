@@ -11,19 +11,21 @@ import { BottomDrawer } from "./components/BottomDrawer"
 import { ClusterRoleBindingsView } from "./components/ClusterRoleBindingsView"
 import { ClusterRolesView } from "./components/ClusterRolesView"
 import { ConfigMapsView } from "./components/ConfigMapsView"
+import { CronJobsView } from "./components/CronJobsView"
 import { CustomStreamView } from "./components/CustomStreamView"
 import { DaemonSetsView } from "./components/DaemonSetsView"
 import { DeploymentsView } from "./components/DeploymentsView"
 import { EventsView } from "./components/EventsView"
 import { HPAsView } from "./components/HPAsView"
-import { PVCsView } from "./components/PVCsView"
-import { PVsView } from "./components/PVsView"
 import { IngressesView } from "./components/IngressesView"
+import { JobsView } from "./components/JobsView"
 import { NamespacesView } from "./components/NamespacesView"
 import { NodesView } from "./components/NodesView"
 import { OverviewView } from "./components/OverviewView"
 import { PodsView } from "./components/PodsView"
 import { PrometheusSettings } from "./components/PrometheusSettings"
+import { PVCsView } from "./components/PVCsView"
+import { PVsView } from "./components/PVsView"
 import { ReplicaSetsView } from "./components/ReplicaSetsView"
 import { RoleBindingsView } from "./components/RoleBindingsView"
 import { RolesView } from "./components/RolesView"
@@ -192,7 +194,11 @@ function App(): JSX.Element {
                 <ClusterRoleBindingsView />
               )}
               {selectedResourceType === "PersistentVolumes" && <PVsView />}
-              {selectedResourceType === "PersistentVolumeClaims" && <PVCsView />}
+              {selectedResourceType === "PersistentVolumeClaims" && (
+                <PVCsView />
+              )}
+              {selectedResourceType === "Jobs" && <JobsView />}
+              {selectedResourceType === "CronJobs" && <CronJobsView />}
               {selectedResourceType === "overview" && <OverviewView />}
               {selectedResourceType === "custom-stream" && <CustomStreamView />}
             </div>
