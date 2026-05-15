@@ -16,6 +16,25 @@ export function filterResources<
     )
 }
 
+export function parseResourceValue(value: string): number {
+  if (!value) return 0
+  if (value.endsWith("m")) return parseFloat(value)
+  const memSuffixes: [string, number][] = [
+    ["Ki", 1024],
+    ["Mi", 1024 ** 2],
+    ["Gi", 1024 ** 3],
+    ["Ti", 1024 ** 4],
+    ["K", 1000],
+    ["M", 1000 ** 2],
+    ["G", 1000 ** 3],
+    ["T", 1000 ** 4],
+  ]
+  for (const [suffix, mult] of memSuffixes) {
+    if (value.endsWith(suffix)) return parseFloat(value) * mult
+  }
+  return parseFloat(value) || 0
+}
+
 export function formatAge(isoTimestamp: string): string {
   if (!isoTimestamp) return "-"
   const diffMs = Date.now() - new Date(isoTimestamp).getTime()

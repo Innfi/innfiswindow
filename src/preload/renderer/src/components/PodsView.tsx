@@ -1,4 +1,4 @@
-import { ScrollText, SquareTerminal, X } from "lucide-react"
+import { ArrowLeftRight, ScrollText, SquareTerminal, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -33,6 +33,7 @@ function DetailPanel({
   onClose,
   onLogs,
   onShell,
+  onPortForward,
   onDeleteSuccess,
   onDeleteDialogChange,
 }: {
@@ -40,6 +41,7 @@ function DetailPanel({
   onClose: () => void
   onLogs: () => void
   onShell: (containerName: string) => void
+  onPortForward: () => void
   onDeleteSuccess: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
@@ -89,6 +91,14 @@ function DetailPanel({
             onClick={() => onShell(selectedContainer)}
           >
             <SquareTerminal className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Port Forward"
+            onClick={onPortForward}
+          >
+            <ArrowLeftRight className="h-4 w-4" />
           </Button>
           <Button
             size="sm"
@@ -344,6 +354,17 @@ export function PodsView(): JSX.Element {
               namespace: selectedItem.namespace,
               podName: selectedItem.name,
               containerName,
+            })
+          }}
+          onPortForward={() => {
+            openDrawerTab({
+              tabKey: `port-forward:Pod:${selectedItem.namespace}/${selectedItem.name}`,
+              type: "port-forward",
+              resourceKind: "Pod",
+              resourceName: selectedItem.name,
+              namespace: selectedItem.namespace,
+              localPort: 8080,
+              targetPort: 8080,
             })
           }}
           onDeleteSuccess={() => {

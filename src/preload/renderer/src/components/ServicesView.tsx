@@ -1,5 +1,5 @@
 import { dump as yamlDump } from "js-yaml"
-import { X } from "lucide-react"
+import { ArrowLeftRight, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -36,11 +36,13 @@ function DetailPanel({
   svc,
   onClose,
   onDeleted,
+  onPortForward,
   onDeleteDialogChange,
 }: {
   svc: K8sService
   onClose: () => void
   onDeleted: () => void
+  onPortForward: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
@@ -114,6 +116,15 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{svc.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-1.5"
+            title="Port Forward"
+            onClick={onPortForward}
+          >
+            <ArrowLeftRight className="h-4 w-4" />
+          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -281,6 +292,7 @@ function DetailPanel({
 export function ServicesView(): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as K8sService | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
@@ -382,6 +394,18 @@ export function ServicesView(): JSX.Element {
           svc={selectedItem}
           onClose={() => setSelectedItem(null)}
           onDeleted={reload}
+          onPortForward={() => {
+            const firstPort = selectedItem.ports[0]?.port ?? 80
+            openDrawerTab({
+              tabKey: `port-forward:Service:${selectedItem.namespace}/${selectedItem.name}`,
+              type: "port-forward",
+              resourceKind: "Service",
+              resourceName: selectedItem.name,
+              namespace: selectedItem.namespace,
+              localPort: firstPort,
+              targetPort: firstPort,
+            })
+          }}
           onDeleteDialogChange={setDeleteDialogOpen}
         />
       )}

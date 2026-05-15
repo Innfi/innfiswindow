@@ -22,6 +22,49 @@ export interface K8sNodeCondition {
   message: string
 }
 
+export interface NodeMetric {
+  nodeName: string
+  cpuUsage: string
+  memoryUsage: string
+}
+
+export interface K8sJobCondition {
+  type: string
+  status: string
+  reason: string
+  message: string
+}
+
+export interface K8sJob {
+  name: string
+  namespace: string
+  completions: number | null
+  succeeded: number
+  failed: number
+  active: number
+  startTime: string
+  completionTime: string
+  duration: string
+  conditions: K8sJobCondition[]
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
+export interface K8sCronJob {
+  name: string
+  namespace: string
+  schedule: string
+  concurrencyPolicy: string
+  suspend: boolean
+  lastScheduleTime: string
+  activeCount: number
+  activeJobNames: string[]
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 export interface K8sNode {
   name: string
   status: string
@@ -408,7 +451,18 @@ export interface K8sAPI {
   }) => Promise<K8sClusterRoleBinding[]>
   listHPAs: (args?: { contextName?: string }) => Promise<K8sHPA[]>
   listPVs: (args?: { contextName?: string }) => Promise<K8sPV[]>
+  listJobs: (args?: { contextName?: string }) => Promise<K8sJob[]>
+  listCronJobs: (args?: { contextName?: string }) => Promise<K8sCronJob[]>
+  getNodeMetrics: (args?: {
+    contextName?: string
+  }) => Promise<NodeMetric[] | { unavailable: true }>
   listPVCs: (args?: { contextName?: string }) => Promise<K8sPVC[]>
+  listResourceQuotas: (args?: {
+    contextName?: string
+  }) => Promise<K8sResourceQuota[]>
+  listLimitRanges: (args?: {
+    contextName?: string
+  }) => Promise<K8sLimitRange[]>
   listPods: (args?: { contextName?: string }) => Promise<K8sPod[]>
   listServices: (args?: { contextName?: string }) => Promise<K8sService[]>
   listIngresses: (args?: { contextName?: string }) => Promise<K8sIngress[]>
@@ -578,6 +632,29 @@ export interface K8sAPI {
   }>
 }
 
+export interface K8sResourceQuota {
+  name: string
+  namespace: string
+  hard: Record<string, string>
+  used: Record<string, string>
+  creationTimestamp: string
+}
+
+export interface K8sLimitRangeItem {
+  type: string
+  max: Record<string, string>
+  min: Record<string, string>
+  default: Record<string, string>
+  defaultRequest: Record<string, string>
+}
+
+export interface K8sLimitRange {
+  name: string
+  namespace: string
+  limits: K8sLimitRangeItem[]
+  creationTimestamp: string
+}
+
 export interface AwsCredentialResult {
   valid: boolean
   type: "env" | "file" | "metadata" | "none"
@@ -642,6 +719,15 @@ export interface API {
   onSocketEnd: (
     callback: (data: { sessionId: string; reason: string }) => void,
   ) => () => void
+  startPortForward: (args: {
+    resourceKind: "Pod" | "Service"
+    namespace: string
+    name: string
+    localPort: number
+    targetPort: number
+    sessionId: string
+  }) => Promise<{ success: boolean; error?: string }>
+  stopPortForward: (sessionId: string) => Promise<{ success: boolean }>
 }
 
 declare global {

@@ -1,5 +1,5 @@
 import { X } from "lucide-react"
-import { useEffect } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import {
   Table,
@@ -17,11 +17,149 @@ import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 
+interface NodeMetric {
+  nodeName: string
+  cpuUsage: string
+  memoryUsage: string
+}
+
+function parseCpuNanocores(cpu: string): number {
+  if (cpu.endsWith("n")) return parseInt(cpu.slice(0, -1), 10)
+  if (cpu.endsWith("m")) return Math.round(parseInt(cpu) * 1e6)
+  return Math.round(parseFloat(cpu) * 1e9)
+}
+
+function parseAllocatableCpuToNanocores(cpu: string): number {
+  if (cpu.endsWith("m")) return Math.round(parseInt(cpu) * 1e6)
+  return Math.round(parseFloat(cpu) * 1e9)
+}
+
+function parseMemoryToBytes(mem: string): number {
+  if (mem.endsWith("Ki")) return parseInt(mem) * 1024
+  if (mem.endsWith("Mi")) return parseInt(mem) * 1024 * 1024
+  if (mem.endsWith("Gi")) return parseInt(mem) * 1024 * 1024 * 1024
+  if (mem.endsWith("Ti")) return parseInt(mem) * 1024 * 1024 * 1024 * 1024
+  if (mem.endsWith("k")) return parseInt(mem) * 1000
+  if (mem.endsWith("M")) return parseInt(mem) * 1000 * 1000
+  if (mem.endsWith("G")) return parseInt(mem) * 1000 * 1000 * 1000
+  return parseInt(mem) || 0
+}
+
+function formatMemory(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024)
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} Gi`
+  return `${(bytes / (1024 * 1024)).toFixed(0)} Mi`
+}
+
+function computeMetricPcts(
+  metric: NodeMetric,
+  allocatable: Record<string, string>,
+): { cpuPct: number; memPct: number; cpuLabel: string; memLabel: string } {
+  const cpuNano = parseCpuNanocores(metric.cpuUsage)
+  const cpuAllocNano = parseAllocatableCpuToNanocores(allocatable.cpu ?? "0")
+  const cpuPct = cpuAllocNano > 0 ? (cpuNano / cpuAllocNano) * 100 : 0
+
+  const memBytes = parseMemoryToBytes(metric.memoryUsage)
+  const memAllocBytes = parseMemoryToBytes(allocatable.memory ?? "0")
+  const memPct = memAllocBytes > 0 ? (memBytes / memAllocBytes) * 100 : 0
+
+  const cpuCores = cpuNano / 1e9
+  const cpuAllocCores = cpuAllocNano / 1e9
+  const cpuLabel = `${cpuCores.toFixed(2)} / ${cpuAllocCores.toFixed(2)} cores`
+
+  const memLabel = `${formatMemory(memBytes)} / ${formatMemory(memAllocBytes)}`
+
+  return { cpuPct, memPct, cpuLabel, memLabel }
+}
+
+function ProgressBar({
+  value,
+  label,
+}: {
+  value: number
+  label: string
+}): JSX.Element {
+  const pct = Math.min(100, Math.max(0, value))
+  const color =
+    pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-yellow-500" : "bg-blue-500"
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>{label}</span>
+        <span>{pct.toFixed(1)}%</span>
+      </div>
+      <div className="h-2 bg-muted rounded-full overflow-hidden">
+        <div
+          className={cn("h-full rounded-full transition-all", color)}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function ResourceUsageSection({
+  node,
+  metric,
+  unavailable,
+}: {
+  node: K8sNode
+  metric: NodeMetric | undefined
+  unavailable: boolean
+}): JSX.Element {
+  if (unavailable) {
+    return (
+      <div className="space-y-1">
+        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+          Resource Usage
+        </h3>
+        <p className="text-xs text-muted-foreground">Metrics unavailable</p>
+      </div>
+    )
+  }
+
+  if (!metric) {
+    return (
+      <div className="space-y-1">
+        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+          Resource Usage
+        </h3>
+        <p className="text-xs text-muted-foreground">Loading metrics…</p>
+      </div>
+    )
+  }
+
+  const { cpuPct, memPct, cpuLabel, memLabel } = computeMetricPcts(
+    metric,
+    node.allocatable,
+  )
+
+  return (
+    <div className="space-y-2">
+      <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+        Resource Usage
+      </h3>
+      <div className="space-y-0.5">
+        <p className="text-xs font-medium">CPU</p>
+        <ProgressBar value={cpuPct} label={cpuLabel} />
+      </div>
+      <div className="space-y-0.5">
+        <p className="text-xs font-medium">Memory</p>
+        <ProgressBar value={memPct} label={memLabel} />
+      </div>
+    </div>
+  )
+}
+
 function DetailPanel({
   node,
+  metric,
+  metricsUnavailable,
   onClose,
 }: {
   node: K8sNode
+  metric: NodeMetric | undefined
+  metricsUnavailable: boolean
   onClose: () => void
 }): JSX.Element {
   const labelEntries = Object.entries(node.labels)
@@ -52,6 +190,12 @@ function DetailPanel({
           <X className="h-4 w-4" />
         </button>
       </div>
+
+      <ResourceUsageSection
+        node={node}
+        metric={metric}
+        unavailable={metricsUnavailable}
+      />
 
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
@@ -137,6 +281,7 @@ export function NodesView(): JSX.Element {
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
+  const refreshInterval = useAppStore((s) => s.refreshInterval)
 
   const {
     data: nodes,
@@ -148,6 +293,40 @@ export function NodesView(): JSX.Element {
     (ctx) => window.api.k8s.listNodes({ contextName: ctx }),
     selectedContext,
   )
+
+  const [metricsMap, setMetricsMap] = useState<Map<string, NodeMetric>>(
+    new Map(),
+  )
+  const [metricsUnavailable, setMetricsUnavailable] = useState(false)
+  const selectedContextRef = useRef(selectedContext)
+  selectedContextRef.current = selectedContext
+
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const result = await window.api.k8s.getNodeMetrics({
+        contextName: selectedContextRef.current ?? undefined,
+      })
+      if ("unavailable" in result) {
+        setMetricsUnavailable(true)
+        return
+      }
+      setMetricsMap(new Map(result.map((m) => [m.nodeName, m])))
+      setMetricsUnavailable(false)
+    } catch {
+      // silently fail — metrics are optional
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchMetrics()
+  }, [selectedContext, fetchMetrics])
+
+  useEffect(() => {
+    if (refreshInterval === "off") return
+    const ms = (refreshInterval as number) * 1000
+    const id = setInterval(fetchMetrics, ms)
+    return () => clearInterval(id)
+  }, [refreshInterval, fetchMetrics])
 
   useEffect(() => {
     if (!selectedItem || nodes.length === 0) return
@@ -179,29 +358,47 @@ export function NodesView(): JSX.Element {
                 <TableHead>Roles</TableHead>
                 <TableHead>Age</TableHead>
                 <TableHead>Version</TableHead>
+                <TableHead>CPU%</TableHead>
+                <TableHead>Mem%</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visibleNodes.map((node) => (
-                <TableRow
-                  key={node.name}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === node.name && "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === node.name ? null : node,
-                    )
-                  }
-                >
-                  <TableCell>{node.name}</TableCell>
-                  <TableCell>{node.status}</TableCell>
-                  <TableCell>{node.roles}</TableCell>
-                  <TableCell>{formatAge(node.creationTimestamp)}</TableCell>
-                  <TableCell>{node.version}</TableCell>
-                </TableRow>
-              ))}
+              {visibleNodes.map((node) => {
+                const metric = metricsMap.get(node.name)
+                let cpuPct: number | null = null
+                let memPct: number | null = null
+                if (metric && !metricsUnavailable) {
+                  const pcts = computeMetricPcts(metric, node.allocatable)
+                  cpuPct = pcts.cpuPct
+                  memPct = pcts.memPct
+                }
+                return (
+                  <TableRow
+                    key={node.name}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === node.name && "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === node.name ? null : node,
+                      )
+                    }
+                  >
+                    <TableCell>{node.name}</TableCell>
+                    <TableCell>{node.status}</TableCell>
+                    <TableCell>{node.roles}</TableCell>
+                    <TableCell>{formatAge(node.creationTimestamp)}</TableCell>
+                    <TableCell>{node.version}</TableCell>
+                    <TableCell>
+                      {cpuPct !== null ? `${cpuPct.toFixed(1)}%` : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {memPct !== null ? `${memPct.toFixed(1)}%` : "—"}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         )}
@@ -210,6 +407,8 @@ export function NodesView(): JSX.Element {
       {selectedItem && (
         <DetailPanel
           node={selectedItem}
+          metric={metricsMap.get(selectedItem.name)}
+          metricsUnavailable={metricsUnavailable}
           onClose={() => setSelectedItem(null)}
         />
       )}

@@ -4,6 +4,7 @@ import {
   AutoscalingV2Api,
   BatchV1Api,
   CoreV1Api,
+  CustomObjectsApi,
   KubeConfig,
   KubernetesObjectApi,
   NetworkingV1Api,
@@ -895,6 +896,45 @@ export async function deleteServiceAccount(
   return { success: true, name, namespace }
 }
 
+export async function listResourceQuotas(api: CoreV1Api) {
+  const res = await api.listResourceQuotaForAllNamespaces()
+  return res.items.map((rq) => ({
+    name: rq.metadata?.name ?? "",
+    namespace: rq.metadata?.namespace ?? "",
+    hard: Object.fromEntries(
+      Object.entries(rq.spec?.hard ?? {}).map(([k, v]) => [k, String(v)]),
+    ) as Record<string, string>,
+    used: Object.fromEntries(
+      Object.entries(rq.status?.used ?? {}).map(([k, v]) => [k, String(v)]),
+    ) as Record<string, string>,
+    creationTimestamp: rq.metadata?.creationTimestamp?.toISOString() ?? "",
+  }))
+}
+
+export async function listLimitRanges(api: CoreV1Api) {
+  const res = await api.listLimitRangeForAllNamespaces()
+  return res.items.map((lr) => ({
+    name: lr.metadata?.name ?? "",
+    namespace: lr.metadata?.namespace ?? "",
+    limits: (lr.spec?.limits ?? []).map((l) => ({
+      type: l.type ?? "",
+      max: Object.fromEntries(
+        Object.entries(l.max ?? {}).map(([k, v]) => [k, String(v)]),
+      ) as Record<string, string>,
+      min: Object.fromEntries(
+        Object.entries(l.min ?? {}).map(([k, v]) => [k, String(v)]),
+      ) as Record<string, string>,
+      default: Object.fromEntries(
+        Object.entries(l.default ?? {}).map(([k, v]) => [k, String(v)]),
+      ) as Record<string, string>,
+      defaultRequest: Object.fromEntries(
+        Object.entries(l.defaultRequest ?? {}).map(([k, v]) => [k, String(v)]),
+      ) as Record<string, string>,
+    })),
+    creationTimestamp: lr.metadata?.creationTimestamp?.toISOString() ?? "",
+  }))
+}
+
 export async function listRoles(
   api: RbacAuthorizationV1Api,
   namespace?: string,
@@ -1312,3 +1352,38 @@ export async function listCronJobs(api: BatchV1Api) {
 }
 
 // TODO: refactor handler by resource category
+
+export async function getNodeMetrics(
+  api: CustomObjectsApi,
+): Promise<
+  | { nodeName: string; cpuUsage: string; memoryUsage: string }[]
+  | { unavailable: true }
+> {
+  try {
+    const res = (await api.listClusterCustomObject({
+      group: "metrics.k8s.io",
+      version: "v1beta1",
+      plural: "nodes",
+    })) as {
+      items: Array<{
+        metadata: { name: string }
+        usage: { cpu: string; memory: string }
+      }>
+    }
+    return res.items.map((item) => ({
+      nodeName: item.metadata.name,
+      cpuUsage: item.usage.cpu,
+      memoryUsage: item.usage.memory,
+    }))
+  } catch (e: unknown) {
+    const httpErr = e as {
+      response?: { statusCode?: number }
+      statusCode?: number
+    }
+    const code = httpErr.response?.statusCode ?? httpErr.statusCode
+    if (code === 404 || code === 403) {
+      return { unavailable: true }
+    }
+    throw e
+  }
+}

@@ -150,7 +150,7 @@ export function JobsView(): JSX.Element {
     if (fresh) setSelectedItem(fresh as object)
   }, [jobs])
 
-  const visibleJobs = filterResources(jobs, selectedNamespace, nameFilter)
+  const visibleJobs = filterResources(jobs, nameFilter, selectedNamespace)
 
   return (
     <div className="flex h-full overflow-hidden">

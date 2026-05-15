@@ -79,10 +79,16 @@ const api = {
       ipcRenderer.invoke("k8s:pvs:list", args),
     listPVCs: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:pvcs:list", args),
+    listResourceQuotas: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:resourcequotas:list", args),
+    listLimitRanges: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:limitranges:list", args),
     listJobs: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:jobs:list", args),
     listCronJobs: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:cronjobs:list", args),
+    getNodeMetrics: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:node:metrics", args),
     listPods: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:pods:list", args),
     listServices: (args?: { contextName?: string }) =>
@@ -279,6 +285,16 @@ const api = {
     ipcRenderer.invoke("stream:socket:start", { socketPath, sessionId }),
   stopSocketStream: (sessionId: string) =>
     ipcRenderer.invoke("stream:socket:stop", { sessionId }),
+  startPortForward: (args: {
+    resourceKind: "Pod" | "Service"
+    namespace: string
+    name: string
+    localPort: number
+    targetPort: number
+    sessionId: string
+  }) => ipcRenderer.invoke("portforward:start", args),
+  stopPortForward: (sessionId: string) =>
+    ipcRenderer.invoke("portforward:stop", { sessionId }),
   onSocketData: (
     callback: (data: { sessionId: string; line: string }) => void,
   ) => {

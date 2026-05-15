@@ -8,6 +8,7 @@ import { useAppStore } from "../../store/app.store"
 import { CustomStreamPanel } from "./CustomStreamPanel"
 import { EditResourcePanel } from "./EditResourcePanel"
 import { PodLogPanel } from "./PodLogPanel"
+import { PortForwardPanel } from "./PortForwardPanel"
 import { ShellPanel } from "./ShellPanel"
 import { YamlEditPanel } from "./YamlEditPanel"
 
@@ -204,7 +205,9 @@ export function BottomDrawer(): JSX.Element {
                     ? `${tab.resourceKind}/${tab.resourceName}`
                     : tab.type === "custom-stream"
                       ? tab.label
-                      : `New ${tab.resourceKind}`
+                      : tab.type === "port-forward"
+                        ? `pf:${tab.resourceName}:${tab.localPort}`
+                        : `New ${tab.resourceKind}`
           const isActive = tab.id === activeTabId
           return (
             <div
@@ -223,6 +226,9 @@ export function BottomDrawer(): JSX.Element {
                   e.stopPropagation()
                   if (tab.type === "custom-stream") {
                     window.api.stopSocketStream(tab.id)
+                  }
+                  if (tab.type === "port-forward") {
+                    window.api.stopPortForward(tab.id)
                   }
                   closeDrawerTab(tab.id)
                 }}
@@ -297,6 +303,16 @@ export function BottomDrawer(): JSX.Element {
                   sessionId={tab.id}
                   socketPath={tab.socketPath}
                   label={tab.label}
+                />
+              )}
+              {tab.type === "port-forward" && (
+                <PortForwardPanel
+                  sessionId={tab.id}
+                  resourceKind={tab.resourceKind}
+                  resourceName={tab.resourceName}
+                  namespace={tab.namespace}
+                  defaultLocalPort={tab.localPort}
+                  defaultTargetPort={tab.targetPort}
                 />
               )}
             </div>

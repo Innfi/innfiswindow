@@ -19,6 +19,7 @@ import { EventsView } from "./components/EventsView"
 import { HPAsView } from "./components/HPAsView"
 import { IngressesView } from "./components/IngressesView"
 import { JobsView } from "./components/JobsView"
+import { LimitRangesView } from "./components/LimitRangesView"
 import { NamespacesView } from "./components/NamespacesView"
 import { NodesView } from "./components/NodesView"
 import { OverviewView } from "./components/OverviewView"
@@ -27,6 +28,7 @@ import { PrometheusSettings } from "./components/PrometheusSettings"
 import { PVCsView } from "./components/PVCsView"
 import { PVsView } from "./components/PVsView"
 import { ReplicaSetsView } from "./components/ReplicaSetsView"
+import { ResourceQuotasView } from "./components/ResourceQuotasView"
 import { RoleBindingsView } from "./components/RoleBindingsView"
 import { RolesView } from "./components/RolesView"
 import { SecretsView } from "./components/SecretsView"
@@ -199,6 +201,8 @@ function App(): JSX.Element {
               )}
               {selectedResourceType === "Jobs" && <JobsView />}
               {selectedResourceType === "CronJobs" && <CronJobsView />}
+              {selectedResourceType === "ResourceQuotas" && <ResourceQuotasView />}
+              {selectedResourceType === "LimitRanges" && <LimitRangesView />}
               {selectedResourceType === "overview" && <OverviewView />}
               {selectedResourceType === "custom-stream" && <CustomStreamView />}
             </div>

@@ -398,3 +398,26 @@ export interface K8sCronJob {
   labels: Record<string, string>
   annotations: Record<string, string>
 }
+
+export interface K8sResourceQuota {
+  name: string
+  namespace: string
+  hard: Record<string, string>
+  used: Record<string, string>
+  creationTimestamp: string
+}
+
+export interface K8sLimitRangeItem {
+  type: string
+  max: Record<string, string>
+  min: Record<string, string>
+  default: Record<string, string>
+  defaultRequest: Record<string, string>
+}
+
+export interface K8sLimitRange {
+  name: string
+  namespace: string
+  limits: K8sLimitRangeItem[]
+  creationTimestamp: string
+}

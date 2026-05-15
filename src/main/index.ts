@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron"
-import { createConnection, Socket } from "net"
+import { createConnection, createServer, Server, Socket } from "net"
 import { join } from "path"
 import { PassThrough } from "stream"
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
@@ -8,10 +8,12 @@ import {
   AutoscalingV2Api,
   BatchV1Api,
   CoreV1Api,
+  CustomObjectsApi,
   Exec,
   KubeConfig,
   Log,
   NetworkingV1Api,
+  PortForward,
   RbacAuthorizationV1Api,
   Watch,
 } from "@kubernetes/client-node"
@@ -39,6 +41,7 @@ import {
   deleteStatefulSet,
   getClusterType,
   getCurrentContext,
+  getNodeMetrics,
   listClusterRoleBindings,
   listClusterRoles,
   listConfigMaps,
@@ -50,12 +53,14 @@ import {
   listHPAs,
   listIngresses,
   listJobs,
+  listLimitRanges,
   listNamespaces,
   listNodes,
   listPods,
   listPVCs,
   listPVs,
   listReplicaSets,
+  listResourceQuotas,
   listRoleBindings,
   listRoles,
   listSecrets,
@@ -91,6 +96,7 @@ const networkingV1Api = kc.makeApiClient(NetworkingV1Api)
 const rbacV1Api = kc.makeApiClient(RbacAuthorizationV1Api)
 const autoscalingV2Api = kc.makeApiClient(AutoscalingV2Api)
 const batchV1Api = kc.makeApiClient(BatchV1Api)
+const customObjectsApi = kc.makeApiClient(CustomObjectsApi)
 
 // Per-context API client cache
 const clientCache = new Map<
@@ -102,6 +108,7 @@ const clientCache = new Map<
     rbacV1: RbacAuthorizationV1Api
     autoscalingV2: AutoscalingV2Api
     batchV1: BatchV1Api
+    customObjects: CustomObjectsApi
   }
 >()
 
@@ -114,6 +121,7 @@ function getContextClients(contextName?: string | null) {
       rbacV1: rbacV1Api,
       autoscalingV2: autoscalingV2Api,
       batchV1: batchV1Api,
+      customObjects: customObjectsApi,
     }
   }
   if (clientCache.has(contextName)) return clientCache.get(contextName)!
@@ -127,6 +135,7 @@ function getContextClients(contextName?: string | null) {
     rbacV1: ctxKc.makeApiClient(RbacAuthorizationV1Api),
     autoscalingV2: ctxKc.makeApiClient(AutoscalingV2Api),
     batchV1: ctxKc.makeApiClient(BatchV1Api),
+    customObjects: ctxKc.makeApiClient(CustomObjectsApi),
   }
   clientCache.set(contextName, clients)
   return clients
@@ -154,6 +163,7 @@ const activeExecSessions = new Map<
 >()
 
 const activeSocketStreams = new Map<string, Socket>()
+const activePortForwardSessions = new Map<string, { server: Server }>()
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -358,6 +368,19 @@ app.whenReady().then(() => {
   )
   ipcMain.handle("k8s:cronjobs:list", (_e, args?: { contextName?: string }) =>
     listCronJobs(getContextClients(args?.contextName).batchV1),
+  )
+  ipcMain.handle("k8s:node:metrics", (_e, args?: { contextName?: string }) =>
+    getNodeMetrics(getContextClients(args?.contextName).customObjects),
+  )
+  ipcMain.handle(
+    "k8s:resourcequotas:list",
+    (_e, args?: { contextName?: string }) =>
+      listResourceQuotas(getContextClients(args?.contextName).coreV1),
+  )
+  ipcMain.handle(
+    "k8s:limitranges:list",
+    (_e, args?: { contextName?: string }) =>
+      listLimitRanges(getContextClients(args?.contextName).coreV1),
   )
   ipcMain.handle(
     "k8s:deployment:create",
@@ -789,6 +812,96 @@ app.whenReady().then(() => {
       if (sock) {
         sock.destroy()
         activeSocketStreams.delete(sessionId)
+      }
+      return { success: true }
+    },
+  )
+
+  ipcMain.handle(
+    "portforward:start",
+    async (
+      _e,
+      {
+        resourceKind,
+        namespace,
+        name,
+        localPort,
+        targetPort,
+        sessionId,
+      }: {
+        resourceKind: "Pod" | "Service"
+        namespace: string
+        name: string
+        localPort: number
+        targetPort: number
+        sessionId: string
+      },
+    ) => {
+      try {
+        // Clean up any existing session
+        const existing = activePortForwardSessions.get(sessionId)
+        if (existing) {
+          existing.server.close()
+          activePortForwardSessions.delete(sessionId)
+        }
+
+        let podName = name
+
+        // For Service, resolve to a backing pod via endpoints
+        if (resourceKind === "Service") {
+          const ep = await coreV1Api.readNamespacedEndpoints({
+            name,
+            namespace,
+          })
+          const addr = ep.subsets?.[0]?.addresses?.[0]
+          if (!addr?.targetRef?.name) {
+            return {
+              success: false,
+              error: "No ready pods found for service",
+            }
+          }
+          podName = addr.targetRef.name
+          namespace = addr.targetRef.namespace ?? namespace
+        }
+
+        const forward = new PortForward(kc)
+        const resolvedPodName = podName
+        const resolvedNamespace = namespace
+        const server = createServer(async (socket) => {
+          try {
+            await forward.portForward(
+              resolvedNamespace,
+              resolvedPodName,
+              [targetPort],
+              socket,
+              null,
+              socket,
+            )
+          } catch (err) {
+            socket.destroy()
+          }
+        })
+
+        await new Promise<void>((resolve, reject) => {
+          server.listen(localPort, "127.0.0.1", () => resolve())
+          server.on("error", reject)
+        })
+
+        activePortForwardSessions.set(sessionId, { server })
+        return { success: true }
+      } catch (err) {
+        return { success: false, error: String(err) }
+      }
+    },
+  )
+
+  ipcMain.handle(
+    "portforward:stop",
+    (_e, { sessionId }: { sessionId: string }) => {
+      const session = activePortForwardSessions.get(sessionId)
+      if (session) {
+        session.server.close()
+        activePortForwardSessions.delete(sessionId)
       }
       return { success: true }
     },

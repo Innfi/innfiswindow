@@ -37,6 +37,10 @@ const groups = [
     label: "Storage",
     items: ["PersistentVolumes", "PersistentVolumeClaims"],
   },
+  {
+    label: "Governance",
+    items: ["ResourceQuotas", "LimitRanges"],
+  },
 ]
 
 const clusterTypeBadgeClass: Record<string, string> = {

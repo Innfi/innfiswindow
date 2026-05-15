@@ -141,8 +141,8 @@ export function CronJobsView(): JSX.Element {
 
   const visibleCronJobs = filterResources(
     cronJobs,
-    selectedNamespace,
     nameFilter,
+    selectedNamespace,
   )
 
   return (

@@ -1387,7 +1387,7 @@
     {
       "id": "S72",
       "title": "Node resource usage metrics in Node detail panel",
-      "status": "incomplete",
+      "status": "complete",
       "description": "The Node list and detail panel currently show conditions and status but no CPU or memory usage. Add live CPU and memory usage metrics to each Node's detail panel using the Kubernetes Metrics API (metrics.k8s.io), the same source used for pod metrics in S46-S47.",
       "acceptance_criteria": [
         "New IPC handler k8s:node:metrics fetches node metrics from the Metrics API using CustomObjectsApi getClusterCustomObject for group 'metrics.k8s.io', version 'v1beta1', plural 'nodes'; returns array of { nodeName, cpuUsage (nanocores as string), memoryUsage (bytes as string) }",
@@ -1406,7 +1406,7 @@
     {
       "id": "S73",
       "title": "Log search and filter in pod log panel",
-      "status": "incomplete",
+      "status": "complete",
       "description": "The PodLogPanel tails logs but provides no way to search or filter lines. Add a search input that filters displayed log lines client-side by substring or regex. Matching text is highlighted within each line. A match count indicator shows how many lines match.",
       "acceptance_criteria": [
         "PodLogPanel gains a search input above the log output area; placeholder text 'Filter logs…'",
@@ -1424,7 +1424,7 @@
     {
       "id": "S74",
       "title": "Pod and Service port-forward to localhost",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add a 'Port Forward' button to Pod and Service detail panels. Clicking it opens a BottomDrawer tab with a form to specify local port and target port. The main process creates a TCP server on the local port and proxies data to/from the pod port using the Kubernetes port-forward protocol over the API server WebSocket.",
       "acceptance_criteria": [
         "Pod detail panel gains a 'Port Forward' button in the header action area",

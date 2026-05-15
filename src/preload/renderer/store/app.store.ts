@@ -69,6 +69,16 @@ export type DrawerTab =
       socketPath: string
       label: string
     }
+  | {
+      id: string
+      tabKey: string
+      type: "port-forward"
+      resourceKind: "Pod" | "Service"
+      resourceName: string
+      namespace: string
+      localPort: number
+      targetPort: number
+    }
 
 export type DrawerTabInput =
   | {
@@ -121,6 +131,15 @@ export type DrawerTabInput =
       type: "custom-stream"
       socketPath: string
       label: string
+    }
+  | {
+      tabKey: string
+      type: "port-forward"
+      resourceKind: "Pod" | "Service"
+      resourceName: string
+      namespace: string
+      localPort: number
+      targetPort: number
     }
 
 export type RefreshIntervalValue = 10 | 30 | 60 | 120 | "off"
