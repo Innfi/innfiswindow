@@ -9,7 +9,12 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { cn, filterResources, formatAge, parseResourceValue } from "../../lib/utils"
+import {
+  cn,
+  filterResources,
+  formatAge,
+  parseResourceValue,
+} from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sResourceQuota } from "../types/k8s"
@@ -38,7 +43,9 @@ function DetailPanel({
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{quota.name}</h2>
-          <span className="text-xs text-muted-foreground">{quota.namespace}</span>
+          <span className="text-xs text-muted-foreground">
+            {quota.namespace}
+          </span>
         </div>
         <button
           onClick={onClose}
@@ -100,7 +107,9 @@ function DetailPanel({
           )
         })}
         {resources.length === 0 && (
-          <p className="text-sm text-muted-foreground">No resource limits defined</p>
+          <p className="text-sm text-muted-foreground">
+            No resource limits defined
+          </p>
         )}
       </div>
     </div>
@@ -108,7 +117,9 @@ function DetailPanel({
 }
 
 export function ResourceQuotasView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sResourceQuota | null
+  const selectedItem = useAppStore(
+    (s) => s.selectedItem,
+  ) as K8sResourceQuota | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
@@ -165,13 +176,15 @@ export function ResourceQuotasView(): JSX.Element {
                   className={cn(
                     "cursor-pointer",
                     selectedItem?.name === q.name &&
-                      (selectedItem as K8sResourceQuota)?.namespace === q.namespace &&
+                      (selectedItem as K8sResourceQuota)?.namespace ===
+                        q.namespace &&
                       "bg-muted",
                   )}
                   onClick={() =>
                     setSelectedItem(
                       selectedItem?.name === q.name &&
-                        (selectedItem as K8sResourceQuota)?.namespace === q.namespace
+                        (selectedItem as K8sResourceQuota)?.namespace ===
+                          q.namespace
                         ? null
                         : q,
                     )
@@ -188,9 +201,13 @@ export function ResourceQuotasView(): JSX.Element {
         )}
       </div>
 
-      {selectedItem && (selectedItem as K8sResourceQuota).hard !== undefined && (
-        <DetailPanel quota={selectedItem as K8sResourceQuota} onClose={() => setSelectedItem(null)} />
-      )}
+      {selectedItem &&
+        (selectedItem as K8sResourceQuota).hard !== undefined && (
+          <DetailPanel
+            quota={selectedItem as K8sResourceQuota}
+            onClose={() => setSelectedItem(null)}
+          />
+        )}
     </div>
   )
 }

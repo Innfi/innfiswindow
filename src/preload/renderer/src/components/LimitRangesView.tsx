@@ -29,7 +29,9 @@ function DetailPanel({
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{limitRange.name}</h2>
-          <span className="text-xs text-muted-foreground">{limitRange.namespace}</span>
+          <span className="text-xs text-muted-foreground">
+            {limitRange.namespace}
+          </span>
         </div>
         <button
           onClick={onClose}
@@ -67,28 +69,44 @@ function DetailPanel({
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-muted/50">
-                      <th className="text-left px-2 py-1.5 font-medium">Resource</th>
+                      <th className="text-left px-2 py-1.5 font-medium">
+                        Resource
+                      </th>
                       <th className="text-left px-2 py-1.5 font-medium">Max</th>
                       <th className="text-left px-2 py-1.5 font-medium">Min</th>
-                      <th className="text-left px-2 py-1.5 font-medium">Default</th>
-                      <th className="text-left px-2 py-1.5 font-medium">Req Default</th>
+                      <th className="text-left px-2 py-1.5 font-medium">
+                        Default
+                      </th>
+                      <th className="text-left px-2 py-1.5 font-medium">
+                        Req Default
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {resources.map((res) => (
                       <tr key={res} className="border-t">
                         <td className="px-2 py-1.5 font-medium">{res}</td>
-                        <td className="px-2 py-1.5 text-muted-foreground">{limit.max[res] ?? "-"}</td>
-                        <td className="px-2 py-1.5 text-muted-foreground">{limit.min[res] ?? "-"}</td>
-                        <td className="px-2 py-1.5 text-muted-foreground">{limit.default[res] ?? "-"}</td>
-                        <td className="px-2 py-1.5 text-muted-foreground">{limit.defaultRequest[res] ?? "-"}</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">
+                          {limit.max[res] ?? "-"}
+                        </td>
+                        <td className="px-2 py-1.5 text-muted-foreground">
+                          {limit.min[res] ?? "-"}
+                        </td>
+                        <td className="px-2 py-1.5 text-muted-foreground">
+                          {limit.default[res] ?? "-"}
+                        </td>
+                        <td className="px-2 py-1.5 text-muted-foreground">
+                          {limit.defaultRequest[res] ?? "-"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">No constraints defined</p>
+              <p className="text-xs text-muted-foreground">
+                No constraints defined
+              </p>
             )}
           </div>
         )
@@ -102,7 +120,9 @@ function DetailPanel({
 }
 
 export function LimitRangesView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sLimitRange | null
+  const selectedItem = useAppStore(
+    (s) => s.selectedItem,
+  ) as K8sLimitRange | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
@@ -164,13 +184,15 @@ export function LimitRangesView(): JSX.Element {
                     className={cn(
                       "cursor-pointer",
                       selectedItem?.name === lr.name &&
-                        (selectedItem as K8sLimitRange)?.namespace === lr.namespace &&
+                        (selectedItem as K8sLimitRange)?.namespace ===
+                          lr.namespace &&
                         "bg-muted",
                     )}
                     onClick={() =>
                       setSelectedItem(
                         selectedItem?.name === lr.name &&
-                          (selectedItem as K8sLimitRange)?.namespace === lr.namespace
+                          (selectedItem as K8sLimitRange)?.namespace ===
+                            lr.namespace
                           ? null
                           : lr,
                       )

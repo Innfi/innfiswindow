@@ -925,7 +925,7 @@ export async function listLimitRanges(api: CoreV1Api) {
         Object.entries(l.min ?? {}).map(([k, v]) => [k, String(v)]),
       ) as Record<string, string>,
       default: Object.fromEntries(
-        Object.entries(l.default ?? {}).map(([k, v]) => [k, String(v)]),
+        Object.entries(l._default ?? {}).map(([k, v]) => [k, String(v)]),
       ) as Record<string, string>,
       defaultRequest: Object.fromEntries(
         Object.entries(l.defaultRequest ?? {}).map(([k, v]) => [k, String(v)]),

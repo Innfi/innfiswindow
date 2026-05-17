@@ -460,9 +460,7 @@ export interface K8sAPI {
   listResourceQuotas: (args?: {
     contextName?: string
   }) => Promise<K8sResourceQuota[]>
-  listLimitRanges: (args?: {
-    contextName?: string
-  }) => Promise<K8sLimitRange[]>
+  listLimitRanges: (args?: { contextName?: string }) => Promise<K8sLimitRange[]>
   listPods: (args?: { contextName?: string }) => Promise<K8sPod[]>
   listServices: (args?: { contextName?: string }) => Promise<K8sService[]>
   listIngresses: (args?: { contextName?: string }) => Promise<K8sIngress[]>

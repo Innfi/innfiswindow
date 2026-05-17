@@ -201,7 +201,9 @@ function App(): JSX.Element {
               )}
               {selectedResourceType === "Jobs" && <JobsView />}
               {selectedResourceType === "CronJobs" && <CronJobsView />}
-              {selectedResourceType === "ResourceQuotas" && <ResourceQuotasView />}
+              {selectedResourceType === "ResourceQuotas" && (
+                <ResourceQuotasView />
+              )}
               {selectedResourceType === "LimitRanges" && <LimitRangesView />}
               {selectedResourceType === "overview" && <OverviewView />}
               {selectedResourceType === "custom-stream" && <CustomStreamView />}

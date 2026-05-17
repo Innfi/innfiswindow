@@ -1445,7 +1445,7 @@
     {
       "id": "S75",
       "title": "ResourceQuota and LimitRange view with usage visualization",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add ResourceQuota and LimitRange to the tree under a new 'Governance' group. ResourceQuota detail shows a usage bar for each resource (used vs hard limit), making it immediately obvious when a namespace is near its limits.",
       "acceptance_criteria": [
         "TreeView gains a 'Governance' group with items: 'ResourceQuotas' and 'LimitRanges'",
