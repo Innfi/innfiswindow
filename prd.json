@@ -1466,7 +1466,7 @@
     {
       "id": "S76",
       "title": "Global resource search across all resource types",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add a global search bar in the AppBar that lets users find any resource by name across all resource types and namespaces. Results appear in a dropdown list grouped by resource type. Clicking a result navigates to that resource type and selects the item.",
       "acceptance_criteria": [
         "AppBar gains a search input (Command+K or Ctrl+K keyboard shortcut focuses it)",
@@ -1607,6 +1607,35 @@
       ],
       "dependencies": ["S28"],
       "notes": "Resource kind to kubectl noun mapping: Pod→pod, Deployment→deployment, StatefulSet→statefulset, DaemonSet→daemonset, ReplicaSet→replicaset, Service→service, Ingress→ingress, ConfigMap→configmap, Secret→secret, Namespace→namespace, Node→node, ServiceAccount→serviceaccount, Role→role, ClusterRole→clusterrole, RoleBinding→rolebinding, ClusterRoleBinding→clusterrolebinding. Use a shadcn DropdownMenu component. No IPC needed — clipboard.writeText runs in renderer."
+    },
+    {
+      "id": "S84",
+      "title": "Refactor k8s-handlers.ts into per-domain handler modules",
+      "status": "incomplete",
+      "description": "src/main/k8s-handlers.ts has grown to 1300+ lines covering every resource type in a single file. Split it into a directory of focused modules grouped by resource domain. The single monolith becomes an entry-point barrel that re-exports everything so that src/main/index.ts requires no changes.",
+      "acceptance_criteria": [
+        "New directory src/main/handlers/ created",
+        "k8s-handlers.ts split into the following modules, each exporting only the functions relevant to that domain:",
+        "  handlers/cluster.ts — listNamespaces, listNodes, listContexts, getCurrentContext, getClusterType",
+        "  handlers/workload.ts — listDeployments, listReplicaSets, listStatefulSets, listDaemonSets, listPods, createDeployment, updateDeployment, deleteDeployment, replaceDeploymentFromYaml, createStatefulSet, updateStatefulSet, deleteStatefulSet, replaceStatefulSetFromYaml, createDaemonSet, updateDaemonSet, deleteDaemonSet, replaceDaemonSetFromYaml, deletePod",
+        "  handlers/networking.ts — listServices, listIngresses, createService, updateService, deleteService, replaceServiceFromYaml, createIngress, updateIngress, deleteIngress, replaceIngressFromYaml, buildIngressSpec, ServicePort interface, IngressRuleEntry interface, IngressTLSEntry interface",
+        "  handlers/config.ts — listConfigMaps, listSecrets, listServiceAccounts, replaceConfigMapFromYaml, deleteConfigMap, replaceSecretFromYaml, deleteSecret",
+        "  handlers/rbac.ts — listRoles, listClusterRoles, listRoleBindings, listClusterRoleBindings, updateRole, updateClusterRole, updateRoleBinding, updateClusterRoleBinding, updateServiceAccount, deleteRole, deleteClusterRole, deleteRoleBinding, deleteClusterRoleBinding, deleteServiceAccount",
+        "  handlers/events.ts — listEvents",
+        "  handlers/autoscaling.ts — listHPAs",
+        "  handlers/storage.ts — listPVs, listPVCs",
+        "  handlers/batch.ts — listJobs, listCronJobs",
+        "  handlers/governance.ts — listResourceQuotas, listLimitRanges",
+        "  handlers/metrics.ts — getNodeMetrics",
+        "  handlers/apply.ts — applyResource",
+        "src/main/k8s-handlers.ts is replaced by a barrel file that re-exports everything from all handler modules: export * from './handlers/cluster'; export * from './handlers/workload'; etc.",
+        "src/main/index.ts import of k8s-handlers.ts is unchanged and continues to work via the barrel re-export",
+        "Each handler module imports only the @kubernetes/client-node API classes it needs (no unused imports)",
+        "No behavioral changes — all existing IPC handlers continue to function identically",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S02"],
+      "notes": "Pure refactor — no new functionality. The barrel pattern (k8s-handlers.ts re-exporting from handlers/*) is the lowest-risk approach: index.ts does not need to change. Each handler module receives the pre-constructed API client instances as function parameters (same pattern as current code). Shared types (ServicePort, IngressRuleEntry, IngressTLSEntry) live in networking.ts and are re-exported through the barrel. Do not change function signatures or return types."
     }
   ]
 }

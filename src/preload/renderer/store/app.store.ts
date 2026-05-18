@@ -156,6 +156,7 @@ interface AppState {
   activeTabId: string | null
   setSelectedResourceType: (type: string | null) => void
   setSelectedItem: (item: object | null) => void
+  navigateToResource: (type: string, item: object) => void
   setSelectedNamespace: (ns: string | null) => void
   setSelectedContext: (ctx: string | null) => void
   setNameFilter: (filter: string) => void
@@ -181,6 +182,8 @@ export const useAppStore = create<AppState>()(
       setSelectedResourceType: (type) =>
         set({ selectedResourceType: type, selectedItem: null }),
       setSelectedItem: (item) => set({ selectedItem: item }),
+      navigateToResource: (type, item) =>
+        set({ selectedResourceType: type, selectedItem: item }),
       setSelectedNamespace: (ns) => set({ selectedNamespace: ns }),
       setSelectedContext: (ctx) =>
         set({ selectedContext: ctx, selectedNamespace: null }),

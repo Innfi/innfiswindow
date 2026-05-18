@@ -16,6 +16,7 @@ import { CustomStreamView } from "./components/CustomStreamView"
 import { DaemonSetsView } from "./components/DaemonSetsView"
 import { DeploymentsView } from "./components/DeploymentsView"
 import { EventsView } from "./components/EventsView"
+import { GlobalSearch } from "./components/GlobalSearch"
 import { HPAsView } from "./components/HPAsView"
 import { IngressesView } from "./components/IngressesView"
 import { JobsView } from "./components/JobsView"
@@ -127,6 +128,7 @@ function App(): JSX.Element {
             <Settings className="h-4 w-4" />
           </button>
           <ThemePicker />
+          <GlobalSearch />
           <select
             value={selectedNamespace ?? ""}
             onChange={(e) => setSelectedNamespace(e.target.value || null)}
