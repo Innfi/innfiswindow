@@ -1485,7 +1485,7 @@
     {
       "id": "S77",
       "title": "YAML diff view before applying edits",
-      "status": "incomplete",
+      "status": "complete",
       "description": "When editing a resource in the yaml-edit BottomDrawer tab, show a diff between the original YAML (as loaded) and the current textarea content before the user clicks Save. This prevents accidental overwrites and makes it clear what will change.",
       "acceptance_criteria": [
         "YamlEditPanel gains a 'Show diff' toggle button next to the Save button",
