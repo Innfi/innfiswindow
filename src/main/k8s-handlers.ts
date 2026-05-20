@@ -1353,6 +1353,79 @@ export async function listCronJobs(api: BatchV1Api) {
 
 // TODO: refactor handler by resource category
 
+export async function listDeploymentHistory(
+  api: AppsV1Api,
+  namespace: string,
+  deploymentName: string,
+  selector: Record<string, string>,
+) {
+  const labelSelector = Object.entries(selector)
+    .map(([k, v]) => `${k}=${v}`)
+    .join(",")
+  const res = await api.listNamespacedReplicaSet({ namespace, labelSelector })
+  const owned = res.items.filter((rs) =>
+    (rs.metadata?.ownerReferences ?? []).some(
+      (ref) => ref.kind === "Deployment" && ref.name === deploymentName,
+    ),
+  )
+  const revisions = owned
+    .map((rs) => {
+      const revision = parseInt(
+        rs.metadata?.annotations?.["deployment.kubernetes.io/revision"] ?? "0",
+        10,
+      )
+      const changeCause =
+        rs.metadata?.annotations?.["kubernetes.io/change-cause"] ?? ""
+      const images = (rs.spec?.template?.spec?.containers ?? []).map(
+        (c) => c.image ?? "",
+      )
+      return {
+        revision,
+        changeCause,
+        images,
+        creationTimestamp: rs.metadata?.creationTimestamp?.toISOString() ?? "",
+      }
+    })
+    .filter((r) => r.revision > 0)
+    .sort((a, b) => b.revision - a.revision)
+  return revisions
+}
+
+export async function rollbackDeployment(
+  api: AppsV1Api,
+  namespace: string,
+  deploymentName: string,
+  revision: number,
+) {
+  const res = await api.listNamespacedReplicaSet({ namespace })
+  const targetRS = res.items.find((rs) => {
+    const isOwned = (rs.metadata?.ownerReferences ?? []).some(
+      (ref) => ref.kind === "Deployment" && ref.name === deploymentName,
+    )
+    const rsRevision = parseInt(
+      rs.metadata?.annotations?.["deployment.kubernetes.io/revision"] ?? "0",
+      10,
+    )
+    return isOwned && rsRevision === revision
+  })
+  if (!targetRS) {
+    throw new Error(
+      `Revision ${revision} not found for deployment ${deploymentName}`,
+    )
+  }
+  const podTemplateSpec = targetRS.spec?.template
+  if (!podTemplateSpec) {
+    throw new Error(`No pod template found in revision ${revision}`)
+  }
+  const body = {
+    spec: {
+      template: podTemplateSpec,
+    },
+  }
+  await api.patchNamespacedDeployment({ name: deploymentName, namespace, body })
+  return { success: true }
+}
+
 export async function getNodeMetrics(
   api: CustomObjectsApi,
 ): Promise<

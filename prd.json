@@ -1502,7 +1502,7 @@
     {
       "id": "S78",
       "title": "Deployment rollout history and rollback",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add rollout history and rollback capability to the Deployment detail panel. Users can see previous ReplicaSet revisions, view the pod template diff between revisions, and roll back to a specific revision.",
       "acceptance_criteria": [
         "Deployment detail panel gains a 'Rollout History' section showing past revisions as a table: revision number, change-cause annotation, image(s), created date",

@@ -1,6 +1,6 @@
 import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -28,6 +28,13 @@ import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 
+type DeploymentRevision = {
+  revision: number
+  changeCause: string
+  images: string[]
+  creationTimestamp: string
+}
+
 function DetailPanel({
   deployment,
   onClose,
@@ -40,9 +47,63 @@ function DetailPanel({
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [history, setHistory] = useState<DeploymentRevision[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [rollbackRevision, setRollbackRevision] = useState<number | null>(null)
+  const [rolling, setRolling] = useState(false)
   const selectorEntries = Object.entries(deployment.selector)
+
+  const loadHistory = useCallback(async () => {
+    setHistoryLoading(true)
+    try {
+      const revisions = await window.api.k8s.getDeploymentHistory({
+        contextName: selectedContext ?? undefined,
+        namespace: deployment.namespace,
+        name: deployment.name,
+        selector: deployment.selector,
+      })
+      setHistory(revisions)
+    } catch (e) {
+      toast.error(`Failed to load rollout history: ${String(e)}`)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [
+    deployment.namespace,
+    deployment.name,
+    deployment.selector,
+    selectedContext,
+  ])
+
+  useEffect(() => {
+    loadHistory()
+  }, [loadHistory])
+
+  async function handleRollback(): Promise<void> {
+    if (rollbackRevision === null) return
+    setRolling(true)
+    try {
+      await window.api.k8s.rollbackDeployment({
+        contextName: selectedContext ?? undefined,
+        namespace: deployment.namespace,
+        name: deployment.name,
+        revision: rollbackRevision,
+      })
+      toast.success(
+        `Rolled back ${deployment.name} to revision ${rollbackRevision}`,
+      )
+      setRollbackRevision(null)
+      await loadHistory()
+    } catch (e) {
+      toast.error(`Rollback failed: ${String(e)}`)
+      setRollbackRevision(null)
+    } finally {
+      setRolling(false)
+    }
+  }
 
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
@@ -215,6 +276,51 @@ function DetailPanel({
         </div>
       )}
 
+      <div className="space-y-1">
+        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+          Rollout History
+        </h3>
+        {historyLoading && (
+          <p className="text-xs text-muted-foreground">Loading...</p>
+        )}
+        {!historyLoading && history.length === 0 && (
+          <p className="text-xs text-muted-foreground">No history found</p>
+        )}
+        {!historyLoading && history.length > 0 && (
+          <div className="space-y-1">
+            {history.map((rev) => (
+              <div
+                key={rev.revision}
+                className="border rounded p-2 text-xs space-y-1"
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <span className="font-medium">#{rev.revision}</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 text-xs px-2"
+                    onClick={() => setRollbackRevision(rev.revision)}
+                  >
+                    Rollback
+                  </Button>
+                </div>
+                {rev.changeCause && (
+                  <div className="text-muted-foreground">{rev.changeCause}</div>
+                )}
+                {rev.images.map((img) => (
+                  <div key={img} className="text-muted-foreground break-all">
+                    {img}
+                  </div>
+                ))}
+                <div className="text-muted-foreground">
+                  {new Date(rev.creationTimestamp).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -241,6 +347,38 @@ function DetailPanel({
               disabled={deleting}
             >
               {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={rollbackRevision !== null}
+        onOpenChange={(open) => {
+          if (!open) setRollbackRevision(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rollback Deployment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Roll back{" "}
+              <strong>
+                {deployment.namespace}/{deployment.name}
+              </strong>{" "}
+              to revision <strong>#{rollbackRevision}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRollbackRevision(null)}
+              disabled={rolling}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleRollback} disabled={rolling}>
+              {rolling ? "Rolling back…" : "Rollback"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

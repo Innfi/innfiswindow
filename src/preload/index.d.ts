@@ -480,6 +480,25 @@ export interface K8sAPI {
     namespace: string,
     name: string,
   ) => Promise<{ success: boolean; name: string; namespace: string }>
+  getDeploymentHistory: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    selector: Record<string, string>
+  }) => Promise<
+    Array<{
+      revision: number
+      changeCause: string
+      images: string[]
+      creationTimestamp: string
+    }>
+  >
+  rollbackDeployment: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    revision: number
+  }) => Promise<{ success: boolean }>
   createStatefulSet: (
     namespace: string,
     name: string,

@@ -113,6 +113,18 @@ const api = {
       ipcRenderer.invoke("k8s:deployment:update", namespace, name, yaml),
     deleteDeployment: (namespace: string, name: string) =>
       ipcRenderer.invoke("k8s:deployment:delete", namespace, name),
+    getDeploymentHistory: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+      selector: Record<string, string>
+    }) => ipcRenderer.invoke("k8s:deployment:history", args),
+    rollbackDeployment: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+      revision: number
+    }) => ipcRenderer.invoke("k8s:deployment:rollback", args),
     createStatefulSet: (
       namespace: string,
       name: string,

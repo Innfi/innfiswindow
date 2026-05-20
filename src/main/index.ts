@@ -48,6 +48,7 @@ import {
   listContexts,
   listCronJobs,
   listDaemonSets,
+  listDeploymentHistory,
   listDeployments,
   listEvents,
   listHPAs,
@@ -74,6 +75,7 @@ import {
   replaceSecretFromYaml,
   replaceServiceFromYaml,
   replaceStatefulSetFromYaml,
+  rollbackDeployment,
   updateClusterRole,
   updateClusterRoleBinding,
   updateRole,
@@ -396,6 +398,42 @@ app.whenReady().then(() => {
     "k8s:deployment:delete",
     (_e, namespace: string, name: string) =>
       deleteDeployment(appsV1Api, namespace, name),
+  )
+  ipcMain.handle(
+    "k8s:deployment:history",
+    (
+      _e,
+      args: {
+        contextName?: string
+        namespace: string
+        name: string
+        selector: Record<string, string>
+      },
+    ) =>
+      listDeploymentHistory(
+        getContextClients(args.contextName).appsV1,
+        args.namespace,
+        args.name,
+        args.selector,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:deployment:rollback",
+    (
+      _e,
+      args: {
+        contextName?: string
+        namespace: string
+        name: string
+        revision: number
+      },
+    ) =>
+      rollbackDeployment(
+        getContextClients(args.contextName).appsV1,
+        args.namespace,
+        args.name,
+        args.revision,
+      ),
   )
   ipcMain.handle(
     "k8s:statefulset:create",
