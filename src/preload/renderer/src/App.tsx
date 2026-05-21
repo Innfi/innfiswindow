@@ -22,6 +22,7 @@ import { IngressesView } from "./components/IngressesView"
 import { JobsView } from "./components/JobsView"
 import { LimitRangesView } from "./components/LimitRangesView"
 import { NamespacesView } from "./components/NamespacesView"
+import { NetworkPoliciesView } from "./components/NetworkPoliciesView"
 import { NodesView } from "./components/NodesView"
 import { OverviewView } from "./components/OverviewView"
 import { PodsView } from "./components/PodsView"
@@ -186,6 +187,9 @@ function App(): JSX.Element {
               {selectedResourceType === "Pods" && <PodsView />}
               {selectedResourceType === "Services" && <ServicesView />}
               {selectedResourceType === "Ingresses" && <IngressesView />}
+              {selectedResourceType === "NetworkPolicies" && (
+                <NetworkPoliciesView />
+              )}
               {selectedResourceType === "Events" && <EventsView />}
               {selectedResourceType === "HPAs" && <HPAsView />}
               {selectedResourceType === "ServiceAccounts" && (

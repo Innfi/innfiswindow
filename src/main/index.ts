@@ -56,6 +56,7 @@ import {
   listJobs,
   listLimitRanges,
   listNamespaces,
+  listNetworkPolicies,
   listNodes,
   listPods,
   listPVCs,
@@ -352,6 +353,11 @@ app.whenReady().then(() => {
   )
   ipcMain.handle("k8s:ingresses:list", (_e, args?: { contextName?: string }) =>
     listIngresses(getContextClients(args?.contextName).networkingV1),
+  )
+  ipcMain.handle(
+    "k8s:networkpolicies:list",
+    (_e, args?: { contextName?: string }) =>
+      listNetworkPolicies(getContextClients(args?.contextName).networkingV1),
   )
   ipcMain.handle("k8s:nodes:list", (_e, args?: { contextName?: string }) =>
     listNodes(getContextClients(args?.contextName).coreV1),

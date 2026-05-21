@@ -1460,3 +1460,55 @@ export async function getNodeMetrics(
     throw e
   }
 }
+
+function labelsToString(labels: Record<string, string> | undefined): string {
+  if (!labels || Object.keys(labels).length === 0) return "All pods"
+  return Object.entries(labels)
+    .map(([k, v]) => `${k}=${v}`)
+    .join(", ")
+}
+
+export async function listNetworkPolicies(api: NetworkingV1Api) {
+  const res = await api.listNetworkPolicyForAllNamespaces()
+  return res.items.map((np) => {
+    const ingress = np.spec?.ingress ?? []
+    const egress = np.spec?.egress ?? []
+    const ingressRules = ingress.map((rule) => ({
+      peers: (rule.from ?? []).map((peer) => ({
+        ipBlock: peer.ipBlock
+          ? { cidr: peer.ipBlock.cidr, except: peer.ipBlock.except ?? [] }
+          : undefined,
+        namespaceSelector: peer.namespaceSelector?.matchLabels ?? undefined,
+        podSelector: peer.podSelector?.matchLabels ?? undefined,
+      })),
+      ports: (rule.ports ?? []).map((p) => ({
+        protocol: p.protocol ?? "TCP",
+        port: p.port !== undefined ? String(p.port) : undefined,
+      })),
+    }))
+    const egressRules = egress.map((rule) => ({
+      peers: (rule.to ?? []).map((peer) => ({
+        ipBlock: peer.ipBlock
+          ? { cidr: peer.ipBlock.cidr, except: peer.ipBlock.except ?? [] }
+          : undefined,
+        namespaceSelector: peer.namespaceSelector?.matchLabels ?? undefined,
+        podSelector: peer.podSelector?.matchLabels ?? undefined,
+      })),
+      ports: (rule.ports ?? []).map((p) => ({
+        protocol: p.protocol ?? "TCP",
+        port: p.port !== undefined ? String(p.port) : undefined,
+      })),
+    }))
+    return {
+      name: np.metadata?.name ?? "",
+      namespace: np.metadata?.namespace ?? "",
+      podSelector: labelsToString(np.spec?.podSelector?.matchLabels),
+      policyTypes: np.spec?.policyTypes ?? [],
+      ingressRuleCount: ingress.length,
+      egressRuleCount: egress.length,
+      creationTimestamp: np.metadata?.creationTimestamp?.toISOString() ?? "",
+      ingressRules,
+      egressRules,
+    }
+  })
+}

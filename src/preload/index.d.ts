@@ -235,6 +235,34 @@ export interface K8sService {
   annotations: Record<string, string>
 }
 
+export interface K8sNetworkPolicyPeer {
+  ipBlock?: { cidr: string; except: string[] }
+  namespaceSelector?: Record<string, string>
+  podSelector?: Record<string, string>
+}
+
+export interface K8sNetworkPolicyPort {
+  protocol?: string
+  port?: string
+}
+
+export interface K8sNetworkPolicyRule {
+  peers: K8sNetworkPolicyPeer[]
+  ports: K8sNetworkPolicyPort[]
+}
+
+export interface K8sNetworkPolicy {
+  name: string
+  namespace: string
+  podSelector: string
+  policyTypes: string[]
+  ingressRuleCount: number
+  egressRuleCount: number
+  creationTimestamp: string
+  ingressRules: K8sNetworkPolicyRule[]
+  egressRules: K8sNetworkPolicyRule[]
+}
+
 export interface K8sIngressTLS {
   secretName: string
   hosts: string[]
@@ -464,6 +492,9 @@ export interface K8sAPI {
   listPods: (args?: { contextName?: string }) => Promise<K8sPod[]>
   listServices: (args?: { contextName?: string }) => Promise<K8sService[]>
   listIngresses: (args?: { contextName?: string }) => Promise<K8sIngress[]>
+  listNetworkPolicies: (args?: {
+    contextName?: string
+  }) => Promise<K8sNetworkPolicy[]>
   getClusterType: () => Promise<"EKS" | "AKS" | "Local">
   createDeployment: (
     namespace: string,

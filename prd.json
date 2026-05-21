@@ -1519,7 +1519,7 @@
     {
       "id": "S79",
       "title": "NetworkPolicy list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add NetworkPolicy to the tree under the Networking group. The list shows which namespaces have policies and the pod selector. The detail panel shows ingress and egress rules in a readable format.",
       "acceptance_criteria": [
         "TreeView Networking group gains a 'NetworkPolicies' item",
@@ -1636,6 +1636,62 @@
       ],
       "dependencies": ["S02"],
       "notes": "Pure refactor — no new functionality. The barrel pattern (k8s-handlers.ts re-exporting from handlers/*) is the lowest-risk approach: index.ts does not need to change. Each handler module receives the pre-constructed API client instances as function parameters (same pattern as current code). Shared types (ServicePort, IngressRuleEntry, IngressTLSEntry) live in networking.ts and are re-exported through the barrel. Do not change function signatures or return types."
+    },
+    {
+      "id": "S85",
+      "title": "Per-context navigation state with tab history",
+      "status": "incomplete",
+      "description": "When the user switches kubeconfig context (cluster), the current resource selection (selectedResourceType, selectedItem, selectedNamespace, nameFilter) is lost. Add per-context navigation state so that each context remembers its own resource selection. Switching contexts restores the previous navigation state for that context, including the BottomDrawer tab list. The context switcher in the AppBar becomes a tab-like control where each context has its own isolated workspace.",
+      "acceptance_criteria": [
+        "Zustand store gains a contextStates map: Record<string, ContextState> where ContextState = { selectedResourceType: string | null, selectedItem: object | null, selectedNamespace: string | null, nameFilter: string, drawerTabs: DrawerTab[], activeTabId: string | null }",
+        "When the user selects a new context via setSelectedContext, the current context's navigation state is first saved into contextStates[previousContext] before switching",
+        "After saving, selectedContext is updated to the new context and the store reads back contextStates[newContext] (if it exists) to restore selectedResourceType, selectedItem, selectedNamespace, nameFilter, drawerTabs, and activeTabId; if no saved state exists for the new context, all navigation state resets to null / empty defaults",
+        "setSelectedResourceType, setSelectedItem, setSelectedNamespace, setNameFilter, openDrawerTab, closeDrawerTab, setActiveDrawerTab all continue to work exactly as before — they mutate the top-level store fields (selectedResourceType etc.), not contextStates directly",
+        "contextStates is persisted in Zustand persist storage so navigation state survives app restart",
+        "Switching to a context that has open BottomDrawer tabs (e.g. a pod-log tab) restores those tabs visually; the actual IPC stream sessions are not re-established (streams show a 'Session ended — reconnect?' message or are simply shown as stopped)",
+        "The AppBar context selector shows the currently active context name; behavior of context switching UI is unchanged",
+        "Removing a context from kubeconfig (detected when context list no longer includes it) cleans up its entry from contextStates to avoid unbounded growth",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S48"],
+      "notes": "Implementation in app.store.ts only — no IPC or renderer component changes needed beyond the store. The contextStates map is written on every setSelectedContext call. The top-level store fields (selectedResourceType, selectedItem, etc.) remain as the single source of truth for the current context; contextStates is only read on context switch and written on context switch. Pod-log and pod-shell tabs restored from contextStates will have stale sessionIds — these sessions are no longer active in the main process. The restored tabs should display a 'Disconnected' state; the user can click a Reconnect button to start a new session."
+    },
+    {
+      "id": "S86",
+      "title": "Persist selected namespace per cluster context",
+      "status": "incomplete",
+      "description": "The selected namespace (selectedNamespace) currently applies globally across all resource types within a session but resets to null whenever the user switches cluster contexts. Add per-context namespace persistence so that each cluster context remembers its own last-selected namespace across resource type switches and across app restarts.",
+      "acceptance_criteria": [
+        "Zustand store gains a new persisted field: contextNamespaces: Record<string, string | null> (context name → last selected namespace)",
+        "contextNamespaces is included in the Zustand persist partialize list so it survives app restarts",
+        "setSelectedNamespace(ns) additionally writes contextNamespaces[selectedContext] = ns whenever selectedContext is non-null",
+        "setSelectedContext(newContext) restores selectedNamespace from contextNamespaces[newContext] if an entry exists; if no entry exists for the new context, selectedNamespace resets to null (all namespaces)",
+        "The namespace filter UI (namespace selector dropdown) reflects the restored value immediately after context switch — no additional component changes needed if it reads selectedNamespace from the store",
+        "Switching back to a previously visited context shows the namespace that was active the last time the user was in that context",
+        "The behavior is independent of resource type: the persisted namespace is a cluster-level setting, not a per-resource-type setting",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S43"],
+      "notes": "Pure store change in app.store.ts. contextNamespaces is a flat Record — one entry per context name. If S85 (per-context navigation state) is also implemented, this story's namespace persistence is superseded by S85's ContextState.selectedNamespace; in that case, skip this story or merge the behavior into S85. Implement this story only if S85 is not yet implemented. The namespace selector component (wherever setSelectedNamespace is called) does not need changes — the store action handles the write-through automatically."
+    },
+    {
+      "id": "S87",
+      "title": "Cluster context alias: set and edit a display name per context",
+      "status": "incomplete",
+      "description": "Kubeconfig context names are often long, auto-generated strings (e.g. 'arn:aws:eks:us-east-1:123456789:cluster/prod-cluster'). Allow users to set a short human-readable alias for each context that replaces the raw name everywhere it is displayed in the UI — the AppBar context selector, the tree view cluster label, and any other place the context name appears. The raw context name is kept internally for all API calls; only display is affected.",
+      "acceptance_criteria": [
+        "Zustand store gains a persisted field: contextAliases: Record<string, string> (context name → alias); included in persist partialize",
+        "AppBar context selector displays alias instead of raw context name when an alias exists; raw name shown as secondary text or tooltip",
+        "Tree view cluster label (the top-level cluster group header in TreeView) displays the alias when set, raw name otherwise",
+        "An edit alias button (pencil icon) appears next to the context name in the AppBar context selector dropdown; clicking it opens an inline input or a small popover with a text field pre-filled with the current alias (or empty if none set)",
+        "Saving a non-empty alias writes contextAliases[contextName] = alias to the store; saving an empty string removes the entry (clears the alias, reverts to raw name)",
+        "The alias input accepts any string up to 64 characters; no validation beyond length",
+        "Aliases persist across app restarts via Zustand persist",
+        "All IPC calls, store lookups by context (contextStates, contextNamespaces from S85/S86), and kubeconfig operations continue to use the raw context name — alias is display-only",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S48"],
+      "notes": "Store change in app.store.ts; UI change in AppBar context selector (wherever the context dropdown/selector is rendered) and TreeView. The alias edit UI can be a shadcn Popover with an Input and Save/Clear buttons, triggered by a Pencil icon button inline in the context dropdown item. Do not write the alias back to ~/.kube/config — it is app-local metadata stored only in Zustand persist."
     }
   ]
 }

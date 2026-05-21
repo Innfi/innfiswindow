@@ -95,6 +95,8 @@ const api = {
       ipcRenderer.invoke("k8s:services:list", args),
     listIngresses: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:ingresses:list", args),
+    listNetworkPolicies: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:networkpolicies:list", args),
     getClusterType: () => ipcRenderer.invoke("k8s:cluster:type"),
     createDeployment: (
       namespace: string,

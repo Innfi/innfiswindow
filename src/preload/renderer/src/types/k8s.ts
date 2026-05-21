@@ -198,6 +198,34 @@ export interface K8sIngressRule {
   paths: K8sIngressPath[]
 }
 
+export interface K8sNetworkPolicyPeer {
+  ipBlock?: { cidr: string; except: string[] }
+  namespaceSelector?: Record<string, string>
+  podSelector?: Record<string, string>
+}
+
+export interface K8sNetworkPolicyPort {
+  protocol?: string
+  port?: string
+}
+
+export interface K8sNetworkPolicyRule {
+  peers: K8sNetworkPolicyPeer[]
+  ports: K8sNetworkPolicyPort[]
+}
+
+export interface K8sNetworkPolicy {
+  name: string
+  namespace: string
+  podSelector: string
+  policyTypes: string[]
+  ingressRuleCount: number
+  egressRuleCount: number
+  creationTimestamp: string
+  ingressRules: K8sNetworkPolicyRule[]
+  egressRules: K8sNetworkPolicyRule[]
+}
+
 export interface K8sIngress {
   name: string
   namespace: string
