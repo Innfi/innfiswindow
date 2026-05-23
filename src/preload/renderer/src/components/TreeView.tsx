@@ -39,7 +39,7 @@ const groups = [
   },
   {
     label: "Governance",
-    items: ["ResourceQuotas", "LimitRanges"],
+    items: ["ResourceQuotas", "LimitRanges", "PodDisruptionBudgets"],
   },
 ]
 

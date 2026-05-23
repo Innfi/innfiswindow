@@ -83,6 +83,8 @@ const api = {
       ipcRenderer.invoke("k8s:resourcequotas:list", args),
     listLimitRanges: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:limitranges:list", args),
+    listPDBs: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:pdbs:list", args),
     listJobs: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:jobs:list", args),
     listCronJobs: (args?: { contextName?: string }) =>

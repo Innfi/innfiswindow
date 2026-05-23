@@ -1461,6 +1461,44 @@ export async function getNodeMetrics(
   }
 }
 
+export async function listPDBs(
+  api: import("@kubernetes/client-node").PolicyV1Api,
+) {
+  try {
+    const res = await api.listPodDisruptionBudgetForAllNamespaces()
+    return res.items.map((pdb) => ({
+      name: pdb.metadata?.name ?? "",
+      namespace: pdb.metadata?.namespace ?? "",
+      minAvailable:
+        pdb.spec?.minAvailable !== undefined
+          ? String(pdb.spec.minAvailable)
+          : null,
+      maxUnavailable:
+        pdb.spec?.maxUnavailable !== undefined
+          ? String(pdb.spec.maxUnavailable)
+          : null,
+      currentHealthy: pdb.status?.currentHealthy ?? 0,
+      desiredHealthy: pdb.status?.desiredHealthy ?? 0,
+      disruptionsAllowed: pdb.status?.disruptionsAllowed ?? 0,
+      expectedPods: pdb.status?.expectedPods ?? 0,
+      selector: pdb.spec?.selector?.matchLabels ?? {},
+      creationTimestamp: pdb.metadata?.creationTimestamp?.toISOString() ?? "",
+      labels: (pdb.metadata?.labels as Record<string, string>) ?? {},
+      annotations: (pdb.metadata?.annotations as Record<string, string>) ?? {},
+    }))
+  } catch (e: unknown) {
+    const httpErr = e as {
+      response?: { statusCode?: number }
+      statusCode?: number
+    }
+    const code = httpErr.response?.statusCode ?? httpErr.statusCode
+    if (code === 404 || code === 403) {
+      return []
+    }
+    throw e
+  }
+}
+
 function labelsToString(labels: Record<string, string> | undefined): string {
   if (!labels || Object.keys(labels).length === 0) return "All pods"
   return Object.entries(labels)

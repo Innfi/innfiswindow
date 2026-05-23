@@ -13,6 +13,7 @@ import {
   KubeConfig,
   Log,
   NetworkingV1Api,
+  PolicyV1Api,
   PortForward,
   RbacAuthorizationV1Api,
   Watch,
@@ -58,6 +59,7 @@ import {
   listNamespaces,
   listNetworkPolicies,
   listNodes,
+  listPDBs,
   listPods,
   listPVCs,
   listPVs,
@@ -100,6 +102,7 @@ const rbacV1Api = kc.makeApiClient(RbacAuthorizationV1Api)
 const autoscalingV2Api = kc.makeApiClient(AutoscalingV2Api)
 const batchV1Api = kc.makeApiClient(BatchV1Api)
 const customObjectsApi = kc.makeApiClient(CustomObjectsApi)
+const policyV1Api = kc.makeApiClient(PolicyV1Api)
 
 // Per-context API client cache
 const clientCache = new Map<
@@ -112,6 +115,7 @@ const clientCache = new Map<
     autoscalingV2: AutoscalingV2Api
     batchV1: BatchV1Api
     customObjects: CustomObjectsApi
+    policyV1: PolicyV1Api
   }
 >()
 
@@ -125,6 +129,7 @@ function getContextClients(contextName?: string | null) {
       autoscalingV2: autoscalingV2Api,
       batchV1: batchV1Api,
       customObjects: customObjectsApi,
+      policyV1: policyV1Api,
     }
   }
   if (clientCache.has(contextName)) return clientCache.get(contextName)!
@@ -139,6 +144,7 @@ function getContextClients(contextName?: string | null) {
     autoscalingV2: ctxKc.makeApiClient(AutoscalingV2Api),
     batchV1: ctxKc.makeApiClient(BatchV1Api),
     customObjects: ctxKc.makeApiClient(CustomObjectsApi),
+    policyV1: ctxKc.makeApiClient(PolicyV1Api),
   }
   clientCache.set(contextName, clients)
   return clients
@@ -389,6 +395,9 @@ app.whenReady().then(() => {
     "k8s:limitranges:list",
     (_e, args?: { contextName?: string }) =>
       listLimitRanges(getContextClients(args?.contextName).coreV1),
+  )
+  ipcMain.handle("k8s:pdbs:list", (_e, args?: { contextName?: string }) =>
+    listPDBs(getContextClients(args?.contextName).policyV1),
   )
   ipcMain.handle(
     "k8s:deployment:create",

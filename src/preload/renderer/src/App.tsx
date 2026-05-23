@@ -25,6 +25,7 @@ import { NamespacesView } from "./components/NamespacesView"
 import { NetworkPoliciesView } from "./components/NetworkPoliciesView"
 import { NodesView } from "./components/NodesView"
 import { OverviewView } from "./components/OverviewView"
+import { PDBsView } from "./components/PDBsView"
 import { PodsView } from "./components/PodsView"
 import { PrometheusSettings } from "./components/PrometheusSettings"
 import { PVCsView } from "./components/PVCsView"
@@ -211,6 +212,7 @@ function App(): JSX.Element {
                 <ResourceQuotasView />
               )}
               {selectedResourceType === "LimitRanges" && <LimitRangesView />}
+              {selectedResourceType === "PodDisruptionBudgets" && <PDBsView />}
               {selectedResourceType === "overview" && <OverviewView />}
               {selectedResourceType === "custom-stream" && <CustomStreamView />}
             </div>

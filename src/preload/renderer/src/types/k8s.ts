@@ -449,3 +449,18 @@ export interface K8sLimitRange {
   limits: K8sLimitRangeItem[]
   creationTimestamp: string
 }
+
+export interface K8sPDB {
+  name: string
+  namespace: string
+  minAvailable: string | null
+  maxUnavailable: string | null
+  currentHealthy: number
+  desiredHealthy: number
+  disruptionsAllowed: number
+  expectedPods: number
+  selector: Record<string, string>
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}

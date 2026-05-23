@@ -1537,7 +1537,7 @@
     {
       "id": "S80",
       "title": "PodDisruptionBudget (PDB) list view and detail view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add PodDisruptionBudget to the tree under Governance. PDBs are critical during node drains and rollouts. The list shows current disruption allowance (how many pods can be disrupted right now).",
       "acceptance_criteria": [
         "TreeView Governance group (from S75) gains a 'PodDisruptionBudgets' item",

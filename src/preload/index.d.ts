@@ -489,6 +489,7 @@ export interface K8sAPI {
     contextName?: string
   }) => Promise<K8sResourceQuota[]>
   listLimitRanges: (args?: { contextName?: string }) => Promise<K8sLimitRange[]>
+  listPDBs: (args?: { contextName?: string }) => Promise<K8sPDB[]>
   listPods: (args?: { contextName?: string }) => Promise<K8sPod[]>
   listServices: (args?: { contextName?: string }) => Promise<K8sService[]>
   listIngresses: (args?: { contextName?: string }) => Promise<K8sIngress[]>
@@ -701,6 +702,21 @@ export interface K8sLimitRange {
   namespace: string
   limits: K8sLimitRangeItem[]
   creationTimestamp: string
+}
+
+export interface K8sPDB {
+  name: string
+  namespace: string
+  minAvailable: string | null
+  maxUnavailable: string | null
+  currentHealthy: number
+  desiredHealthy: number
+  disruptionsAllowed: number
+  expectedPods: number
+  selector: Record<string, string>
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
 }
 
 export interface AwsCredentialResult {
