@@ -15,6 +15,7 @@ import { CronJobsView } from "./components/CronJobsView"
 import { CustomStreamView } from "./components/CustomStreamView"
 import { DaemonSetsView } from "./components/DaemonSetsView"
 import { DeploymentsView } from "./components/DeploymentsView"
+import { EndpointsView } from "./components/EndpointsView"
 import { EventsView } from "./components/EventsView"
 import { GlobalSearch } from "./components/GlobalSearch"
 import { HPAsView } from "./components/HPAsView"
@@ -191,6 +192,7 @@ function App(): JSX.Element {
               {selectedResourceType === "NetworkPolicies" && (
                 <NetworkPoliciesView />
               )}
+              {selectedResourceType === "Endpoints" && <EndpointsView />}
               {selectedResourceType === "Events" && <EventsView />}
               {selectedResourceType === "HPAs" && <HPAsView />}
               {selectedResourceType === "ServiceAccounts" && (

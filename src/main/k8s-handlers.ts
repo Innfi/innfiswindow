@@ -1506,6 +1506,52 @@ function labelsToString(labels: Record<string, string> | undefined): string {
     .join(", ")
 }
 
+export async function listEndpoints(api: CoreV1Api) {
+  const res = await api.listEndpointsForAllNamespaces()
+  return res.items.map((ep) => {
+    const subsets = ep.subsets ?? []
+    let readyAddressCount = 0
+    let notReadyAddressCount = 0
+    const subsetsData = subsets.map((subset) => {
+      const ready = (subset.addresses ?? []).map((addr) => ({
+        ip: addr.ip,
+        targetPodName: addr.targetRef?.name ?? null,
+        targetPodNamespace: addr.targetRef?.namespace ?? null,
+      }))
+      const notReady = (subset.notReadyAddresses ?? []).map((addr) => ({
+        ip: addr.ip,
+        targetPodName: addr.targetRef?.name ?? null,
+        targetPodNamespace: addr.targetRef?.namespace ?? null,
+      }))
+      readyAddressCount += ready.length
+      notReadyAddressCount += notReady.length
+      return {
+        readyAddresses: ready,
+        notReadyAddresses: notReady,
+        ports: (subset.ports ?? []).map((p) => ({
+          name: p.name ?? "",
+          port: p.port,
+          protocol: p.protocol ?? "TCP",
+        })),
+      }
+    })
+    const allPorts = subsets.flatMap((s) =>
+      (s.ports ?? []).map(
+        (p) => `${p.name ? p.name + ":" : ""}${p.port}/${p.protocol ?? "TCP"}`,
+      ),
+    )
+    return {
+      name: ep.metadata?.name ?? "",
+      namespace: ep.metadata?.namespace ?? "",
+      readyAddressCount,
+      notReadyAddressCount,
+      ports: [...new Set(allPorts)].join(", "),
+      creationTimestamp: ep.metadata?.creationTimestamp?.toISOString() ?? "",
+      subsets: subsetsData,
+    }
+  })
+}
+
 export async function listNetworkPolicies(api: NetworkingV1Api) {
   const res = await api.listNetworkPolicyForAllNamespaces()
   return res.items.map((np) => {

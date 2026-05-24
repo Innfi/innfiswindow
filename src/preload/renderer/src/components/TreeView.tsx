@@ -22,7 +22,10 @@ const groups = [
     ],
   },
   { label: "Configuration", items: ["ConfigMaps", "Secrets"] },
-  { label: "Networking", items: ["Services", "Ingresses", "NetworkPolicies"] },
+  {
+    label: "Networking",
+    items: ["Services", "Ingresses", "NetworkPolicies", "Endpoints"],
+  },
   {
     label: "Auth",
     items: [

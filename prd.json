@@ -1556,7 +1556,7 @@
     {
       "id": "S81",
       "title": "Endpoints and EndpointSlices view",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add Endpoints to the Networking group. Endpoints show which pod IPs back a Service, which is essential for debugging 503s and service routing issues. The detail panel shows ready vs not-ready addresses and their target pod names.",
       "acceptance_criteria": [
         "TreeView Networking group gains an 'Endpoints' item",

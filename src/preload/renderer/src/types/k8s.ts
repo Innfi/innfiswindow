@@ -450,6 +450,28 @@ export interface K8sLimitRange {
   creationTimestamp: string
 }
 
+export interface K8sEndpointAddress {
+  ip: string
+  targetPodName: string | null
+  targetPodNamespace: string | null
+}
+
+export interface K8sEndpointSubset {
+  readyAddresses: K8sEndpointAddress[]
+  notReadyAddresses: K8sEndpointAddress[]
+  ports: { name: string; port: number; protocol: string }[]
+}
+
+export interface K8sEndpoint {
+  name: string
+  namespace: string
+  readyAddressCount: number
+  notReadyAddressCount: number
+  ports: string
+  creationTimestamp: string
+  subsets: K8sEndpointSubset[]
+}
+
 export interface K8sPDB {
   name: string
   namespace: string

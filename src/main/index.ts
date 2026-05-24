@@ -51,6 +51,7 @@ import {
   listDaemonSets,
   listDeploymentHistory,
   listDeployments,
+  listEndpoints,
   listEvents,
   listHPAs,
   listIngresses,
@@ -364,6 +365,9 @@ app.whenReady().then(() => {
     "k8s:networkpolicies:list",
     (_e, args?: { contextName?: string }) =>
       listNetworkPolicies(getContextClients(args?.contextName).networkingV1),
+  )
+  ipcMain.handle("k8s:endpoints:list", (_e, args?: { contextName?: string }) =>
+    listEndpoints(getContextClients(args?.contextName).coreV1),
   )
   ipcMain.handle("k8s:nodes:list", (_e, args?: { contextName?: string }) =>
     listNodes(getContextClients(args?.contextName).coreV1),
