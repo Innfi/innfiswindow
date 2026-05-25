@@ -214,16 +214,12 @@ export function PodLogPanel({
       const filtered = hasError ? lines : lines.filter(testLine)
       const filteredM = hasError
         ? mergedLines
-        : mergedLines.filter((m) =>
-            testLine(`[${m.containerName}] ${m.line}`),
-          )
+        : mergedLines.filter((m) => testLine(`[${m.containerName}] ${m.line}`))
 
       return {
         filteredLines: filtered,
         filteredMerged: filteredM,
-        matchRegex: matchRe
-          ? new RegExp(matchRe.source, matchRe.flags)
-          : null,
+        matchRegex: matchRe ? new RegExp(matchRe.source, matchRe.flags) : null,
         regexError: hasError,
       }
     }, [lines, mergedLines, searchTerm, regexMode])
@@ -287,9 +283,7 @@ export function PodLogPanel({
             <button
               onClick={toggleMergeMode}
               title={
-                mergeMode
-                  ? "Single container mode"
-                  : "Merge all containers"
+                mergeMode ? "Single container mode" : "Merge all containers"
               }
               className={`text-xs px-2 py-0.5 rounded border font-mono flex items-center gap-1 ${
                 mergeMode
