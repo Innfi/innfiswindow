@@ -1,4 +1,4 @@
-import { Square } from "lucide-react"
+import { Layers, Square } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { Button } from "../../components/ui/button"
@@ -7,6 +7,11 @@ interface K8sPodContainer {
   name: string
   image: string
   restartCount: number
+}
+
+interface MergedLine {
+  containerName: string
+  line: string
 }
 
 interface PodLogPanelProps {
@@ -23,17 +28,23 @@ export function PodLogPanel({
   containers,
 }: PodLogPanelProps): JSX.Element {
   const [lines, setLines] = useState<string[]>([])
+  const [mergedLines, setMergedLines] = useState<MergedLine[]>([])
   const [selectedContainer, setSelectedContainer] = useState(
     containers[0]?.name ?? "",
   )
   const [streaming, setStreaming] = useState(false)
+  const [mergeMode, setMergeMode] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [regexMode, setRegexMode] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const userScrolledRef = useRef(false)
+  // sessionId → containerName for active merge streams
+  const mergeSessionMapRef = useRef<Map<string, string>>(new Map())
+  const mergeSessionIdsRef = useRef<string[]>([])
+  const prevContainerRef = useRef(containers[0]?.name ?? "")
   const searchActive = searchTerm.length > 0
 
-  function startStream(containerName: string): void {
+  function startSingleStream(containerName: string): void {
     setLines([])
     setStreaming(true)
     userScrolledRef.current = false
@@ -45,42 +56,116 @@ export function PodLogPanel({
       })
   }
 
-  function stopStream(): void {
-    window.api.stopPodLog(namespace, podName).catch(console.error)
+  function stopSingleStream(): void {
+    window.api.stopPodLogSession(tabKey).catch(console.error)
     setStreaming(false)
   }
 
-  // Subscribe to log data events — filter by tabKey
+  function startMergeStreams(): void {
+    setMergedLines([])
+    userScrolledRef.current = false
+    const ts = Date.now()
+    const sessionMap = new Map<string, string>()
+    const sessionIds: string[] = []
+    for (const c of containers) {
+      const sid = `pod-log-${podName}-${c.name}-${ts}`
+      sessionIds.push(sid)
+      sessionMap.set(sid, c.name)
+      window.api
+        .startPodLog(namespace, podName, c.name, sid)
+        .catch(console.error)
+    }
+    mergeSessionMapRef.current = sessionMap
+    mergeSessionIdsRef.current = sessionIds
+    setStreaming(true)
+  }
+
+  function stopMergeStreams(): void {
+    for (const sid of mergeSessionIdsRef.current) {
+      window.api.stopPodLogSession(sid).catch(console.error)
+    }
+    mergeSessionMapRef.current = new Map()
+    mergeSessionIdsRef.current = []
+    setStreaming(false)
+  }
+
+  function toggleMergeMode(): void {
+    if (!mergeMode) {
+      prevContainerRef.current = selectedContainer
+      stopSingleStream()
+      setMergeMode(true)
+    } else {
+      stopMergeStreams()
+      setMergeMode(false)
+      setMergedLines([])
+      setSelectedContainer(prevContainerRef.current)
+    }
+  }
+
+  // Subscribe to log data events
   useEffect(() => {
-    const unsubscribe = window.api.onPodLogData((data) => {
+    const unsub = window.api.onPodLogData((data) => {
       if (data.tabKey === tabKey) {
         setLines((prev) => [...prev, data.line])
+      } else {
+        const cname = mergeSessionMapRef.current.get(data.tabKey)
+        if (cname !== undefined) {
+          setMergedLines((prev) => [
+            ...prev,
+            { containerName: cname, line: data.line },
+          ])
+        }
       }
     })
-    return unsubscribe
+    return unsub
   }, [tabKey])
 
-  // Reset selected container when pod changes
+  // Reset when pod changes
   useEffect(() => {
-    setSelectedContainer(containers[0]?.name ?? "")
+    const first = containers[0]?.name ?? ""
+    setSelectedContainer(first)
+    prevContainerRef.current = first
+    setMergeMode(false)
+    setMergedLines([])
+    mergeSessionMapRef.current = new Map()
+    mergeSessionIdsRef.current = []
   }, [namespace, podName])
 
-  // Start stream on mount and when container changes
+  // Single-container mode stream lifecycle
   useEffect(() => {
-    if (selectedContainer) {
-      startStream(selectedContainer)
-    }
+    if (mergeMode) return
+    if (!selectedContainer) return
+    startSingleStream(selectedContainer)
     return () => {
-      window.api.stopPodLog(namespace, podName).catch(console.error)
+      window.api.stopPodLogSession(tabKey).catch(console.error)
     }
-  }, [namespace, podName, selectedContainer])
+  }, [namespace, podName, selectedContainer, mergeMode])
 
-  // Auto-scroll to bottom when new lines arrive (paused when search active)
+  // Merge mode stream lifecycle
+  useEffect(() => {
+    if (!mergeMode) return
+    startMergeStreams()
+    return () => {
+      stopMergeStreams()
+    }
+  }, [mergeMode, namespace, podName])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      window.api.stopPodLogSession(tabKey).catch(console.error)
+      for (const sid of mergeSessionIdsRef.current) {
+        window.api.stopPodLogSession(sid).catch(console.error)
+      }
+    }
+  }, [])
+
+  // Auto-scroll to bottom
   useEffect(() => {
     if (!userScrolledRef.current && !searchActive && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [lines, searchActive])
+  }, [lines, mergedLines, searchActive])
 
   function handleScroll(): void {
     const el = scrollRef.current
@@ -90,40 +175,58 @@ export function PodLogPanel({
   }
 
   function handleContainerChange(name: string): void {
-    stopStream()
+    stopSingleStream()
     setSelectedContainer(name)
   }
 
   function handleStop(): void {
-    stopStream()
+    if (mergeMode) {
+      stopMergeStreams()
+    } else {
+      stopSingleStream()
+    }
   }
 
-  // Derive filtered lines, build regex for highlighting, detect invalid regex
-  const { filteredLines, matchRegex, regexError } = useMemo(() => {
-    if (!searchTerm)
-      return { filteredLines: lines, matchRegex: null, regexError: false }
-    if (regexMode) {
-      try {
-        const re = new RegExp(searchTerm, "gi")
-        const filtered = lines.filter((l) => re.test(l))
-        return {
-          filteredLines: filtered,
-          matchRegex: new RegExp(searchTerm, "gi"),
-          regexError: false,
+  const { filteredLines, filteredMerged, matchRegex, regexError } =
+    useMemo(() => {
+      let matchRe: RegExp | null = null
+      let hasError = false
+
+      if (searchTerm) {
+        if (regexMode) {
+          try {
+            matchRe = new RegExp(searchTerm, "gi")
+          } catch {
+            hasError = true
+          }
+        } else {
+          const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+          matchRe = new RegExp(escaped, "gi")
         }
-      } catch {
-        return { filteredLines: lines, matchRegex: null, regexError: true }
       }
-    }
-    const lower = searchTerm.toLowerCase()
-    const filtered = lines.filter((l) => l.toLowerCase().includes(lower))
-    const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    return {
-      filteredLines: filtered,
-      matchRegex: new RegExp(escaped, "gi"),
-      regexError: false,
-    }
-  }, [lines, searchTerm, regexMode])
+
+      const testLine = (line: string): boolean => {
+        if (!matchRe) return true
+        matchRe.lastIndex = 0
+        return matchRe.test(line)
+      }
+
+      const filtered = hasError ? lines : lines.filter(testLine)
+      const filteredM = hasError
+        ? mergedLines
+        : mergedLines.filter((m) =>
+            testLine(`[${m.containerName}] ${m.line}`),
+          )
+
+      return {
+        filteredLines: filtered,
+        filteredMerged: filteredM,
+        matchRegex: matchRe
+          ? new RegExp(matchRe.source, matchRe.flags)
+          : null,
+        regexError: hasError,
+      }
+    }, [lines, mergedLines, searchTerm, regexMode])
 
   function highlightLine(line: string, re: RegExp): JSX.Element {
     const parts: JSX.Element[] = []
@@ -149,6 +252,8 @@ export function PodLogPanel({
     return <>{parts}</>
   }
 
+  const displayCount = mergeMode ? filteredMerged.length : filteredLines.length
+
   return (
     <div className="flex flex-col w-full h-full bg-zinc-950 text-zinc-100 overflow-hidden">
       {/* Header */}
@@ -157,7 +262,7 @@ export function PodLogPanel({
           <span className="text-sm font-semibold text-zinc-200">
             {namespace}/{podName}
           </span>
-          {containers.length > 1 && (
+          {!mergeMode && containers.length > 1 && (
             <select
               value={selectedContainer}
               onChange={(e) => handleContainerChange(e.target.value)}
@@ -170,11 +275,32 @@ export function PodLogPanel({
               ))}
             </select>
           )}
-          {containers.length === 1 && (
+          {!mergeMode && containers.length === 1 && (
             <span className="text-xs text-zinc-500">{selectedContainer}</span>
+          )}
+          {mergeMode && (
+            <span className="text-xs text-zinc-400 italic">merged</span>
           )}
         </div>
         <div className="flex items-center gap-1">
+          {containers.length > 1 && (
+            <button
+              onClick={toggleMergeMode}
+              title={
+                mergeMode
+                  ? "Single container mode"
+                  : "Merge all containers"
+              }
+              className={`text-xs px-2 py-0.5 rounded border font-mono flex items-center gap-1 ${
+                mergeMode
+                  ? "bg-zinc-600 border-zinc-400 text-zinc-100"
+                  : "bg-zinc-800 border-zinc-700 text-zinc-400"
+              }`}
+            >
+              <Layers className="h-3 w-3" />
+              Merge
+            </button>
+          )}
           {streaming && (
             <Button
               size="icon"
@@ -211,8 +337,7 @@ export function PodLogPanel({
         </button>
         {searchTerm && (
           <span className="text-xs text-zinc-400 whitespace-nowrap">
-            {filteredLines.length} line{filteredLines.length !== 1 ? "s" : ""}{" "}
-            match
+            {displayCount} line{displayCount !== 1 ? "s" : ""} match
           </span>
         )}
       </div>
@@ -223,20 +348,66 @@ export function PodLogPanel({
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-2 font-mono text-xs leading-relaxed"
       >
-        {filteredLines.length === 0 && (
-          <span className="text-zinc-500">
-            {searchTerm
-              ? "No matching lines."
-              : streaming
-                ? "Waiting for logs…"
-                : "No logs."}
-          </span>
+        {mergeMode ? (
+          filteredMerged.length === 0 ? (
+            <span className="text-zinc-500">
+              {searchTerm
+                ? "No matching lines."
+                : streaming
+                  ? "Waiting for logs…"
+                  : "No logs."}
+            </span>
+          ) : (
+            filteredMerged.map((m, i) => {
+              const prefix = `[${m.containerName}] `
+              if (matchRegex) {
+                const fullLine = prefix + m.line
+                return (
+                  <div
+                    key={i}
+                    className="whitespace-pre-wrap break-all text-zinc-200"
+                  >
+                    {highlightLine(
+                      fullLine,
+                      new RegExp(matchRegex.source, matchRegex.flags),
+                    )}
+                  </div>
+                )
+              }
+              return (
+                <div key={i} className="whitespace-pre-wrap break-all">
+                  <span className="text-zinc-500">{prefix}</span>
+                  <span className="text-zinc-200">{m.line}</span>
+                </div>
+              )
+            })
+          )
+        ) : (
+          <>
+            {filteredLines.length === 0 && (
+              <span className="text-zinc-500">
+                {searchTerm
+                  ? "No matching lines."
+                  : streaming
+                    ? "Waiting for logs…"
+                    : "No logs."}
+              </span>
+            )}
+            {filteredLines.map((line, i) => (
+              <div
+                key={i}
+                className="whitespace-pre-wrap break-all text-zinc-200"
+              >
+                {matchRegex
+                  ? highlightLine(
+                      line,
+                      new RegExp(matchRegex.source, matchRegex.flags),
+                    )
+                  : line}
+              </div>
+            ))}
+          </>
         )}
-        {filteredLines.map((line, i) => (
-          <div key={i} className="whitespace-pre-wrap break-all text-zinc-200">
-            {matchRegex ? highlightLine(line, matchRegex) : line}
-          </div>
-        ))}
       </div>
     </div>
   )

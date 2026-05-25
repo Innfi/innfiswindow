@@ -1575,7 +1575,7 @@
     {
       "id": "S82",
       "title": "Multi-container log merge in pod log panel",
-      "status": "incomplete",
+      "status": "complete",
       "description": "The current PodLogPanel shows one container's log at a time. Add a 'Merge all containers' mode that interleaves log lines from all containers in the pod, prefixed with the container name, in a single scrolling view. Useful for debugging init containers and sidecars.",
       "acceptance_criteria": [
         "PodLogPanel gains a 'Merge containers' toggle button in the header (only shown when the pod has more than one container)",

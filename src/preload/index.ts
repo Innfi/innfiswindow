@@ -241,6 +241,8 @@ const api = {
     }),
   stopPodLog: (namespace: string, podName: string) =>
     ipcRenderer.invoke("k8s:pod:log:stop", { namespace, podName }),
+  stopPodLogSession: (sessionId: string) =>
+    ipcRenderer.invoke("k8s:pod:log:stop:session", { sessionId }),
   onPodLogData: (
     callback: (data: { tabKey: string; line: string }) => void,
   ) => {

@@ -738,6 +738,7 @@ export interface API {
     namespace: string,
     podName: string,
   ) => Promise<{ success: boolean }>
+  stopPodLogSession: (sessionId: string) => Promise<{ success: boolean }>
   onPodLogData: (
     callback: (data: { tabKey: string; line: string }) => void,
   ) => () => void

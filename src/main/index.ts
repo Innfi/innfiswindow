@@ -674,15 +674,16 @@ app.whenReady().then(() => {
         tabKey?: string
       },
     ) => {
-      const key = `${namespace}/${podName}`
-      if (activeLogRequests.has(key)) {
-        activeLogRequests.get(key)!.abort()
-        activeLogRequests.delete(key)
+      const defaultKey = `${namespace}/${podName}`
+      const storageKey = tabKey ?? defaultKey
+      if (activeLogRequests.has(storageKey)) {
+        activeLogRequests.get(storageKey)!.abort()
+        activeLogRequests.delete(storageKey)
       }
 
       const log = new Log(kc)
       const logStream = new PassThrough()
-      const emitKey = tabKey ?? key
+      const emitKey = storageKey
 
       logStream.on("data", (chunk: Buffer) => {
         const text = chunk.toString()
@@ -708,7 +709,7 @@ app.whenReady().then(() => {
         { follow: true, tailLines: 200 },
       )
 
-      activeLogRequests.set(key, { abort: () => req.abort() })
+      activeLogRequests.set(storageKey, { abort: () => req.abort() })
       return { success: true }
     },
   )
@@ -720,6 +721,17 @@ app.whenReady().then(() => {
       if (activeLogRequests.has(key)) {
         activeLogRequests.get(key)!.abort()
         activeLogRequests.delete(key)
+      }
+      return { success: true }
+    },
+  )
+
+  ipcMain.handle(
+    "k8s:pod:log:stop:session",
+    (_e, { sessionId }: { sessionId: string }) => {
+      if (activeLogRequests.has(sessionId)) {
+        activeLogRequests.get(sessionId)!.abort()
+        activeLogRequests.delete(sessionId)
       }
       return { success: true }
     },
