@@ -17,6 +17,7 @@ import {
   K8sNetworkPolicyPeer,
   K8sNetworkPolicyRule,
 } from "../types/k8s"
+import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { RefreshBar } from "./RefreshBar"
 

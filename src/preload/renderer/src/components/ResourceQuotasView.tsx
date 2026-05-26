@@ -18,6 +18,7 @@ import {
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sResourceQuota } from "../types/k8s"
+import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"

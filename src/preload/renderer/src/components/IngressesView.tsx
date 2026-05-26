@@ -24,6 +24,7 @@ import { cn, filterResources } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sIngress, K8sIngressRule, K8sIngressTLS } from "../types/k8s"
+import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { RefreshBar } from "./RefreshBar"
 
@@ -154,6 +155,7 @@ function DetailPanel({
           >
             Delete
           </Button>
+          <CopyResourceButton name={item.name} namespace={item.namespace} resourceKind="ingress" />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"

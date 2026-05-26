@@ -24,6 +24,7 @@ import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sClusterRoleBinding } from "../types/k8s"
+import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { RefreshBar } from "./RefreshBar"
 
@@ -99,6 +100,7 @@ function DetailPanel({
             <Trash2 className="h-3 w-3 mr-1" />
             Delete
           </Button>
+          <CopyResourceButton name={binding.name} resourceKind="clusterrolebinding" />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
