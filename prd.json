@@ -1593,7 +1593,7 @@
     {
       "id": "S83",
       "title": "kubectl-style resource copy to clipboard",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add a copy-to-clipboard menu to resource detail panels. Users frequently need to copy a pod name, namespace, or full kubectl command to paste into a terminal. A small copy button or dropdown in the detail panel header provides one-click access.",
       "acceptance_criteria": [
         "Resource detail panels (Pods, Deployments, Services, and all other resource types with detail panels) gain a copy dropdown button in the header action area (copy icon, ghost variant)",

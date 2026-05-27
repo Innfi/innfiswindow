@@ -17,6 +17,7 @@ import {
   K8sNetworkPolicyPeer,
   K8sNetworkPolicyRule,
 } from "../types/k8s"
+import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { RefreshBar } from "./RefreshBar"
 
@@ -131,13 +132,20 @@ function DetailPanel({
           <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
           <p className="text-xs text-muted-foreground">{item.namespace}</p>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
-          aria-label="Close panel"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <CopyResourceButton
+            name={item.name}
+            namespace={item.namespace}
+            resourceKind="networkpolicy"
+          />
+          <button
+            onClick={onClose}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            aria-label="Close panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div>
