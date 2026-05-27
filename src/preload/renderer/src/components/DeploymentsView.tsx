@@ -185,7 +185,11 @@ function DetailPanel({
           >
             Delete
           </Button>
-          <CopyResourceButton name={deployment.name} namespace={deployment.namespace} resourceKind="deployment" />
+          <CopyResourceButton
+            name={deployment.name}
+            namespace={deployment.namespace}
+            resourceKind="deployment"
+          />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"

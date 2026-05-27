@@ -100,7 +100,11 @@ function DetailPanel({
             <Trash2 className="h-3 w-3 mr-1" />
             Delete
           </Button>
-          <CopyResourceButton name={sa.name} namespace={sa.namespace} resourceKind="serviceaccount" />
+          <CopyResourceButton
+            name={sa.name}
+            namespace={sa.namespace}
+            resourceKind="serviceaccount"
+          />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"

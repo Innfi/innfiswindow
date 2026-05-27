@@ -120,7 +120,11 @@ function DetailPanel({
           >
             Delete
           </Button>
-          <CopyResourceButton name={cm.name} namespace={cm.namespace} resourceKind="configmap" />
+          <CopyResourceButton
+            name={cm.name}
+            namespace={cm.namespace}
+            resourceKind="configmap"
+          />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"

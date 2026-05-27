@@ -142,7 +142,11 @@ function DetailPanel({
           >
             Delete
           </Button>
-          <CopyResourceButton name={svc.name} namespace={svc.namespace} resourceKind="service" />
+          <CopyResourceButton
+            name={svc.name}
+            namespace={svc.namespace}
+            resourceKind="service"
+          />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"

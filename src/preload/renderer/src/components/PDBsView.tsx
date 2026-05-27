@@ -36,13 +36,20 @@ function DetailPanel({
           <h2 className="font-semibold text-base mb-1">{pdb.name}</h2>
           <span className="text-xs text-muted-foreground">{pdb.namespace}</span>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
-          aria-label="Close panel"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <CopyResourceButton
+            name={pdb.name}
+            namespace={pdb.namespace}
+            resourceKind="poddisruptionbudget"
+          />
+          <button
+            onClick={onClose}
+            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            aria-label="Close panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-1">
