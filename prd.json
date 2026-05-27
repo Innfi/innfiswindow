@@ -1611,7 +1611,7 @@
     {
       "id": "S84",
       "title": "Refactor k8s-handlers.ts into per-domain handler modules",
-      "status": "incomplete",
+      "status": "complete",
       "description": "src/main/k8s-handlers.ts has grown to 1300+ lines covering every resource type in a single file. Split it into a directory of focused modules grouped by resource domain. The single monolith becomes an entry-point barrel that re-exports everything so that src/main/index.ts requires no changes.",
       "acceptance_criteria": [
         "New directory src/main/handlers/ created",
