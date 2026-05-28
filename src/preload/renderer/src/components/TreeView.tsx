@@ -61,12 +61,14 @@ export function TreeView(): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
   const setSelectedResourceType = useAppStore((s) => s.setSelectedResourceType)
   const setSelectedContext = useAppStore((s) => s.setSelectedContext)
+  const cleanupContextStates = useAppStore((s) => s.cleanupContextStates)
 
   useEffect(() => {
     window.api.k8s
       .listContexts()
       .then((data) => {
         setContexts(data)
+        cleanupContextStates(data.map((c) => c.name))
         // Open all contexts by default
         const ctxOpen: Record<string, boolean> = {}
         data.forEach((c) => {

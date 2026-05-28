@@ -273,6 +273,7 @@ export function BottomDrawer(): JSX.Element {
                   namespace={tab.namespace}
                   podName={tab.podName}
                   containers={tab.containers}
+                  restored={tab.restored}
                 />
               )}
               {tab.type === "new-resource" && (
@@ -284,6 +285,7 @@ export function BottomDrawer(): JSX.Element {
                   namespace={tab.namespace}
                   podName={tab.podName}
                   containerName={tab.containerName}
+                  restored={tab.restored}
                 />
               )}
               {tab.type === "edit-resource" && (

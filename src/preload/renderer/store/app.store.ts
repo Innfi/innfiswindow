@@ -15,6 +15,7 @@ export type DrawerTab =
       namespace: string
       podName: string
       containers: K8sPodContainer[]
+      restored?: boolean
     }
   | {
       id: string
@@ -30,6 +31,7 @@ export type DrawerTab =
       namespace: string
       podName: string
       containerName: string
+      restored?: boolean
     }
   | {
       id: string
@@ -144,6 +146,15 @@ export type DrawerTabInput =
 
 export type RefreshIntervalValue = 10 | 30 | 60 | 120 | "off"
 
+export interface ContextState {
+  selectedResourceType: string | null
+  selectedItem: object | null
+  selectedNamespace: string | null
+  nameFilter: string
+  drawerTabs: DrawerTab[]
+  activeTabId: string | null
+}
+
 interface AppState {
   selectedResourceType: string | null
   selectedItem: object | null
@@ -154,6 +165,7 @@ interface AppState {
   refreshInterval: RefreshIntervalValue
   drawerTabs: DrawerTab[]
   activeTabId: string | null
+  contextStates: Record<string, ContextState>
   setSelectedResourceType: (type: string | null) => void
   setSelectedItem: (item: object | null) => void
   navigateToResource: (type: string, item: object) => void
@@ -165,6 +177,8 @@ interface AppState {
   openDrawerTab: (tab: DrawerTabInput) => void
   closeDrawerTab: (id: string) => void
   setActiveDrawerTab: (id: string) => void
+  cleanupContextStates: (activeContextNames: string[]) => void
+  markTabReconnected: (id: string) => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -179,14 +193,63 @@ export const useAppStore = create<AppState>()(
       refreshInterval: 30,
       drawerTabs: [],
       activeTabId: null,
+      contextStates: {},
       setSelectedResourceType: (type) =>
         set({ selectedResourceType: type, selectedItem: null }),
       setSelectedItem: (item) => set({ selectedItem: item }),
       navigateToResource: (type, item) =>
         set({ selectedResourceType: type, selectedItem: item }),
       setSelectedNamespace: (ns) => set({ selectedNamespace: ns }),
-      setSelectedContext: (ctx) =>
-        set({ selectedContext: ctx, selectedNamespace: null }),
+      setSelectedContext: (ctx) => {
+        const state = get()
+        const prev = state.selectedContext
+
+        // Save current context's navigation state
+        const updatedContextStates = { ...state.contextStates }
+        if (prev !== null) {
+          updatedContextStates[prev] = {
+            selectedResourceType: state.selectedResourceType,
+            selectedItem: state.selectedItem,
+            selectedNamespace: state.selectedNamespace,
+            nameFilter: state.nameFilter,
+            drawerTabs: state.drawerTabs,
+            activeTabId: state.activeTabId,
+          }
+        }
+
+        // Restore new context's navigation state or use defaults
+        const saved = ctx !== null ? updatedContextStates[ctx] : undefined
+        if (saved) {
+          // Mark stream tabs as restored so they don't auto-start
+          const restoredTabs = saved.drawerTabs.map((tab) => {
+            if (tab.type === "pod-log" || tab.type === "pod-shell") {
+              return { ...tab, restored: true }
+            }
+            return tab
+          })
+          set({
+            selectedContext: ctx,
+            contextStates: updatedContextStates,
+            selectedResourceType: saved.selectedResourceType,
+            selectedItem: saved.selectedItem,
+            selectedNamespace: saved.selectedNamespace,
+            nameFilter: saved.nameFilter,
+            drawerTabs: restoredTabs,
+            activeTabId: saved.activeTabId,
+          })
+        } else {
+          set({
+            selectedContext: ctx,
+            contextStates: updatedContextStates,
+            selectedResourceType: null,
+            selectedItem: null,
+            selectedNamespace: null,
+            nameFilter: "",
+            drawerTabs: [],
+            activeTabId: null,
+          })
+        }
+      },
       setNameFilter: (filter) => set({ nameFilter: filter }),
       setThemeId: (id) => set({ themeId: id }),
       setRefreshInterval: (interval) => set({ refreshInterval: interval }),
@@ -212,12 +275,34 @@ export const useAppStore = create<AppState>()(
         set({ drawerTabs: remaining, activeTabId: nextActive })
       },
       setActiveDrawerTab: (id) => set({ activeTabId: id }),
+      cleanupContextStates: (activeContextNames) => {
+        const { contextStates } = get()
+        const cleaned: Record<string, ContextState> = {}
+        for (const name of activeContextNames) {
+          if (contextStates[name]) {
+            cleaned[name] = contextStates[name]
+          }
+        }
+        set({ contextStates: cleaned })
+      },
+      markTabReconnected: (id) => {
+        const { drawerTabs } = get()
+        set({
+          drawerTabs: drawerTabs.map((tab) =>
+            tab.id === id &&
+            (tab.type === "pod-log" || tab.type === "pod-shell")
+              ? { ...tab, restored: false }
+              : tab,
+          ),
+        })
+      },
     }),
     {
       name: "innfiswindow-app-store",
       partialize: (state) => ({
         themeId: state.themeId,
         refreshInterval: state.refreshInterval,
+        contextStates: state.contextStates,
       }),
     },
   ),

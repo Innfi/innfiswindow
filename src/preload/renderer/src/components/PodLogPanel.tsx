@@ -1,5 +1,6 @@
-import { Layers, Square } from "lucide-react"
+import { Layers, RefreshCw, Square } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useAppStore } from "@store/app.store"
 
 import { Button } from "../../components/ui/button"
 
@@ -19,6 +20,7 @@ interface PodLogPanelProps {
   namespace: string
   podName: string
   containers: K8sPodContainer[]
+  restored?: boolean
 }
 
 export function PodLogPanel({
@@ -26,7 +28,10 @@ export function PodLogPanel({
   namespace,
   podName,
   containers,
+  restored,
 }: PodLogPanelProps): JSX.Element {
+  const markTabReconnected = useAppStore((s) => s.markTabReconnected)
+  const [sessionEnded, setSessionEnded] = useState(restored ?? false)
   const [lines, setLines] = useState<string[]>([])
   const [mergedLines, setMergedLines] = useState<MergedLine[]>([])
   const [selectedContainer, setSelectedContainer] = useState(
@@ -133,22 +138,24 @@ export function PodLogPanel({
 
   // Single-container mode stream lifecycle
   useEffect(() => {
+    if (sessionEnded) return
     if (mergeMode) return
     if (!selectedContainer) return
     startSingleStream(selectedContainer)
     return () => {
       window.api.stopPodLogSession(tabKey).catch(console.error)
     }
-  }, [namespace, podName, selectedContainer, mergeMode])
+  }, [namespace, podName, selectedContainer, mergeMode, sessionEnded])
 
   // Merge mode stream lifecycle
   useEffect(() => {
+    if (sessionEnded) return
     if (!mergeMode) return
     startMergeStreams()
     return () => {
       stopMergeStreams()
     }
-  }, [mergeMode, namespace, podName])
+  }, [mergeMode, namespace, podName, sessionEnded])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -249,6 +256,27 @@ export function PodLogPanel({
   }
 
   const displayCount = mergeMode ? filteredMerged.length : filteredLines.length
+
+  if (sessionEnded) {
+    return (
+      <div className="flex flex-col w-full h-full bg-zinc-950 text-zinc-100 items-center justify-center gap-3">
+        <p className="text-sm text-zinc-400">Session ended — reconnect?</p>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5 text-xs border-zinc-700 text-zinc-200 hover:bg-zinc-800"
+          onClick={() => {
+            markTabReconnected(tabKey)
+            setSessionEnded(false)
+            startSingleStream(selectedContainer)
+          }}
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Reconnect
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col w-full h-full bg-zinc-950 text-zinc-100 overflow-hidden">

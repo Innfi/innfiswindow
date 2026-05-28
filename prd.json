@@ -1640,7 +1640,7 @@
     {
       "id": "S85",
       "title": "Per-context navigation state with tab history",
-      "status": "incomplete",
+      "status": "complete",
       "description": "When the user switches kubeconfig context (cluster), the current resource selection (selectedResourceType, selectedItem, selectedNamespace, nameFilter) is lost. Add per-context navigation state so that each context remembers its own resource selection. Switching contexts restores the previous navigation state for that context, including the BottomDrawer tab list. The context switcher in the AppBar becomes a tab-like control where each context has its own isolated workspace.",
       "acceptance_criteria": [
         "Zustand store gains a contextStates map: Record<string, ContextState> where ContextState = { selectedResourceType: string | null, selectedItem: object | null, selectedNamespace: string | null, nameFilter: string, drawerTabs: DrawerTab[], activeTabId: string | null }",

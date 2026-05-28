@@ -1,4 +1,5 @@
 import { ElectronAPI } from "@electron-toolkit/preload"
+import { K8sEndpoint } from "@renderer/types/k8s"
 
 export interface K8sContext {
   name: string
@@ -496,6 +497,7 @@ export interface K8sAPI {
   listNetworkPolicies: (args?: {
     contextName?: string
   }) => Promise<K8sNetworkPolicy[]>
+  listEndpoints: (args?: { contextName?: string }) => Promise<K8sEndpoint[]>
   getClusterType: () => Promise<"EKS" | "AKS" | "Local">
   createDeployment: (
     namespace: string,

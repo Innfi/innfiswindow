@@ -337,7 +337,7 @@ export async function listNetworkPolicies(api: NetworkingV1Api) {
     const ingress = np.spec?.ingress ?? []
     const egress = np.spec?.egress ?? []
     const ingressRules = ingress.map((rule) => ({
-      peers: (rule.from ?? []).map((peer) => ({
+      peers: (rule._from ?? []).map((peer) => ({
         ipBlock: peer.ipBlock
           ? { cidr: peer.ipBlock.cidr, except: peer.ipBlock.except ?? [] }
           : undefined,

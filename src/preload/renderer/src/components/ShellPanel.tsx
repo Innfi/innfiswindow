@@ -1,4 +1,7 @@
-import { useEffect, useRef } from "react"
+import { RefreshCw } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { Button } from "@components/ui/button"
+import { useAppStore } from "@store/app.store"
 import { FitAddon } from "@xterm/addon-fit"
 import { Terminal } from "@xterm/xterm"
 
@@ -9,6 +12,7 @@ interface ShellPanelProps {
   namespace: string
   podName: string
   containerName: string
+  restored?: boolean
 }
 
 export function ShellPanel({
@@ -16,10 +20,14 @@ export function ShellPanel({
   namespace,
   podName,
   containerName,
+  restored,
 }: ShellPanelProps): JSX.Element {
+  const markTabReconnected = useAppStore((s) => s.markTabReconnected)
+  const [sessionEnded, setSessionEnded] = useState(restored ?? false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (sessionEnded) return
     const term = new Terminal({
       cursorBlink: true,
       fontSize: 13,
@@ -63,7 +71,27 @@ export function ShellPanel({
       ro?.disconnect()
       term.dispose()
     }
-  }, [sessionId, namespace, podName, containerName])
+  }, [sessionId, namespace, podName, containerName, sessionEnded])
+
+  if (sessionEnded) {
+    return (
+      <div className="flex flex-col w-full h-full bg-zinc-950 text-zinc-100 items-center justify-center gap-3">
+        <p className="text-sm text-zinc-400">Session ended — reconnect?</p>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5 text-xs border-zinc-700 text-zinc-200 hover:bg-zinc-800"
+          onClick={() => {
+            markTabReconnected(sessionId)
+            setSessionEnded(false)
+          }}
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Reconnect
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div
