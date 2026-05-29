@@ -166,6 +166,7 @@ interface AppState {
   drawerTabs: DrawerTab[]
   activeTabId: string | null
   contextStates: Record<string, ContextState>
+  contextNamespaces: Record<string, string | null>
   setSelectedResourceType: (type: string | null) => void
   setSelectedItem: (item: object | null) => void
   navigateToResource: (type: string, item: object) => void
@@ -194,12 +195,23 @@ export const useAppStore = create<AppState>()(
       drawerTabs: [],
       activeTabId: null,
       contextStates: {},
+      contextNamespaces: {},
       setSelectedResourceType: (type) =>
         set({ selectedResourceType: type, selectedItem: null }),
       setSelectedItem: (item) => set({ selectedItem: item }),
       navigateToResource: (type, item) =>
         set({ selectedResourceType: type, selectedItem: item }),
-      setSelectedNamespace: (ns) => set({ selectedNamespace: ns }),
+      setSelectedNamespace: (ns) => {
+        const { selectedContext, contextNamespaces } = get()
+        const updates: Partial<AppState> = { selectedNamespace: ns }
+        if (selectedContext !== null) {
+          updates.contextNamespaces = {
+            ...contextNamespaces,
+            [selectedContext]: ns,
+          }
+        }
+        set(updates)
+      },
       setSelectedContext: (ctx) => {
         const state = get()
         const prev = state.selectedContext
@@ -219,6 +231,11 @@ export const useAppStore = create<AppState>()(
 
         // Restore new context's navigation state or use defaults
         const saved = ctx !== null ? updatedContextStates[ctx] : undefined
+        const { contextNamespaces } = state
+        const restoredNamespace =
+          ctx !== null && ctx in contextNamespaces
+            ? contextNamespaces[ctx]
+            : null
         if (saved) {
           // Mark stream tabs as restored so they don't auto-start
           const restoredTabs = saved.drawerTabs.map((tab) => {
@@ -232,7 +249,7 @@ export const useAppStore = create<AppState>()(
             contextStates: updatedContextStates,
             selectedResourceType: saved.selectedResourceType,
             selectedItem: saved.selectedItem,
-            selectedNamespace: saved.selectedNamespace,
+            selectedNamespace: restoredNamespace,
             nameFilter: saved.nameFilter,
             drawerTabs: restoredTabs,
             activeTabId: saved.activeTabId,
@@ -243,7 +260,7 @@ export const useAppStore = create<AppState>()(
             contextStates: updatedContextStates,
             selectedResourceType: null,
             selectedItem: null,
-            selectedNamespace: null,
+            selectedNamespace: restoredNamespace,
             nameFilter: "",
             drawerTabs: [],
             activeTabId: null,
@@ -276,14 +293,15 @@ export const useAppStore = create<AppState>()(
       },
       setActiveDrawerTab: (id) => set({ activeTabId: id }),
       cleanupContextStates: (activeContextNames) => {
-        const { contextStates } = get()
+        const { contextStates, contextNamespaces } = get()
         const cleaned: Record<string, ContextState> = {}
+        const cleanedNs: Record<string, string | null> = {}
         for (const name of activeContextNames) {
-          if (contextStates[name]) {
-            cleaned[name] = contextStates[name]
-          }
+          if (contextStates[name]) cleaned[name] = contextStates[name]
+          if (name in contextNamespaces)
+            cleanedNs[name] = contextNamespaces[name]
         }
-        set({ contextStates: cleaned })
+        set({ contextStates: cleaned, contextNamespaces: cleanedNs })
       },
       markTabReconnected: (id) => {
         const { drawerTabs } = get()
@@ -303,6 +321,7 @@ export const useAppStore = create<AppState>()(
         themeId: state.themeId,
         refreshInterval: state.refreshInterval,
         contextStates: state.contextStates,
+        contextNamespaces: state.contextNamespaces,
       }),
     },
   ),

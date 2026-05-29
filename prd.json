@@ -1659,7 +1659,7 @@
     {
       "id": "S86",
       "title": "Persist selected namespace per cluster context",
-      "status": "incomplete",
+      "status": "complete",
       "description": "The selected namespace (selectedNamespace) currently applies globally across all resource types within a session but resets to null whenever the user switches cluster contexts. Add per-context namespace persistence so that each cluster context remembers its own last-selected namespace across resource type switches and across app restarts.",
       "acceptance_criteria": [
         "Zustand store gains a new persisted field: contextNamespaces: Record<string, string | null> (context name → last selected namespace)",
