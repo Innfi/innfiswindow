@@ -167,6 +167,7 @@ interface AppState {
   activeTabId: string | null
   contextStates: Record<string, ContextState>
   contextNamespaces: Record<string, string | null>
+  contextAliases: Record<string, string>
   setSelectedResourceType: (type: string | null) => void
   setSelectedItem: (item: object | null) => void
   navigateToResource: (type: string, item: object) => void
@@ -180,6 +181,7 @@ interface AppState {
   setActiveDrawerTab: (id: string) => void
   cleanupContextStates: (activeContextNames: string[]) => void
   markTabReconnected: (id: string) => void
+  setContextAlias: (contextName: string, alias: string) => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -196,6 +198,7 @@ export const useAppStore = create<AppState>()(
       activeTabId: null,
       contextStates: {},
       contextNamespaces: {},
+      contextAliases: {},
       setSelectedResourceType: (type) =>
         set({ selectedResourceType: type, selectedItem: null }),
       setSelectedItem: (item) => set({ selectedItem: item }),
@@ -293,15 +296,37 @@ export const useAppStore = create<AppState>()(
       },
       setActiveDrawerTab: (id) => set({ activeTabId: id }),
       cleanupContextStates: (activeContextNames) => {
-        const { contextStates, contextNamespaces } = get()
+        const { contextStates, contextNamespaces, contextAliases } = get()
         const cleaned: Record<string, ContextState> = {}
         const cleanedNs: Record<string, string | null> = {}
+        const cleanedAliases: Record<string, string> = {}
         for (const name of activeContextNames) {
           if (contextStates[name]) cleaned[name] = contextStates[name]
           if (name in contextNamespaces)
             cleanedNs[name] = contextNamespaces[name]
+          if (name in contextAliases)
+            cleanedAliases[name] = contextAliases[name]
         }
-        set({ contextStates: cleaned, contextNamespaces: cleanedNs })
+        set({
+          contextStates: cleaned,
+          contextNamespaces: cleanedNs,
+          contextAliases: cleanedAliases,
+        })
+      },
+      setContextAlias: (contextName, alias) => {
+        const { contextAliases } = get()
+        if (alias.trim() === "") {
+          const updated = { ...contextAliases }
+          delete updated[contextName]
+          set({ contextAliases: updated })
+        } else {
+          set({
+            contextAliases: {
+              ...contextAliases,
+              [contextName]: alias.slice(0, 64),
+            },
+          })
+        }
       },
       markTabReconnected: (id) => {
         const { drawerTabs } = get()
@@ -322,6 +347,7 @@ export const useAppStore = create<AppState>()(
         refreshInterval: state.refreshInterval,
         contextStates: state.contextStates,
         contextNamespaces: state.contextNamespaces,
+        contextAliases: state.contextAliases,
       }),
     },
   ),

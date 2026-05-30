@@ -1,7 +1,14 @@
-import { Settings } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Pencil, Settings } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 
 import { ThemePicker } from "../components/ThemePicker"
+import { Button } from "../components/ui/button"
+import { Input } from "../components/ui/input"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../components/ui/popover"
 import { Toaster } from "../components/ui/sonner"
 import { handleIpcError } from "../lib/ipc-error"
 import { applyTheme } from "../lib/themes"
@@ -63,7 +70,12 @@ function App(): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
   const setNameFilter = useAppStore((s) => s.setNameFilter)
+  const contextAliases = useAppStore((s) => s.contextAliases)
+  const setContextAlias = useAppStore((s) => s.setContextAlias)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [aliasPopoverOpen, setAliasPopoverOpen] = useState(false)
+  const [aliasInput, setAliasInput] = useState("")
+  const aliasInputRef = useRef<HTMLInputElement>(null)
   const [awsCredResult, setAwsCredResult] = useState<{
     valid: boolean
     type: "env" | "file" | "metadata" | "none"
@@ -154,11 +166,87 @@ function App(): JSX.Element {
           <span className="rounded border px-2 py-0.5 text-xs mr-2 ml-2">
             {clusterType}
           </span>
-          {(selectedContext ?? currentContext) && (
-            <span className="rounded border px-2 py-0.5 text-xs">
-              {selectedContext ?? currentContext}
-            </span>
-          )}
+          {(selectedContext ?? currentContext) &&
+            (() => {
+              const rawCtx = selectedContext ?? currentContext
+              const alias = contextAliases[rawCtx]
+              return (
+                <div className="flex items-center gap-1">
+                  <span
+                    className="rounded border px-2 py-0.5 text-xs"
+                    title={alias ? rawCtx : undefined}
+                  >
+                    {alias ?? rawCtx}
+                  </span>
+                  <Popover
+                    open={aliasPopoverOpen}
+                    onOpenChange={(open) => {
+                      setAliasPopoverOpen(open)
+                      if (open) {
+                        setAliasInput(contextAliases[rawCtx] ?? "")
+                        setTimeout(() => aliasInputRef.current?.focus(), 50)
+                      }
+                    }}
+                  >
+                    <PopoverTrigger asChild>
+                      <button
+                        className="rounded p-0.5 hover:bg-muted"
+                        aria-label="Edit context alias"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-64">
+                      <p className="text-xs font-semibold mb-1">
+                        Context alias
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-2 break-all">
+                        {rawCtx}
+                      </p>
+                      <Input
+                        ref={aliasInputRef}
+                        value={aliasInput}
+                        onChange={(e) => setAliasInput(e.target.value)}
+                        placeholder="Short display name…"
+                        maxLength={64}
+                        className="mb-2 h-7 text-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            setContextAlias(rawCtx, aliasInput)
+                            setAliasPopoverOpen(false)
+                          } else if (e.key === "Escape") {
+                            setAliasPopoverOpen(false)
+                          }
+                        }}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="h-6 text-xs flex-1"
+                          onClick={() => {
+                            setContextAlias(rawCtx, aliasInput)
+                            setAliasPopoverOpen(false)
+                          }}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-xs flex-1"
+                          onClick={() => {
+                            setContextAlias(rawCtx, "")
+                            setAliasPopoverOpen(false)
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )
+            })()}
         </div>
 
         {/* AWS credential banner */}

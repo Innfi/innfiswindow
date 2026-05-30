@@ -1677,7 +1677,7 @@
     {
       "id": "S87",
       "title": "Cluster context alias: set and edit a display name per context",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Kubeconfig context names are often long, auto-generated strings (e.g. 'arn:aws:eks:us-east-1:123456789:cluster/prod-cluster'). Allow users to set a short human-readable alias for each context that replaces the raw name everywhere it is displayed in the UI — the AppBar context selector, the tree view cluster label, and any other place the context name appears. The raw context name is kept internally for all API calls; only display is affected.",
       "acceptance_criteria": [
         "Zustand store gains a persisted field: contextAliases: Record<string, string> (context name → alias); included in persist partialize",

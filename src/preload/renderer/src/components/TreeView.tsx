@@ -62,6 +62,7 @@ export function TreeView(): JSX.Element {
   const setSelectedResourceType = useAppStore((s) => s.setSelectedResourceType)
   const setSelectedContext = useAppStore((s) => s.setSelectedContext)
   const cleanupContextStates = useAppStore((s) => s.cleanupContextStates)
+  const contextAliases = useAppStore((s) => s.contextAliases)
 
   useEffect(() => {
     window.api.k8s
@@ -129,7 +130,12 @@ export function TreeView(): JSX.Element {
               ) : (
                 <ChevronRight className="h-3.5 w-3.5 shrink-0" />
               )}
-              <span className="flex-1 truncate text-left">{ctx.name}</span>
+              <span
+                className="flex-1 truncate text-left"
+                title={contextAliases[ctx.name] ? ctx.name : undefined}
+              >
+                {contextAliases[ctx.name] ?? ctx.name}
+              </span>
               <span
                 className={cn(
                   "ml-1 shrink-0 rounded px-1 py-0.5 text-[10px] font-medium",
