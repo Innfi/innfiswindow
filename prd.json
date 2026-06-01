@@ -1692,6 +1692,21 @@
       ],
       "dependencies": ["S48"],
       "notes": "Store change in app.store.ts; UI change in AppBar context selector (wherever the context dropdown/selector is rendered) and TreeView. The alias edit UI can be a shadcn Popover with an Input and Save/Clear buttons, triggered by a Pencil icon button inline in the context dropdown item. Do not write the alias back to ~/.kube/config — it is app-local metadata stored only in Zustand persist."
+    },
+    {
+      "id": "S88",
+      "title": "Apply explicit TypeScript return types to all k8s API handlers",
+      "status": "incomplete",
+      "description": "All handler functions in src/main/handlers/ currently have typed parameters but no explicit return types — TypeScript infers them from the mapped object literals. This creates drift risk: callers in main/index.ts rely on inferred shapes that can silently change when a handler is edited. This story introduces a shared types file (src/main/handlers/types.ts) that declares one named interface per handler return shape, then annotates every exported async function with Promise<T> using those interfaces.",
+      "acceptance_criteria": [
+        "New file src/main/handlers/types.ts exports one TypeScript interface per distinct handler return shape (e.g. NamespaceInfo, NodeInfo, DeploymentInfo, PodInfo, ServiceInfo, IngressInfo, PVInfo, PVCInfo, RoleInfo, ClusterRoleInfo, RoleBindingInfo, ClusterRoleBindingInfo, ConfigMapInfo, SecretInfo, ServiceAccountInfo, EventInfo, JobInfo, CronJobInfo, HPAInfo, ResourceQuotaInfo, LimitRangeInfo, PDBInfo, EndpointInfo, NetworkPolicyInfo, StatefulSetInfo, DaemonSetInfo, ReplicaSetInfo, NodeMetric, ApplyResult)",
+        "Every exported async function in all 12 handler files (apply.ts, autoscaling.ts, batch.ts, cluster.ts, config.ts, events.ts, governance.ts, metrics.ts, networking.ts, rbac.ts, storage.ts, workload.ts) is annotated with an explicit Promise<T> or Promise<T[]> return type using only types from types.ts",
+        "Mutation handlers that return void or a success flag (delete*, replace*, update*, create*) use a shared MutationResult interface: { success: boolean; error?: string }",
+        "No any types introduced; no existing runtime logic changed — only type annotations added",
+        "npx tsc --noEmit passes with zero errors after the changes"
+      ],
+      "dependencies": ["S01"],
+      "notes": "Keep types.ts co-located with the handlers. Do not change the shape of objects returned — only add annotations that match the existing inferred shape. If a field is currently typed as string | undefined from optional chaining, reflect that exactly in the interface rather than narrowing to string. The MutationResult pattern should replace any handler that currently returns void or throws on error — wrap the call in try/catch and return { success: true } or { success: false, error: e.message }."
     }
   ]
 }
