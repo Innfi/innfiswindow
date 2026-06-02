@@ -3,12 +3,33 @@
 # Each iteration spawns a fresh Claude Code instance to implement one PRD story.
 #
 # Usage:
-#   ./ralph.sh            # run up to MAX_ITERATIONS times
+#   ./ralph.sh                  # run up to MAX_ITERATIONS times
+#   ./ralph.sh --single         # implement first incomplete story, then stop
+#   ./ralph.sh --story=S123     # implement specific story by ID, then stop
 #   MAX_ITERATIONS=3 ./ralph.sh
 set -euo pipefail
 
 MAX_ITERATIONS=${MAX_ITERATIONS:-20}
 PRD_FILE="prd.json"
+SINGLE_MODE=false
+STORY_ID=""
+
+for arg in "$@"; do
+  case "$arg" in
+    --single)
+      SINGLE_MODE=true
+      ;;
+    --story=*)
+      STORY_ID="${arg#--story=}"
+      SINGLE_MODE=true
+      ;;
+    *)
+      echo "ERROR: Unknown argument: $arg"
+      echo "Usage: $0 [--single] [--story=S123]"
+      exit 1
+      ;;
+  esac
+done
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || { echo "ERROR: '$1' not found in PATH"; exit 1; }
@@ -23,6 +44,18 @@ if [ ! -f "$PRD_FILE" ]; then
   exit 1
 fi
 
+if [ -n "$STORY_ID" ]; then
+  exists=$(jq -r --arg id "$STORY_ID" '.stories[] | select(.id == $id) | .id' "$PRD_FILE")
+  if [ -z "$exists" ]; then
+    echo "ERROR: Story '$STORY_ID' not found in $PRD_FILE."
+    exit 1
+  fi
+fi
+
+if "$SINGLE_MODE"; then
+  MAX_ITERATIONS=1
+fi
+
 for i in $(seq 1 "$MAX_ITERATIONS"); do
   incomplete=$(jq '[.stories[] | select(.status == "incomplete")] | length' "$PRD_FILE")
 
@@ -31,7 +64,11 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     exit 0
   fi
 
-  next_story=$(jq -r '[.stories[] | select(.status == "incomplete")][0].id' "$PRD_FILE")
+  if [ -n "$STORY_ID" ]; then
+    next_story="$STORY_ID"
+  else
+    next_story=$(jq -r '[.stories[] | select(.status == "incomplete")][0].id' "$PRD_FILE")
+  fi
   echo ""
   echo "=== Iteration $i / $MAX_ITERATIONS — next story: $next_story ($incomplete remaining) ==="
 

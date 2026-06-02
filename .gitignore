@@ -26,3 +26,4 @@ dist-ssr
 examples
 .claude
 out
+prd_history.json
