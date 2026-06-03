@@ -1,6 +1,8 @@
 import { AutoscalingV2Api } from "@kubernetes/client-node"
 
-export async function listHPAs(api: AutoscalingV2Api) {
+import { HPAInfo } from "./types"
+
+export async function listHPAs(api: AutoscalingV2Api): Promise<HPAInfo[]> {
   const res = await api.listHorizontalPodAutoscalerForAllNamespaces()
   return res.items.map((hpa) => {
     const specMetrics = hpa.spec?.metrics ?? []

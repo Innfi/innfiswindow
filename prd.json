@@ -37,7 +37,7 @@
     {
       "id": "S88",
       "title": "Apply explicit TypeScript return types to all k8s API handlers",
-      "status": "incomplete",
+      "status": "complete",
       "description": "All handler functions in src/main/handlers/ currently have typed parameters but no explicit return types — TypeScript infers them from the mapped object literals. This creates drift risk: callers in main/index.ts rely on inferred shapes that can silently change when a handler is edited. This story introduces a shared types file (src/main/handlers/types.ts) that declares one named interface per handler return shape, then annotates every exported async function with Promise<T> using those interfaces.",
       "acceptance_criteria": [
         "New file src/main/handlers/types.ts exports one TypeScript interface per distinct handler return shape (e.g. NamespaceInfo, NodeInfo, DeploymentInfo, PodInfo, ServiceInfo, IngressInfo, PVInfo, PVCInfo, RoleInfo, ClusterRoleInfo, RoleBindingInfo, ClusterRoleBindingInfo, ConfigMapInfo, SecretInfo, ServiceAccountInfo, EventInfo, JobInfo, CronJobInfo, HPAInfo, ResourceQuotaInfo, LimitRangeInfo, PDBInfo, EndpointInfo, NetworkPolicyInfo, StatefulSetInfo, DaemonSetInfo, ReplicaSetInfo, NodeMetric, ApplyResult)",

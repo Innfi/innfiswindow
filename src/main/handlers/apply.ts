@@ -5,7 +5,12 @@ import {
   PatchStrategy,
 } from "@kubernetes/client-node"
 
-export async function applyResource(kc: KubeConfig, yamlString: string) {
+import { ApplyResult } from "./types"
+
+export async function applyResource(
+  kc: KubeConfig,
+  yamlString: string,
+): Promise<ApplyResult> {
   const obj = yamlLoad(yamlString) as Record<string, unknown>
   if (!obj || typeof obj !== "object") {
     throw new Error("Invalid YAML: must be a Kubernetes object")

@@ -1,6 +1,8 @@
 import { CoreV1Api } from "@kubernetes/client-node"
 
-export async function listPVs(api: CoreV1Api) {
+import { PVCInfo, PVInfo } from "./types"
+
+export async function listPVs(api: CoreV1Api): Promise<PVInfo[]> {
   const res = await api.listPersistentVolume()
   return res.items.map((pv) => {
     const claimRef = pv.spec?.claimRef
@@ -25,7 +27,7 @@ export async function listPVs(api: CoreV1Api) {
   })
 }
 
-export async function listPVCs(api: CoreV1Api) {
+export async function listPVCs(api: CoreV1Api): Promise<PVCInfo[]> {
   const res = await api.listPersistentVolumeClaimForAllNamespaces()
   return res.items.map((pvc) => ({
     name: pvc.metadata?.name ?? "",

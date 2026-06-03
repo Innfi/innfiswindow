@@ -1,6 +1,8 @@
 import { CoreV1Api } from "@kubernetes/client-node"
 
-export async function listEvents(api: CoreV1Api) {
+import { EventInfo } from "./types"
+
+export async function listEvents(api: CoreV1Api): Promise<EventInfo[]> {
   const res = await api.listEventForAllNamespaces()
   return res.items.map((ev) => ({
     name: ev.metadata?.name ?? "",

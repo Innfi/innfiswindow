@@ -1,6 +1,15 @@
 import { load as yamlLoad } from "js-yaml"
 import { CoreV1Api, NetworkingV1Api } from "@kubernetes/client-node"
 
+import {
+  EndpointInfo,
+  IngressInfo,
+  MutationResult,
+  NetworkPolicyInfo,
+  ResourceRef,
+  ServiceInfo,
+} from "./types"
+
 export interface ServicePort {
   protocol: string
   port: number
@@ -20,7 +29,7 @@ export interface IngressTLSEntry {
   secretName: string
 }
 
-export async function listServices(api: CoreV1Api) {
+export async function listServices(api: CoreV1Api): Promise<ServiceInfo[]> {
   const res = await api.listServiceForAllNamespaces()
   return res.items.map((svc) => {
     const lbIngress = svc.status?.loadBalancer?.ingress ?? []
@@ -51,7 +60,9 @@ export async function listServices(api: CoreV1Api) {
   })
 }
 
-export async function listIngresses(api: NetworkingV1Api) {
+export async function listIngresses(
+  api: NetworkingV1Api,
+): Promise<IngressInfo[]> {
   const res = await api.listIngressForAllNamespaces()
   return res.items.map((ing) => {
     const lbIngress = ing.status?.loadBalancer?.ingress ?? []
@@ -102,7 +113,7 @@ export async function createService(
   type: string,
   ports: ServicePort[],
   selector: Record<string, string>,
-) {
+): Promise<ResourceRef> {
   const body = {
     apiVersion: "v1",
     kind: "Service",
@@ -130,7 +141,7 @@ export async function updateService(
   name: string,
   type: string,
   ports: ServicePort[],
-) {
+): Promise<ResourceRef> {
   const body = {
     spec: {
       type,
@@ -152,7 +163,7 @@ export async function deleteService(
   api: CoreV1Api,
   namespace: string,
   name: string,
-) {
+): Promise<MutationResult> {
   await api.deleteNamespacedService({ name, namespace })
   return { success: true, name, namespace }
 }
@@ -162,7 +173,7 @@ export async function replaceServiceFromYaml(
   namespace: string,
   name: string,
   yamlStr: string,
-) {
+): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedService({ name, namespace, body })
   return {
@@ -223,7 +234,7 @@ export async function createIngress(
   ingressClassName: string,
   rules: IngressRuleEntry[],
   tls: IngressTLSEntry[],
-) {
+): Promise<ResourceRef> {
   const body = {
     apiVersion: "networking.k8s.io/v1",
     kind: "Ingress",
@@ -244,7 +255,7 @@ export async function updateIngress(
   ingressClassName: string,
   rules: IngressRuleEntry[],
   tls: IngressTLSEntry[],
-) {
+): Promise<ResourceRef> {
   const body = {
     spec: buildIngressSpec(ingressClassName, rules, tls),
   }
@@ -259,7 +270,7 @@ export async function deleteIngress(
   api: NetworkingV1Api,
   namespace: string,
   name: string,
-) {
+): Promise<MutationResult> {
   await api.deleteNamespacedIngress({ name, namespace })
   return { success: true, name, namespace }
 }
@@ -269,7 +280,7 @@ export async function replaceIngressFromYaml(
   namespace: string,
   name: string,
   yamlStr: string,
-) {
+): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedIngress({ name, namespace, body })
   return {
@@ -278,7 +289,7 @@ export async function replaceIngressFromYaml(
   }
 }
 
-export async function listEndpoints(api: CoreV1Api) {
+export async function listEndpoints(api: CoreV1Api): Promise<EndpointInfo[]> {
   const res = await api.listEndpointsForAllNamespaces()
   return res.items.map((ep) => {
     const subsets = ep.subsets ?? []
@@ -331,7 +342,9 @@ function labelsToString(labels: Record<string, string> | undefined): string {
     .join(", ")
 }
 
-export async function listNetworkPolicies(api: NetworkingV1Api) {
+export async function listNetworkPolicies(
+  api: NetworkingV1Api,
+): Promise<NetworkPolicyInfo[]> {
   const res = await api.listNetworkPolicyForAllNamespaces()
   return res.items.map((np) => {
     const ingress = np.spec?.ingress ?? []

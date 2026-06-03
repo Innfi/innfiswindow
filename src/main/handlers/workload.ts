@@ -1,7 +1,20 @@
 import { load as yamlLoad } from "js-yaml"
 import { AppsV1Api, CoreV1Api } from "@kubernetes/client-node"
 
-export async function listDeployments(api: AppsV1Api) {
+import {
+  DaemonSetInfo,
+  DeploymentInfo,
+  DeploymentRevision,
+  MutationResult,
+  PodInfo,
+  ReplicaSetInfo,
+  ResourceRef,
+  StatefulSetInfo,
+} from "./types"
+
+export async function listDeployments(
+  api: AppsV1Api,
+): Promise<DeploymentInfo[]> {
   const res = await api.listDeploymentForAllNamespaces()
   return res.items.map((d) => ({
     name: d.metadata?.name ?? "",
@@ -26,7 +39,9 @@ export async function listDeployments(api: AppsV1Api) {
   }))
 }
 
-export async function listReplicaSets(api: AppsV1Api) {
+export async function listReplicaSets(
+  api: AppsV1Api,
+): Promise<ReplicaSetInfo[]> {
   const res = await api.listReplicaSetForAllNamespaces()
   return res.items.map((rs) => ({
     name: rs.metadata?.name ?? "",
@@ -48,7 +63,9 @@ export async function listReplicaSets(api: AppsV1Api) {
   }))
 }
 
-export async function listStatefulSets(api: AppsV1Api) {
+export async function listStatefulSets(
+  api: AppsV1Api,
+): Promise<StatefulSetInfo[]> {
   const res = await api.listStatefulSetForAllNamespaces()
   return res.items.map((ss) => ({
     name: ss.metadata?.name ?? "",
@@ -70,7 +87,7 @@ export async function listStatefulSets(api: AppsV1Api) {
   }))
 }
 
-export async function listDaemonSets(api: AppsV1Api) {
+export async function listDaemonSets(api: AppsV1Api): Promise<DaemonSetInfo[]> {
   const res = await api.listDaemonSetForAllNamespaces()
   return res.items.map((ds) => ({
     name: ds.metadata?.name ?? "",
@@ -97,7 +114,7 @@ export async function listDaemonSets(api: AppsV1Api) {
   }))
 }
 
-export async function listPods(api: CoreV1Api) {
+export async function listPods(api: CoreV1Api): Promise<PodInfo[]> {
   const res = await api.listPodForAllNamespaces()
   return res.items.map((pod) => {
     const ownerRef = (pod.metadata?.ownerReferences ?? []).find(
@@ -142,7 +159,7 @@ export async function createDeployment(
   name: string,
   image: string,
   replicas: number,
-) {
+): Promise<ResourceRef> {
   const body = {
     apiVersion: "apps/v1",
     kind: "Deployment",
@@ -169,7 +186,7 @@ export async function updateDeployment(
   name: string,
   image: string,
   replicas: number,
-) {
+): Promise<ResourceRef> {
   const body = {
     spec: {
       replicas,
@@ -195,7 +212,7 @@ export async function deleteDeployment(
   api: AppsV1Api,
   namespace: string,
   name: string,
-) {
+): Promise<MutationResult> {
   await api.deleteNamespacedDeployment({ name, namespace })
   return { success: true, name, namespace }
 }
@@ -205,7 +222,7 @@ export async function replaceDeploymentFromYaml(
   namespace: string,
   name: string,
   yamlStr: string,
-) {
+): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedDeployment({ name, namespace, body })
   return {
@@ -221,7 +238,7 @@ export async function createStatefulSet(
   image: string,
   replicas: number,
   serviceName: string,
-) {
+): Promise<ResourceRef> {
   const body = {
     apiVersion: "apps/v1",
     kind: "StatefulSet",
@@ -249,7 +266,7 @@ export async function updateStatefulSet(
   name: string,
   image: string,
   replicas: number,
-) {
+): Promise<ResourceRef> {
   const body = {
     spec: {
       replicas,
@@ -271,7 +288,7 @@ export async function deleteStatefulSet(
   api: AppsV1Api,
   namespace: string,
   name: string,
-) {
+): Promise<MutationResult> {
   await api.deleteNamespacedStatefulSet({ name, namespace })
   return { success: true, name, namespace }
 }
@@ -281,7 +298,7 @@ export async function replaceStatefulSetFromYaml(
   namespace: string,
   name: string,
   yamlStr: string,
-) {
+): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedStatefulSet({ name, namespace, body })
   return {
@@ -295,7 +312,7 @@ export async function createDaemonSet(
   namespace: string,
   name: string,
   image: string,
-) {
+): Promise<ResourceRef> {
   const body = {
     apiVersion: "apps/v1",
     kind: "DaemonSet",
@@ -320,7 +337,7 @@ export async function updateDaemonSet(
   namespace: string,
   name: string,
   image: string,
-) {
+): Promise<ResourceRef> {
   const body = {
     spec: {
       template: {
@@ -341,7 +358,7 @@ export async function deleteDaemonSet(
   api: AppsV1Api,
   namespace: string,
   name: string,
-) {
+): Promise<MutationResult> {
   await api.deleteNamespacedDaemonSet({ name, namespace })
   return { success: true, name, namespace }
 }
@@ -351,7 +368,7 @@ export async function replaceDaemonSetFromYaml(
   namespace: string,
   name: string,
   yamlStr: string,
-) {
+): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedDaemonSet({ name, namespace, body })
   return {
@@ -364,7 +381,7 @@ export async function deletePod(
   api: CoreV1Api,
   namespace: string,
   name: string,
-) {
+): Promise<MutationResult> {
   await api.deleteNamespacedPod({ name, namespace })
   return { success: true, name, namespace }
 }
@@ -374,7 +391,7 @@ export async function listDeploymentHistory(
   namespace: string,
   deploymentName: string,
   selector: Record<string, string>,
-) {
+): Promise<DeploymentRevision[]> {
   const labelSelector = Object.entries(selector)
     .map(([k, v]) => `${k}=${v}`)
     .join(",")
@@ -412,7 +429,7 @@ export async function rollbackDeployment(
   namespace: string,
   deploymentName: string,
   revision: number,
-) {
+): Promise<MutationResult> {
   const res = await api.listNamespacedReplicaSet({ namespace })
   const targetRS = res.items.find((rs) => {
     const isOwned = (rs.metadata?.ownerReferences ?? []).some(

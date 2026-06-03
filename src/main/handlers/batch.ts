@@ -1,6 +1,8 @@
 import { BatchV1Api } from "@kubernetes/client-node"
 
-export async function listJobs(api: BatchV1Api) {
+import { CronJobInfo, JobInfo } from "./types"
+
+export async function listJobs(api: BatchV1Api): Promise<JobInfo[]> {
   const res = await api.listJobForAllNamespaces()
   return res.items.map((job) => {
     const startTime = job.status?.startTime?.toISOString() ?? ""
@@ -37,7 +39,7 @@ export async function listJobs(api: BatchV1Api) {
   })
 }
 
-export async function listCronJobs(api: BatchV1Api) {
+export async function listCronJobs(api: BatchV1Api): Promise<CronJobInfo[]> {
   const res = await api.listCronJobForAllNamespaces()
   return res.items.map((cj) => {
     const activeJobs = cj.status?.active ?? []

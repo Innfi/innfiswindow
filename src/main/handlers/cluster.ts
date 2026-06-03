@@ -1,6 +1,8 @@
 import { CoreV1Api, KubeConfig } from "@kubernetes/client-node"
 
-export async function listNamespaces(api: CoreV1Api) {
+import { NamespaceInfo, NodeInfo } from "./types"
+
+export async function listNamespaces(api: CoreV1Api): Promise<NamespaceInfo[]> {
   const res = await api.listNamespace()
   return res.items.map((ns) => ({
     name: ns.metadata?.name ?? "",
@@ -11,7 +13,7 @@ export async function listNamespaces(api: CoreV1Api) {
   }))
 }
 
-export async function listNodes(api: CoreV1Api) {
+export async function listNodes(api: CoreV1Api): Promise<NodeInfo[]> {
   const res = await api.listNode()
   return res.items.map((node) => {
     const labels = node.metadata?.labels ?? {}

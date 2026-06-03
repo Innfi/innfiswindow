@@ -1,7 +1,15 @@
 import { load as yamlLoad } from "js-yaml"
 import { CoreV1Api } from "@kubernetes/client-node"
 
-export async function listConfigMaps(api: CoreV1Api) {
+import {
+  ConfigMapInfo,
+  MutationResult,
+  ResourceRef,
+  SecretInfo,
+  ServiceAccountInfo,
+} from "./types"
+
+export async function listConfigMaps(api: CoreV1Api): Promise<ConfigMapInfo[]> {
   const res = await api.listConfigMapForAllNamespaces()
   return res.items.map((cm) => {
     const dataKeys = Object.keys(cm.data ?? {})
@@ -24,7 +32,7 @@ export async function listConfigMaps(api: CoreV1Api) {
   })
 }
 
-export async function listSecrets(api: CoreV1Api) {
+export async function listSecrets(api: CoreV1Api): Promise<SecretInfo[]> {
   const res = await api.listSecretForAllNamespaces()
   return res.items.map((secret) => {
     const dataKeys = Object.keys(secret.data ?? {})
@@ -42,7 +50,9 @@ export async function listSecrets(api: CoreV1Api) {
   })
 }
 
-export async function listServiceAccounts(api: CoreV1Api) {
+export async function listServiceAccounts(
+  api: CoreV1Api,
+): Promise<ServiceAccountInfo[]> {
   const res = await api.listServiceAccountForAllNamespaces()
   return res.items.map((sa) => ({
     name: sa.metadata?.name ?? "",
@@ -60,7 +70,7 @@ export async function replaceConfigMapFromYaml(
   namespace: string,
   name: string,
   yamlStr: string,
-) {
+): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedConfigMap({ name, namespace, body })
   return {
@@ -73,7 +83,7 @@ export async function deleteConfigMap(
   api: CoreV1Api,
   namespace: string,
   name: string,
-) {
+): Promise<MutationResult> {
   await api.deleteNamespacedConfigMap({ name, namespace })
   return { success: true, name, namespace }
 }
@@ -83,7 +93,7 @@ export async function replaceSecretFromYaml(
   namespace: string,
   name: string,
   yamlStr: string,
-) {
+): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedSecret({ name, namespace, body })
   return {
@@ -96,7 +106,7 @@ export async function deleteSecret(
   api: CoreV1Api,
   namespace: string,
   name: string,
-) {
+): Promise<MutationResult> {
   await api.deleteNamespacedSecret({ name, namespace })
   return { success: true, name, namespace }
 }

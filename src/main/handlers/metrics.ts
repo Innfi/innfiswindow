@@ -1,11 +1,10 @@
 import { CustomObjectsApi } from "@kubernetes/client-node"
 
+import { MetricsUnavailable, NodeMetric } from "./types"
+
 export async function getNodeMetrics(
   api: CustomObjectsApi,
-): Promise<
-  | { nodeName: string; cpuUsage: string; memoryUsage: string }[]
-  | { unavailable: true }
-> {
+): Promise<NodeMetric[] | MetricsUnavailable> {
   try {
     const res = (await api.listClusterCustomObject({
       group: "metrics.k8s.io",

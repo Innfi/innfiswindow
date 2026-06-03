@@ -1,9 +1,22 @@
 import { CoreV1Api, RbacAuthorizationV1Api } from "@kubernetes/client-node"
 
+import {
+  ClusterRoleBindingInfo,
+  ClusterRoleInfo,
+  MutationResult,
+  RoleBindingInfo,
+  RoleInfo,
+  UpdateClusterRoleBindingResult,
+  UpdateClusterRoleResult,
+  UpdateRoleBindingResult,
+  UpdateRoleResult,
+  UpdateServiceAccountResult,
+} from "./types"
+
 export async function listRoles(
   api: RbacAuthorizationV1Api,
   namespace?: string,
-) {
+): Promise<RoleInfo[]> {
   const res = namespace
     ? await api.listNamespacedRole({ namespace })
     : await api.listRoleForAllNamespaces()
@@ -20,7 +33,9 @@ export async function listRoles(
   }))
 }
 
-export async function listClusterRoles(api: RbacAuthorizationV1Api) {
+export async function listClusterRoles(
+  api: RbacAuthorizationV1Api,
+): Promise<ClusterRoleInfo[]> {
   const res = await api.listClusterRole()
   return res.items.map((r) => ({
     name: r.metadata?.name ?? "",
@@ -37,7 +52,7 @@ export async function listClusterRoles(api: RbacAuthorizationV1Api) {
 export async function listRoleBindings(
   api: RbacAuthorizationV1Api,
   namespace?: string,
-) {
+): Promise<RoleBindingInfo[]> {
   const res = namespace
     ? await api.listNamespacedRoleBinding({ namespace })
     : await api.listRoleBindingForAllNamespaces()
@@ -58,7 +73,9 @@ export async function listRoleBindings(
   }))
 }
 
-export async function listClusterRoleBindings(api: RbacAuthorizationV1Api) {
+export async function listClusterRoleBindings(
+  api: RbacAuthorizationV1Api,
+): Promise<ClusterRoleBindingInfo[]> {
   const res = await api.listClusterRoleBinding()
   return res.items.map((crb) => ({
     name: crb.metadata?.name ?? "",
@@ -81,7 +98,7 @@ export async function updateRole(
   namespace: string,
   name: string,
   rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
-) {
+): Promise<UpdateRoleResult> {
   const body = { rules }
   const res = await api.patchNamespacedRole({ name, namespace, body })
   return {
@@ -99,7 +116,7 @@ export async function updateClusterRole(
   api: RbacAuthorizationV1Api,
   name: string,
   rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>,
-) {
+): Promise<UpdateClusterRoleResult> {
   const body = { rules }
   const res = await api.patchClusterRole({ name, body })
   return {
@@ -117,7 +134,7 @@ export async function updateRoleBinding(
   namespace: string,
   name: string,
   subjects: Array<{ kind: string; name: string; namespace?: string }>,
-) {
+): Promise<UpdateRoleBindingResult> {
   const body = { subjects }
   const res = await api.patchNamespacedRoleBinding({ name, namespace, body })
   return {
@@ -135,7 +152,7 @@ export async function updateClusterRoleBinding(
   api: RbacAuthorizationV1Api,
   name: string,
   subjects: Array<{ kind: string; name: string; namespace?: string }>,
-) {
+): Promise<UpdateClusterRoleBindingResult> {
   const body = { subjects }
   const res = await api.patchClusterRoleBinding({ name, body })
   return {
@@ -156,7 +173,7 @@ export async function updateServiceAccount(
     labels?: Record<string, string>
     annotations?: Record<string, string>
   },
-) {
+): Promise<UpdateServiceAccountResult> {
   const body = { metadata }
   const res = await api.patchNamespacedServiceAccount({ name, namespace, body })
   return {
@@ -171,7 +188,7 @@ export async function deleteRole(
   api: RbacAuthorizationV1Api,
   namespace: string,
   name: string,
-) {
+): Promise<MutationResult> {
   await api.deleteNamespacedRole({ name, namespace })
   return { success: true, name, namespace }
 }
@@ -179,7 +196,7 @@ export async function deleteRole(
 export async function deleteClusterRole(
   api: RbacAuthorizationV1Api,
   name: string,
-) {
+): Promise<MutationResult> {
   await api.deleteClusterRole({ name })
   return { success: true, name }
 }
@@ -188,7 +205,7 @@ export async function deleteRoleBinding(
   api: RbacAuthorizationV1Api,
   namespace: string,
   name: string,
-) {
+): Promise<MutationResult> {
   await api.deleteNamespacedRoleBinding({ name, namespace })
   return { success: true, name, namespace }
 }
@@ -196,7 +213,7 @@ export async function deleteRoleBinding(
 export async function deleteClusterRoleBinding(
   api: RbacAuthorizationV1Api,
   name: string,
-) {
+): Promise<MutationResult> {
   await api.deleteClusterRoleBinding({ name })
   return { success: true, name }
 }
@@ -205,7 +222,7 @@ export async function deleteServiceAccount(
   api: CoreV1Api,
   namespace: string,
   name: string,
-) {
+): Promise<MutationResult> {
   await api.deleteNamespacedServiceAccount({ name, namespace })
   return { success: true, name, namespace }
 }

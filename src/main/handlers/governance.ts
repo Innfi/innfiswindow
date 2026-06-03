@@ -1,6 +1,10 @@
 import { CoreV1Api, PolicyV1Api } from "@kubernetes/client-node"
 
-export async function listResourceQuotas(api: CoreV1Api) {
+import { LimitRangeInfo, PDBInfo, ResourceQuotaInfo } from "./types"
+
+export async function listResourceQuotas(
+  api: CoreV1Api,
+): Promise<ResourceQuotaInfo[]> {
   const res = await api.listResourceQuotaForAllNamespaces()
   return res.items.map((rq) => ({
     name: rq.metadata?.name ?? "",
@@ -15,7 +19,9 @@ export async function listResourceQuotas(api: CoreV1Api) {
   }))
 }
 
-export async function listLimitRanges(api: CoreV1Api) {
+export async function listLimitRanges(
+  api: CoreV1Api,
+): Promise<LimitRangeInfo[]> {
   const res = await api.listLimitRangeForAllNamespaces()
   return res.items.map((lr) => ({
     name: lr.metadata?.name ?? "",
@@ -39,7 +45,7 @@ export async function listLimitRanges(api: CoreV1Api) {
   }))
 }
 
-export async function listPDBs(api: PolicyV1Api) {
+export async function listPDBs(api: PolicyV1Api): Promise<PDBInfo[]> {
   try {
     const res = await api.listPodDisruptionBudgetForAllNamespaces()
     return res.items.map((pdb) => ({
