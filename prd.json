@@ -52,7 +52,7 @@
     {
       "id": "S89",
       "title": "Ring buffer for pod log lines in renderer",
-      "status": "incomplete",
+      "status": "complete",
       "description": "PodLogPanel.tsx accumulates log lines in unbounded useState<string[]>([]) and useState<MergedLine[]>([]) arrays. For verbose pods, these grow without limit, causing React re-render slowdowns and memory pressure. Cap both arrays at MAX_LOG_LINES = 5000 using a renderer-side ring buffer: on each incoming IPC log chunk, append new lines then slice the tail to MAX_LOG_LINES. No IPC or main-process changes required.",
       "acceptance_criteria": [
         "A constant MAX_LOG_LINES = 5000 is defined at the top of PodLogPanel.tsx (or in a co-located constants file)",

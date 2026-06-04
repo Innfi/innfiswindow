@@ -4,6 +4,9 @@ import { useAppStore } from "@store/app.store"
 
 import { Button } from "../../components/ui/button"
 
+const MAX_LOG_LINES = 5000
+const SENTINEL_TEXT = `--- [older lines removed, showing last ${MAX_LOG_LINES}] ---`
+
 interface K8sPodContainer {
   name: string
   image: string
@@ -111,14 +114,27 @@ export function PodLogPanel({
   useEffect(() => {
     const unsub = window.api.onPodLogData((data) => {
       if (data.tabKey === tabKey) {
-        setLines((prev) => [...prev, data.line])
+        setLines((prev) => {
+          const next = [...prev, data.line]
+          if (next.length > MAX_LOG_LINES) {
+            const trimmed = next.slice(-MAX_LOG_LINES)
+            trimmed[0] = SENTINEL_TEXT
+            return trimmed
+          }
+          return next
+        })
       } else {
         const cname = mergeSessionMapRef.current.get(data.tabKey)
         if (cname !== undefined) {
-          setMergedLines((prev) => [
-            ...prev,
-            { containerName: cname, line: data.line },
-          ])
+          setMergedLines((prev) => {
+            const next = [...prev, { containerName: cname, line: data.line }]
+            if (next.length > MAX_LOG_LINES) {
+              const trimmed = next.slice(-MAX_LOG_LINES)
+              trimmed[0] = { containerName: "", line: SENTINEL_TEXT }
+              return trimmed
+            }
+            return next
+          })
         }
       }
     })
@@ -381,6 +397,16 @@ export function PodLogPanel({
             </span>
           ) : (
             filteredMerged.map((m, i) => {
+              if (m.containerName === "" && m.line === SENTINEL_TEXT) {
+                return (
+                  <div
+                    key={i}
+                    className="whitespace-pre-wrap break-all text-zinc-500 italic"
+                  >
+                    {m.line}
+                  </div>
+                )
+              }
               const prefix = `[${m.containerName}] `
               if (matchRegex) {
                 const fullLine = prefix + m.line
@@ -415,19 +441,28 @@ export function PodLogPanel({
                     : "No logs."}
               </span>
             )}
-            {filteredLines.map((line, i) => (
-              <div
-                key={i}
-                className="whitespace-pre-wrap break-all text-zinc-200"
-              >
-                {matchRegex
-                  ? highlightLine(
-                      line,
-                      new RegExp(matchRegex.source, matchRegex.flags),
-                    )
-                  : line}
-              </div>
-            ))}
+            {filteredLines.map((line, i) =>
+              line === SENTINEL_TEXT ? (
+                <div
+                  key={i}
+                  className="whitespace-pre-wrap break-all text-zinc-500 italic"
+                >
+                  {line}
+                </div>
+              ) : (
+                <div
+                  key={i}
+                  className="whitespace-pre-wrap break-all text-zinc-200"
+                >
+                  {matchRegex
+                    ? highlightLine(
+                        line,
+                        new RegExp(matchRegex.source, matchRegex.flags),
+                      )
+                    : line}
+                </div>
+              ),
+            )}
           </>
         )}
       </div>
