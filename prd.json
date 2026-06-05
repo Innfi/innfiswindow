@@ -65,6 +65,58 @@
       ],
       "dependencies": ["S88"],
       "notes": "The slice(-MAX_LOG_LINES) approach is O(n) per push but acceptable for 5000-line cap. Do not implement a true circular buffer class — the slice idiom is idiomatic React state and sufficient here. The sentinel line should be a distinct style (muted/italic) if easy, but plain string is acceptable. If mergedLines is built from lines (derived state), the cap on mergedLines may be redundant — verify the data flow in PodLogPanel before deciding whether to cap both or only lines."
+    },
+    {
+      "id": "S90",
+      "title": "Local write-action history log",
+      "status": "incomplete",
+      "description": "Every write operation (update resource spec via YAML, create resource, delete resource) currently gives no persistent record of what was changed and when. Add a local history log stored in the Zustand persist layer. Each completed write action appends a HistoryEntry to the store. A History panel (new tab or drawer section) lists entries newest-first. No server or filesystem persistence beyond what Zustand persist already does — localStorage only.",
+      "acceptance_criteria": [
+        "Zustand store gains a persisted field: writeHistory: HistoryEntry[] (capped at 500 entries, oldest dropped when limit exceeded); included in persist partialize",
+        "HistoryEntry interface: { id: string; timestamp: string; action: 'create' | 'update' | 'delete' | 'apply'; resourceKind: string; resourceName: string; namespace: string | null; context: string; success: boolean; error?: string; yamlSnapshot?: string }",
+        "yamlSnapshot stores the YAML string that was submitted for create/update/apply actions (not for delete); omitted or undefined for delete",
+        "Every existing write IPC call site in the renderer appends a HistoryEntry after the call resolves: deployments create/update/delete, statefulsets create/update/delete, daemonsets (if any), services create/update/delete, ingresses create/update/delete, configmaps replace/delete, secrets replace/delete, roles/clusterroles/rolebindings update/delete, PVCs (if any), and the generic apply handler",
+        "A History tab or panel is accessible from the main UI (e.g. a 'History' item in the left tree view under a top-level section, or a toolbar button). It renders the writeHistory array in a scrollable list newest-first",
+        "Each history row displays: timestamp (local time), action badge (color-coded: green=create, blue=update, red=delete, purple=apply), resourceKind + resourceName, namespace (or cluster-scoped), context, success/fail indicator",
+        "Clicking a history row with a yamlSnapshot expands or opens a read-only YAML viewer showing the submitted YAML",
+        "A 'Clear history' button empties writeHistory in the store",
+        "History persists across app restarts via Zustand persist",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S89"],
+      "ipc_handlers": ["(no new IPC handlers — history recorded client-side after existing IPC calls resolve)"],
+      "notes": "Add the HistoryEntry type to src/main/handlers/types.ts or a renderer-side types file — it is renderer/store data, not IPC data, so a renderer types file is more appropriate. The cap of 500 entries uses the same slice(-500) pattern as the ring buffer story. The yamlSnapshot field lets users review exactly what YAML was applied, useful for rollback reference. Do not implement actual rollback in this story — view only. The History UI can be a simple panel component; no new shadcn components needed beyond what already exists (Badge, ScrollArea or plain overflow-y-auto)."
+    },
+    {
+      "id": "S91",
+      "title": "Helm chart management: repos, install, upgrade, uninstall",
+      "status": "incomplete",
+      "description": "Add a Helm section to the app that shells out to the `helm` CLI binary via Node.js child_process in the main process. Covers four operations: add or update a repo, list repos, list installed releases, install a chart, upgrade a release, and uninstall a release. All helm commands run with --kubeconfig pointing to the active context's kubeconfig so they operate on the same cluster the rest of the app is connected to. Output (stdout/stderr) is captured and returned to the renderer over IPC.",
+      "acceptance_criteria": [
+        "Main process checks for `helm` binary on startup (or on first Helm IPC call) using `which helm` / `where helm`; if not found, all helm IPC handlers return { success: false, error: 'helm CLI not found in PATH' }",
+        "New IPC handler `helm:repo:add` accepts { name: string; url: string } and runs `helm repo add <name> <url> --force-update`; returns MutationResult",
+        "New IPC handler `helm:repo:list` runs `helm repo list -o json`; returns parsed array of { name: string; url: string } or empty array if no repos",
+        "New IPC handler `helm:release:list` accepts { namespace?: string } and runs `helm list -o json [-n <namespace> | -A]`; returns array of HelmRelease: { name: string; namespace: string; chart: string; chartVersion: string; appVersion: string; status: string; updated: string }",
+        "New IPC handler `helm:release:install` accepts { releaseName: string; chart: string; namespace: string; values?: string }; runs `helm install <releaseName> <chart> -n <namespace> [--values -]` (piping values YAML to stdin if provided); returns MutationResult with stdout on success",
+        "New IPC handler `helm:release:upgrade` accepts { releaseName: string; chart: string; namespace: string; values?: string }; runs `helm upgrade <releaseName> <chart> -n <namespace> --install [--values -]`; returns MutationResult with stdout on success",
+        "New IPC handler `helm:release:uninstall` accepts { releaseName: string; namespace: string }; runs `helm uninstall <releaseName> -n <namespace>`; returns MutationResult",
+        "A 'Helm' section appears in the left tree view with two sub-items: 'Repositories' and 'Releases'",
+        "Repositories panel: table of repos (name, URL) with an 'Add / Update Repo' button that opens a dialog with name + URL inputs; submits to helm:repo:add",
+        "Releases panel: table of all releases across all namespaces (helm:release:list with -A); columns: name, namespace, chart, version, status, last updated; per-row actions: Upgrade (opens dialog pre-filled with release name + chart, editable values YAML textarea) and Uninstall (confirmation dialog)",
+        "Install chart button on Releases panel opens a dialog: release name, chart (e.g. bitnami/nginx), namespace selector, optional values YAML textarea; submits to helm:release:install",
+        "All helm operations append a HistoryEntry to writeHistory (action: 'create' for install, 'update' for upgrade, 'delete' for uninstall, resourceKind: 'HelmRelease')",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S90"],
+      "ipc_handlers": [
+        "helm:repo:add",
+        "helm:repo:list",
+        "helm:release:list",
+        "helm:release:install",
+        "helm:release:upgrade",
+        "helm:release:uninstall"
+      ],
+      "notes": "All helm CLI calls use execFile (not exec) with an explicit args array to avoid shell injection. Pass KUBECONFIG env var or --kube-context flag so helm targets the active context. Values YAML is passed via stdin (write to child process stdin and close) not via a temp file. Helm IPC handlers live in a new src/main/handlers/helm.ts file. No npm packages needed — only the system helm binary. If helm list returns an empty array (no releases), return [] not an error. Timeout each helm spawn at 30 seconds."
     }
   ]
 }
