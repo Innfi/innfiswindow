@@ -25,6 +25,7 @@ import { DeploymentsView } from "./components/DeploymentsView"
 import { EndpointsView } from "./components/EndpointsView"
 import { EventsView } from "./components/EventsView"
 import { GlobalSearch } from "./components/GlobalSearch"
+import { HistoryView } from "./components/HistoryView"
 import { HPAsView } from "./components/HPAsView"
 import { IngressesView } from "./components/IngressesView"
 import { JobsView } from "./components/JobsView"
@@ -305,6 +306,7 @@ function App(): JSX.Element {
               {selectedResourceType === "PodDisruptionBudgets" && <PDBsView />}
               {selectedResourceType === "overview" && <OverviewView />}
               {selectedResourceType === "custom-stream" && <CustomStreamView />}
+              {selectedResourceType === "history" && <HistoryView />}
             </div>
           </div>
 

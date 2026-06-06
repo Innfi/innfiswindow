@@ -40,6 +40,8 @@ function DetailPanel({
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const appendHistory = useAppStore((s) => s.appendHistory)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -85,11 +87,28 @@ function DetailPanel({
     setDeleteError(null)
     try {
       await window.api.k8s.deleteConfigMap(cm.namespace, cm.name)
+      appendHistory({
+        action: "delete",
+        resourceKind: "ConfigMap",
+        resourceName: cm.name,
+        namespace: cm.namespace,
+        context: selectedContext ?? "",
+        success: true,
+      })
       toast.success(`ConfigMap ${cm.name} deleted`)
       setDeleteOpenNotify(false)
       onDeleted()
       onClose()
     } catch (e) {
+      appendHistory({
+        action: "delete",
+        resourceKind: "ConfigMap",
+        resourceName: cm.name,
+        namespace: cm.namespace,
+        context: selectedContext ?? "",
+        success: false,
+        error: String(e),
+      })
       setDeleteError(String(e))
     } finally {
       setDeleting(false)

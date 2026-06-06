@@ -41,6 +41,8 @@ function DetailPanel({
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const appendHistory = useAppStore((s) => s.appendHistory)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -65,11 +67,28 @@ function DetailPanel({
     setDeleteError(null)
     try {
       await window.api.k8s.deleteClusterRole(role.name)
+      appendHistory({
+        action: "delete",
+        resourceKind: "ClusterRole",
+        resourceName: role.name,
+        namespace: null,
+        context: selectedContext ?? "",
+        success: true,
+      })
       toast.success(`ClusterRole ${role.name} deleted`)
       setDeleteOpenNotify(false)
       setSelectedItem(null)
       onDeleteSuccess()
     } catch (e) {
+      appendHistory({
+        action: "delete",
+        resourceKind: "ClusterRole",
+        resourceName: role.name,
+        namespace: null,
+        context: selectedContext ?? "",
+        success: false,
+        error: String(e),
+      })
       setDeleteError(String(e))
     } finally {
       setDeleting(false)

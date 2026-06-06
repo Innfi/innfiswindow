@@ -7,6 +7,19 @@ interface K8sPodContainer {
   restartCount: number
 }
 
+export interface HistoryEntry {
+  id: string
+  timestamp: string
+  action: "create" | "update" | "delete" | "apply"
+  resourceKind: string
+  resourceName: string
+  namespace: string | null
+  context: string
+  success: boolean
+  error?: string
+  yamlSnapshot?: string
+}
+
 export type DrawerTab =
   | {
       id: string
@@ -168,6 +181,7 @@ interface AppState {
   contextStates: Record<string, ContextState>
   contextNamespaces: Record<string, string | null>
   contextAliases: Record<string, string>
+  writeHistory: HistoryEntry[]
   setSelectedResourceType: (type: string | null) => void
   setSelectedItem: (item: object | null) => void
   navigateToResource: (type: string, item: object) => void
@@ -182,6 +196,8 @@ interface AppState {
   cleanupContextStates: (activeContextNames: string[]) => void
   markTabReconnected: (id: string) => void
   setContextAlias: (contextName: string, alias: string) => void
+  appendHistory: (entry: Omit<HistoryEntry, "id" | "timestamp">) => void
+  clearHistory: () => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -199,6 +215,7 @@ export const useAppStore = create<AppState>()(
       contextStates: {},
       contextNamespaces: {},
       contextAliases: {},
+      writeHistory: [],
       setSelectedResourceType: (type) =>
         set({ selectedResourceType: type, selectedItem: null }),
       setSelectedItem: (item) => set({ selectedItem: item }),
@@ -328,6 +345,16 @@ export const useAppStore = create<AppState>()(
           })
         }
       },
+      appendHistory: (entry) => {
+        const { writeHistory } = get()
+        const newEntry: HistoryEntry = {
+          ...entry,
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          timestamp: new Date().toISOString(),
+        }
+        set({ writeHistory: [...writeHistory, newEntry].slice(-500) })
+      },
+      clearHistory: () => set({ writeHistory: [] }),
       markTabReconnected: (id) => {
         const { drawerTabs } = get()
         set({
@@ -348,6 +375,7 @@ export const useAppStore = create<AppState>()(
         contextStates: state.contextStates,
         contextNamespaces: state.contextNamespaces,
         contextAliases: state.contextAliases,
+        writeHistory: state.writeHistory,
       }),
     },
   ),

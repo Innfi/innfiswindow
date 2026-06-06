@@ -202,6 +202,20 @@ export function TreeView(): JSX.Element {
       >
         Custom Stream
       </div>
+
+      {/* History — top-level item */}
+      <div
+        className={cn(
+          "cursor-pointer py-1.5 px-3 text-xs font-bold hover:bg-accent",
+          selectedResourceType === "history" && "bg-accent font-medium",
+        )}
+        onClick={() => {
+          setSelectedContext(null)
+          setSelectedResourceType("history")
+        }}
+      >
+        History
+      </div>
     </div>
   )
 }

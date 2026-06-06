@@ -40,6 +40,8 @@ function DetailPanel({
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const appendHistory = useAppStore((s) => s.appendHistory)
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set())
   const [deleteOpen, setDeleteOpen] = useState(false)
 
@@ -97,11 +99,28 @@ function DetailPanel({
     setDeleteError(null)
     try {
       await window.api.k8s.deleteSecret(secret.namespace, secret.name)
+      appendHistory({
+        action: "delete",
+        resourceKind: "Secret",
+        resourceName: secret.name,
+        namespace: secret.namespace,
+        context: selectedContext ?? "",
+        success: true,
+      })
       toast.success(`Secret ${secret.name} deleted`)
       setDeleteOpenNotify(false)
       onDeleted()
       onClose()
     } catch (e) {
+      appendHistory({
+        action: "delete",
+        resourceKind: "Secret",
+        resourceName: secret.name,
+        namespace: secret.namespace,
+        context: selectedContext ?? "",
+        success: false,
+        error: String(e),
+      })
       setDeleteError(String(e))
     } finally {
       setDeleting(false)

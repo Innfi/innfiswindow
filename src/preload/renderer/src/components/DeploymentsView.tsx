@@ -49,6 +49,7 @@ function DetailPanel({
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedContext = useAppStore((s) => s.selectedContext)
+  const appendHistory = useAppStore((s) => s.appendHistory)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [history, setHistory] = useState<DeploymentRevision[]>([])
@@ -147,11 +148,28 @@ function DetailPanel({
         deployment.namespace,
         deployment.name,
       )
+      appendHistory({
+        action: "delete",
+        resourceKind: "Deployment",
+        resourceName: deployment.name,
+        namespace: deployment.namespace,
+        context: selectedContext ?? "",
+        success: true,
+      })
       toast.success(`Deployment ${deployment.name} deleted`)
       setDeleteOpenNotify(false)
       onDeleted()
       onClose()
     } catch (e) {
+      appendHistory({
+        action: "delete",
+        resourceKind: "Deployment",
+        resourceName: deployment.name,
+        namespace: deployment.namespace,
+        context: selectedContext ?? "",
+        success: false,
+        error: String(e),
+      })
       toast.error(String(e))
       setDeleteOpenNotify(false)
     } finally {

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
-import { DrawerTab } from "../../store/app.store"
+import { DrawerTab, useAppStore } from "../../store/app.store"
 
 type YamlEditTab = Extract<DrawerTab, { type: "yaml-edit" }>
 
@@ -21,6 +21,8 @@ export function YamlEditPanel({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showDiff, setShowDiff] = useState(false)
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const appendHistory = useAppStore((s) => s.appendHistory)
 
   const hasChanges = yaml !== tab.initialYaml
 
@@ -80,10 +82,29 @@ export function YamlEditPanel({
           yamlStr,
         )
       }
+      appendHistory({
+        action: "update",
+        resourceKind: tab.resourceKind,
+        resourceName: tab.resourceName,
+        namespace: tab.namespace,
+        context: selectedContext ?? "",
+        success: true,
+        yamlSnapshot: yamlStr,
+      })
       toast.success(`${tab.resourceKind}/${tab.resourceName} saved`)
       onClose()
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
+      appendHistory({
+        action: "update",
+        resourceKind: tab.resourceKind,
+        resourceName: tab.resourceName,
+        namespace: tab.namespace,
+        context: selectedContext ?? "",
+        success: false,
+        error: msg,
+        yamlSnapshot: yamlStr,
+      })
       toast.error(`Failed to save: ${msg}`)
       setError(msg)
     } finally {

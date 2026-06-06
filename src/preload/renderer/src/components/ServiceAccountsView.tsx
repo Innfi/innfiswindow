@@ -41,6 +41,8 @@ function DetailPanel({
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const appendHistory = useAppStore((s) => s.appendHistory)
   const labelEntries = Object.entries(sa.labels)
   const annotationEntries = Object.entries(sa.annotations)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -68,11 +70,28 @@ function DetailPanel({
     setDeleteError(null)
     try {
       await window.api.k8s.deleteServiceAccount(sa.namespace, sa.name)
+      appendHistory({
+        action: "delete",
+        resourceKind: "ServiceAccount",
+        resourceName: sa.name,
+        namespace: sa.namespace,
+        context: selectedContext ?? "",
+        success: true,
+      })
       toast.success(`ServiceAccount ${sa.name} deleted`)
       setDeleteOpenNotify(false)
       setSelectedItem(null)
       onDeleteSuccess()
     } catch (e) {
+      appendHistory({
+        action: "delete",
+        resourceKind: "ServiceAccount",
+        resourceName: sa.name,
+        namespace: sa.namespace,
+        context: selectedContext ?? "",
+        success: false,
+        error: String(e),
+      })
       setDeleteError(String(e))
     } finally {
       setDeleting(false)

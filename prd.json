@@ -69,7 +69,7 @@
     {
       "id": "S90",
       "title": "Local write-action history log",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Every write operation (update resource spec via YAML, create resource, delete resource) currently gives no persistent record of what was changed and when. Add a local history log stored in the Zustand persist layer. Each completed write action appends a HistoryEntry to the store. A History panel (new tab or drawer section) lists entries newest-first. No server or filesystem persistence beyond what Zustand persist already does — localStorage only.",
       "acceptance_criteria": [
         "Zustand store gains a persisted field: writeHistory: HistoryEntry[] (capped at 500 entries, oldest dropped when limit exceeded); included in persist partialize",
@@ -84,7 +84,9 @@
         "No TypeScript compile errors"
       ],
       "dependencies": ["S89"],
-      "ipc_handlers": ["(no new IPC handlers — history recorded client-side after existing IPC calls resolve)"],
+      "ipc_handlers": [
+        "(no new IPC handlers — history recorded client-side after existing IPC calls resolve)"
+      ],
       "notes": "Add the HistoryEntry type to src/main/handlers/types.ts or a renderer-side types file — it is renderer/store data, not IPC data, so a renderer types file is more appropriate. The cap of 500 entries uses the same slice(-500) pattern as the ring buffer story. The yamlSnapshot field lets users review exactly what YAML was applied, useful for rollback reference. Do not implement actual rollback in this story — view only. The History UI can be a simple panel component; no new shadcn components needed beyond what already exists (Badge, ScrollArea or plain overflow-y-auto)."
     },
     {

@@ -41,6 +41,8 @@ function DetailPanel({
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const appendHistory = useAppStore((s) => s.appendHistory)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -67,11 +69,28 @@ function DetailPanel({
     setDeleteError(null)
     try {
       await window.api.k8s.deleteRoleBinding(binding.namespace, binding.name)
+      appendHistory({
+        action: "delete",
+        resourceKind: "RoleBinding",
+        resourceName: binding.name,
+        namespace: binding.namespace,
+        context: selectedContext ?? "",
+        success: true,
+      })
       toast.success(`RoleBinding ${binding.name} deleted`)
       setDeleteOpenNotify(false)
       setSelectedItem(null)
       onDeleteSuccess()
     } catch (e) {
+      appendHistory({
+        action: "delete",
+        resourceKind: "RoleBinding",
+        resourceName: binding.name,
+        namespace: binding.namespace,
+        context: selectedContext ?? "",
+        success: false,
+        error: String(e),
+      })
       setDeleteError(String(e))
     } finally {
       setDeleting(false)

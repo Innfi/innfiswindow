@@ -46,6 +46,8 @@ function DetailPanel({
   onDeleteSuccess: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const appendHistory = useAppStore((s) => s.appendHistory)
   const [selectedContainer, setSelectedContainer] = useState(
     pod.containers[0]?.name ?? "",
   )
@@ -63,11 +65,28 @@ function DetailPanel({
     setDeleteError(null)
     try {
       await window.api.k8s.deletePod(pod.namespace, pod.name)
+      appendHistory({
+        action: "delete",
+        resourceKind: "Pod",
+        resourceName: pod.name,
+        namespace: pod.namespace,
+        context: selectedContext ?? "",
+        success: true,
+      })
       toast.success(`Pod ${pod.name} deleted`)
       setDeleteOpenNotify(false)
       onDeleteSuccess()
       onClose()
     } catch (e) {
+      appendHistory({
+        action: "delete",
+        resourceKind: "Pod",
+        resourceName: pod.name,
+        namespace: pod.namespace,
+        context: selectedContext ?? "",
+        success: false,
+        error: String(e),
+      })
       setDeleteError(String(e))
     } finally {
       setDeleting(false)

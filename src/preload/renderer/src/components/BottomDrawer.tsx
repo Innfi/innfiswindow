@@ -28,22 +28,51 @@ function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
   const [yaml, setYaml] = useState(YAML_SKELETON)
   const [error, setError] = useState<string | null>(null)
   const [applying, setApplying] = useState(false)
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const appendHistory = useAppStore((s) => s.appendHistory)
 
   async function handleApply(): Promise<void> {
+    let parsed: unknown
     try {
-      yamlLoad(yaml)
+      parsed = yamlLoad(yaml)
     } catch (e) {
       setError(`YAML syntax error: ${String(e)}`)
       return
     }
+    const meta = parsed as {
+      kind?: string
+      metadata?: { name?: string; namespace?: string }
+    } | null
+    const resourceKind = meta?.kind ?? "Resource"
+    const resourceName = meta?.metadata?.name ?? ""
+    const namespace = meta?.metadata?.namespace ?? null
     setApplying(true)
     setError(null)
     try {
       await window.api.k8s.applyResource(yaml)
+      appendHistory({
+        action: "apply",
+        resourceKind,
+        resourceName,
+        namespace,
+        context: selectedContext ?? "",
+        success: true,
+        yamlSnapshot: yaml,
+      })
       toast.success("Resource applied successfully")
       onClose()
     } catch (e) {
       const msg = String(e)
+      appendHistory({
+        action: "apply",
+        resourceKind,
+        resourceName,
+        namespace,
+        context: selectedContext ?? "",
+        success: false,
+        error: msg,
+        yamlSnapshot: yaml,
+      })
       setError(msg)
       toast.error(`Apply failed: ${msg}`)
     } finally {

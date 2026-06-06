@@ -41,6 +41,8 @@ function DetailPanel({
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const appendHistory = useAppStore((s) => s.appendHistory)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -88,11 +90,28 @@ function DetailPanel({
     setDeleting(true)
     try {
       await window.api.k8s.deleteDaemonSet(ds.namespace, ds.name)
+      appendHistory({
+        action: "delete",
+        resourceKind: "DaemonSet",
+        resourceName: ds.name,
+        namespace: ds.namespace,
+        context: selectedContext ?? "",
+        success: true,
+      })
       toast.success(`DaemonSet ${ds.name} deleted`)
       setDeleteOpenNotify(false)
       onDeleted()
       onClose()
     } catch (e) {
+      appendHistory({
+        action: "delete",
+        resourceKind: "DaemonSet",
+        resourceName: ds.name,
+        namespace: ds.namespace,
+        context: selectedContext ?? "",
+        success: false,
+        error: String(e),
+      })
       toast.error(String(e))
       setDeleteOpenNotify(false)
     } finally {
