@@ -727,6 +727,46 @@ export interface AwsCredentialResult {
   hasSessionToken?: boolean
 }
 
+export interface HelmRepo {
+  name: string
+  url: string
+}
+
+export interface HelmRelease {
+  name: string
+  namespace: string
+  chart: string
+  chartVersion: string
+  appVersion: string
+  status: string
+  updated: string
+}
+
+export interface HelmAPI {
+  repoAdd: (
+    name: string,
+    url: string,
+  ) => Promise<{ success: boolean; error?: string }>
+  repoList: () => Promise<HelmRepo[]>
+  releaseList: (args?: { namespace?: string }) => Promise<HelmRelease[]>
+  releaseInstall: (args: {
+    releaseName: string
+    chart: string
+    namespace: string
+    values?: string
+  }) => Promise<{ success: boolean; error?: string }>
+  releaseUpgrade: (args: {
+    releaseName: string
+    chart: string
+    namespace: string
+    values?: string
+  }) => Promise<{ success: boolean; error?: string }>
+  releaseUninstall: (args: {
+    releaseName: string
+    namespace: string
+  }) => Promise<{ success: boolean; error?: string }>
+}
+
 export interface API {
   k8s: K8sAPI
   checkAwsCredentials: () => Promise<AwsCredentialResult>
@@ -795,6 +835,7 @@ export interface API {
     sessionId: string
   }) => Promise<{ success: boolean; error?: string }>
   stopPortForward: (sessionId: string) => Promise<{ success: boolean }>
+  helm: HelmAPI
 }
 
 declare global {

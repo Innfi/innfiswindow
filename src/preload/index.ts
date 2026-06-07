@@ -335,6 +335,27 @@ const api = {
     ipcRenderer.on("stream:socket:end", handler)
     return () => ipcRenderer.removeListener("stream:socket:end", handler)
   },
+  helm: {
+    repoAdd: (name: string, url: string) =>
+      ipcRenderer.invoke("helm:repo:add", { name, url }),
+    repoList: () => ipcRenderer.invoke("helm:repo:list"),
+    releaseList: (args?: { namespace?: string }) =>
+      ipcRenderer.invoke("helm:release:list", args),
+    releaseInstall: (args: {
+      releaseName: string
+      chart: string
+      namespace: string
+      values?: string
+    }) => ipcRenderer.invoke("helm:release:install", args),
+    releaseUpgrade: (args: {
+      releaseName: string
+      chart: string
+      namespace: string
+      values?: string
+    }) => ipcRenderer.invoke("helm:release:upgrade", args),
+    releaseUninstall: (args: { releaseName: string; namespace: string }) =>
+      ipcRenderer.invoke("helm:release:uninstall", args),
+  },
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

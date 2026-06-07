@@ -546,3 +546,22 @@ export interface NodeMetric {
 export interface MetricsUnavailable {
   unavailable: true
 }
+
+// ---------------------------------------------------------------------------
+// helm.ts
+// ---------------------------------------------------------------------------
+
+export interface HelmRepo {
+  name: string
+  url: string
+}
+
+export interface HelmRelease {
+  name: string
+  namespace: string
+  chart: string
+  chartVersion: string
+  appVersion: string
+  status: string
+  updated: string
+}

@@ -56,6 +56,7 @@ export function TreeView(): JSX.Element {
   const [contexts, setContexts] = useState<K8sContext[]>([])
   const [openContexts, setOpenContexts] = useState<Record<string, boolean>>({})
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
+  const [helmOpen, setHelmOpen] = useState(true)
 
   const selectedResourceType = useAppStore((s) => s.selectedResourceType)
   const selectedContext = useAppStore((s) => s.selectedContext)
@@ -216,6 +217,41 @@ export function TreeView(): JSX.Element {
       >
         History
       </div>
+
+      {/* Helm — collapsible section */}
+      <Collapsible.Root open={helmOpen} onOpenChange={setHelmOpen}>
+        <Collapsible.Trigger asChild>
+          <button className="flex w-full items-center gap-1 px-3 py-1.5 text-xs font-bold hover:bg-accent">
+            {helmOpen ? (
+              <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+            )}
+            Helm
+          </button>
+        </Collapsible.Trigger>
+        <Collapsible.Content>
+          {["Repositories", "Releases"].map((item) => {
+            const resourceType = `helm-${item.toLowerCase()}`
+            return (
+              <div
+                key={item}
+                className={cn(
+                  "cursor-pointer py-1.5 pl-8 pr-3 text-sm hover:bg-accent",
+                  selectedResourceType === resourceType &&
+                    "bg-accent font-medium",
+                )}
+                onClick={() => {
+                  setSelectedContext(null)
+                  setSelectedResourceType(resourceType)
+                }}
+              >
+                {item}
+              </div>
+            )
+          })}
+        </Collapsible.Content>
+      </Collapsible.Root>
     </div>
   )
 }

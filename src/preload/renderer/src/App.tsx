@@ -25,6 +25,7 @@ import { DeploymentsView } from "./components/DeploymentsView"
 import { EndpointsView } from "./components/EndpointsView"
 import { EventsView } from "./components/EventsView"
 import { GlobalSearch } from "./components/GlobalSearch"
+import { HelmReleasesView, HelmRepositoriesView } from "./components/HelmView"
 import { HistoryView } from "./components/HistoryView"
 import { HPAsView } from "./components/HPAsView"
 import { IngressesView } from "./components/IngressesView"
@@ -307,6 +308,10 @@ function App(): JSX.Element {
               {selectedResourceType === "overview" && <OverviewView />}
               {selectedResourceType === "custom-stream" && <CustomStreamView />}
               {selectedResourceType === "history" && <HistoryView />}
+              {selectedResourceType === "helm-repositories" && (
+                <HelmRepositoriesView />
+              )}
+              {selectedResourceType === "helm-releases" && <HelmReleasesView />}
             </div>
           </div>
 

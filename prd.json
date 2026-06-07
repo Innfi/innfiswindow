@@ -92,7 +92,7 @@
     {
       "id": "S91",
       "title": "Helm chart management: repos, install, upgrade, uninstall",
-      "status": "incomplete",
+      "status": "complete",
       "description": "Add a Helm section to the app that shells out to the `helm` CLI binary via Node.js child_process in the main process. Covers four operations: add or update a repo, list repos, list installed releases, install a chart, upgrade a release, and uninstall a release. All helm commands run with --kubeconfig pointing to the active context's kubeconfig so they operate on the same cluster the rest of the app is connected to. Output (stdout/stderr) is captured and returned to the renderer over IPC.",
       "acceptance_criteria": [
         "Main process checks for `helm` binary on startup (or on first Helm IPC call) using `which helm` / `where helm`; if not found, all helm IPC handlers return { success: false, error: 'helm CLI not found in PATH' }",
