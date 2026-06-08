@@ -129,7 +129,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{svc.name}</h2>
@@ -363,54 +363,66 @@ export function ServicesView(): JSX.Element {
           <EmptyState message="No Services found" />
         )}
         {!loading && !error && visibleServices.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>ClusterIP</TableHead>
-                <TableHead>External IP</TableHead>
-                <TableHead>Ports</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleServices.map((svc) => (
-                <TableRow
-                  key={`${svc.namespace}/${svc.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === svc.name &&
-                      selectedItem?.namespace === svc.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === svc.name &&
-                        selectedItem?.namespace === svc.namespace
-                        ? null
-                        : svc,
-                    )
-                  }
-                >
-                  <TableCell>{svc.name}</TableCell>
-                  <TableCell>{svc.namespace}</TableCell>
-                  <TableCell>{svc.type}</TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {svc.clusterIP || "-"}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {svc.externalIP || "-"}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {formatPorts(svc.ports)}
-                  </TableCell>
-                  <TableCell>{formatAge(svc.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Type</TableHead>
+                  <TableHead className="whitespace-nowrap">ClusterIP</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    External IP
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Ports</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleServices.map((svc) => (
+                  <TableRow
+                    key={`${svc.namespace}/${svc.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === svc.name &&
+                        selectedItem?.namespace === svc.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === svc.name &&
+                          selectedItem?.namespace === svc.namespace
+                          ? null
+                          : svc,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {svc.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {svc.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {svc.type}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
+                      {svc.clusterIP || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
+                      {svc.externalIP || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {formatPorts(svc.ports)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(svc.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

@@ -168,7 +168,7 @@ function DetailPanel({
   const allocatableEntries = Object.entries(node.allocatable)
 
   return (
-    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{node.name}</h2>
@@ -354,57 +354,69 @@ export function NodesView(): JSX.Element {
           <EmptyState message="No Nodes found" />
         )}
         {!loading && !error && visibleNodes.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Roles</TableHead>
-                <TableHead>Age</TableHead>
-                <TableHead>Version</TableHead>
-                <TableHead>CPU%</TableHead>
-                <TableHead>Mem%</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleNodes.map((node) => {
-                const metric = metricsMap.get(node.name)
-                let cpuPct: number | null = null
-                let memPct: number | null = null
-                if (metric && !metricsUnavailable) {
-                  const pcts = computeMetricPcts(metric, node.allocatable)
-                  cpuPct = pcts.cpuPct
-                  memPct = pcts.memPct
-                }
-                return (
-                  <TableRow
-                    key={node.name}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === node.name && "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === node.name ? null : node,
-                      )
-                    }
-                  >
-                    <TableCell>{node.name}</TableCell>
-                    <TableCell>{node.status}</TableCell>
-                    <TableCell>{node.roles}</TableCell>
-                    <TableCell>{formatAge(node.creationTimestamp)}</TableCell>
-                    <TableCell>{node.version}</TableCell>
-                    <TableCell>
-                      {cpuPct !== null ? `${cpuPct.toFixed(1)}%` : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {memPct !== null ? `${memPct.toFixed(1)}%` : "—"}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Roles</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
+                  <TableHead className="whitespace-nowrap">Version</TableHead>
+                  <TableHead className="whitespace-nowrap">CPU%</TableHead>
+                  <TableHead className="whitespace-nowrap">Mem%</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleNodes.map((node) => {
+                  const metric = metricsMap.get(node.name)
+                  let cpuPct: number | null = null
+                  let memPct: number | null = null
+                  if (metric && !metricsUnavailable) {
+                    const pcts = computeMetricPcts(metric, node.allocatable)
+                    cpuPct = pcts.cpuPct
+                    memPct = pcts.memPct
+                  }
+                  return (
+                    <TableRow
+                      key={node.name}
+                      className={cn(
+                        "cursor-pointer",
+                        selectedItem?.name === node.name && "bg-muted",
+                      )}
+                      onClick={() =>
+                        setSelectedItem(
+                          selectedItem?.name === node.name ? null : node,
+                        )
+                      }
+                    >
+                      <TableCell className="whitespace-nowrap">
+                        {node.name}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {node.status}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {node.roles}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {formatAge(node.creationTimestamp)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {node.version}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {cpuPct !== null ? `${cpuPct.toFixed(1)}%` : "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {memPct !== null ? `${memPct.toFixed(1)}%` : "—"}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

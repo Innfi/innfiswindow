@@ -29,7 +29,7 @@ function DetailPanel({
   const annotationEntries = Object.entries(job.annotations)
 
   return (
-    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{job.name}</h2>
@@ -173,52 +173,68 @@ export function JobsView(): JSX.Element {
           <EmptyState message="No Jobs found" />
         )}
         {!loading && !error && visibleJobs.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Completions</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead>Failed</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleJobs.map((job) => (
-                <TableRow
-                  key={`${job.namespace}/${job.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === job.name &&
-                      (selectedItem as K8sJob).namespace === job.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === job.name &&
-                        (selectedItem as K8sJob).namespace === job.namespace
-                        ? null
-                        : job,
-                    )
-                  }
-                >
-                  <TableCell>{job.name}</TableCell>
-                  <TableCell>{job.namespace}</TableCell>
-                  <TableCell>
-                    {job.completions !== null
-                      ? `${job.succeeded}/${job.completions}`
-                      : String(job.succeeded)}
-                  </TableCell>
-                  <TableCell>{job.active}</TableCell>
-                  <TableCell>{job.failed}</TableCell>
-                  <TableCell>{job.duration || "-"}</TableCell>
-                  <TableCell>{formatAge(job.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Completions
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Active</TableHead>
+                  <TableHead className="whitespace-nowrap">Failed</TableHead>
+                  <TableHead className="whitespace-nowrap">Duration</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleJobs.map((job) => (
+                  <TableRow
+                    key={`${job.namespace}/${job.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === job.name &&
+                        (selectedItem as K8sJob).namespace === job.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === job.name &&
+                          (selectedItem as K8sJob).namespace === job.namespace
+                          ? null
+                          : job,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {job.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {job.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {job.completions !== null
+                        ? `${job.succeeded}/${job.completions}`
+                        : String(job.succeeded)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {job.active}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {job.failed}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {job.duration || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(job.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

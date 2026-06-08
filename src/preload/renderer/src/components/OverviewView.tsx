@@ -202,45 +202,57 @@ export function OverviewView(): JSX.Element {
           {unhealthyPods.length === 0 ? (
             <p className="text-sm text-muted-foreground">All pods healthy.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="w-36">Namespace</TableHead>
-                  <TableHead className="w-28">Phase</TableHead>
-                  <TableHead className="w-24 text-center">Restarts</TableHead>
-                  <TableHead className="w-20">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {unhealthyPods.map((pod) => (
-                  <TableRow key={`${pod.namespace}/${pod.name}`}>
-                    <TableCell className="font-mono text-xs">
-                      {pod.name}
-                    </TableCell>
-                    <TableCell className="text-xs">{pod.namespace}</TableCell>
-                    <TableCell>
-                      <span
-                        className={cn(
-                          "inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium",
-                          pod.status === "Pending"
-                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300"
-                            : "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
-                        )}
-                      >
-                        {pod.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center text-xs">
-                      {pod.restarts}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {formatAge(pod.creationTimestamp)}
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">Name</TableHead>
+                    <TableHead className="whitespace-nowrap w-36">
+                      Namespace
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap w-28">
+                      Phase
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap w-24 text-center">
+                      Restarts
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap w-20">
+                      Age
+                    </TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {unhealthyPods.map((pod) => (
+                    <TableRow key={`${pod.namespace}/${pod.name}`}>
+                      <TableCell className="whitespace-nowrap font-mono text-xs">
+                        {pod.name}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {pod.namespace}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium",
+                            pod.status === "Pending"
+                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300"
+                              : "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+                          )}
+                        >
+                          {pod.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-center text-xs">
+                        {pod.restarts}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {formatAge(pod.creationTimestamp)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </div>
 
@@ -252,43 +264,53 @@ export function OverviewView(): JSX.Element {
               No warning events in the last hour.
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-24">Type</TableHead>
-                  <TableHead className="w-36">Reason</TableHead>
-                  <TableHead>Message</TableHead>
-                  <TableHead className="w-40">Object</TableHead>
-                  <TableHead className="w-20">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentWarningEvents.map((ev, i) => (
-                  <TableRow key={`${ev.name}-${i}`}>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                        {ev.type}
-                      </span>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {ev.reason}
-                    </TableCell>
-                    <TableCell
-                      className="text-xs max-w-xs truncate"
-                      title={ev.message}
-                    >
-                      {ev.message}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {ev.involvedObjectKind}/{ev.involvedObjectName}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {formatAge(ev.lastTimestamp || ev.creationTimestamp)}
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap w-24">
+                      Type
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap w-36">
+                      Reason
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">Message</TableHead>
+                    <TableHead className="whitespace-nowrap w-40">
+                      Object
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap w-20">
+                      Age
+                    </TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {recentWarningEvents.map((ev, i) => (
+                    <TableRow key={`${ev.name}-${i}`}>
+                      <TableCell className="whitespace-nowrap">
+                        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                          {ev.type}
+                        </span>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap font-mono text-xs">
+                        {ev.reason}
+                      </TableCell>
+                      <TableCell
+                        className="whitespace-nowrap text-xs max-w-xs truncate"
+                        title={ev.message}
+                      >
+                        {ev.message}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap font-mono text-xs">
+                        {ev.involvedObjectKind}/{ev.involvedObjectName}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {formatAge(ev.lastTimestamp || ev.creationTimestamp)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </div>
       </div>

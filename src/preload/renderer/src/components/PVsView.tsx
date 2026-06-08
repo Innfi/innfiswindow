@@ -39,7 +39,7 @@ function DetailPanel({
   const annotationEntries = Object.entries(pv.annotations)
 
   return (
-    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <h2 className="font-semibold text-base mb-1 flex-1 truncate">
           {pv.name}
@@ -166,56 +166,78 @@ export function PVsView(): JSX.Element {
           <EmptyState message="No PersistentVolumes found" />
         )}
         {!loading && !error && visiblePVs.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Capacity</TableHead>
-                <TableHead>Access Modes</TableHead>
-                <TableHead>Reclaim Policy</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Claim</TableHead>
-                <TableHead>StorageClass</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visiblePVs.map((pv) => (
-                <TableRow
-                  key={pv.name}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === pv.name && "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(selectedItem?.name === pv.name ? null : pv)
-                  }
-                >
-                  <TableCell>{pv.name}</TableCell>
-                  <TableCell>{pv.capacity}</TableCell>
-                  <TableCell>{pv.accessModes.join(", ")}</TableCell>
-                  <TableCell>{pv.reclaimPolicy}</TableCell>
-                  <TableCell>
-                    <span
-                      className={cn(
-                        "rounded px-1.5 py-0.5 text-xs font-medium",
-                        pvStatusClass(pv.status),
-                      )}
-                    >
-                      {pv.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {pv.claimRef
-                      ? `${pv.claimRef.namespace}/${pv.claimRef.name}`
-                      : "-"}
-                  </TableCell>
-                  <TableCell>{pv.storageClass || "-"}</TableCell>
-                  <TableCell>{formatAge(pv.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Capacity</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Access Modes
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Reclaim Policy
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Claim</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    StorageClass
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visiblePVs.map((pv) => (
+                  <TableRow
+                    key={pv.name}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === pv.name && "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === pv.name ? null : pv,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {pv.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pv.capacity}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pv.accessModes.join(", ")}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pv.reclaimPolicy}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <span
+                        className={cn(
+                          "rounded px-1.5 py-0.5 text-xs font-medium",
+                          pvStatusClass(pv.status),
+                        )}
+                      >
+                        {pv.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pv.claimRef
+                        ? `${pv.claimRef.namespace}/${pv.claimRef.name}`
+                        : "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pv.storageClass || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(pv.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

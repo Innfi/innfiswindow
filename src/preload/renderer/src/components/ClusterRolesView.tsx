@@ -96,7 +96,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-[480px] shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-[480px] shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{role.name}</h2>
@@ -162,30 +162,34 @@ function DetailPanel({
         {role.rules.length === 0 ? (
           <p className="text-sm text-muted-foreground">No rules</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>API Groups</TableHead>
-                <TableHead>Resources</TableHead>
-                <TableHead>Verbs</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {role.rules.map((rule, i) => (
-                <TableRow key={i}>
-                  <TableCell className="text-xs font-mono">
-                    {rule.apiGroups.join(", ") || '""'}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {rule.resources.join(", ") || "*"}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {rule.verbs.join(", ")}
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">
+                    API Groups
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Resources</TableHead>
+                  <TableHead className="whitespace-nowrap">Verbs</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {role.rules.map((rule, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="whitespace-nowrap text-xs font-mono">
+                      {rule.apiGroups.join(", ") || '""'}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {rule.resources.join(", ") || "*"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {rule.verbs.join(", ")}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
     </div>
@@ -238,35 +242,43 @@ export function ClusterRolesView(): JSX.Element {
           <EmptyState message="No Cluster Roles found" />
         )}
         {!loading && !error && visible.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Rules</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visible.map((role) => (
-                <TableRow
-                  key={role.name}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === role.name && "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === role.name ? null : role,
-                    )
-                  }
-                >
-                  <TableCell>{role.name}</TableCell>
-                  <TableCell>{role.rulesCount}</TableCell>
-                  <TableCell>{formatAge(role.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Rules</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visible.map((role) => (
+                  <TableRow
+                    key={role.name}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === role.name && "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === role.name ? null : role,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {role.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {role.rulesCount}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(role.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

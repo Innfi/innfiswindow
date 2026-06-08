@@ -26,7 +26,7 @@ function DetailPanel({
   onClose: () => void
 }): JSX.Element {
   return (
-    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{limitRange.name}</h2>
@@ -171,50 +171,60 @@ export function LimitRangesView(): JSX.Element {
           <EmptyState message="No LimitRanges found" />
         )}
         {!loading && !error && visible.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Types</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visible.map((lr) => {
-                const types = Array.from(
-                  new Set(lr.limits.map((l) => l.type).filter(Boolean)),
-                ).join(", ")
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Types</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visible.map((lr) => {
+                  const types = Array.from(
+                    new Set(lr.limits.map((l) => l.type).filter(Boolean)),
+                  ).join(", ")
 
-                return (
-                  <TableRow
-                    key={`${lr.namespace}/${lr.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === lr.name &&
-                        (selectedItem as K8sLimitRange)?.namespace ===
-                          lr.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
+                  return (
+                    <TableRow
+                      key={`${lr.namespace}/${lr.name}`}
+                      className={cn(
+                        "cursor-pointer",
                         selectedItem?.name === lr.name &&
                           (selectedItem as K8sLimitRange)?.namespace ===
-                            lr.namespace
-                          ? null
-                          : lr,
-                      )
-                    }
-                  >
-                    <TableCell>{lr.name}</TableCell>
-                    <TableCell>{lr.namespace}</TableCell>
-                    <TableCell>{types || "-"}</TableCell>
-                    <TableCell>{formatAge(lr.creationTimestamp)}</TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+                            lr.namespace &&
+                          "bg-muted",
+                      )}
+                      onClick={() =>
+                        setSelectedItem(
+                          selectedItem?.name === lr.name &&
+                            (selectedItem as K8sLimitRange)?.namespace ===
+                              lr.namespace
+                            ? null
+                            : lr,
+                        )
+                      }
+                    >
+                      <TableCell className="whitespace-nowrap">
+                        {lr.name}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {lr.namespace}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {types || "-"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {formatAge(lr.creationTimestamp)}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

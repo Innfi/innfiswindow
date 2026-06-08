@@ -119,6 +119,23 @@
         "helm:release:uninstall"
       ],
       "notes": "All helm CLI calls use execFile (not exec) with an explicit args array to avoid shell injection. Pass KUBECONFIG env var or --kube-context flag so helm targets the active context. Values YAML is passed via stdin (write to child process stdin and close) not via a temp file. Helm IPC handlers live in a new src/main/handlers/helm.ts file. No npm packages needed — only the system helm binary. If helm list returns an empty array (no releases), return [] not an error. Timeout each helm spawn at 30 seconds."
+    },
+    {
+      "id": "S92",
+      "title": "Horizontally scrollable resource tables and detail panels",
+      "status": "complete",
+      "description": "Resource list tables in all *View.tsx components compress columns to fit the container width instead of scrolling horizontally when content is wide. The right-side detail panel uses overflow-y-auto only, so wide content (long annotation values, label strings, IP addresses in multi-column rows) clips without scrolling. Fix both: wrap every Table in an overflow-x-auto container so the table can expand beyond the panel width and scroll, and add whitespace-nowrap to table cells so column content does not wrap and compress. Fix detail panels to scroll both axes.",
+      "acceptance_criteria": [
+        "Every <Table> in every *View.tsx file is wrapped in <div className=\"overflow-x-auto\"> so the table can exceed its container width and trigger a horizontal scrollbar",
+        "Every <TableHead> and <TableCell> in all resource list tables gains className=\"whitespace-nowrap\" (or the existing className is extended) so cell content never wraps — columns stay their natural width and the table grows wide enough to scroll",
+        "The right-side resource detail panel in every *View.tsx file changes its overflow class from overflow-y-auto to overflow-auto (both axes), so wide detail content (long strings, deeply indented YAML, wide label tables) can also be scrolled horizontally",
+        "No column widths are hardcoded or capped — let content determine width naturally",
+        "No layout regressions: the left tree view (w-60), the right detail panel (current fixed width), and the AppBar must not change size or shift",
+        "Change is CSS/className only — no logic, state, or IPC changes",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S91"],
+      "notes": "Target files: DeploymentsView.tsx, PodsView.tsx (if exists), StatefulSetsView.tsx, DaemonSetsView.tsx, ReplicaSetsView.tsx, ServicesView.tsx, IngressesView.tsx, ConfigMapsView.tsx, SecretsView.tsx, NamespacesView.tsx, NodesView.tsx, RolesView.tsx, ClusterRolesView.tsx, RoleBindingsView.tsx, ClusterRoleBindingsView.tsx, JobsView.tsx, CronJobsView.tsx, HPAsView.tsx, ResourceQuotasView.tsx, LimitRangesView.tsx, PDBsView.tsx, EndpointsView.tsx, NetworkPoliciesView.tsx, StorageView.tsx (PVs/PVCs), EventsView.tsx, HelmView.tsx. Apply the same fix to any new view files added in later stories. The outer list container already has overflow-auto on the flex-1 div — the missing piece is the overflow-x-auto wrapper directly around <Table> and whitespace-nowrap on cells."
     }
   ]
 }

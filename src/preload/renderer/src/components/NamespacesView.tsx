@@ -29,7 +29,7 @@ function DetailPanel({
   const annotationEntries = Object.entries(ns.annotations)
 
   return (
-    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{ns.name}</h2>
@@ -130,33 +130,43 @@ export function NamespacesView(): JSX.Element {
           <EmptyState message="No Namespaces found" />
         )}
         {!loading && !error && visibleNamespaces.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleNamespaces.map((ns) => (
-                <TableRow
-                  key={ns.name}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === ns.name && "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(selectedItem?.name === ns.name ? null : ns)
-                  }
-                >
-                  <TableCell>{ns.name}</TableCell>
-                  <TableCell>{ns.status}</TableCell>
-                  <TableCell>{formatAge(ns.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleNamespaces.map((ns) => (
+                  <TableRow
+                    key={ns.name}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === ns.name && "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === ns.name ? null : ns,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {ns.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ns.status}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(ns.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

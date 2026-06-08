@@ -116,7 +116,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{cm.name}</h2>
@@ -299,44 +299,52 @@ export function ConfigMapsView(): JSX.Element {
           <EmptyState message="No ConfigMaps found" />
         )}
         {!loading && !error && visibleConfigMaps.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Keys</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleConfigMaps.map((cm) => (
-                <TableRow
-                  key={`${cm.namespace}/${cm.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === cm.name &&
-                      selectedItem?.namespace === cm.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === cm.name &&
-                        selectedItem?.namespace === cm.namespace
-                        ? null
-                        : cm,
-                    )
-                  }
-                >
-                  <TableCell>{cm.name}</TableCell>
-                  <TableCell>{cm.namespace}</TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {cm.keys.join(", ") || "-"}
-                  </TableCell>
-                  <TableCell>{formatAge(cm.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Keys</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleConfigMaps.map((cm) => (
+                  <TableRow
+                    key={`${cm.namespace}/${cm.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === cm.name &&
+                        selectedItem?.namespace === cm.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === cm.name &&
+                          selectedItem?.namespace === cm.namespace
+                          ? null
+                          : cm,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {cm.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {cm.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap max-w-xs truncate">
+                      {cm.keys.join(", ") || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(cm.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

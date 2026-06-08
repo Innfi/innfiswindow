@@ -178,7 +178,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{deployment.name}</h2>
@@ -461,46 +461,60 @@ export function DeploymentsView(): JSX.Element {
           <EmptyState message="No Deployments found" />
         )}
         {!loading && !error && visibleDeployments.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Ready</TableHead>
-                <TableHead>Up-to-date</TableHead>
-                <TableHead>Available</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleDeployments.map((d) => (
-                <TableRow
-                  key={`${d.namespace}/${d.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === d.name &&
-                      selectedItem?.namespace === d.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === d.name &&
-                        selectedItem?.namespace === d.namespace
-                        ? null
-                        : d,
-                    )
-                  }
-                >
-                  <TableCell>{d.name}</TableCell>
-                  <TableCell>{d.namespace}</TableCell>
-                  <TableCell>{`${d.readyReplicas}/${d.replicas}`}</TableCell>
-                  <TableCell>{d.updatedReplicas}</TableCell>
-                  <TableCell>{d.availableReplicas}</TableCell>
-                  <TableCell>{formatAge(d.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Ready</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Up-to-date
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Available</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleDeployments.map((d) => (
+                  <TableRow
+                    key={`${d.namespace}/${d.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === d.name &&
+                        selectedItem?.namespace === d.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === d.name &&
+                          selectedItem?.namespace === d.namespace
+                          ? null
+                          : d,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {d.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {d.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{`${d.readyReplicas}/${d.replicas}`}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {d.updatedReplicas}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {d.availableReplicas}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(d.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

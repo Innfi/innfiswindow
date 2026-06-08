@@ -128,7 +128,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{secret.name}</h2>
@@ -325,46 +325,56 @@ export function SecretsView(): JSX.Element {
           <EmptyState message="No Secrets found" />
         )}
         {!loading && !error && visibleSecrets.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Keys</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleSecrets.map((secret) => (
-                <TableRow
-                  key={`${secret.namespace}/${secret.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === secret.name &&
-                      selectedItem?.namespace === secret.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === secret.name &&
-                        selectedItem?.namespace === secret.namespace
-                        ? null
-                        : secret,
-                    )
-                  }
-                >
-                  <TableCell>{secret.name}</TableCell>
-                  <TableCell>{secret.namespace}</TableCell>
-                  <TableCell className="text-xs">{secret.type}</TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {secret.keys.join(", ") || "-"}
-                  </TableCell>
-                  <TableCell>{formatAge(secret.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Type</TableHead>
+                  <TableHead className="whitespace-nowrap">Keys</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleSecrets.map((secret) => (
+                  <TableRow
+                    key={`${secret.namespace}/${secret.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === secret.name &&
+                        selectedItem?.namespace === secret.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === secret.name &&
+                          selectedItem?.namespace === secret.namespace
+                          ? null
+                          : secret,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {secret.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {secret.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {secret.type}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap max-w-xs truncate">
+                      {secret.keys.join(", ") || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(secret.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

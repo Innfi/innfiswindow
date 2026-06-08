@@ -115,61 +115,74 @@ export function EventsView(): JSX.Element {
           <EmptyState message="No Events found" />
         )}
         {events.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-24">Type</TableHead>
-                <TableHead className="w-36">Reason</TableHead>
-                <TableHead>Object</TableHead>
-                <TableHead className="w-32">Namespace</TableHead>
-                <TableHead>Message</TableHead>
-                <TableHead className="w-16 text-center">Count</TableHead>
-                <TableHead className="w-28">Last Seen</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {events.map((ev, i) => (
-                <TableRow
-                  key={`${ev.name}-${i}`}
-                  className={cn(
-                    ev.type === "Warning" && "bg-amber-50 dark:bg-amber-950/20",
-                  )}
-                >
-                  <TableCell>
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium",
-                        ev.type === "Warning"
-                          ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-                          : "bg-secondary text-secondary-foreground",
-                      )}
-                    >
-                      {ev.type}
-                    </span>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {ev.reason}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {ev.involvedObjectKind}/{ev.involvedObjectName}
-                  </TableCell>
-                  <TableCell className="text-xs">{ev.namespace}</TableCell>
-                  <TableCell
-                    className="text-xs max-w-xs truncate"
-                    title={ev.message}
-                  >
-                    {ev.message}
-                  </TableCell>
-                  <TableCell className="text-center text-xs">
-                    {ev.count}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {formatAge(ev.lastTimestamp || ev.creationTimestamp)}
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap w-24">Type</TableHead>
+                  <TableHead className="whitespace-nowrap w-36">
+                    Reason
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Object</TableHead>
+                  <TableHead className="whitespace-nowrap w-32">
+                    Namespace
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Message</TableHead>
+                  <TableHead className="whitespace-nowrap w-16 text-center">
+                    Count
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap w-28">
+                    Last Seen
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {events.map((ev, i) => (
+                  <TableRow
+                    key={`${ev.name}-${i}`}
+                    className={cn(
+                      ev.type === "Warning" &&
+                        "bg-amber-50 dark:bg-amber-950/20",
+                    )}
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium",
+                          ev.type === "Warning"
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                            : "bg-secondary text-secondary-foreground",
+                        )}
+                      >
+                        {ev.type}
+                      </span>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
+                      {ev.reason}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
+                      {ev.involvedObjectKind}/{ev.involvedObjectName}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {ev.namespace}
+                    </TableCell>
+                    <TableCell
+                      className="whitespace-nowrap text-xs max-w-xs truncate"
+                      title={ev.message}
+                    >
+                      {ev.message}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-center text-xs">
+                      {ev.count}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {formatAge(ev.lastTimestamp || ev.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
     </div>

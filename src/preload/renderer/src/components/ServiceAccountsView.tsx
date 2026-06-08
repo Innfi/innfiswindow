@@ -99,7 +99,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{sa.name}</h2>
@@ -277,42 +277,52 @@ export function ServiceAccountsView(): JSX.Element {
           <EmptyState message="No Service Accounts found" />
         )}
         {!loading && !error && visible.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Secrets</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visible.map((sa) => (
-                <TableRow
-                  key={`${sa.namespace}/${sa.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === sa.name &&
-                      selectedItem?.namespace === sa.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === sa.name &&
-                        selectedItem?.namespace === sa.namespace
-                        ? null
-                        : sa,
-                    )
-                  }
-                >
-                  <TableCell>{sa.name}</TableCell>
-                  <TableCell>{sa.namespace}</TableCell>
-                  <TableCell>{sa.secrets.length}</TableCell>
-                  <TableCell>{formatAge(sa.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Secrets</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visible.map((sa) => (
+                  <TableRow
+                    key={`${sa.namespace}/${sa.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === sa.name &&
+                        selectedItem?.namespace === sa.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === sa.name &&
+                          selectedItem?.namespace === sa.namespace
+                          ? null
+                          : sa,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {sa.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {sa.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {sa.secrets.length}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(sa.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

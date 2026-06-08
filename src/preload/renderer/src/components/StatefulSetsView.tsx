@@ -117,7 +117,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{ss.name}</h2>
@@ -306,46 +306,56 @@ export function StatefulSetsView(): JSX.Element {
           <EmptyState message="No Stateful Sets found" />
         )}
         {!loading && !error && visibleStatefulSets.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Ready</TableHead>
-                <TableHead>Age</TableHead>
-                <TableHead>Service</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleStatefulSets.map((ss) => (
-                <TableRow
-                  key={`${ss.namespace}/${ss.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === ss.name &&
-                      selectedItem?.namespace === ss.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === ss.name &&
-                        selectedItem?.namespace === ss.namespace
-                        ? null
-                        : ss,
-                    )
-                  }
-                >
-                  <TableCell>{ss.name}</TableCell>
-                  <TableCell>{ss.namespace}</TableCell>
-                  <TableCell>
-                    {ss.readyReplicas}/{ss.replicas}
-                  </TableCell>
-                  <TableCell>{formatAge(ss.creationTimestamp)}</TableCell>
-                  <TableCell>{ss.serviceName}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Ready</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
+                  <TableHead className="whitespace-nowrap">Service</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleStatefulSets.map((ss) => (
+                  <TableRow
+                    key={`${ss.namespace}/${ss.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === ss.name &&
+                        selectedItem?.namespace === ss.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === ss.name &&
+                          selectedItem?.namespace === ss.namespace
+                          ? null
+                          : ss,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {ss.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ss.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ss.readyReplicas}/{ss.replicas}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(ss.creationTimestamp)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ss.serviceName}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

@@ -30,7 +30,7 @@ function DetailPanel({
   const annotationEntries = Object.entries(pdb.annotations)
 
   return (
-    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{pdb.name}</h2>
@@ -146,55 +146,78 @@ export function PDBsView(): JSX.Element {
           <EmptyState message="No PodDisruptionBudgets found" />
         )}
         {!loading && !error && visible.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Min Available</TableHead>
-                <TableHead>Max Unavailable</TableHead>
-                <TableHead>Current Healthy</TableHead>
-                <TableHead>Disruptions Allowed</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visible.map((p) => (
-                <TableRow
-                  key={`${p.namespace}/${p.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === p.name &&
-                      (selectedItem as K8sPDB)?.namespace === p.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === p.name &&
-                        (selectedItem as K8sPDB)?.namespace === p.namespace
-                        ? null
-                        : p,
-                    )
-                  }
-                >
-                  <TableCell>{p.name}</TableCell>
-                  <TableCell>{p.namespace}</TableCell>
-                  <TableCell>{p.minAvailable ?? "—"}</TableCell>
-                  <TableCell>{p.maxUnavailable ?? "—"}</TableCell>
-                  <TableCell>{p.currentHealthy}</TableCell>
-                  <TableCell
-                    className={cn(
-                      p.disruptionsAllowed === 0 &&
-                        "text-red-500 font-semibold",
-                    )}
-                  >
-                    {p.disruptionsAllowed}
-                  </TableCell>
-                  <TableCell>{formatAge(p.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Min Available
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Max Unavailable
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Current Healthy
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Disruptions Allowed
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visible.map((p) => (
+                  <TableRow
+                    key={`${p.namespace}/${p.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === p.name &&
+                        (selectedItem as K8sPDB)?.namespace === p.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === p.name &&
+                          (selectedItem as K8sPDB)?.namespace === p.namespace
+                          ? null
+                          : p,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {p.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.minAvailable ?? "—"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.maxUnavailable ?? "—"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.currentHealthy}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        "whitespace-nowrap",
+                        p.disruptionsAllowed === 0 &&
+                          "text-red-500 font-semibold",
+                      )}
+                    >
+                      {p.disruptionsAllowed}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(p.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

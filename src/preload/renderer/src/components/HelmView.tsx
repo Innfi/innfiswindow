@@ -137,24 +137,28 @@ export function HelmRepositoriesView(): JSX.Element {
 
       {repos.length > 0 && (
         <div className="flex-1 overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>URL</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {repos.map((r) => (
-                <TableRow key={r.name}>
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {r.url}
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">URL</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {repos.map((r) => (
+                  <TableRow key={r.name}>
+                    <TableCell className="whitespace-nowrap font-medium">
+                      {r.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                      {r.url}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 
@@ -401,65 +405,77 @@ export function HelmReleasesView(): JSX.Element {
 
       {releases.length > 0 && (
         <div className="flex-1 overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Chart</TableHead>
-                <TableHead>Version</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Updated</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {releases.map((r) => (
-                <TableRow key={`${r.namespace}/${r.name}`}>
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell>{r.namespace}</TableCell>
-                  <TableCell>{r.chart}</TableCell>
-                  <TableCell>{r.chartVersion}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`rounded px-1.5 py-0.5 text-xs font-medium ${
-                        r.status === "deployed"
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                          : r.status === "failed"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                            : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {r.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {r.updated}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-6 text-xs px-2"
-                        onClick={() => openUpgrade(r)}
-                      >
-                        Upgrade
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-6 text-xs px-2 text-destructive hover:text-destructive"
-                        onClick={() => setUninstallTarget(r)}
-                      >
-                        Uninstall
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Chart</TableHead>
+                  <TableHead className="whitespace-nowrap">Version</TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Updated</TableHead>
+                  <TableHead className="whitespace-nowrap text-right">
+                    Actions
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {releases.map((r) => (
+                  <TableRow key={`${r.namespace}/${r.name}`}>
+                    <TableCell className="whitespace-nowrap font-medium">
+                      {r.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {r.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {r.chart}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {r.chartVersion}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-xs font-medium ${
+                          r.status === "deployed"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                            : r.status === "failed"
+                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {r.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-muted-foreground text-xs">
+                      {r.updated}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-xs px-2"
+                          onClick={() => openUpgrade(r)}
+                        >
+                          Upgrade
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-xs px-2 text-destructive hover:text-destructive"
+                          onClick={() => setUninstallTarget(r)}
+                        >
+                          Uninstall
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 

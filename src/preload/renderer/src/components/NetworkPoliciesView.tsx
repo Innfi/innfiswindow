@@ -126,7 +126,7 @@ function DetailPanel({
   onClose: () => void
 }): JSX.Element {
   return (
-    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md overflow-y-auto p-4 space-y-4">
+    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
@@ -216,50 +216,72 @@ export function NetworkPoliciesView(): JSX.Element {
           <EmptyState message="No NetworkPolicies found" />
         )}
         {!loading && !error && visible.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Pod Selector</TableHead>
-                <TableHead>Policy Types</TableHead>
-                <TableHead>Ingress Rules</TableHead>
-                <TableHead>Egress Rules</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visible.map((np) => (
-                <TableRow
-                  key={`${np.namespace}/${np.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === np.name &&
-                      selectedItem?.namespace === np.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === np.name &&
-                        selectedItem?.namespace === np.namespace
-                        ? null
-                        : np,
-                    )
-                  }
-                >
-                  <TableCell className="font-medium">{np.name}</TableCell>
-                  <TableCell>{np.namespace}</TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {np.podSelector}
-                  </TableCell>
-                  <TableCell>{np.policyTypes.join(", ") || "-"}</TableCell>
-                  <TableCell>{np.ingressRuleCount}</TableCell>
-                  <TableCell>{np.egressRuleCount}</TableCell>
-                  <TableCell>{formatAge(np.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Pod Selector
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Policy Types
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Ingress Rules
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Egress Rules
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visible.map((np) => (
+                  <TableRow
+                    key={`${np.namespace}/${np.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === np.name &&
+                        selectedItem?.namespace === np.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === np.name &&
+                          selectedItem?.namespace === np.namespace
+                          ? null
+                          : np,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap font-medium">
+                      {np.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {np.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
+                      {np.podSelector}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {np.policyTypes.join(", ") || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {np.ingressRuleCount}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {np.egressRuleCount}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(np.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

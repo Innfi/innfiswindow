@@ -40,7 +40,7 @@ function DetailPanel({
   const resources = Object.keys(quota.hard)
 
   return (
-    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{quota.name}</h2>
@@ -168,44 +168,54 @@ export function ResourceQuotasView(): JSX.Element {
           <EmptyState message="No ResourceQuotas found" />
         )}
         {!loading && !error && visible.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Resources</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visible.map((q) => (
-                <TableRow
-                  key={`${q.namespace}/${q.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === q.name &&
-                      (selectedItem as K8sResourceQuota)?.namespace ===
-                        q.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Resources</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visible.map((q) => (
+                  <TableRow
+                    key={`${q.namespace}/${q.name}`}
+                    className={cn(
+                      "cursor-pointer",
                       selectedItem?.name === q.name &&
                         (selectedItem as K8sResourceQuota)?.namespace ===
-                          q.namespace
-                        ? null
-                        : q,
-                    )
-                  }
-                >
-                  <TableCell>{q.name}</TableCell>
-                  <TableCell>{q.namespace}</TableCell>
-                  <TableCell>{Object.keys(q.hard).length}</TableCell>
-                  <TableCell>{formatAge(q.creationTimestamp)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                          q.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === q.name &&
+                          (selectedItem as K8sResourceQuota)?.namespace ===
+                            q.namespace
+                          ? null
+                          : q,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {q.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {q.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {Object.keys(q.hard).length}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(q.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

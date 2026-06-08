@@ -120,7 +120,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{ds.name}</h2>
@@ -322,50 +322,70 @@ export function DaemonSetsView(): JSX.Element {
           <EmptyState message="No Daemon Sets found" />
         )}
         {!loading && !error && visibleDaemonSets.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Desired</TableHead>
-                <TableHead>Current</TableHead>
-                <TableHead>Ready</TableHead>
-                <TableHead>Up-to-date</TableHead>
-                <TableHead>Available</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleDaemonSets.map((ds) => (
-                <TableRow
-                  key={`${ds.namespace}/${ds.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === ds.name &&
-                      selectedItem?.namespace === ds.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === ds.name &&
-                        selectedItem?.namespace === ds.namespace
-                        ? null
-                        : ds,
-                    )
-                  }
-                >
-                  <TableCell>{ds.name}</TableCell>
-                  <TableCell>{ds.namespace}</TableCell>
-                  <TableCell>{ds.desiredNumberScheduled}</TableCell>
-                  <TableCell>{ds.currentNumberScheduled}</TableCell>
-                  <TableCell>{ds.numberReady}</TableCell>
-                  <TableCell>{ds.updatedNumberScheduled}</TableCell>
-                  <TableCell>{ds.numberAvailable}</TableCell>
-                  <TableCell>{formatAge(ds.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Desired</TableHead>
+                  <TableHead className="whitespace-nowrap">Current</TableHead>
+                  <TableHead className="whitespace-nowrap">Ready</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Up-to-date
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Available</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleDaemonSets.map((ds) => (
+                  <TableRow
+                    key={`${ds.namespace}/${ds.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === ds.name &&
+                        selectedItem?.namespace === ds.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === ds.name &&
+                          selectedItem?.namespace === ds.namespace
+                          ? null
+                          : ds,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {ds.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ds.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ds.desiredNumberScheduled}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ds.currentNumberScheduled}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ds.numberReady}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ds.updatedNumberScheduled}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ds.numberAvailable}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(ds.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

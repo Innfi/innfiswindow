@@ -29,7 +29,7 @@ function DetailPanel({
   const podTemplateEntries = Object.entries(rs.podTemplateLabels)
 
   return (
-    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{rs.name}</h2>
@@ -171,46 +171,60 @@ export function ReplicaSetsView(): JSX.Element {
           <EmptyState message="No Replica Sets found" />
         )}
         {!loading && !error && visibleReplicaSets.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Desired</TableHead>
-                <TableHead>Current</TableHead>
-                <TableHead>Ready</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleReplicaSets.map((rs) => (
-                <TableRow
-                  key={`${rs.namespace}/${rs.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === rs.name &&
-                      selectedItem?.namespace === rs.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === rs.name &&
-                        selectedItem?.namespace === rs.namespace
-                        ? null
-                        : rs,
-                    )
-                  }
-                >
-                  <TableCell>{rs.name}</TableCell>
-                  <TableCell>{rs.namespace}</TableCell>
-                  <TableCell>{rs.desiredReplicas}</TableCell>
-                  <TableCell>{rs.currentReplicas}</TableCell>
-                  <TableCell>{rs.readyReplicas}</TableCell>
-                  <TableCell>{formatAge(rs.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Desired</TableHead>
+                  <TableHead className="whitespace-nowrap">Current</TableHead>
+                  <TableHead className="whitespace-nowrap">Ready</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleReplicaSets.map((rs) => (
+                  <TableRow
+                    key={`${rs.namespace}/${rs.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === rs.name &&
+                        selectedItem?.namespace === rs.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === rs.name &&
+                          selectedItem?.namespace === rs.namespace
+                          ? null
+                          : rs,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {rs.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {rs.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {rs.desiredReplicas}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {rs.currentReplicas}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {rs.readyReplicas}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(rs.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

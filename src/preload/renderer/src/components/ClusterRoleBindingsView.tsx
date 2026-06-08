@@ -97,7 +97,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-[480px] shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-[480px] shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{binding.name}</h2>
@@ -178,24 +178,32 @@ function DetailPanel({
         {binding.subjects.length === 0 ? (
           <p className="text-sm text-muted-foreground">No subjects</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Kind</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {binding.subjects.map((s, i) => (
-                <TableRow key={i}>
-                  <TableCell className="text-xs">{s.kind}</TableCell>
-                  <TableCell className="text-xs font-mono">{s.name}</TableCell>
-                  <TableCell className="text-xs">{s.namespace}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Kind</TableHead>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {binding.subjects.map((s, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {s.kind}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs font-mono">
+                      {s.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {s.namespace}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
     </div>
@@ -248,42 +256,52 @@ export function ClusterRoleBindingsView(): JSX.Element {
           <EmptyState message="No Cluster Role Bindings found" />
         )}
         {!loading && !error && visible.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Subjects</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visible.map((binding) => (
-                <TableRow
-                  key={binding.name}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === binding.name &&
-                      !("namespace" in (selectedItem as object)) &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === binding.name &&
-                        !("namespace" in (selectedItem as object))
-                        ? null
-                        : binding,
-                    )
-                  }
-                >
-                  <TableCell>{binding.name}</TableCell>
-                  <TableCell>{binding.roleRef.name}</TableCell>
-                  <TableCell>{binding.subjectsCount}</TableCell>
-                  <TableCell>{formatAge(binding.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Role</TableHead>
+                  <TableHead className="whitespace-nowrap">Subjects</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visible.map((binding) => (
+                  <TableRow
+                    key={binding.name}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === binding.name &&
+                        !("namespace" in (selectedItem as object)) &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === binding.name &&
+                          !("namespace" in (selectedItem as object))
+                          ? null
+                          : binding,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {binding.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {binding.roleRef.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {binding.subjectsCount}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(binding.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

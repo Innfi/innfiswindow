@@ -94,7 +94,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{pod.name}</h2>
@@ -312,48 +312,66 @@ export function PodsView(): JSX.Element {
           <EmptyState message="No Pods found" />
         )}
         {!loading && !error && visiblePods.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Deployment</TableHead>
-                <TableHead>App</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Restarts</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visiblePods.map((p) => (
-                <TableRow
-                  key={`${p.namespace}/${p.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === p.name &&
-                      selectedItem?.namespace === p.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === p.name &&
-                        selectedItem?.namespace === p.namespace
-                        ? null
-                        : p,
-                    )
-                  }
-                >
-                  <TableCell>{p.name}</TableCell>
-                  <TableCell>{p.namespace}</TableCell>
-                  <TableCell>{p.deployment || "-"}</TableCell>
-                  <TableCell>{p.app || "-"}</TableCell>
-                  <TableCell>{p.status}</TableCell>
-                  <TableCell>{p.restarts}</TableCell>
-                  <TableCell>{formatAge(p.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Deployment
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">App</TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Restarts</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visiblePods.map((p) => (
+                  <TableRow
+                    key={`${p.namespace}/${p.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === p.name &&
+                        selectedItem?.namespace === p.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === p.name &&
+                          selectedItem?.namespace === p.namespace
+                          ? null
+                          : p,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {p.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.deployment || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.app || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.status}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.restarts}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(p.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

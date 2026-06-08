@@ -29,7 +29,7 @@ function DetailPanel({
   const annotationEntries = Object.entries(cronJob.annotations)
 
   return (
-    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{cronJob.name}</h2>
@@ -166,52 +166,70 @@ export function CronJobsView(): JSX.Element {
           <EmptyState message="No CronJobs found" />
         )}
         {!loading && !error && visibleCronJobs.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Schedule</TableHead>
-                <TableHead>Last Schedule</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead>Suspended</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleCronJobs.map((cj) => (
-                <TableRow
-                  key={`${cj.namespace}/${cj.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === cj.name &&
-                      (selectedItem as K8sCronJob).namespace === cj.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === cj.name &&
-                        (selectedItem as K8sCronJob).namespace === cj.namespace
-                        ? null
-                        : cj,
-                    )
-                  }
-                >
-                  <TableCell>{cj.name}</TableCell>
-                  <TableCell>{cj.namespace}</TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {cj.schedule}
-                  </TableCell>
-                  <TableCell>
-                    {cj.lastScheduleTime ? formatAge(cj.lastScheduleTime) : "-"}
-                  </TableCell>
-                  <TableCell>{cj.activeCount}</TableCell>
-                  <TableCell>{cj.suspend ? "Yes" : "No"}</TableCell>
-                  <TableCell>{formatAge(cj.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Schedule</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Last Schedule
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Active</TableHead>
+                  <TableHead className="whitespace-nowrap">Suspended</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleCronJobs.map((cj) => (
+                  <TableRow
+                    key={`${cj.namespace}/${cj.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === cj.name &&
+                        (selectedItem as K8sCronJob).namespace ===
+                          cj.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === cj.name &&
+                          (selectedItem as K8sCronJob).namespace ===
+                            cj.namespace
+                          ? null
+                          : cj,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {cj.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {cj.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
+                      {cj.schedule}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {cj.lastScheduleTime
+                        ? formatAge(cj.lastScheduleTime)
+                        : "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {cj.activeCount}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {cj.suspend ? "Yes" : "No"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(cj.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

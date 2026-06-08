@@ -151,7 +151,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md overflow-y-auto p-4 space-y-4">
+    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
@@ -379,48 +379,64 @@ export function IngressesView(): JSX.Element {
           <EmptyState message="No Ingresses found" />
         )}
         {!loading && !error && visibleIngresses.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead>Hosts</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead>Ports</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleIngresses.map((ing) => (
-                <TableRow
-                  key={`${ing.namespace}/${ing.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === ing.name &&
-                      selectedItem?.namespace === ing.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === ing.name &&
-                        selectedItem?.namespace === ing.namespace
-                        ? null
-                        : ing,
-                    )
-                  }
-                >
-                  <TableCell className="font-medium">{ing.name}</TableCell>
-                  <TableCell>{ing.namespace}</TableCell>
-                  <TableCell>{ing.ingressClassName || "-"}</TableCell>
-                  <TableCell>{ing.hosts}</TableCell>
-                  <TableCell>{ing.address || "-"}</TableCell>
-                  <TableCell>{ing.ports}</TableCell>
-                  <TableCell>{formatAge(ing.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Class</TableHead>
+                  <TableHead className="whitespace-nowrap">Hosts</TableHead>
+                  <TableHead className="whitespace-nowrap">Address</TableHead>
+                  <TableHead className="whitespace-nowrap">Ports</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleIngresses.map((ing) => (
+                  <TableRow
+                    key={`${ing.namespace}/${ing.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === ing.name &&
+                        selectedItem?.namespace === ing.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === ing.name &&
+                          selectedItem?.namespace === ing.namespace
+                          ? null
+                          : ing,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap font-medium">
+                      {ing.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ing.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ing.ingressClassName || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ing.hosts}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ing.address || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ing.ports}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(ing.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

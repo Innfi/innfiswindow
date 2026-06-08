@@ -25,7 +25,7 @@ function DetailPanel({
   onClose: () => void
 }): JSX.Element {
   return (
-    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{endpoint.name}</h2>
@@ -160,55 +160,68 @@ export function EndpointsView(): JSX.Element {
           <EmptyState message="No Endpoints found" />
         )}
         {!loading && !error && visible.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Ready</TableHead>
-                <TableHead>Not Ready</TableHead>
-                <TableHead>Ports</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visible.map((ep) => (
-                <TableRow
-                  key={`${ep.namespace}/${ep.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === ep.name &&
-                      (selectedItem as K8sEndpoint)?.namespace ===
-                        ep.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Ready</TableHead>
+                  <TableHead className="whitespace-nowrap">Not Ready</TableHead>
+                  <TableHead className="whitespace-nowrap">Ports</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visible.map((ep) => (
+                  <TableRow
+                    key={`${ep.namespace}/${ep.name}`}
+                    className={cn(
+                      "cursor-pointer",
                       selectedItem?.name === ep.name &&
                         (selectedItem as K8sEndpoint)?.namespace ===
-                          ep.namespace
-                        ? null
-                        : ep,
-                    )
-                  }
-                >
-                  <TableCell>{ep.name}</TableCell>
-                  <TableCell>{ep.namespace}</TableCell>
-                  <TableCell>{ep.readyAddressCount}</TableCell>
-                  <TableCell
-                    className={cn(
-                      ep.notReadyAddressCount > 0 &&
-                        "text-amber-600 dark:text-amber-400 font-semibold",
+                          ep.namespace &&
+                        "bg-muted",
                     )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === ep.name &&
+                          (selectedItem as K8sEndpoint)?.namespace ===
+                            ep.namespace
+                          ? null
+                          : ep,
+                      )
+                    }
                   >
-                    {ep.notReadyAddressCount}
-                  </TableCell>
-                  <TableCell>{ep.ports || "—"}</TableCell>
-                  <TableCell>{formatAge(ep.creationTimestamp)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    <TableCell className="whitespace-nowrap">
+                      {ep.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ep.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ep.readyAddressCount}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        "whitespace-nowrap",
+                        ep.notReadyAddressCount > 0 &&
+                          "text-amber-600 dark:text-amber-400 font-semibold",
+                      )}
+                    >
+                      {ep.notReadyAddressCount}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ep.ports || "—"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(ep.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

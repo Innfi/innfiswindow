@@ -29,7 +29,7 @@ function DetailPanel({
   const annotationEntries = Object.entries(hpa.annotations)
 
   return (
-    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-y-auto p-4 space-y-4">
+    <div className="w-80 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{hpa.name}</h2>
@@ -197,50 +197,62 @@ export function HPAsView(): JSX.Element {
           <EmptyState message="No HorizontalPodAutoscalers found" />
         )}
         {!loading && !error && visibleHPAs.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Target</TableHead>
-                <TableHead>Min</TableHead>
-                <TableHead>Max</TableHead>
-                <TableHead>Replicas</TableHead>
-                <TableHead>Age</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleHPAs.map((h) => (
-                <TableRow
-                  key={`${h.namespace}/${h.name}`}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedItem?.name === h.name &&
-                      selectedItem?.namespace === h.namespace &&
-                      "bg-muted",
-                  )}
-                  onClick={() =>
-                    setSelectedItem(
-                      selectedItem?.name === h.name &&
-                        selectedItem?.namespace === h.namespace
-                        ? null
-                        : h,
-                    )
-                  }
-                >
-                  <TableCell>{h.name}</TableCell>
-                  <TableCell>{h.namespace}</TableCell>
-                  <TableCell>
-                    {h.targetRef.kind}/{h.targetRef.name}
-                  </TableCell>
-                  <TableCell>{h.minReplicas}</TableCell>
-                  <TableCell>{h.maxReplicas}</TableCell>
-                  <TableCell>{`${h.currentReplicas}/${h.desiredReplicas}`}</TableCell>
-                  <TableCell>{formatAge(h.creationTimestamp)}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
+                  <TableHead className="whitespace-nowrap">Target</TableHead>
+                  <TableHead className="whitespace-nowrap">Min</TableHead>
+                  <TableHead className="whitespace-nowrap">Max</TableHead>
+                  <TableHead className="whitespace-nowrap">Replicas</TableHead>
+                  <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleHPAs.map((h) => (
+                  <TableRow
+                    key={`${h.namespace}/${h.name}`}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === h.name &&
+                        selectedItem?.namespace === h.namespace &&
+                        "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === h.name &&
+                          selectedItem?.namespace === h.namespace
+                          ? null
+                          : h,
+                      )
+                    }
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      {h.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {h.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {h.targetRef.kind}/{h.targetRef.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {h.minReplicas}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {h.maxReplicas}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{`${h.currentReplicas}/${h.desiredReplicas}`}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(h.creationTimestamp)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 
