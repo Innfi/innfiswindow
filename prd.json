@@ -136,6 +136,22 @@
       ],
       "dependencies": ["S91"],
       "notes": "Target files: DeploymentsView.tsx, PodsView.tsx (if exists), StatefulSetsView.tsx, DaemonSetsView.tsx, ReplicaSetsView.tsx, ServicesView.tsx, IngressesView.tsx, ConfigMapsView.tsx, SecretsView.tsx, NamespacesView.tsx, NodesView.tsx, RolesView.tsx, ClusterRolesView.tsx, RoleBindingsView.tsx, ClusterRoleBindingsView.tsx, JobsView.tsx, CronJobsView.tsx, HPAsView.tsx, ResourceQuotasView.tsx, LimitRangesView.tsx, PDBsView.tsx, EndpointsView.tsx, NetworkPoliciesView.tsx, StorageView.tsx (PVs/PVCs), EventsView.tsx, HelmView.tsx. Apply the same fix to any new view files added in later stories. The outer list container already has overflow-auto on the flex-1 div — the missing piece is the overflow-x-auto wrapper directly around <Table> and whitespace-nowrap on cells."
+    },
+    {
+      "id": "S93",
+      "title": "Resource detail side panel width set to half screen",
+      "status": "complete",
+      "description": "The right-side resource detail panel in each *View.tsx is currently a fixed pixel width (w-80, w-96, w-[480px] depending on the view). This is too narrow for wide content such as YAML specs, long annotation values, and label tables. Change every detail panel to occupy exactly half the available content area width using w-1/2, so users always have a consistent, generous detail pane regardless of window size.",
+      "acceptance_criteria": [
+        "Every right-side detail panel div across all *View.tsx files has its fixed width class (w-80, w-96, w-[480px], or any other hardcoded width) replaced with w-1/2",
+        "The shrink-0 class is retained on the detail panel so it does not compress when the list area is narrow",
+        "The list area (flex-1) continues to take the remaining half of the content area automatically — no explicit width set on it",
+        "No other layout properties (padding, overflow, border, shadow, spacing) are changed",
+        "Change is CSS/className only — no logic, state, or IPC changes",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S92"],
+      "notes": "The content area is the region right of the tree view (w-60). w-1/2 on the detail panel means half of that flex container's width. Apply to all *View.tsx files that render a conditional detail panel div on the right side. Do not change views that have no detail panel (e.g. EventsView if it is list-only)."
     }
   ]
 }

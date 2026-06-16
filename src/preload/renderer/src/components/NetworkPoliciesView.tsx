@@ -126,7 +126,7 @@ function DetailPanel({
   onClose: () => void
 }): JSX.Element {
   return (
-    <div className="w-96 shrink-0 bg-card text-card-foreground border border-border shadow-md overflow-auto p-4 space-y-4">
+    <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
