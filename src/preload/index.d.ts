@@ -742,6 +742,37 @@ export interface HelmRelease {
   updated: string
 }
 
+export interface AlarmRule {
+  id: string
+  name: string
+  severity: "critical" | "warning" | "info"
+  conditionType:
+    | "pod-not-running"
+    | "deployment-unavailable"
+    | "warning-event"
+    | "node-not-ready"
+  context: string
+  namespace?: string
+  resourceNameFilter?: string
+}
+
+export interface AlarmEntry {
+  id: string
+  ruleId: string
+  ruleName: string
+  severity: "critical" | "warning" | "info"
+  context: string
+  sourceKind: string
+  sourceName: string
+  namespace: string | null
+  message: string
+  triggeredAt: string
+}
+
+export interface AlarmAPI {
+  evaluate: (rule: AlarmRule) => Promise<AlarmEntry[]>
+}
+
 export interface HelmAPI {
   repoAdd: (
     name: string,
@@ -836,6 +867,7 @@ export interface API {
   }) => Promise<{ success: boolean; error?: string }>
   stopPortForward: (sessionId: string) => Promise<{ success: boolean }>
   helm: HelmAPI
+  alarm: AlarmAPI
 }
 
 declare global {

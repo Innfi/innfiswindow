@@ -7,6 +7,33 @@ interface K8sPodContainer {
   restartCount: number
 }
 
+export interface AlarmRule {
+  id: string
+  name: string
+  severity: "critical" | "warning" | "info"
+  conditionType:
+    | "pod-not-running"
+    | "deployment-unavailable"
+    | "warning-event"
+    | "node-not-ready"
+  context: string
+  namespace?: string
+  resourceNameFilter?: string
+}
+
+export interface AlarmEntry {
+  id: string
+  ruleId: string
+  ruleName: string
+  severity: "critical" | "warning" | "info"
+  context: string
+  sourceKind: string
+  sourceName: string
+  namespace: string | null
+  message: string
+  triggeredAt: string
+}
+
 export interface HistoryEntry {
   id: string
   timestamp: string
@@ -182,6 +209,8 @@ interface AppState {
   contextNamespaces: Record<string, string | null>
   contextAliases: Record<string, string>
   writeHistory: HistoryEntry[]
+  alarmRules: AlarmRule[]
+  alarmEntries: AlarmEntry[]
   setSelectedResourceType: (type: string | null) => void
   setSelectedItem: (item: object | null) => void
   navigateToResource: (type: string, item: object) => void
@@ -198,6 +227,10 @@ interface AppState {
   setContextAlias: (contextName: string, alias: string) => void
   appendHistory: (entry: Omit<HistoryEntry, "id" | "timestamp">) => void
   clearHistory: () => void
+  addAlarmRule: (rule: Omit<AlarmRule, "id">) => void
+  deleteAlarmRule: (id: string) => void
+  appendAlarmEntries: (entries: AlarmEntry[]) => void
+  clearAlarmEntries: () => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -216,6 +249,8 @@ export const useAppStore = create<AppState>()(
       contextNamespaces: {},
       contextAliases: {},
       writeHistory: [],
+      alarmRules: [],
+      alarmEntries: [],
       setSelectedResourceType: (type) =>
         set({ selectedResourceType: type, selectedItem: null }),
       setSelectedItem: (item) => set({ selectedItem: item }),
@@ -355,6 +390,36 @@ export const useAppStore = create<AppState>()(
         set({ writeHistory: [...writeHistory, newEntry].slice(-500) })
       },
       clearHistory: () => set({ writeHistory: [] }),
+      addAlarmRule: (rule) => {
+        const { alarmRules } = get()
+        const newRule: AlarmRule = {
+          ...rule,
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        }
+        set({ alarmRules: [...alarmRules, newRule] })
+      },
+      deleteAlarmRule: (id) => {
+        const { alarmRules } = get()
+        set({ alarmRules: alarmRules.filter((r) => r.id !== id) })
+      },
+      appendAlarmEntries: (entries) => {
+        const { alarmEntries } = get()
+        const nowMinute = new Date().toISOString().slice(0, 16)
+        const dedupedNew = entries.filter((newEntry) => {
+          const duplicate = alarmEntries.find(
+            (e) =>
+              e.ruleId === newEntry.ruleId &&
+              e.sourceName === newEntry.sourceName &&
+              e.namespace === newEntry.namespace &&
+              e.triggeredAt.slice(0, 16) === nowMinute,
+          )
+          return !duplicate
+        })
+        set({
+          alarmEntries: [...alarmEntries, ...dedupedNew].slice(-1000),
+        })
+      },
+      clearAlarmEntries: () => set({ alarmEntries: [] }),
       markTabReconnected: (id) => {
         const { drawerTabs } = get()
         set({
@@ -376,6 +441,8 @@ export const useAppStore = create<AppState>()(
         contextNamespaces: state.contextNamespaces,
         contextAliases: state.contextAliases,
         writeHistory: state.writeHistory,
+        alarmRules: state.alarmRules,
+        alarmEntries: state.alarmEntries,
       }),
     },
   ),

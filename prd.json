@@ -152,6 +152,30 @@
       ],
       "dependencies": ["S92"],
       "notes": "The content area is the region right of the tree view (w-60). w-1/2 on the detail panel means half of that flex container's width. Apply to all *View.tsx files that render a conditional detail panel div on the right side. Do not change views that have no detail panel (e.g. EventsView if it is list-only)."
+    },
+    {
+      "id": "S94",
+      "title": "User alarms: define rules with source and severity, view triggered entries",
+      "status": "complete",
+      "description": "Add a user-defined alarm system. Users create alarm rules that specify a condition (pod not running, deployment unavailable, warning event, node not ready), a target context/namespace, and a severity level (critical/warning/info). The main process evaluates rules on demand and returns matching resources as triggered alarm entries. An Alarms section in the left tree view has two sub-panels: Rules (manage rules) and Active Alarms (triggered entries). Each alarm entry displays its source — the cluster name (context), the resource kind and name or event reason, the namespace — and its severity badge.",
+      "acceptance_criteria": [
+        "AlarmRule interface in a renderer-side types file: { id: string; name: string; severity: 'critical' | 'warning' | 'info'; conditionType: 'pod-not-running' | 'deployment-unavailable' | 'warning-event' | 'node-not-ready'; context: string; namespace?: string; resourceNameFilter?: string }",
+        "AlarmEntry interface: { id: string; ruleId: string; ruleName: string; severity: 'critical' | 'warning' | 'info'; context: string; sourceKind: string; sourceName: string; namespace: string | null; message: string; triggeredAt: string }",
+        "Zustand store gains two persisted fields: alarmRules: AlarmRule[] and alarmEntries: AlarmEntry[] (capped at 1000, oldest dropped when limit exceeded); both included in persist partialize",
+        "New IPC handler alarm:evaluate accepts { rule: AlarmRule } and evaluates the condition against the live cluster: pod-not-running lists pods where phase is not Running/Succeeded, deployment-unavailable lists deployments where unavailableReplicas > 0, warning-event lists events where type is Warning (optionally filtered by namespace), node-not-ready lists nodes where the Ready condition status is not True; returns AlarmEntry[] (empty array if no matches)",
+        "A top-level 'Alarms' item appears in the left tree view with two collapsible children: 'Rules' and 'Active Alarms'",
+        "Rules panel: table of alarmRules with columns name, condition type, context, namespace (or 'all'), severity badge; an 'Add Rule' button opens a dialog with fields: name (text), condition type (select), severity (select: critical/warning/info), context (select from store contexts), namespace (text, optional), resource name filter (text, optional); a Delete button per row removes the rule from the store",
+        "Active Alarms panel: table of alarmEntries newest-first; columns: severity badge (red=critical, yellow=warning, blue=info), cluster (context), source kind + name (e.g. 'Pod / my-pod-abc'), namespace (or 'cluster-scoped'), message, triggered time (local); a 'Evaluate All Rules' button re-runs alarm:evaluate for every rule and appends new entries (deduplication by ruleId+sourceName+namespace within the same minute); a 'Clear All' button empties alarmEntries in the store",
+        "Severity badge color: critical → red/destructive, warning → yellow/amber, info → blue; use shadcn Badge with variant or className",
+        "IPC handler alarm:evaluate lives in a new src/main/handlers/alarm.ts file and is registered in src/main/index.ts alongside other handlers",
+        "No polling or background timers — evaluation is triggered only when the user clicks 'Evaluate All Rules'",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S93"],
+      "ipc_handlers": [
+        "alarm:evaluate"
+      ],
+      "notes": "alarm:evaluate receives one AlarmRule and returns AlarmEntry[]. The renderer calls it once per rule in sequence (or Promise.all) when the user clicks Evaluate. Keep the handler simple: call the relevant k8s API (CoreV1Api for pods/nodes/events, AppsV1Api for deployments), filter results, and map each matching resource to an AlarmEntry with a human-readable message (e.g. 'Pod my-pod is in phase Failed'). The context field on AlarmEntry is the display name — use contextAliases[rule.context] ?? rule.context from the store so the alarm panel shows the alias. Deduplication: before appending new entries, drop any existing entry where ruleId + sourceName + namespace match and triggeredAt is within the same UTC minute, to avoid flooding on repeated evaluations. resourceNameFilter is a substring match against the resource name if provided."
     }
   ]
 }

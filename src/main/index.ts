@@ -19,6 +19,7 @@ import {
   Watch,
 } from "@kubernetes/client-node"
 
+import { evaluateAlarmRule } from "./handlers/alarm"
 import { checkAwsCredentials } from "./aws-handlers"
 import {
   helmReleaseInstall,
@@ -585,6 +586,33 @@ app.whenReady().then(() => {
   )
 
   ipcMain.handle("aws:credentials:check", () => checkAwsCredentials())
+
+  ipcMain.handle(
+    "alarm:evaluate",
+    (
+      _e,
+      {
+        rule,
+      }: {
+        rule: {
+          id: string
+          name: string
+          severity: "critical" | "warning" | "info"
+          conditionType:
+            | "pod-not-running"
+            | "deployment-unavailable"
+            | "warning-event"
+            | "node-not-ready"
+          context: string
+          namespace?: string
+          resourceNameFilter?: string
+        }
+      },
+    ) => {
+      const clients = getContextClients(rule.context)
+      return evaluateAlarmRule(rule, clients.coreV1, clients.appsV1)
+    },
+  )
 
   ipcMain.handle("helm:repo:add", (_e, args: { name: string; url: string }) =>
     helmRepoAdd(args.name, args.url),

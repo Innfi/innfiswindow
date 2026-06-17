@@ -13,6 +13,7 @@ import { Toaster } from "../components/ui/sonner"
 import { handleIpcError } from "../lib/ipc-error"
 import { applyTheme } from "../lib/themes"
 import { useAppStore } from "../store/app.store"
+import { AlarmActiveView, AlarmRulesView } from "./components/AlarmsView"
 import { AwsCredentialBanner } from "./components/AwsCredentialBanner"
 import { BottomDrawer } from "./components/BottomDrawer"
 import { ClusterRoleBindingsView } from "./components/ClusterRoleBindingsView"
@@ -312,6 +313,8 @@ function App(): JSX.Element {
                 <HelmRepositoriesView />
               )}
               {selectedResourceType === "helm-releases" && <HelmReleasesView />}
+              {selectedResourceType === "alarm-rules" && <AlarmRulesView />}
+              {selectedResourceType === "alarm-active" && <AlarmActiveView />}
             </div>
           </div>
 

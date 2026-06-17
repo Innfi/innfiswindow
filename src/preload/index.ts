@@ -335,6 +335,21 @@ const api = {
     ipcRenderer.on("stream:socket:end", handler)
     return () => ipcRenderer.removeListener("stream:socket:end", handler)
   },
+  alarm: {
+    evaluate: (rule: {
+      id: string
+      name: string
+      severity: "critical" | "warning" | "info"
+      conditionType:
+        | "pod-not-running"
+        | "deployment-unavailable"
+        | "warning-event"
+        | "node-not-ready"
+      context: string
+      namespace?: string
+      resourceNameFilter?: string
+    }) => ipcRenderer.invoke("alarm:evaluate", { rule }),
+  },
   helm: {
     repoAdd: (name: string, url: string) =>
       ipcRenderer.invoke("helm:repo:add", { name, url }),
