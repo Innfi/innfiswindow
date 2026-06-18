@@ -106,6 +106,7 @@ export function YamlEditPanel({
         yamlSnapshot: yamlStr,
       })
       toast.error(`Failed to save: ${msg}`)
+      useAppStore.getState().addGlobalError(msg, "YamlEdit: save")
       setError(msg)
     } finally {
       setSaving(false)

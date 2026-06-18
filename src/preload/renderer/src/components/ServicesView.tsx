@@ -122,6 +122,7 @@ function DetailPanel({
         error: String(e),
       })
       toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "Service: delete")
       setDeleteOpenNotify(false)
     } finally {
       setDeleting(false)

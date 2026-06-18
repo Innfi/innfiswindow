@@ -113,6 +113,7 @@ function DetailPanel({
         error: String(e),
       })
       toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "DaemonSet: delete")
       setDeleteOpenNotify(false)
     } finally {
       setDeleting(false)

@@ -25,6 +25,7 @@ import { DaemonSetsView } from "./components/DaemonSetsView"
 import { DeploymentsView } from "./components/DeploymentsView"
 import { EndpointsView } from "./components/EndpointsView"
 import { EventsView } from "./components/EventsView"
+import { GlobalFooter } from "./components/GlobalFooter"
 import { GlobalSearch } from "./components/GlobalSearch"
 import { HelmReleasesView, HelmRepositoriesView } from "./components/HelmView"
 import { HistoryView } from "./components/HistoryView"
@@ -321,6 +322,9 @@ function App(): JSX.Element {
           {/* Unified tabbed bottom drawer */}
           <BottomDrawer />
         </div>
+
+        {/* Global footer */}
+        <GlobalFooter />
       </div>
       <PrometheusSettings open={settingsOpen} onOpenChange={setSettingsOpen} />
       <Toaster position="bottom-right" duration={5000} />

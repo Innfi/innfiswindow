@@ -34,6 +34,13 @@ export interface AlarmEntry {
   triggeredAt: string
 }
 
+export interface ErrorEntry {
+  id: string
+  message: string
+  timestamp: string
+  source?: string
+}
+
 export interface HistoryEntry {
   id: string
   timestamp: string
@@ -211,6 +218,8 @@ interface AppState {
   writeHistory: HistoryEntry[]
   alarmRules: AlarmRule[]
   alarmEntries: AlarmEntry[]
+  globalErrors: ErrorEntry[]
+  unreadErrorCount: number
   setSelectedResourceType: (type: string | null) => void
   setSelectedItem: (item: object | null) => void
   navigateToResource: (type: string, item: object) => void
@@ -231,6 +240,9 @@ interface AppState {
   deleteAlarmRule: (id: string) => void
   appendAlarmEntries: (entries: AlarmEntry[]) => void
   clearAlarmEntries: () => void
+  addGlobalError: (message: string, source?: string) => void
+  clearGlobalErrors: () => void
+  resetUnreadErrorCount: () => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -251,6 +263,8 @@ export const useAppStore = create<AppState>()(
       writeHistory: [],
       alarmRules: [],
       alarmEntries: [],
+      globalErrors: [],
+      unreadErrorCount: 0,
       setSelectedResourceType: (type) =>
         set({ selectedResourceType: type, selectedItem: null }),
       setSelectedItem: (item) => set({ selectedItem: item }),
@@ -420,6 +434,21 @@ export const useAppStore = create<AppState>()(
         })
       },
       clearAlarmEntries: () => set({ alarmEntries: [] }),
+      addGlobalError: (message, source) => {
+        const { globalErrors, unreadErrorCount } = get()
+        const entry: ErrorEntry = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          message,
+          timestamp: new Date().toISOString(),
+          source,
+        }
+        set({
+          globalErrors: [...globalErrors, entry].slice(-100),
+          unreadErrorCount: unreadErrorCount + 1,
+        })
+      },
+      clearGlobalErrors: () => set({ globalErrors: [], unreadErrorCount: 0 }),
+      resetUnreadErrorCount: () => set({ unreadErrorCount: 0 }),
       markTabReconnected: (id) => {
         const { drawerTabs } = get()
         set({

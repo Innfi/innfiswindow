@@ -127,6 +127,7 @@ export function EditResourcePanel({
         yamlSnapshot: yaml,
       })
       toast.error(`Failed to save: ${msg}`)
+      useAppStore.getState().addGlobalError(msg, "EditResource: save")
       setError(msg)
     } finally {
       setSaving(false)

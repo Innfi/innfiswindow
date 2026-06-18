@@ -144,6 +144,7 @@ function DetailPanel({
         error: String(e),
       })
       toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "Ingress: delete")
       setDeleteOpenNotify(false)
     } finally {
       setDeleting(false)

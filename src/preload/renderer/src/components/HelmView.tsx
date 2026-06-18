@@ -63,6 +63,7 @@ export function HelmRepositoriesView(): JSX.Element {
       setRepos(data)
     } catch (e) {
       toast.error(`Failed to load helm repos: ${String(e)}`)
+      useAppStore.getState().addGlobalError(String(e), "Helm: repo list")
     } finally {
       setLoading(false)
     }
@@ -97,9 +98,11 @@ export function HelmRepositoriesView(): JSX.Element {
         void load()
       } else {
         toast.error(result.error ?? "Failed to add repo")
+        useAppStore.getState().addGlobalError(result.error ?? "Failed to add repo", "Helm: repo add")
       }
     } catch (e) {
       toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "Helm: repo add")
     } finally {
       setSaving(false)
     }
@@ -253,6 +256,7 @@ export function HelmReleasesView(): JSX.Element {
       setReleases(data)
     } catch (e) {
       toast.error(`Failed to load helm releases: ${String(e)}`)
+      useAppStore.getState().addGlobalError(String(e), "Helm: release list")
     } finally {
       setLoading(false)
     }
@@ -302,9 +306,11 @@ export function HelmReleasesView(): JSX.Element {
         void load()
       } else {
         toast.error(result.error ?? "Install failed")
+        useAppStore.getState().addGlobalError(result.error ?? "Install failed", "Helm: install")
       }
     } catch (e) {
       toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "Helm: install")
     } finally {
       setInstalling(false)
     }
@@ -336,9 +342,11 @@ export function HelmReleasesView(): JSX.Element {
         void load()
       } else {
         toast.error(result.error ?? "Upgrade failed")
+        useAppStore.getState().addGlobalError(result.error ?? "Upgrade failed", "Helm: upgrade")
       }
     } catch (e) {
       toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "Helm: upgrade")
     } finally {
       setUpgrading(false)
     }
@@ -367,9 +375,11 @@ export function HelmReleasesView(): JSX.Element {
         void load()
       } else {
         toast.error(result.error ?? "Uninstall failed")
+        useAppStore.getState().addGlobalError(result.error ?? "Uninstall failed", "Helm: uninstall")
       }
     } catch (e) {
       toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "Helm: uninstall")
     } finally {
       setUninstalling(false)
     }

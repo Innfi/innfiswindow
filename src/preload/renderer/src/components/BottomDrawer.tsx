@@ -75,6 +75,7 @@ function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
       })
       setError(msg)
       toast.error(`Apply failed: ${msg}`)
+      useAppStore.getState().addGlobalError(msg, "Apply")
     } finally {
       setApplying(false)
     }

@@ -176,6 +176,26 @@
         "alarm:evaluate"
       ],
       "notes": "alarm:evaluate receives one AlarmRule and returns AlarmEntry[]. The renderer calls it once per rule in sequence (or Promise.all) when the user clicks Evaluate. Keep the handler simple: call the relevant k8s API (CoreV1Api for pods/nodes/events, AppsV1Api for deployments), filter results, and map each matching resource to an AlarmEntry with a human-readable message (e.g. 'Pod my-pod is in phase Failed'). The context field on AlarmEntry is the display name — use contextAliases[rule.context] ?? rule.context from the store so the alarm panel shows the alias. Deduplication: before appending new entries, drop any existing entry where ruleId + sourceName + namespace match and triggeredAt is within the same UTC minute, to avoid flooding on repeated evaluations. resourceNameFilter is a substring match against the resource name if provided."
+    },
+    {
+      "id": "S95",
+      "title": "Global footer with error snackbar",
+      "status": "complete",
+      "description": "Add a persistent single-line footer bar at the very bottom of the app window, spanning full width below the main content area. The footer's rightmost element is an error indicator button that shows the count of unread errors. Clicking it opens a snackbar/toast stack that lists recent errors newest-first. Errors from any IPC call failure across the entire app are funnelled into a global error queue in the Zustand store. The footer is always visible regardless of which panel or view is active.",
+      "acceptance_criteria": [
+        "A GlobalFooter component is rendered at the bottom of the root layout, below the tree-view + content split, full viewport width, fixed height (h-8 or h-9), styled with bg-muted border-t border-border text-xs",
+        "Zustand store gains a non-persisted field: globalErrors: ErrorEntry[] where ErrorEntry = { id: string; message: string; timestamp: string; source?: string }; and unreadErrorCount: number",
+        "An addGlobalError(message: string, source?: string) store action appends an ErrorEntry (with crypto.randomUUID() id and new Date().toISOString() timestamp) to globalErrors (capped at 100, oldest dropped) and increments unreadErrorCount",
+        "The footer's right side shows an error button: a bell or warning icon with a badge showing unreadErrorCount; badge hidden when count is 0; badge red when count > 0",
+        "Clicking the error button sets unreadErrorCount to 0 and opens an error snackbar panel — a fixed-position overlay anchored to the bottom-right, above the footer, showing globalErrors newest-first in a scrollable list (max-h-64 overflow-y-auto); each row shows timestamp, source (if set), and message",
+        "Clicking outside the snackbar panel or clicking the error button again closes it",
+        "A 'Clear' button inside the snackbar panel empties globalErrors and closes the panel",
+        "Every existing IPC call error handler in the renderer (catch blocks, error toasts, console.error calls related to k8s API failures) calls addGlobalError with the error message and a source string identifying the operation (e.g. 'Deploy: create', 'Pod: delete', 'Helm: install')",
+        "The footer may also show a left-side status label (e.g. current active context name) — static text, no interactivity required",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S94"],
+      "notes": "GlobalFooter lives at src/preload/renderer/src/components/GlobalFooter.tsx and is imported in the root App.tsx or layout component. The snackbar panel is a plain absolute/fixed div, not a shadcn Sheet or Dialog — keep it lightweight. addGlobalError should be called at every catch site that currently shows a console.error or a toast; do not replace existing per-operation toasts if any exist — add the global error in addition. The globalErrors field is not persisted (session-only). unreadErrorCount resets to 0 on panel open, not on panel close, so the badge clears as soon as the user acknowledges it."
     }
   ]
 }

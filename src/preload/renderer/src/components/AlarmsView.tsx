@@ -298,6 +298,7 @@ export function AlarmActiveView(): JSX.Element {
       )
     } catch (e) {
       toast.error(`Evaluation failed: ${String(e)}`)
+      useAppStore.getState().addGlobalError(String(e), "Alarms: evaluate")
     } finally {
       setEvaluating(false)
     }

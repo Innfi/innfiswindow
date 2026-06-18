@@ -70,6 +70,7 @@ function DetailPanel({
       setHistory(revisions)
     } catch (e) {
       toast.error(`Failed to load rollout history: ${String(e)}`)
+      useAppStore.getState().addGlobalError(String(e), "Deployment: rollout history")
     } finally {
       setHistoryLoading(false)
     }
@@ -101,6 +102,7 @@ function DetailPanel({
       await loadHistory()
     } catch (e) {
       toast.error(`Rollback failed: ${String(e)}`)
+      useAppStore.getState().addGlobalError(String(e), "Deployment: rollback")
       setRollbackRevision(null)
     } finally {
       setRolling(false)
@@ -171,6 +173,7 @@ function DetailPanel({
         error: String(e),
       })
       toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "Deployment: delete")
       setDeleteOpenNotify(false)
     } finally {
       setDeleting(false)
