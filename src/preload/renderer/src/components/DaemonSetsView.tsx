@@ -53,10 +53,12 @@ function DetailPanel({
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   const selectorEntries = Object.entries(ds.selector).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
   const nodeSelectorEntries = Object.entries(ds.nodeSelector).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
 
   function handleEdit(): void {

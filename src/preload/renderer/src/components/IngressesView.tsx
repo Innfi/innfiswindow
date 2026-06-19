@@ -276,34 +276,54 @@ function DetailPanel({
         )}
       </div>
 
-      {Object.entries(item.labels).filter(([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl)).length > 0 && (
+      {Object.entries(item.labels).filter(
+        ([k, v]) =>
+          !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+      ).length > 0 && (
         <div>
           <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">
             Labels
           </p>
           <div className="space-y-0.5">
-            {Object.entries(item.labels).filter(([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl)).map(([k, v]) => (
-              <div key={k} className="text-xs font-mono">
-                <span className="text-muted-foreground">{k}=</span>
-                {v}
-              </div>
-            ))}
+            {Object.entries(item.labels)
+              .filter(
+                ([k, v]) =>
+                  !sl ||
+                  k.toLowerCase().includes(sl) ||
+                  v.toLowerCase().includes(sl),
+              )
+              .map(([k, v]) => (
+                <div key={k} className="text-xs font-mono">
+                  <span className="text-muted-foreground">{k}=</span>
+                  {v}
+                </div>
+              ))}
           </div>
         </div>
       )}
 
-      {Object.entries(item.annotations).filter(([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl)).length > 0 && (
+      {Object.entries(item.annotations).filter(
+        ([k, v]) =>
+          !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+      ).length > 0 && (
         <div>
           <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">
             Annotations
           </p>
           <div className="space-y-0.5">
-            {Object.entries(item.annotations).filter(([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl)).map(([k, v]) => (
-              <div key={k} className="text-xs font-mono break-all">
-                <span className="text-muted-foreground">{k}=</span>
-                {v}
-              </div>
-            ))}
+            {Object.entries(item.annotations)
+              .filter(
+                ([k, v]) =>
+                  !sl ||
+                  k.toLowerCase().includes(sl) ||
+                  v.toLowerCase().includes(sl),
+              )
+              .map(([k, v]) => (
+                <div key={k} className="text-xs font-mono break-all">
+                  <span className="text-muted-foreground">{k}=</span>
+                  {v}
+                </div>
+              ))}
           </div>
         </div>
       )}

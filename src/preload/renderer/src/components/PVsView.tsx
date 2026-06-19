@@ -2,6 +2,7 @@ import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import { Button } from "../../components/ui/button"
 import {
   Table,
   TableBody,
@@ -10,7 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { Button } from "../../components/ui/button"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
@@ -41,10 +41,12 @@ function DetailPanel({
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   const labelEntries = Object.entries(pv.labels).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
   const annotationEntries = Object.entries(pv.annotations).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
 
   function handleEdit(): void {
@@ -57,7 +59,11 @@ function DetailPanel({
       initialYaml: yamlDump({
         apiVersion: "v1",
         kind: "PersistentVolume",
-        metadata: { name: pv.name, labels: pv.labels, annotations: pv.annotations },
+        metadata: {
+          name: pv.name,
+          labels: pv.labels,
+          annotations: pv.annotations,
+        },
         spec: {
           capacity: { storage: pv.capacity },
           accessModes: pv.accessModes,
@@ -76,7 +82,12 @@ function DetailPanel({
           {pv.name}
         </h2>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={handleEdit}
+          >
             Edit
           </Button>
           <CopyResourceButton name={pv.name} resourceKind="persistentvolume" />

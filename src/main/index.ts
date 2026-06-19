@@ -19,8 +19,8 @@ import {
   Watch,
 } from "@kubernetes/client-node"
 
-import { evaluateAlarmRule } from "./handlers/alarm"
 import { checkAwsCredentials } from "./aws-handlers"
+import { evaluateAlarmRule } from "./handlers/alarm"
 import {
   helmReleaseInstall,
   helmReleaseList,

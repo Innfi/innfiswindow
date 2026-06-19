@@ -166,13 +166,16 @@ function DetailPanel({
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   const labelEntries = Object.entries(node.labels).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
   const capacityEntries = Object.entries(node.capacity).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
   const allocatableEntries = Object.entries(node.allocatable).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
 
   return (

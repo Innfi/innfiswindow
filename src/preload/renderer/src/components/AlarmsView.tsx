@@ -38,7 +38,11 @@ const CONDITION_LABELS: Record<AlarmRule["conditionType"], string> = {
   "node-not-ready": "Node not Ready",
 }
 
-function SeverityBadge({ severity }: { severity: AlarmRule["severity"] }): JSX.Element {
+function SeverityBadge({
+  severity,
+}: {
+  severity: AlarmRule["severity"]
+}): JSX.Element {
   return <span className={SEVERITY_CLASS[severity]}>{severity}</span>
 }
 
@@ -138,7 +142,9 @@ export function AlarmRulesView(): JSX.Element {
                     {rule.context}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    {rule.namespace ?? <span className="text-muted-foreground">all</span>}
+                    {rule.namespace ?? (
+                      <span className="text-muted-foreground">all</span>
+                    )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {rule.resourceNameFilter ?? (
@@ -227,7 +233,9 @@ export function AlarmRulesView(): JSX.Element {
             <div className="space-y-1">
               <Label htmlFor="alarm-namespace">
                 Namespace{" "}
-                <span className="text-muted-foreground text-xs">(optional)</span>
+                <span className="text-muted-foreground text-xs">
+                  (optional)
+                </span>
               </Label>
               <Input
                 id="alarm-namespace"
@@ -239,7 +247,9 @@ export function AlarmRulesView(): JSX.Element {
             <div className="space-y-1">
               <Label htmlFor="alarm-filter">
                 Name filter{" "}
-                <span className="text-muted-foreground text-xs">(optional)</span>
+                <span className="text-muted-foreground text-xs">
+                  (optional)
+                </span>
               </Label>
               <Input
                 id="alarm-filter"
@@ -250,7 +260,11 @@ export function AlarmRulesView(): JSX.Element {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setAddOpen(false)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAddOpen(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -311,11 +325,7 @@ export function AlarmActiveView(): JSX.Element {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-semibold">Active Alarms</h1>
         <div className="flex gap-2">
-          <Button
-            size="sm"
-            onClick={evaluateAll}
-            disabled={evaluating}
-          >
+          <Button size="sm" onClick={evaluateAll} disabled={evaluating}>
             {evaluating ? "Evaluating…" : "Evaluate All Rules"}
           </Button>
           <Button
@@ -364,7 +374,9 @@ export function AlarmActiveView(): JSX.Element {
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {entry.namespace ?? (
-                      <span className="text-muted-foreground">cluster-scoped</span>
+                      <span className="text-muted-foreground">
+                        cluster-scoped
+                      </span>
                     )}
                   </TableCell>
                   <TableCell className="max-w-xs truncate">

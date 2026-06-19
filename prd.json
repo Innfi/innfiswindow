@@ -172,9 +172,7 @@
         "No TypeScript compile errors"
       ],
       "dependencies": ["S93"],
-      "ipc_handlers": [
-        "alarm:evaluate"
-      ],
+      "ipc_handlers": ["alarm:evaluate"],
       "notes": "alarm:evaluate receives one AlarmRule and returns AlarmEntry[]. The renderer calls it once per rule in sequence (or Promise.all) when the user clicks Evaluate. Keep the handler simple: call the relevant k8s API (CoreV1Api for pods/nodes/events, AppsV1Api for deployments), filter results, and map each matching resource to an AlarmEntry with a human-readable message (e.g. 'Pod my-pod is in phase Failed'). The context field on AlarmEntry is the display name — use contextAliases[rule.context] ?? rule.context from the store so the alarm panel shows the alias. Deduplication: before appending new entries, drop any existing entry where ruleId + sourceName + namespace match and triggeredAt is within the same UTC minute, to avoid flooding on repeated evaluations. resourceNameFilter is a substring match against the resource name if provided."
     },
     {

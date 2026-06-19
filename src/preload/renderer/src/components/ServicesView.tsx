@@ -59,13 +59,16 @@ function DetailPanel({
     onDeleteDialogChange(open)
   }
   const selectorEntries = Object.entries(svc.selector).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
   const labelEntries = Object.entries(svc.labels).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
   const annotationEntries = Object.entries(svc.annotations).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
 
   function handleEdit(): void {

@@ -2,6 +2,7 @@ import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import { Button } from "../../components/ui/button"
 import {
   Table,
   TableBody,
@@ -10,7 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { Button } from "../../components/ui/button"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
@@ -56,7 +56,12 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={handleEdit}
+          >
             Edit
           </Button>
           <CopyResourceButton

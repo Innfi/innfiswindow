@@ -198,19 +198,27 @@ function DetailPanel({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {binding.subjects.filter((s) => !sl || s.kind.toLowerCase().includes(sl) || s.name.toLowerCase().includes(sl) || (s.namespace ?? "").toLowerCase().includes(sl)).map((s, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="whitespace-nowrap text-xs">
-                      {s.kind}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-xs font-mono">
-                      {s.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-xs">
-                      {s.namespace}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {binding.subjects
+                  .filter(
+                    (s) =>
+                      !sl ||
+                      s.kind.toLowerCase().includes(sl) ||
+                      s.name.toLowerCase().includes(sl) ||
+                      (s.namespace ?? "").toLowerCase().includes(sl),
+                  )
+                  .map((s, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {s.kind}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs font-mono">
+                        {s.name}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {s.namespace}
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </div>

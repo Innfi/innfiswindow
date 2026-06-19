@@ -57,10 +57,12 @@ function DetailPanel({
     ([k]) => !sl || k.toLowerCase().includes(sl),
   )
   const labelEntries = Object.entries(secret.labels).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
   const annotationEntries = Object.entries(secret.annotations).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
 
   function toggleReveal(key: string) {

@@ -84,7 +84,9 @@ export function GlobalFooter(): JSX.Element {
 
       <div className="flex h-8 shrink-0 items-center border-t bg-muted px-3 text-xs text-muted-foreground">
         <span className="flex-1 truncate">
-          {displayContext ? `Context: ${displayContext}` : "No context selected"}
+          {displayContext
+            ? `Context: ${displayContext}`
+            : "No context selected"}
         </span>
         <button
           onClick={togglePanel}

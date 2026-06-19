@@ -59,7 +59,8 @@ function DetailPanel({
   const [rollbackRevision, setRollbackRevision] = useState<number | null>(null)
   const [rolling, setRolling] = useState(false)
   const selectorEntries = Object.entries(deployment.selector).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
 
   const loadHistory = useCallback(async () => {
@@ -74,7 +75,9 @@ function DetailPanel({
       setHistory(revisions)
     } catch (e) {
       toast.error(`Failed to load rollout history: ${String(e)}`)
-      useAppStore.getState().addGlobalError(String(e), "Deployment: rollout history")
+      useAppStore
+        .getState()
+        .addGlobalError(String(e), "Deployment: rollout history")
     } finally {
       setHistoryLoading(false)
     }

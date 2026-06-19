@@ -84,42 +84,66 @@ function DetailPanel({
             </div>
           )}
 
-          {subset.readyAddresses.filter((addr) => !sl || addr.ip.includes(sl) || (addr.targetPodName ?? "").toLowerCase().includes(sl)).length > 0 && (
+          {subset.readyAddresses.filter(
+            (addr) =>
+              !sl ||
+              addr.ip.includes(sl) ||
+              (addr.targetPodName ?? "").toLowerCase().includes(sl),
+          ).length > 0 && (
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground">
                 Ready Addresses
               </p>
-              {subset.readyAddresses.filter((addr) => !sl || addr.ip.includes(sl) || (addr.targetPodName ?? "").toLowerCase().includes(sl)).map((addr, ai) => (
-                <div key={ai} className="text-xs flex gap-2">
-                  <span className="font-mono">{addr.ip}</span>
-                  {addr.targetPodName && (
-                    <span className="text-muted-foreground">
-                      → {addr.targetPodNamespace}/{addr.targetPodName}
-                    </span>
-                  )}
-                </div>
-              ))}
+              {subset.readyAddresses
+                .filter(
+                  (addr) =>
+                    !sl ||
+                    addr.ip.includes(sl) ||
+                    (addr.targetPodName ?? "").toLowerCase().includes(sl),
+                )
+                .map((addr, ai) => (
+                  <div key={ai} className="text-xs flex gap-2">
+                    <span className="font-mono">{addr.ip}</span>
+                    {addr.targetPodName && (
+                      <span className="text-muted-foreground">
+                        → {addr.targetPodNamespace}/{addr.targetPodName}
+                      </span>
+                    )}
+                  </div>
+                ))}
             </div>
           )}
 
-          {subset.notReadyAddresses.filter((addr) => !sl || addr.ip.includes(sl) || (addr.targetPodName ?? "").toLowerCase().includes(sl)).length > 0 && (
+          {subset.notReadyAddresses.filter(
+            (addr) =>
+              !sl ||
+              addr.ip.includes(sl) ||
+              (addr.targetPodName ?? "").toLowerCase().includes(sl),
+          ).length > 0 && (
             <div className="space-y-1">
               <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
                 Not-Ready Addresses
               </p>
-              {subset.notReadyAddresses.filter((addr) => !sl || addr.ip.includes(sl) || (addr.targetPodName ?? "").toLowerCase().includes(sl)).map((addr, ai) => (
-                <div
-                  key={ai}
-                  className="text-xs flex gap-2 text-amber-600 dark:text-amber-400"
-                >
-                  <span className="font-mono">{addr.ip}</span>
-                  {addr.targetPodName && (
-                    <span>
-                      → {addr.targetPodNamespace}/{addr.targetPodName}
-                    </span>
-                  )}
-                </div>
-              ))}
+              {subset.notReadyAddresses
+                .filter(
+                  (addr) =>
+                    !sl ||
+                    addr.ip.includes(sl) ||
+                    (addr.targetPodName ?? "").toLowerCase().includes(sl),
+                )
+                .map((addr, ai) => (
+                  <div
+                    key={ai}
+                    className="text-xs flex gap-2 text-amber-600 dark:text-amber-400"
+                  >
+                    <span className="font-mono">{addr.ip}</span>
+                    {addr.targetPodName && (
+                      <span>
+                        → {addr.targetPodNamespace}/{addr.targetPodName}
+                      </span>
+                    )}
+                  </div>
+                ))}
             </div>
           )}
         </div>

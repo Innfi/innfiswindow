@@ -191,19 +191,29 @@ function DetailPanel({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {role.rules.filter((rule) => !sl || rule.resources.some((r) => r.toLowerCase().includes(sl)) || rule.verbs.some((v) => v.toLowerCase().includes(sl)) || rule.apiGroups.some((g) => g.toLowerCase().includes(sl))).map((rule, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="whitespace-nowrap text-xs font-mono">
-                      {rule.apiGroups.join(", ") || '""'}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-xs">
-                      {rule.resources.join(", ") || "*"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-xs">
-                      {rule.verbs.join(", ")}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {role.rules
+                  .filter(
+                    (rule) =>
+                      !sl ||
+                      rule.resources.some((r) =>
+                        r.toLowerCase().includes(sl),
+                      ) ||
+                      rule.verbs.some((v) => v.toLowerCase().includes(sl)) ||
+                      rule.apiGroups.some((g) => g.toLowerCase().includes(sl)),
+                  )
+                  .map((rule, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="whitespace-nowrap text-xs font-mono">
+                        {rule.apiGroups.join(", ") || '""'}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {rule.resources.join(", ") || "*"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {rule.verbs.join(", ")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </div>

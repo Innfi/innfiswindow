@@ -2,6 +2,7 @@ import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import { Button } from "../../components/ui/button"
 import {
   Table,
   TableBody,
@@ -10,7 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { Button } from "../../components/ui/button"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
@@ -41,10 +41,12 @@ function DetailPanel({
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   const labelEntries = Object.entries(pvc.labels).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
   const annotationEntries = Object.entries(pvc.annotations).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
 
   function handleEdit(): void {
@@ -57,7 +59,12 @@ function DetailPanel({
       initialYaml: yamlDump({
         apiVersion: "v1",
         kind: "PersistentVolumeClaim",
-        metadata: { name: pvc.name, namespace: pvc.namespace, labels: pvc.labels, annotations: pvc.annotations },
+        metadata: {
+          name: pvc.name,
+          namespace: pvc.namespace,
+          labels: pvc.labels,
+          annotations: pvc.annotations,
+        },
         spec: {
           accessModes: pvc.accessModes,
           storageClassName: pvc.storageClass,
@@ -75,7 +82,12 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{pvc.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={handleEdit}
+          >
             Edit
           </Button>
           <CopyResourceButton

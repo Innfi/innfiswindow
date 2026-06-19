@@ -2,6 +2,7 @@ import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import { Button } from "../../components/ui/button"
 import {
   Table,
   TableBody,
@@ -10,7 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { Button } from "../../components/ui/button"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
@@ -31,13 +31,16 @@ function DetailPanel({
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   const selectorEntries = Object.entries(pdb.selector).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
   const labelEntries = Object.entries(pdb.labels).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
   const annotationEntries = Object.entries(pdb.annotations).filter(
-    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+    ([k, v]) =>
+      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
   )
 
   function handleEdit(): void {
@@ -50,10 +53,19 @@ function DetailPanel({
       initialYaml: yamlDump({
         apiVersion: "policy/v1",
         kind: "PodDisruptionBudget",
-        metadata: { name: pdb.name, namespace: pdb.namespace, labels: pdb.labels, annotations: pdb.annotations },
+        metadata: {
+          name: pdb.name,
+          namespace: pdb.namespace,
+          labels: pdb.labels,
+          annotations: pdb.annotations,
+        },
         spec: {
-          ...(pdb.minAvailable != null ? { minAvailable: pdb.minAvailable } : {}),
-          ...(pdb.maxUnavailable != null ? { maxUnavailable: pdb.maxUnavailable } : {}),
+          ...(pdb.minAvailable != null
+            ? { minAvailable: pdb.minAvailable }
+            : {}),
+          ...(pdb.maxUnavailable != null
+            ? { maxUnavailable: pdb.maxUnavailable }
+            : {}),
           selector: { matchLabels: pdb.selector },
         },
       }),
@@ -68,7 +80,12 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{pdb.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={handleEdit}
+          >
             Edit
           </Button>
           <CopyResourceButton
