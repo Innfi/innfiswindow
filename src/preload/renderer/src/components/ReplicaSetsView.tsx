@@ -1,5 +1,6 @@
+import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 import {
   Table,
@@ -9,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
+import { Button } from "../../components/ui/button"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
@@ -25,8 +27,40 @@ function DetailPanel({
   rs: K8sReplicaSet
   onClose: () => void
 }): JSX.Element {
-  const selectorEntries = Object.entries(rs.selector)
-  const podTemplateEntries = Object.entries(rs.podTemplateLabels)
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
+  const selectorEntries = Object.entries(rs.selector).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
+  const podTemplateEntries = Object.entries(rs.podTemplateLabels).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
+
+  function handleEdit(): void {
+    openDrawerTab({
+      tabKey: `yaml-edit:ReplicaSet:${rs.namespace}/${rs.name}`,
+      type: "yaml-edit",
+      resourceKind: "ReplicaSet",
+      resourceName: rs.name,
+      namespace: rs.namespace,
+      initialYaml: yamlDump({
+        apiVersion: "apps/v1",
+        kind: "ReplicaSet",
+        metadata: { name: rs.name, namespace: rs.namespace },
+        spec: {
+          replicas: rs.desiredReplicas,
+          selector: { matchLabels: rs.selector },
+          template: {
+            metadata: { labels: rs.podTemplateLabels },
+            spec: {
+              containers: rs.containers.map((c) => ({ name: c.name, image: c.image })),
+            },
+          },
+        },
+      }),
+    })
+  }
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
@@ -36,6 +70,9 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{rs.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
+            Edit
+          </Button>
           <CopyResourceButton
             name={rs.name}
             namespace={rs.namespace}
@@ -50,6 +87,13 @@ function DetailPanel({
           </button>
         </div>
       </div>
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
 
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">

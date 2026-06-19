@@ -1,5 +1,6 @@
+import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 import {
   Table,
@@ -9,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
+import { Button } from "../../components/ui/button"
 import {
   cn,
   filterResources,
@@ -37,7 +39,28 @@ function DetailPanel({
   quota: K8sResourceQuota
   onClose: () => void
 }): JSX.Element {
-  const resources = Object.keys(quota.hard)
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
+  const resources = Object.keys(quota.hard).filter(
+    (r) => !sl || r.toLowerCase().includes(sl),
+  )
+
+  function handleEdit(): void {
+    openDrawerTab({
+      tabKey: `yaml-edit:ResourceQuota:${quota.namespace}/${quota.name}`,
+      type: "yaml-edit",
+      resourceKind: "ResourceQuota",
+      resourceName: quota.name,
+      namespace: quota.namespace,
+      initialYaml: yamlDump({
+        apiVersion: "v1",
+        kind: "ResourceQuota",
+        metadata: { name: quota.name, namespace: quota.namespace },
+        spec: { hard: quota.hard },
+      }),
+    })
+  }
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
@@ -49,6 +72,9 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
+            Edit
+          </Button>
           <CopyResourceButton
             name={quota.name}
             namespace={quota.namespace}
@@ -63,6 +89,13 @@ function DetailPanel({
           </button>
         </div>
       </div>
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
 
       <div className="space-y-1">
         <MetaEntry

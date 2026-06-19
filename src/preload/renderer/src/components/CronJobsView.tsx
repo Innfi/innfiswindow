@@ -1,5 +1,6 @@
+import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 import {
   Table,
@@ -9,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
+import { Button } from "../../components/ui/button"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
@@ -25,8 +27,36 @@ function DetailPanel({
   cronJob: K8sCronJob
   onClose: () => void
 }): JSX.Element {
-  const labelEntries = Object.entries(cronJob.labels)
-  const annotationEntries = Object.entries(cronJob.annotations)
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
+  const labelEntries = Object.entries(cronJob.labels).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
+  const annotationEntries = Object.entries(cronJob.annotations).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
+
+  function handleEdit(): void {
+    openDrawerTab({
+      tabKey: `yaml-edit:CronJob:${cronJob.namespace}/${cronJob.name}`,
+      type: "yaml-edit",
+      resourceKind: "CronJob",
+      resourceName: cronJob.name,
+      namespace: cronJob.namespace,
+      initialYaml: yamlDump({
+        apiVersion: "batch/v1",
+        kind: "CronJob",
+        metadata: { name: cronJob.name, namespace: cronJob.namespace, labels: cronJob.labels, annotations: cronJob.annotations },
+        spec: {
+          schedule: cronJob.schedule,
+          concurrencyPolicy: cronJob.concurrencyPolicy || "Allow",
+          suspend: cronJob.suspend,
+          jobTemplate: { spec: { template: { spec: { containers: [] } } } },
+        },
+      }),
+    })
+  }
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
@@ -38,6 +68,9 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
+            Edit
+          </Button>
           <CopyResourceButton
             name={cronJob.name}
             namespace={cronJob.namespace}
@@ -52,6 +85,13 @@ function DetailPanel({
           </button>
         </div>
       </div>
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
 
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">

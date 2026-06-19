@@ -1,5 +1,6 @@
+import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 import {
   Table,
@@ -9,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
+import { Button } from "../../components/ui/button"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
@@ -25,6 +27,25 @@ function DetailPanel({
   limitRange: K8sLimitRange
   onClose: () => void
 }): JSX.Element {
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const [search, setSearch] = useState("")
+
+  function handleEdit(): void {
+    openDrawerTab({
+      tabKey: `yaml-edit:LimitRange:${limitRange.namespace}/${limitRange.name}`,
+      type: "yaml-edit",
+      resourceKind: "LimitRange",
+      resourceName: limitRange.name,
+      namespace: limitRange.namespace,
+      initialYaml: yamlDump({
+        apiVersion: "v1",
+        kind: "LimitRange",
+        metadata: { name: limitRange.name, namespace: limitRange.namespace },
+        spec: { limits: limitRange.limits },
+      }),
+    })
+  }
+
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
@@ -35,6 +56,9 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
+            Edit
+          </Button>
           <CopyResourceButton
             name={limitRange.name}
             namespace={limitRange.namespace}
@@ -49,6 +73,13 @@ function DetailPanel({
           </button>
         </div>
       </div>
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
 
       <div className="space-y-1">
         <MetaEntry

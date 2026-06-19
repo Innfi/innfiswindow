@@ -1,3 +1,4 @@
+import { dump as yamlDump } from "js-yaml"
 import { ArrowLeftRight, ScrollText, SquareTerminal, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -46,14 +47,35 @@ function DetailPanel({
   onDeleteSuccess: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
+  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
   const [selectedContainer, setSelectedContainer] = useState(
     pod.containers[0]?.name ?? "",
   )
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  function handleEdit(): void {
+    openDrawerTab({
+      tabKey: `yaml-edit:Pod:${pod.namespace}/${pod.name}`,
+      type: "yaml-edit",
+      resourceKind: "Pod",
+      resourceName: pod.name,
+      namespace: pod.namespace,
+      initialYaml: yamlDump({
+        apiVersion: "v1",
+        kind: "Pod",
+        metadata: { name: pod.name, namespace: pod.namespace },
+        spec: {
+          containers: pod.containers.map((c) => ({ name: c.name, image: c.image })),
+        },
+      }),
+    })
+  }
 
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
@@ -101,6 +123,9 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{pod.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
+            Edit
+          </Button>
           <Button variant="ghost" size="icon" title="Logs" onClick={onLogs}>
             <ScrollText className="h-4 w-4" />
           </Button>
@@ -143,6 +168,14 @@ function DetailPanel({
         </div>
       </div>
 
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
+
       {pod.containers.length > 1 && (
         <div className="space-y-1">
           <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
@@ -177,12 +210,12 @@ function DetailPanel({
         />
       </div>
 
-      {pod.containers.length > 0 && (
+      {pod.containers.filter((c) => !sl || c.name.toLowerCase().includes(sl) || c.image.toLowerCase().includes(sl)).length > 0 && (
         <div className="space-y-1">
           <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
             Containers
           </h3>
-          {pod.containers.map((c) => (
+          {pod.containers.filter((c) => !sl || c.name.toLowerCase().includes(sl) || c.image.toLowerCase().includes(sl)).map((c) => (
             <div
               key={c.name}
               className="text-sm border rounded p-2 space-y-0.5"
@@ -199,12 +232,12 @@ function DetailPanel({
         </div>
       )}
 
-      {pod.conditions.length > 0 && (
+      {pod.conditions.filter((c) => !sl || c.type.toLowerCase().includes(sl)).length > 0 && (
         <div className="space-y-1">
           <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
             Conditions
           </h3>
-          {pod.conditions.map((c) => (
+          {pod.conditions.filter((c) => !sl || c.type.toLowerCase().includes(sl)).map((c) => (
             <div
               key={c.type}
               className="text-sm space-y-0.5 border rounded p-2"

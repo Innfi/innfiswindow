@@ -1,5 +1,5 @@
 import { X } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 import {
   Table,
@@ -24,6 +24,9 @@ function DetailPanel({
   endpoint: K8sEndpoint
   onClose: () => void
 }): JSX.Element {
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
+
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
@@ -41,6 +44,13 @@ function DetailPanel({
           <X className="h-4 w-4" />
         </button>
       </div>
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
 
       <div className="space-y-1">
         <MetaEntry
@@ -74,12 +84,12 @@ function DetailPanel({
             </div>
           )}
 
-          {subset.readyAddresses.length > 0 && (
+          {subset.readyAddresses.filter((addr) => !sl || addr.ip.includes(sl) || (addr.targetPodName ?? "").toLowerCase().includes(sl)).length > 0 && (
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground">
                 Ready Addresses
               </p>
-              {subset.readyAddresses.map((addr, ai) => (
+              {subset.readyAddresses.filter((addr) => !sl || addr.ip.includes(sl) || (addr.targetPodName ?? "").toLowerCase().includes(sl)).map((addr, ai) => (
                 <div key={ai} className="text-xs flex gap-2">
                   <span className="font-mono">{addr.ip}</span>
                   {addr.targetPodName && (
@@ -92,12 +102,12 @@ function DetailPanel({
             </div>
           )}
 
-          {subset.notReadyAddresses.length > 0 && (
+          {subset.notReadyAddresses.filter((addr) => !sl || addr.ip.includes(sl) || (addr.targetPodName ?? "").toLowerCase().includes(sl)).length > 0 && (
             <div className="space-y-1">
               <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
                 Not-Ready Addresses
               </p>
-              {subset.notReadyAddresses.map((addr, ai) => (
+              {subset.notReadyAddresses.filter((addr) => !sl || addr.ip.includes(sl) || (addr.targetPodName ?? "").toLowerCase().includes(sl)).map((addr, ai) => (
                 <div
                   key={ai}
                   className="text-xs flex gap-2 text-amber-600 dark:text-amber-400"

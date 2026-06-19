@@ -49,6 +49,8 @@ function DetailPanel({
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -56,9 +58,15 @@ function DetailPanel({
     setDeleteOpen(open)
     onDeleteDialogChange(open)
   }
-  const selectorEntries = Object.entries(svc.selector)
-  const labelEntries = Object.entries(svc.labels)
-  const annotationEntries = Object.entries(svc.annotations)
+  const selectorEntries = Object.entries(svc.selector).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
+  const labelEntries = Object.entries(svc.labels).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
+  const annotationEntries = Object.entries(svc.annotations).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
 
   function handleEdit(): void {
     const obj = {
@@ -176,6 +184,14 @@ function DetailPanel({
           </button>
         </div>
       </div>
+
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
 
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">

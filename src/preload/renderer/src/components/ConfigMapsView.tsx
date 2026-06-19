@@ -42,18 +42,28 @@ function DetailPanel({
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const dataEntries = Object.entries(cm.data)
+  const dataEntries = Object.entries(cm.data).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
 
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
     onDeleteDialogChange(open)
   }
-  const binaryEntries = Object.entries(cm.binaryData)
-  const labelEntries = Object.entries(cm.labels)
-  const annotationEntries = Object.entries(cm.annotations)
+  const binaryEntries = Object.entries(cm.binaryData).filter(
+    ([k]) => !sl || k.toLowerCase().includes(sl),
+  )
+  const labelEntries = Object.entries(cm.labels).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
+  const annotationEntries = Object.entries(cm.annotations).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
 
   function handleEdit(): void {
     const obj = {
@@ -185,6 +195,14 @@ function DetailPanel({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
 
       {dataEntries.length > 0 && (
         <div className="space-y-2">

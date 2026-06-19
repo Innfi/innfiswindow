@@ -107,6 +107,18 @@ export type DrawerTab =
         | "StatefulSet"
         | "ConfigMap"
         | "Secret"
+        | "Namespace"
+        | "Pod"
+        | "ReplicaSet"
+        | "HPA"
+        | "PersistentVolume"
+        | "PersistentVolumeClaim"
+        | "NetworkPolicy"
+        | "ResourceQuota"
+        | "LimitRange"
+        | "PodDisruptionBudget"
+        | "CronJob"
+        | "Job"
       resourceName: string
       namespace: string
       initialYaml: string
@@ -171,6 +183,18 @@ export type DrawerTabInput =
         | "StatefulSet"
         | "ConfigMap"
         | "Secret"
+        | "Namespace"
+        | "Pod"
+        | "ReplicaSet"
+        | "HPA"
+        | "PersistentVolume"
+        | "PersistentVolumeClaim"
+        | "NetworkPolicy"
+        | "ResourceQuota"
+        | "LimitRange"
+        | "PodDisruptionBudget"
+        | "CronJob"
+        | "Job"
       resourceName: string
       namespace: string
       initialYaml: string

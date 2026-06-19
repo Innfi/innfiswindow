@@ -196,6 +196,25 @@
       ],
       "dependencies": ["S94"],
       "notes": "GlobalFooter lives at src/preload/renderer/src/components/GlobalFooter.tsx and is imported in the root App.tsx or layout component. The snackbar panel is a plain absolute/fixed div, not a shadcn Sheet or Dialog — keep it lightweight. addGlobalError should be called at every catch site that currently shows a console.error or a toast; do not replace existing per-operation toasts if any exist — add the global error in addition. The globalErrors field is not persisted (session-only). unreadErrorCount resets to 0 on panel open, not on panel close, so the badge clears as soon as the user acknowledges it."
+    },
+    {
+      "id": "S96",
+      "title": "Resource detail panel: search and missing edit actions",
+      "status": "complete",
+      "description": "Two improvements to the right-side resource detail panels. First, add a search input at the top of every detail panel so users can filter the visible key-value rows (labels, annotations, conditions, container list, etc.) by typing a term. Second, audit every resource kind and add a YAML Edit button to any detail panel that currently has none — opening the existing yaml-edit drawer tab with a serialized YAML of the selected resource.",
+      "acceptance_criteria": [
+        "Every right-side detail panel gains a search input (placeholder 'Search…', text-xs, w-full or w-40 shrink-0) rendered at the top of the panel, above all other content",
+        "The search term filters visible rows: any section row (label key/value pair, annotation, condition, container entry, or other key-value item) whose key or value contains the search term (case-insensitive) is shown; non-matching rows are hidden; section headers remain visible if at least one child row matches, hidden entirely if none match",
+        "Clearing the search input restores all rows",
+        "Resource kinds that already have a YAML Edit button or Edit drawer action are not changed",
+        "Resource kinds that currently have no edit action and support YAML patch (Namespace, Pod, ReplicaSet, HPA, PersistentVolume, PersistentVolumeClaim, NetworkPolicy, ResourceQuota, LimitRange, PodDisruptionBudget, CronJob, Job, ServiceAccount) gain an 'Edit YAML' button in their detail panel header; clicking it opens a yaml-edit drawer tab pre-filled with a serialized YAML of the selected resource's known fields",
+        "The YAML serialized for edit-on-open represents the resource's current shape as known to the renderer (the same fields already displayed in the detail panel — name, namespace, labels, annotations, spec fields); it does not re-fetch from the API",
+        "The yaml-edit drawer tab type is extended if needed to accept the new resource kinds, or a generic fallback using the existing apply IPC handler (window.api.k8s.applyResource) is used for resource kinds not covered by a dedicated replace handler",
+        "No new IPC handlers required — use existing applyResource or dedicated replace handlers where they exist",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S95"],
+      "notes": "Search is renderer-only state (useState<string>) per panel — do not hoist to Zustand. The filter logic runs on the rendered rows, not on the raw data array; implement it by wrapping each row render in a visibility check against the search term. For the YAML Edit button on new resource kinds: construct a minimal YAML object from the fields already in the resource data shape (from the IPC list handler), serialize with js-yaml dump, and pass as initialYaml to a yaml-edit tab. If the DrawerTab type's yaml-edit resourceKind union does not include the new kinds, extend the union. Use window.api.k8s.applyResource as the save handler for kinds without a dedicated replace IPC handler."
     }
   ]
 }

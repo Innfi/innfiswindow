@@ -53,6 +53,8 @@ function DetailPanel({
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -190,6 +192,14 @@ function DetailPanel({
         </div>
       </div>
 
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
+
       <div>
         <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">
           Ingress Class
@@ -266,13 +276,13 @@ function DetailPanel({
         )}
       </div>
 
-      {Object.keys(item.labels).length > 0 && (
+      {Object.entries(item.labels).filter(([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl)).length > 0 && (
         <div>
           <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">
             Labels
           </p>
           <div className="space-y-0.5">
-            {Object.entries(item.labels).map(([k, v]) => (
+            {Object.entries(item.labels).filter(([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl)).map(([k, v]) => (
               <div key={k} className="text-xs font-mono">
                 <span className="text-muted-foreground">{k}=</span>
                 {v}
@@ -282,13 +292,13 @@ function DetailPanel({
         </div>
       )}
 
-      {Object.keys(item.annotations).length > 0 && (
+      {Object.entries(item.annotations).filter(([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl)).length > 0 && (
         <div>
           <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">
             Annotations
           </p>
           <div className="space-y-0.5">
-            {Object.entries(item.annotations).map(([k, v]) => (
+            {Object.entries(item.annotations).filter(([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl)).map(([k, v]) => (
               <div key={k} className="text-xs font-mono break-all">
                 <span className="text-muted-foreground">{k}=</span>
                 {v}

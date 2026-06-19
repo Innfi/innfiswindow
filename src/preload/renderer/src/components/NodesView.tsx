@@ -163,9 +163,17 @@ function DetailPanel({
   metricsUnavailable: boolean
   onClose: () => void
 }): JSX.Element {
-  const labelEntries = Object.entries(node.labels)
-  const capacityEntries = Object.entries(node.capacity)
-  const allocatableEntries = Object.entries(node.allocatable)
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
+  const labelEntries = Object.entries(node.labels).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
+  const capacityEntries = Object.entries(node.capacity).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
+  const allocatableEntries = Object.entries(node.allocatable).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
@@ -194,6 +202,13 @@ function DetailPanel({
           </button>
         </div>
       </div>
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
 
       <ResourceUsageSection
         node={node}

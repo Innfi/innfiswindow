@@ -42,6 +42,8 @@ function DetailPanel({
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set())
   const [deleteOpen, setDeleteOpen] = useState(false)
 
@@ -51,9 +53,15 @@ function DetailPanel({
   }
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const dataEntries = Object.entries(secret.data)
-  const labelEntries = Object.entries(secret.labels)
-  const annotationEntries = Object.entries(secret.annotations)
+  const dataEntries = Object.entries(secret.data).filter(
+    ([k]) => !sl || k.toLowerCase().includes(sl),
+  )
+  const labelEntries = Object.entries(secret.labels).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
+  const annotationEntries = Object.entries(secret.annotations).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
 
   function toggleReveal(key: string) {
     setRevealedKeys((prev) => {
@@ -199,6 +207,14 @@ function DetailPanel({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
 
       <div>
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide mb-1">

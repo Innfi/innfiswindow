@@ -43,6 +43,8 @@ function DetailPanel({
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -162,6 +164,14 @@ function DetailPanel({
         </DialogContent>
       </Dialog>
 
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
+
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
           Rules ({role.rules.length})
@@ -181,7 +191,7 @@ function DetailPanel({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {role.rules.map((rule, i) => (
+                {role.rules.filter((rule) => !sl || rule.resources.some((r) => r.toLowerCase().includes(sl)) || rule.verbs.some((v) => v.toLowerCase().includes(sl)) || rule.apiGroups.some((g) => g.toLowerCase().includes(sl))).map((rule, i) => (
                   <TableRow key={i}>
                     <TableCell className="whitespace-nowrap text-xs font-mono">
                       {rule.apiGroups.join(", ") || '""'}

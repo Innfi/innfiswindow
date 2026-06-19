@@ -43,8 +43,14 @@ function DetailPanel({
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
-  const labelEntries = Object.entries(sa.labels)
-  const annotationEntries = Object.entries(sa.annotations)
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
+  const labelEntries = Object.entries(sa.labels).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
+  const annotationEntries = Object.entries(sa.annotations).filter(
+    ([k, v]) => !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
+  )
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -161,6 +167,14 @@ function DetailPanel({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
 
       {labelEntries.length > 0 && (
         <div className="space-y-1">

@@ -43,6 +43,8 @@ function DetailPanel({
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -161,6 +163,14 @@ function DetailPanel({
         </DialogContent>
       </Dialog>
 
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search…"
+        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+      />
+
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
           Role Ref
@@ -188,7 +198,7 @@ function DetailPanel({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {binding.subjects.map((s, i) => (
+                {binding.subjects.filter((s) => !sl || s.kind.toLowerCase().includes(sl) || s.name.toLowerCase().includes(sl) || (s.namespace ?? "").toLowerCase().includes(sl)).map((s, i) => (
                   <TableRow key={i}>
                     <TableCell className="whitespace-nowrap text-xs">
                       {s.kind}

@@ -81,6 +81,8 @@ export function YamlEditPanel({
           tab.resourceName,
           yamlStr,
         )
+      } else {
+        await window.api.k8s.applyResource(yamlStr)
       }
       appendHistory({
         action: "update",
