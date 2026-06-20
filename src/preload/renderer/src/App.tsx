@@ -82,8 +82,10 @@ function App(): JSX.Element {
   const aliasInputRef = useRef<HTMLInputElement>(null)
   const [awsCredResult, setAwsCredResult] = useState<{
     valid: boolean
-    type: "env" | "file" | "metadata" | "none"
+    type: "env" | "file" | "sso-cache" | "metadata" | "none"
     hasSessionToken?: boolean
+    expiresAt?: string
+    ssoSession?: string
   } | null>(null)
 
   const runAwsCredCheck = (): void => {

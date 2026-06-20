@@ -1,12 +1,14 @@
-import { readFileSync } from "fs"
+import { readdirSync, readFileSync } from "fs"
 import * as http from "http"
 import { homedir } from "os"
 import { join } from "path"
 
 export interface AwsCredentialResult {
   valid: boolean
-  type: "env" | "file" | "metadata" | "none"
+  type: "env" | "file" | "sso-cache" | "metadata" | "none"
   hasSessionToken?: boolean
+  expiresAt?: string
+  ssoSession?: string
 }
 
 function checkEnvCredentials(): AwsCredentialResult | null {
@@ -62,6 +64,54 @@ function checkFileCredentials(): AwsCredentialResult | null {
   return null
 }
 
+function readCacheDir(dir: string): { expiresAt: string; ssoSession?: string }[] {
+  const entries: { expiresAt: string; ssoSession?: string }[] = []
+  let files: string[]
+  try {
+    files = readdirSync(dir).filter((f) => f.endsWith(".json"))
+  } catch {
+    return entries
+  }
+  for (const file of files) {
+    try {
+      const content = readFileSync(join(dir, file), "utf-8")
+      const parsed = JSON.parse(content)
+      const expiresAt = parsed.expiresAt ?? parsed.Credentials?.Expiration
+      if (typeof expiresAt === "string") {
+        entries.push({ expiresAt, ssoSession: parsed.ssoSession ?? parsed.startUrl })
+      }
+    } catch {
+      continue
+    }
+  }
+  return entries
+}
+
+function checkSsoCacheCredentials(): AwsCredentialResult | null {
+  const dirs = [
+    join(homedir(), ".aws", "sso", "cache"),
+    join(homedir(), ".aws", "cli", "cache"),
+  ]
+  const now = Date.now()
+  let latest: { expiresAt: string; ssoSession?: string } | null = null
+  for (const dir of dirs) {
+    for (const entry of readCacheDir(dir)) {
+      const expiresAtMs = Date.parse(entry.expiresAt)
+      if (Number.isNaN(expiresAtMs) || expiresAtMs <= now) continue
+      if (!latest || expiresAtMs > Date.parse(latest.expiresAt)) {
+        latest = entry
+      }
+    }
+  }
+  if (!latest) return null
+  return {
+    valid: true,
+    type: "sso-cache",
+    expiresAt: latest.expiresAt,
+    ...(latest.ssoSession ? { ssoSession: latest.ssoSession } : {}),
+  }
+}
+
 function checkMetadataCredentials(): Promise<AwsCredentialResult | null> {
   return new Promise((resolve) => {
     const req = http.request(
@@ -92,6 +142,9 @@ export async function checkAwsCredentials(): Promise<AwsCredentialResult> {
   try {
     const envResult = checkEnvCredentials()
     if (envResult) return envResult
+
+    const ssoResult = checkSsoCacheCredentials()
+    if (ssoResult) return ssoResult
 
     const fileResult = checkFileCredentials()
     if (fileResult) return fileResult

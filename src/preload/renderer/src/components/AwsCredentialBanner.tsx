@@ -2,9 +2,13 @@ import { AlertTriangle, Info, RefreshCw } from "lucide-react"
 
 interface AwsCredentialResult {
   valid: boolean
-  type: "env" | "file" | "metadata" | "none"
+  type: "env" | "file" | "sso-cache" | "metadata" | "none"
   hasSessionToken?: boolean
+  expiresAt?: string
+  ssoSession?: string
 }
+
+const NEAR_EXPIRY_MS = 5 * 60 * 1000
 
 interface Props {
   result: AwsCredentialResult | null
@@ -27,6 +31,47 @@ export function AwsCredentialBanner({
         <button
           onClick={onRecheck}
           className="flex items-center gap-1 rounded border border-destructive/40 px-2 py-0.5 text-xs hover:bg-destructive/20"
+        >
+          <RefreshCw className="h-3 w-3" />
+          Re-check
+        </button>
+      </div>
+    )
+  }
+
+  if (result.type === "sso-cache") {
+    const expiresAtMs = result.expiresAt ? Date.parse(result.expiresAt) : NaN
+    const nearExpiry = !Number.isNaN(expiresAtMs) && expiresAtMs - Date.now() < NEAR_EXPIRY_MS
+    const expiresLabel = result.expiresAt
+      ? new Date(result.expiresAt).toLocaleTimeString()
+      : "unknown"
+    if (nearExpiry) {
+      return (
+        <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 px-4 py-2 text-sm shrink-0">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span className="flex-1">
+            AWS SSO credentials expire soon ({expiresLabel}). Run 'aws sso
+            login' to refresh.
+          </span>
+          <button
+            onClick={onRecheck}
+            className="flex items-center gap-1 rounded border border-amber-500/40 px-2 py-0.5 text-xs hover:bg-amber-500/20"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Re-check
+          </button>
+        </div>
+      )
+    }
+    return (
+      <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 text-blue-700 dark:text-blue-300 px-4 py-2 text-sm shrink-0">
+        <Info className="h-4 w-4 shrink-0" />
+        <span className="flex-1">
+          Using temporary AWS SSO credentials (expires {expiresLabel}).
+        </span>
+        <button
+          onClick={onRecheck}
+          className="flex items-center gap-1 rounded border border-blue-500/40 px-2 py-0.5 text-xs hover:bg-blue-500/20"
         >
           <RefreshCw className="h-3 w-3" />
           Re-check

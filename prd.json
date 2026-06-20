@@ -213,6 +213,26 @@
       ],
       "dependencies": ["S95"],
       "notes": "Search is renderer-only state (useState<string>) per panel — do not hoist to Zustand. The filter logic runs on the rendered rows, not on the raw data array; implement it by wrapping each row render in a visibility check against the search term. For the YAML Edit button on new resource kinds: construct a minimal YAML object from the fields already in the resource data shape (from the IPC list handler), serialize with js-yaml dump, and pass as initialYaml to a yaml-edit tab. If the DrawerTab type's yaml-edit resourceKind union does not include the new kinds, extend the union. Use window.api.k8s.applyResource as the save handler for kinds without a dedicated replace IPC handler."
+    },
+    {
+      "id": "S97",
+      "title": "Read temporary AWS SSO credentials (from 'aws login') for EKS access",
+      "status": "complete",
+      "description": "Users authenticate to AWS via 'aws login' / 'aws sso login', which writes short-lived temporary credentials (access key, secret key, session token, expiration) to the AWS SSO token cache (~/.aws/sso/cache/*.json) and/or the CLI credential cache (~/.aws/cli/cache/*.json), rather than the static ~/.aws/credentials file already handled by checkFileCredentials. Extend the existing AWS credential detection in src/main/aws-handlers.ts to also read these temporary/cached credentials, surface their expiration time, and warn the user in the UI when the cached credentials are expired or near-expiry, since an expired SSO session causes EKS API calls (via the aws exec credential plugin in kubeconfig) to fail.",
+      "acceptance_criteria": [
+        "AwsCredentialResult interface gains optional fields: expiresAt?: string (ISO timestamp) and ssoSession?: string (the SSO session/profile name), populated when type is the new 'sso-cache' kind",
+        "AwsCredentialResult.type union extended with 'sso-cache' alongside existing 'env' | 'file' | 'metadata' | 'none'",
+        "New function checkSsoCacheCredentials() in aws-handlers.ts reads all *.json files under ~/.aws/sso/cache/ and ~/.aws/cli/cache/, parses each for an expiration/Expiration field, and returns the entry with the latest expiration that is still in the future as { valid: true, type: 'sso-cache', expiresAt, ssoSession }",
+        "checkAwsCredentials() calls checkSsoCacheCredentials() before checkFileCredentials() in the existing fallback chain (env -> sso-cache -> file -> metadata -> none), since SSO temporary credentials take precedence when present",
+        "If all cached SSO credential files are expired (expiration timestamp in the past), checkSsoCacheCredentials() returns null so the chain falls through to the next check rather than reporting a false valid result",
+        "If the AWS cache directories do not exist or contain unparsable JSON, checkSsoCacheCredentials() returns null without throwing",
+        "The existing aws:credentials:check IPC handler and checkAwsCredentials preload binding are unchanged in signature — only the returned AwsCredentialResult shape gains the new optional fields",
+        "The AppBar or GlobalFooter status area (wherever AWS credential validity is currently surfaced per App.tsx's existing checkAwsCredentials() call) displays the expiresAt time when type is 'sso-cache', and shows a warning state (e.g. amber text/icon) when expiresAt is within 5 minutes of now",
+        "No new npm packages — use Node's fs and path only, consistent with the existing checkFileCredentials implementation",
+        "No TypeScript compile errors"
+      ],
+      "dependencies": ["S96"],
+      "notes": "AWS SSO cache JSON files (~/.aws/sso/cache/<hash>.json) have a top-level 'expiresAt' ISO string field; the CLI credential cache (~/.aws/cli/cache/<hash>.json) nests credentials under a 'Credentials' key with 'Expiration' (also ISO string). Handle both shapes. Do not write or refresh credentials — read-only detection, same as the rest of aws-handlers.ts. Treat parse/read errors per-file as skippable (try/catch per file in a loop), not fatal to the whole check. Reuse the existing AwsCredentialResult export shape rather than introducing a separate type file."
     }
   ]
 }
