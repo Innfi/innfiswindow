@@ -2,19 +2,20 @@
   "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
   "include": [
     "src/preload/index.d.ts",
-    "src/preload/renderer/src/**/*",
-    "src/preload/renderer/components/**/*",
-    "src/preload/renderer/lib/**/*",
-    "src/preload/renderer/store/**/*"
+    "src/renderer/src/**/*",
+    "src/renderer/components/**/*",
+    "src/renderer/lib/**/*",
+    "src/renderer/store/**/*",
+    "src/shared/**/*"
   ],
   "compilerOptions": {
     "composite": true,
     "baseUrl": ".",
     "paths": {
-      "@renderer/*": ["src/preload/renderer/src/*"],
-      "@components/*": ["src/preload/renderer/components/*"],
-      "@lib/*": ["src/preload/renderer/lib/*"],
-      "@store/*": ["src/preload/renderer/store/*"]
+      "@renderer/*": ["src/renderer/src/*"],
+      "@components/*": ["src/renderer/components/*"],
+      "@lib/*": ["src/renderer/lib/*"],
+      "@store/*": ["src/renderer/store/*"]
     }
   }
 }

@@ -1,6 +1,6 @@
 import { CoreV1Api, KubeConfig } from "@kubernetes/client-node"
 
-import { NamespaceInfo, NodeInfo } from "./types"
+import { ContextInfo, NamespaceInfo, NodeInfo } from "./types"
 
 export async function listNamespaces(api: CoreV1Api): Promise<NamespaceInfo[]> {
   const res = await api.listNamespace()
@@ -43,7 +43,7 @@ export async function listNodes(api: CoreV1Api): Promise<NodeInfo[]> {
   })
 }
 
-export function listContexts(kc: KubeConfig) {
+export function listContexts(kc: KubeConfig): ContextInfo[] {
   const clusters = kc.getClusters()
   const users = kc.getUsers()
   return kc.getContexts().map((ctx) => {

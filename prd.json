@@ -193,7 +193,7 @@
         "No TypeScript compile errors"
       ],
       "dependencies": ["S94"],
-      "notes": "GlobalFooter lives at src/preload/renderer/src/components/GlobalFooter.tsx and is imported in the root App.tsx or layout component. The snackbar panel is a plain absolute/fixed div, not a shadcn Sheet or Dialog — keep it lightweight. addGlobalError should be called at every catch site that currently shows a console.error or a toast; do not replace existing per-operation toasts if any exist — add the global error in addition. The globalErrors field is not persisted (session-only). unreadErrorCount resets to 0 on panel open, not on panel close, so the badge clears as soon as the user acknowledges it."
+      "notes": "GlobalFooter lives at src/renderer/src/components/GlobalFooter.tsx and is imported in the root App.tsx or layout component. The snackbar panel is a plain absolute/fixed div, not a shadcn Sheet or Dialog — keep it lightweight. addGlobalError should be called at every catch site that currently shows a console.error or a toast; do not replace existing per-operation toasts if any exist — add the global error in addition. The globalErrors field is not persisted (session-only). unreadErrorCount resets to 0 on panel open, not on panel close, so the badge clears as soon as the user acknowledges it."
     },
     {
       "id": "S96",
