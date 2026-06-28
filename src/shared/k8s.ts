@@ -31,6 +31,62 @@ export interface ContainerInfo {
   image: string
 }
 
+export interface ContainerPort {
+  name: string
+  containerPort: number
+  protocol: string
+}
+
+export interface EnvVar {
+  name: string
+  value: string
+  valueFrom?: string
+}
+
+export interface ResourceRequirements {
+  requests: Record<string, string>
+  limits: Record<string, string>
+}
+
+export interface VolumeMount {
+  name: string
+  mountPath: string
+  readOnly: boolean
+}
+
+export interface ProbeInfo {
+  type: string
+  description: string
+  initialDelaySeconds: number
+  periodSeconds: number
+  timeoutSeconds: number
+  failureThreshold: number
+  successThreshold: number
+}
+
+export interface DetailedContainerInfo {
+  name: string
+  image: string
+  ports: ContainerPort[]
+  env: EnvVar[]
+  resources: ResourceRequirements
+  volumeMounts: VolumeMount[]
+  livenessProbe: ProbeInfo | null
+  readinessProbe: ProbeInfo | null
+  startupProbe: ProbeInfo | null
+}
+
+export interface VolumeInfo {
+  name: string
+  type: string
+  detail: string
+}
+
+export interface RollingUpdateStrategy {
+  maxUnavailable: string
+  maxSurge: string
+}
+
 export interface RbacRule {
   apiGroups: string[]
   resources: string[]
@@ -100,9 +156,18 @@ export interface DeploymentInfo {
   updatedReplicas: number
   availableReplicas: number
   strategy: string
+  rollingUpdate: RollingUpdateStrategy | null
+  minReadySeconds: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   selector: Record<string, string>
-  containers: ContainerInfo[]
+  podTemplateLabels: Record<string, string>
+  podTemplateAnnotations: Record<string, string>
+  serviceAccountName: string
+  containers: DetailedContainerInfo[]
+  initContainers: DetailedContainerInfo[]
+  volumes: VolumeInfo[]
   conditions: Condition[]
 }
 
@@ -118,10 +183,16 @@ export interface ReplicaSetInfo {
   currentReplicas: number
   readyReplicas: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   selector: Record<string, string>
-  containers: ContainerInfo[]
-  ownerReferences: OwnerRef[]
   podTemplateLabels: Record<string, string>
+  podTemplateAnnotations: Record<string, string>
+  serviceAccountName: string
+  containers: DetailedContainerInfo[]
+  initContainers: DetailedContainerInfo[]
+  volumes: VolumeInfo[]
+  ownerReferences: OwnerRef[]
 }
 
 export interface VolumeClaimTemplateInfo {
@@ -135,10 +206,17 @@ export interface StatefulSetInfo {
   replicas: number
   readyReplicas: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   serviceName: string
   updateStrategy: string
   selector: Record<string, string>
-  containers: ContainerInfo[]
+  podTemplateLabels: Record<string, string>
+  podTemplateAnnotations: Record<string, string>
+  serviceAccountName: string
+  containers: DetailedContainerInfo[]
+  initContainers: DetailedContainerInfo[]
+  volumes: VolumeInfo[]
   volumeClaimTemplates: VolumeClaimTemplateInfo[]
 }
 
@@ -158,10 +236,17 @@ export interface DaemonSetInfo {
   updatedNumberScheduled: number
   numberAvailable: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   updateStrategy: string
   selector: Record<string, string>
   nodeSelector: Record<string, string>
-  containers: ContainerInfo[]
+  podTemplateLabels: Record<string, string>
+  podTemplateAnnotations: Record<string, string>
+  serviceAccountName: string
+  containers: DetailedContainerInfo[]
+  initContainers: DetailedContainerInfo[]
+  volumes: VolumeInfo[]
   tolerations: TolerationInfo[]
 }
 
@@ -169,6 +254,13 @@ export interface PodContainerInfo {
   name: string
   image: string
   restartCount: number
+  ports: ContainerPort[]
+  env: EnvVar[]
+  resources: ResourceRequirements
+  volumeMounts: VolumeMount[]
+  livenessProbe: ProbeInfo | null
+  readinessProbe: ProbeInfo | null
+  startupProbe: ProbeInfo | null
 }
 
 export interface PodInfo {
@@ -180,7 +272,13 @@ export interface PodInfo {
   restarts: number
   creationTimestamp: string
   nodeName: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+  serviceAccountName: string
+  qosClass: string
+  initContainers: PodContainerInfo[]
   containers: PodContainerInfo[]
+  volumes: VolumeInfo[]
   conditions: Condition[]
 }
 
@@ -214,6 +312,8 @@ export interface ServiceInfo {
   selector: Record<string, string>
   labels: Record<string, string>
   annotations: Record<string, string>
+  sessionAffinity: string
+  externalTrafficPolicy: string
 }
 
 export interface IngressTLSInfo {

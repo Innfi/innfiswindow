@@ -56,6 +56,8 @@ export async function listServices(api: CoreV1Api): Promise<ServiceInfo[]> {
       selector: svc.spec?.selector ?? {},
       labels: svc.metadata?.labels ?? {},
       annotations: svc.metadata?.annotations ?? {},
+      sessionAffinity: svc.spec?.sessionAffinity ?? "None",
+      externalTrafficPolicy: svc.spec?.externalTrafficPolicy ?? "",
     }
   })
 }

@@ -20,23 +20,22 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { cn, filterResources } from "../../lib/utils"
+import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sIngress, K8sIngressRule, K8sIngressTLS } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
+import { ResourceEventsSection } from "./ResourceEventsSection"
 
-function formatAge(timestamp: string): string {
-  if (!timestamp) return ""
-  const diff = Date.now() - new Date(timestamp).getTime()
-  const days = Math.floor(diff / 86400000)
-  if (days > 0) return `${days}d`
-  const hours = Math.floor(diff / 3600000)
-  if (hours > 0) return `${hours}h`
-  const mins = Math.floor(diff / 60000)
-  return `${mins}m`
+function SectionHeader({ title }: { title: string }): JSX.Element {
+  return (
+    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+      {title}
+    </h3>
+  )
 }
 
 function DetailPanel({
@@ -58,6 +57,14 @@ function DetailPanel({
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kv = (k: string, v: string): boolean => m(k) || m(v)
+
+  const labelEntries = Object.entries(item.labels).filter(([k, v]) => kv(k, v))
+  const annotationEntries = Object.entries(item.annotations)
+    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(([k, v]) => kv(k, v))
+
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
     onDeleteDialogChange(open)
@@ -71,14 +78,10 @@ function DetailPanel({
         name: item.name,
         namespace: item.namespace,
         ...(Object.keys(item.labels).length > 0 ? { labels: item.labels } : {}),
-        ...(Object.keys(item.annotations).length > 0
-          ? { annotations: item.annotations }
-          : {}),
+        ...(Object.keys(item.annotations).length > 0 ? { annotations: item.annotations } : {}),
       },
       spec: {
-        ...(item.ingressClassName
-          ? { ingressClassName: item.ingressClassName }
-          : {}),
+        ...(item.ingressClassName ? { ingressClassName: item.ingressClassName } : {}),
         rules: item.rules.map((r) => ({
           host: r.host,
           http: {
@@ -100,12 +103,7 @@ function DetailPanel({
           },
         })),
         ...(item.tls.length > 0
-          ? {
-              tls: item.tls.map((t) => ({
-                hosts: t.hosts,
-                secretName: t.secretName,
-              })),
-            }
+          ? { tls: item.tls.map((t) => ({ hosts: t.hosts, secretName: t.secretName })) }
           : {}),
       },
     }
@@ -154,34 +152,21 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md overflow-auto p-4 space-y-4">
+    <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
-          <p className="text-xs text-muted-foreground">{item.namespace}</p>
+          <h2 className="font-semibold text-base mb-1">{item.name}</h2>
+          <span className="text-xs text-muted-foreground">{item.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={handleEdit}
-          >
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
             Edit
           </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="h-7 text-xs"
-            onClick={() => setDeleteOpenNotify(true)}
-          >
+          <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => setDeleteOpenNotify(true)}>
             Delete
           </Button>
-          <CopyResourceButton
-            name={item.name}
-            namespace={item.namespace}
-            resourceKind="ingress"
-          />
+          <CopyResourceButton name={item.name} namespace={item.namespace} resourceKind="ingress" />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
@@ -200,133 +185,103 @@ function DetailPanel({
         className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
       />
 
-      <div>
-        <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">
-          Ingress Class
-        </p>
-        <p className="text-sm">
-          {item.ingressClassName || (
-            <span className="text-muted-foreground italic">none</span>
-          )}
-        </p>
+      {/* Info */}
+      <div className="space-y-1">
+        <SectionHeader title="Info" />
+        <MetaEntry
+          label="Ingress Class"
+          value={item.ingressClassName || "none"}
+        />
+        {item.address && m(item.address) && (
+          <MetaEntry label="Address" value={item.address} mono />
+        )}
+        <MetaEntry label="Created" value={new Date(item.creationTimestamp).toLocaleString()} />
       </div>
 
+      {/* TLS */}
       {item.tls.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">
-            TLS
-          </p>
-          <div className="space-y-2">
-            {item.tls.map((t: K8sIngressTLS, i: number) => (
-              <div key={i} className="rounded border p-2 text-sm space-y-1">
-                <div>
-                  <span className="text-muted-foreground">Secret: </span>
-                  <span className="font-mono">
-                    {t.secretName || (
-                      <span className="italic text-muted-foreground">none</span>
-                    )}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Hosts: </span>
-                  <span>{t.hosts.length > 0 ? t.hosts.join(", ") : "*"}</span>
-                </div>
+        <div className="space-y-1">
+          <SectionHeader title="TLS" />
+          {item.tls.map((t: K8sIngressTLS, i: number) => {
+            const secret = t.secretName || "none"
+            const hosts = t.hosts.length > 0 ? t.hosts.join(", ") : "*"
+            if (!m(secret) && !m(hosts)) return null
+            return (
+              <div key={i} className="rounded border p-2 text-xs space-y-0.5">
+                <MetaEntry label="Secret" value={secret} mono />
+                <MetaEntry label="Hosts" value={hosts} />
               </div>
-            ))}
-          </div>
+            )
+          })}
         </div>
       )}
 
-      <div>
-        <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">
-          Rules
-        </p>
+      {/* Rules */}
+      <div className="space-y-1">
+        <SectionHeader title="Rules" />
         {item.rules.length === 0 ? (
-          <p className="text-sm text-muted-foreground italic">No rules</p>
+          <p className="text-xs text-muted-foreground italic">No rules</p>
         ) : (
-          <div className="space-y-3">
-            {item.rules.map((rule: K8sIngressRule, i: number) => (
-              <div key={i} className="rounded border p-2">
-                <p className="font-mono text-sm font-medium mb-2">
-                  {rule.host}
-                </p>
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-muted-foreground">
-                      <th className="text-left pb-1">Path</th>
-                      <th className="text-left pb-1">Type</th>
-                      <th className="text-left pb-1">Service</th>
-                      <th className="text-left pb-1">Port</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rule.paths.map((p, j) => (
-                      <tr key={j}>
-                        <td className="font-mono pr-2">{p.path}</td>
-                        <td className="pr-2">{p.pathType}</td>
-                        <td className="pr-2">{p.serviceName}</td>
-                        <td>{String(p.servicePort)}</td>
+          <div className="space-y-2">
+            {item.rules
+              .filter((rule: K8sIngressRule) => {
+                if (!sl) return true
+                if (m(rule.host)) return true
+                return rule.paths.some((p) => m(p.path) || m(p.serviceName) || m(String(p.servicePort)))
+              })
+              .map((rule: K8sIngressRule, i: number) => (
+                <div key={i} className="rounded border p-2">
+                  <p className="font-mono text-sm font-medium mb-2">{rule.host || "*"}</p>
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-muted-foreground">
+                        <th className="text-left pb-1 font-medium">Path</th>
+                        <th className="text-left pb-1 font-medium">Type</th>
+                        <th className="text-left pb-1 font-medium">Service</th>
+                        <th className="text-left pb-1 font-medium">Port</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ))}
+                    </thead>
+                    <tbody>
+                      {rule.paths
+                        .filter((p) => !sl || m(p.path) || m(p.serviceName) || m(String(p.servicePort)))
+                        .map((p, j) => (
+                          <tr key={j} className="border-t border-border/40">
+                            <td className="font-mono py-0.5 pr-2">{p.path}</td>
+                            <td className="py-0.5 pr-2">{p.pathType}</td>
+                            <td className="py-0.5 pr-2">{p.serviceName}</td>
+                            <td className="py-0.5">{String(p.servicePort)}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
           </div>
         )}
       </div>
 
-      {Object.entries(item.labels).filter(
-        ([k, v]) =>
-          !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-      ).length > 0 && (
-        <div>
-          <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">
-            Labels
-          </p>
-          <div className="space-y-0.5">
-            {Object.entries(item.labels)
-              .filter(
-                ([k, v]) =>
-                  !sl ||
-                  k.toLowerCase().includes(sl) ||
-                  v.toLowerCase().includes(sl),
-              )
-              .map(([k, v]) => (
-                <div key={k} className="text-xs font-mono">
-                  <span className="text-muted-foreground">{k}=</span>
-                  {v}
-                </div>
-              ))}
-          </div>
+      {/* Labels */}
+      {labelEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Labels" />
+          {labelEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
         </div>
       )}
 
-      {Object.entries(item.annotations).filter(
-        ([k, v]) =>
-          !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-      ).length > 0 && (
-        <div>
-          <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">
-            Annotations
-          </p>
-          <div className="space-y-0.5">
-            {Object.entries(item.annotations)
-              .filter(
-                ([k, v]) =>
-                  !sl ||
-                  k.toLowerCase().includes(sl) ||
-                  v.toLowerCase().includes(sl),
-              )
-              .map(([k, v]) => (
-                <div key={k} className="text-xs font-mono break-all">
-                  <span className="text-muted-foreground">{k}=</span>
-                  {v}
-                </div>
-              ))}
-          </div>
+      {/* Annotations */}
+      {annotationEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Annotations" />
+          {annotationEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
         </div>
       )}
+
+      {/* Events */}
+      <ResourceEventsSection namespace={item.namespace} name={item.name} kind="Ingress" search={sl} />
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <AlertDialogContent>
@@ -341,18 +296,10 @@ function DetailPanel({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpenNotify(false)}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={() => setDeleteOpenNotify(false)} disabled={deleting}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Deleting…" : "Delete"}
             </Button>
           </AlertDialogFooter>
@@ -385,17 +332,11 @@ export function IngressesView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || ingresses.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = ingresses.find(
-      (i) => i.name === item.name && i.namespace === item.namespace,
-    )
+    const fresh = ingresses.find((i) => i.name === item.name && i.namespace === item.namespace)
     if (fresh) setSelectedItem(fresh as object)
   }, [ingresses])
 
-  const visibleIngresses = filterResources(
-    ingresses,
-    nameFilter,
-    selectedNamespace,
-  )
+  const visibleIngresses = filterResources(ingresses, nameFilter, selectedNamespace)
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -442,27 +383,13 @@ export function IngressesView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap font-medium">
-                      {ing.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ing.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ing.ingressClassName || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ing.hosts}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ing.address || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ing.ports}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(ing.creationTimestamp)}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-medium">{ing.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{ing.namespace}</TableCell>
+                    <TableCell className="whitespace-nowrap">{ing.ingressClassName || "-"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{ing.hosts}</TableCell>
+                    <TableCell className="whitespace-nowrap">{ing.address || "-"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{ing.ports}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatAge(ing.creationTimestamp)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

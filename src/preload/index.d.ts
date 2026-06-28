@@ -85,9 +85,55 @@ export interface K8sDeploymentCondition {
   message: string
 }
 
+export interface K8sContainerPort {
+  name: string
+  containerPort: number
+  protocol: string
+}
+
+export interface K8sEnvVar {
+  name: string
+  value: string
+  valueFrom?: string
+}
+
+export interface K8sResourceRequirements {
+  requests: Record<string, string>
+  limits: Record<string, string>
+}
+
+export interface K8sVolumeMount {
+  name: string
+  mountPath: string
+  readOnly: boolean
+}
+
+export interface K8sProbeInfo {
+  type: string
+  description: string
+  initialDelaySeconds: number
+  periodSeconds: number
+  timeoutSeconds: number
+  failureThreshold: number
+  successThreshold: number
+}
+
 export interface K8sDeploymentContainer {
   name: string
   image: string
+  ports: K8sContainerPort[]
+  env: K8sEnvVar[]
+  resources: K8sResourceRequirements
+  volumeMounts: K8sVolumeMount[]
+  livenessProbe: K8sProbeInfo | null
+  readinessProbe: K8sProbeInfo | null
+  startupProbe: K8sProbeInfo | null
+}
+
+export interface K8sVolumeInfo {
+  name: string
+  type: string
+  detail: string
 }
 
 export interface K8sDeployment {
@@ -98,9 +144,18 @@ export interface K8sDeployment {
   updatedReplicas: number
   availableReplicas: number
   strategy: string
+  rollingUpdate: { maxUnavailable: string; maxSurge: string } | null
+  minReadySeconds: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   selector: Record<string, string>
+  podTemplateLabels: Record<string, string>
+  podTemplateAnnotations: Record<string, string>
+  serviceAccountName: string
   containers: K8sDeploymentContainer[]
+  initContainers: K8sDeploymentContainer[]
+  volumes: K8sVolumeInfo[]
   conditions: K8sDeploymentCondition[]
 }
 
@@ -108,6 +163,13 @@ export interface K8sPodContainer {
   name: string
   image: string
   restartCount: number
+  ports: K8sContainerPort[]
+  env: K8sEnvVar[]
+  resources: K8sResourceRequirements
+  volumeMounts: K8sVolumeMount[]
+  livenessProbe: K8sProbeInfo | null
+  readinessProbe: K8sProbeInfo | null
+  startupProbe: K8sProbeInfo | null
 }
 
 export interface K8sPodCondition {
@@ -126,7 +188,13 @@ export interface K8sPod {
   restarts: number
   creationTimestamp: string
   nodeName: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+  serviceAccountName: string
+  qosClass: string
+  initContainers: K8sPodContainer[]
   containers: K8sPodContainer[]
+  volumes: K8sVolumeInfo[]
   conditions: K8sPodCondition[]
 }
 
@@ -138,6 +206,13 @@ export interface K8sOwnerRef {
 export interface K8sReplicaSetContainer {
   name: string
   image: string
+  ports: K8sContainerPort[]
+  env: K8sEnvVar[]
+  resources: K8sResourceRequirements
+  volumeMounts: K8sVolumeMount[]
+  livenessProbe: K8sProbeInfo | null
+  readinessProbe: K8sProbeInfo | null
+  startupProbe: K8sProbeInfo | null
 }
 
 export interface K8sReplicaSet {
@@ -147,15 +222,28 @@ export interface K8sReplicaSet {
   currentReplicas: number
   readyReplicas: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   selector: Record<string, string>
-  containers: K8sReplicaSetContainer[]
-  ownerReferences: K8sOwnerRef[]
   podTemplateLabels: Record<string, string>
+  podTemplateAnnotations: Record<string, string>
+  serviceAccountName: string
+  containers: K8sReplicaSetContainer[]
+  initContainers: K8sReplicaSetContainer[]
+  volumes: K8sVolumeInfo[]
+  ownerReferences: K8sOwnerRef[]
 }
 
 export interface K8sStatefulSetContainer {
   name: string
   image: string
+  ports: K8sContainerPort[]
+  env: K8sEnvVar[]
+  resources: K8sResourceRequirements
+  volumeMounts: K8sVolumeMount[]
+  livenessProbe: K8sProbeInfo | null
+  readinessProbe: K8sProbeInfo | null
+  startupProbe: K8sProbeInfo | null
 }
 
 export interface K8sStatefulSetVolumeClaimTemplate {
@@ -166,6 +254,13 @@ export interface K8sStatefulSetVolumeClaimTemplate {
 export interface K8sDaemonSetContainer {
   name: string
   image: string
+  ports: K8sContainerPort[]
+  env: K8sEnvVar[]
+  resources: K8sResourceRequirements
+  volumeMounts: K8sVolumeMount[]
+  livenessProbe: K8sProbeInfo | null
+  readinessProbe: K8sProbeInfo | null
+  startupProbe: K8sProbeInfo | null
 }
 
 export interface K8sDaemonSetToleration {
@@ -184,10 +279,17 @@ export interface K8sDaemonSet {
   updatedNumberScheduled: number
   numberAvailable: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   updateStrategy: string
   selector: Record<string, string>
   nodeSelector: Record<string, string>
+  podTemplateLabels: Record<string, string>
+  podTemplateAnnotations: Record<string, string>
+  serviceAccountName: string
   containers: K8sDaemonSetContainer[]
+  initContainers: K8sDaemonSetContainer[]
+  volumes: K8sVolumeInfo[]
   tolerations: K8sDaemonSetToleration[]
 }
 
@@ -197,10 +299,17 @@ export interface K8sStatefulSet {
   replicas: number
   readyReplicas: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   serviceName: string
   updateStrategy: string
   selector: Record<string, string>
+  podTemplateLabels: Record<string, string>
+  podTemplateAnnotations: Record<string, string>
+  serviceAccountName: string
   containers: K8sStatefulSetContainer[]
+  initContainers: K8sStatefulSetContainer[]
+  volumes: K8sVolumeInfo[]
   volumeClaimTemplates: K8sStatefulSetVolumeClaimTemplate[]
 }
 
@@ -234,6 +343,8 @@ export interface K8sService {
   selector: Record<string, string>
   labels: Record<string, string>
   annotations: Record<string, string>
+  sessionAffinity: string
+  externalTrafficPolicy: string
 }
 
 export interface K8sNetworkPolicyPeer {
@@ -834,6 +945,12 @@ export interface API {
     rangeMinutes?: number
   }) => Promise<PodMetricsResult | { error: string }>
   listEvents: (args?: { contextName?: string }) => Promise<K8sEvent[]>
+  listEventsForResource: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    kind: string
+  }) => Promise<K8sEvent[]>
   startEventsWatch: () => Promise<{ success: boolean }>
   stopEventsWatch: () => Promise<{ success: boolean }>
   onEventsData: (callback: (event: K8sEvent) => void) => () => void
