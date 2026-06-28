@@ -79,6 +79,10 @@ const api = {
       ipcRenderer.invoke("k8s:pvs:list", args),
     listPVCs: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:pvcs:list", args),
+    listStorageClasses: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:storageclasses:list", args),
+    listVolumeSnapshots: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:volumesnapshots:list", args),
     listResourceQuotas: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:resourcequotas:list", args),
     listLimitRanges: (args?: { contextName?: string }) =>
@@ -268,6 +272,12 @@ const api = {
   checkAwsCredentials: () => ipcRenderer.invoke("aws:credentials:check"),
   listEvents: (args?: { contextName?: string }) =>
     ipcRenderer.invoke("k8s:events:list", args),
+  listEventsForResource: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    kind: string
+  }) => ipcRenderer.invoke("k8s:events:for-resource", args),
   startEventsWatch: () => ipcRenderer.invoke("k8s:events:watch:start"),
   stopEventsWatch: () => ipcRenderer.invoke("k8s:events:watch:stop"),
   onEventsData: (callback: (event: unknown) => void) => {

@@ -73,3 +73,5 @@ export type K8sEndpointAddress = Shared.EndpointAddress
 export type K8sEndpointSubset = Shared.EndpointSubset
 export type K8sEndpoint = Shared.EndpointInfo
 export type K8sPDB = Shared.PDBInfo
+export type K8sStorageClass = Shared.StorageClassInfo
+export type K8sVolumeSnapshot = Shared.VolumeSnapshotInfo

@@ -24,16 +24,26 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sDeployment } from "../types/k8s"
+import { ContainerCard } from "./ContainerCard"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
+import { ResourceEventsSection } from "./ResourceEventsSection"
 
 type DeploymentRevision = {
   revision: number
   changeCause: string
   images: string[]
   creationTimestamp: string
+}
+
+function SectionHeader({ title }: { title: string }): JSX.Element {
+  return (
+    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+      {title}
+    </h3>
+  )
 }
 
 function DetailPanel({
@@ -58,10 +68,16 @@ function DetailPanel({
   const [historyLoading, setHistoryLoading] = useState(false)
   const [rollbackRevision, setRollbackRevision] = useState<number | null>(null)
   const [rolling, setRolling] = useState(false)
-  const selectorEntries = Object.entries(deployment.selector).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
+
+  const matches = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kvMatches = (k: string, v: string): boolean => matches(k) || matches(v)
+
+  const selectorEntries = Object.entries(deployment.selector).filter(([k, v]) => kvMatches(k, v))
+  const labelEntries = Object.entries(deployment.labels ?? {}).filter(([k, v]) => kvMatches(k, v))
+  const annotationEntries = Object.entries(deployment.annotations ?? {})
+    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(([k, v]) => kvMatches(k, v))
+  const podLabelEntries = Object.entries(deployment.podTemplateLabels ?? {}).filter(([k, v]) => kvMatches(k, v))
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true)
@@ -75,18 +91,11 @@ function DetailPanel({
       setHistory(revisions)
     } catch (e) {
       toast.error(`Failed to load rollout history: ${String(e)}`)
-      useAppStore
-        .getState()
-        .addGlobalError(String(e), "Deployment: rollout history")
+      useAppStore.getState().addGlobalError(String(e), "Deployment: rollout history")
     } finally {
       setHistoryLoading(false)
     }
-  }, [
-    deployment.namespace,
-    deployment.name,
-    deployment.selector,
-    selectedContext,
-  ])
+  }, [deployment.namespace, deployment.name, deployment.selector, selectedContext])
 
   useEffect(() => {
     loadHistory()
@@ -102,9 +111,7 @@ function DetailPanel({
         name: deployment.name,
         revision: rollbackRevision,
       })
-      toast.success(
-        `Rolled back ${deployment.name} to revision ${rollbackRevision}`,
-      )
+      toast.success(`Rolled back ${deployment.name} to revision ${rollbackRevision}`)
       setRollbackRevision(null)
       await loadHistory()
     } catch (e) {
@@ -153,10 +160,7 @@ function DetailPanel({
   async function handleDelete(): Promise<void> {
     setDeleting(true)
     try {
-      await window.api.k8s.deleteDeployment(
-        deployment.namespace,
-        deployment.name,
-      )
+      await window.api.k8s.deleteDeployment(deployment.namespace, deployment.name)
       appendHistory({
         action: "delete",
         resourceKind: "Deployment",
@@ -189,20 +193,14 @@ function DetailPanel({
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{deployment.name}</h2>
-          <span className="text-xs text-muted-foreground">
-            {deployment.namespace}
-          </span>
+          <span className="text-xs text-muted-foreground">{deployment.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={handleEdit}
-          >
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
             Edit
           </Button>
           <Button
@@ -236,67 +234,120 @@ function DetailPanel({
         className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
       />
 
+      {/* Replicas & Strategy */}
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Replicas
-        </h3>
+        <SectionHeader title="Replicas" />
         <MetaEntry label="Desired" value={String(deployment.replicas)} />
         <MetaEntry label="Ready" value={String(deployment.readyReplicas)} />
-        <MetaEntry
-          label="Up-to-date"
-          value={String(deployment.updatedReplicas)}
-        />
-        <MetaEntry
-          label="Available"
-          value={String(deployment.availableReplicas)}
-        />
+        <MetaEntry label="Up-to-date" value={String(deployment.updatedReplicas)} />
+        <MetaEntry label="Available" value={String(deployment.availableReplicas)} />
         <MetaEntry label="Strategy" value={deployment.strategy} />
+        {deployment.rollingUpdate && (
+          <>
+            <MetaEntry label="Max Unavailable" value={deployment.rollingUpdate.maxUnavailable} />
+            <MetaEntry label="Max Surge" value={deployment.rollingUpdate.maxSurge} />
+          </>
+        )}
+        {deployment.minReadySeconds > 0 && (
+          <MetaEntry label="Min Ready Seconds" value={String(deployment.minReadySeconds)} />
+        )}
         <MetaEntry
           label="Created"
           value={new Date(deployment.creationTimestamp).toLocaleString()}
         />
       </div>
 
+      {/* Labels */}
+      {labelEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Labels" />
+          {labelEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      {/* Annotations */}
+      {annotationEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Annotations" />
+          {annotationEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      {/* Selector */}
       {selectorEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Selector
-          </h3>
+          <SectionHeader title="Selector" />
           {selectorEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
 
-      {deployment.containers.length > 0 && (
+      {/* Pod Template */}
+      {(podLabelEntries.length > 0 || deployment.serviceAccountName) && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Containers
-          </h3>
-          {deployment.containers.map((c) => (
-            <div
-              key={c.name}
-              className="text-sm border rounded p-2 space-y-0.5"
-            >
-              <div className="font-medium">{c.name}</div>
-              <div className="text-xs text-muted-foreground break-all">
-                {c.image}
-              </div>
-            </div>
+          <SectionHeader title="Pod Template" />
+          {deployment.serviceAccountName && matches(deployment.serviceAccountName) && (
+            <MetaEntry label="Service Account" value={deployment.serviceAccountName} />
+          )}
+          {podLabelEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={`label: ${k}`} value={v} />
           ))}
         </div>
       )}
 
+      {/* Init Containers */}
+      {deployment.initContainers.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Init Containers" />
+          {deployment.initContainers
+            .filter((c) => matches(c.name) || matches(c.image))
+            .map((c) => (
+              <ContainerCard key={c.name} container={c} search={sl} />
+            ))}
+        </div>
+      )}
+
+      {/* Containers */}
+      {deployment.containers.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Containers" />
+          {deployment.containers
+            .filter((c) => matches(c.name) || matches(c.image))
+            .map((c) => (
+              <ContainerCard key={c.name} container={c} search={sl} />
+            ))}
+        </div>
+      )}
+
+      {/* Volumes */}
+      {deployment.volumes.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Volumes" />
+          {deployment.volumes
+            .filter((v) => matches(v.name) || matches(v.type) || matches(v.detail))
+            .map((v) => (
+              <div key={v.name} className="text-xs border rounded p-2 space-y-0.5">
+                <div className="font-medium">{v.name}</div>
+                <div className="text-muted-foreground">
+                  {v.type}
+                  {v.detail ? `: ${v.detail}` : ""}
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {/* Conditions */}
       {deployment.conditions.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Conditions
-          </h3>
+          <SectionHeader title="Conditions" />
           {deployment.conditions.map((c) => (
-            <div
-              key={c.type}
-              className="text-sm space-y-0.5 border rounded p-2"
-            >
+            <div key={c.type} className="text-sm space-y-0.5 border rounded p-2">
               <div className="flex items-center gap-2">
                 <span className="font-medium">{c.type}</span>
                 <span
@@ -318,23 +369,25 @@ function DetailPanel({
         </div>
       )}
 
+      {/* Events */}
+      <ResourceEventsSection
+        namespace={deployment.namespace}
+        name={deployment.name}
+        kind="Deployment"
+        search={sl}
+      />
+
+      {/* Rollout History */}
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Rollout History
-        </h3>
-        {historyLoading && (
-          <p className="text-xs text-muted-foreground">Loading...</p>
-        )}
+        <SectionHeader title="Rollout History" />
+        {historyLoading && <p className="text-xs text-muted-foreground">Loading...</p>}
         {!historyLoading && history.length === 0 && (
           <p className="text-xs text-muted-foreground">No history found</p>
         )}
         {!historyLoading && history.length > 0 && (
           <div className="space-y-1">
             {history.map((rev) => (
-              <div
-                key={rev.revision}
-                className="border rounded p-2 text-xs space-y-1"
-              >
+              <div key={rev.revision} className="border rounded p-2 text-xs space-y-1">
                 <div className="flex items-center justify-between gap-1">
                   <span className="font-medium">#{rev.revision}</span>
                   <Button
@@ -383,11 +436,7 @@ function DetailPanel({
             >
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Deleting…" : "Delete"}
             </Button>
           </AlertDialogFooter>

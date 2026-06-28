@@ -9,8 +9,7 @@ export async function listJobs(api: BatchV1Api): Promise<JobInfo[]> {
     const completionTime = job.status?.completionTime?.toISOString() ?? ""
     let duration = ""
     if (startTime && completionTime) {
-      const ms =
-        new Date(completionTime).getTime() - new Date(startTime).getTime()
+      const ms = new Date(completionTime).getTime() - new Date(startTime).getTime()
       const totalSecs = Math.floor(ms / 1000)
       const mins = Math.floor(totalSecs / 60)
       const secs = totalSecs % 60
@@ -20,6 +19,8 @@ export async function listJobs(api: BatchV1Api): Promise<JobInfo[]> {
       name: job.metadata?.name ?? "",
       namespace: job.metadata?.namespace ?? "",
       completions: job.spec?.completions ?? null,
+      parallelism: job.spec?.parallelism ?? null,
+      backoffLimit: job.spec?.backoffLimit ?? null,
       succeeded: job.status?.succeeded ?? 0,
       failed: job.status?.failed ?? 0,
       active: job.status?.active ?? 0,
@@ -32,6 +33,7 @@ export async function listJobs(api: BatchV1Api): Promise<JobInfo[]> {
         reason: c.reason ?? "",
         message: c.message ?? "",
       })),
+      selector: job.spec?.selector?.matchLabels ?? {},
       creationTimestamp: job.metadata?.creationTimestamp?.toISOString() ?? "",
       labels: job.metadata?.labels ?? {},
       annotations: job.metadata?.annotations ?? {},
@@ -49,6 +51,9 @@ export async function listCronJobs(api: BatchV1Api): Promise<CronJobInfo[]> {
       schedule: cj.spec?.schedule ?? "",
       concurrencyPolicy: cj.spec?.concurrencyPolicy ?? "",
       suspend: cj.spec?.suspend ?? false,
+      successfulJobsHistoryLimit: cj.spec?.successfulJobsHistoryLimit ?? null,
+      failedJobsHistoryLimit: cj.spec?.failedJobsHistoryLimit ?? null,
+      startingDeadlineSeconds: cj.spec?.startingDeadlineSeconds ?? null,
       lastScheduleTime: cj.status?.lastScheduleTime?.toISOString() ?? "",
       activeCount: activeJobs.length,
       activeJobNames: activeJobs.map((r) => r.name ?? ""),

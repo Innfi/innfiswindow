@@ -474,6 +474,30 @@ export interface PVCInfo {
   annotations: Record<string, string>
 }
 
+export interface StorageClassInfo {
+  name: string
+  provisioner: string
+  reclaimPolicy: string
+  volumeBindingMode: string
+  allowVolumeExpansion: boolean
+  parameters: Record<string, string>
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
+export interface VolumeSnapshotInfo {
+  name: string
+  namespace: string
+  volumeSnapshotClassName: string
+  sourcePVCName: string
+  readyToUse: boolean | null
+  restoreSize: string
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 // ---------------------------------------------------------------------------
 // config.ts
 // ---------------------------------------------------------------------------

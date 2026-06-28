@@ -509,6 +509,30 @@ export interface K8sPVC {
   annotations: Record<string, string>
 }
 
+export interface K8sStorageClass {
+  name: string
+  provisioner: string
+  reclaimPolicy: string
+  volumeBindingMode: string
+  allowVolumeExpansion: boolean
+  parameters: Record<string, string>
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
+export interface K8sVolumeSnapshot {
+  name: string
+  namespace: string
+  volumeSnapshotClassName: string
+  sourcePVCName: string
+  readyToUse: boolean | null
+  restoreSize: string
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 export interface K8sServiceAccount {
   name: string
   namespace: string
@@ -633,6 +657,8 @@ export interface K8sAPI {
   }) => Promise<K8sClusterRoleBinding[]>
   listHPAs: (args?: { contextName?: string }) => Promise<K8sHPA[]>
   listPVs: (args?: { contextName?: string }) => Promise<K8sPV[]>
+  listStorageClasses: (args?: { contextName?: string }) => Promise<K8sStorageClass[]>
+  listVolumeSnapshots: (args?: { contextName?: string }) => Promise<K8sVolumeSnapshot[]>
   listJobs: (args?: { contextName?: string }) => Promise<K8sJob[]>
   listCronJobs: (args?: { contextName?: string }) => Promise<K8sCronJob[]>
   getNodeMetrics: (args?: {

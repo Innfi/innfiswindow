@@ -24,10 +24,20 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sDaemonSet } from "../types/k8s"
+import { ContainerCard } from "./ContainerCard"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
+import { ResourceEventsSection } from "./ResourceEventsSection"
+
+function SectionHeader({ title }: { title: string }): JSX.Element {
+  return (
+    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+      {title}
+    </h3>
+  )
+}
 
 function DetailPanel({
   ds,
@@ -45,21 +55,24 @@ function DetailPanel({
   const appendHistory = useAppStore((s) => s.appendHistory)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [search, setSearch] = useState("")
+  const sl = search.toLowerCase()
+
+  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kv = (k: string, v: string): boolean => m(k) || m(v)
+
+  const selectorEntries = Object.entries(ds.selector).filter(([k, v]) => kv(k, v))
+  const nodeSelectorEntries = Object.entries(ds.nodeSelector).filter(([k, v]) => kv(k, v))
+  const labelEntries = Object.entries(ds.labels ?? {}).filter(([k, v]) => kv(k, v))
+  const annotationEntries = Object.entries(ds.annotations ?? {})
+    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(([k, v]) => kv(k, v))
+  const podLabelEntries = Object.entries(ds.podTemplateLabels ?? {}).filter(([k, v]) => kv(k, v))
 
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
     onDeleteDialogChange(open)
   }
-  const [search, setSearch] = useState("")
-  const sl = search.toLowerCase()
-  const selectorEntries = Object.entries(ds.selector).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
-  const nodeSelectorEntries = Object.entries(ds.nodeSelector).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
 
   function handleEdit(): void {
     const obj = {
@@ -72,13 +85,8 @@ function DetailPanel({
         template: {
           metadata: { labels: ds.selector },
           spec: {
-            containers: ds.containers.map((c) => ({
-              name: c.name,
-              image: c.image,
-            })),
-            ...(Object.keys(ds.nodeSelector).length
-              ? { nodeSelector: ds.nodeSelector }
-              : {}),
+            containers: ds.containers.map((c) => ({ name: c.name, image: c.image })),
+            ...(Object.keys(ds.nodeSelector).length ? { nodeSelector: ds.nodeSelector } : {}),
             ...(ds.tolerations.length ? { tolerations: ds.tolerations } : {}),
           },
         },
@@ -130,18 +138,14 @@ function DetailPanel({
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{ds.name}</h2>
           <span className="text-xs text-muted-foreground">{ds.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={handleEdit}
-          >
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
             Edit
           </Button>
           <Button
@@ -152,11 +156,7 @@ function DetailPanel({
           >
             Delete
           </Button>
-          <CopyResourceButton
-            name={ds.name}
-            namespace={ds.namespace}
-            resourceKind="daemonset"
-          />
+          <CopyResourceButton name={ds.name} namespace={ds.namespace} resourceKind="daemonset" />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
@@ -175,77 +175,117 @@ function DetailPanel({
         className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
       />
 
+      {/* Scheduling */}
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Scheduling
-        </h3>
+        <SectionHeader title="Scheduling" />
         <MetaEntry label="Desired" value={String(ds.desiredNumberScheduled)} />
         <MetaEntry label="Current" value={String(ds.currentNumberScheduled)} />
         <MetaEntry label="Ready" value={String(ds.numberReady)} />
-        <MetaEntry
-          label="Up-to-date"
-          value={String(ds.updatedNumberScheduled)}
-        />
+        <MetaEntry label="Up-to-date" value={String(ds.updatedNumberScheduled)} />
         <MetaEntry label="Available" value={String(ds.numberAvailable)} />
-        <MetaEntry
-          label="Created"
-          value={new Date(ds.creationTimestamp).toLocaleString()}
-        />
+        <MetaEntry label="Update Strategy" value={ds.updateStrategy} />
+        {ds.serviceAccountName && m(ds.serviceAccountName) && (
+          <MetaEntry label="Service Account" value={ds.serviceAccountName} />
+        )}
+        <MetaEntry label="Created" value={new Date(ds.creationTimestamp).toLocaleString()} />
       </div>
 
-      <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Update Strategy
-        </h3>
-        <MetaEntry label="Strategy" value={ds.updateStrategy} />
-      </div>
+      {/* Labels */}
+      {labelEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Labels" />
+          {labelEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
 
+      {/* Annotations */}
+      {annotationEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Annotations" />
+          {annotationEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      {/* Node Selector */}
       {nodeSelectorEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Node Selector
-          </h3>
+          <SectionHeader title="Node Selector" />
           {nodeSelectorEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
 
+      {/* Selector */}
       {selectorEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Selector Labels
-          </h3>
+          <SectionHeader title="Selector" />
           {selectorEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
 
-      {ds.containers.length > 0 && (
+      {/* Pod Template Labels */}
+      {podLabelEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Containers
-          </h3>
-          {ds.containers.map((c) => (
-            <div
-              key={c.name}
-              className="text-sm border rounded p-2 space-y-0.5"
-            >
-              <div className="font-medium">{c.name}</div>
-              <div className="text-xs text-muted-foreground break-all">
-                {c.image}
-              </div>
-            </div>
+          <SectionHeader title="Pod Template" />
+          {podLabelEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={`label: ${k}`} value={v} />
           ))}
         </div>
       )}
 
+      {/* Init Containers */}
+      {ds.initContainers.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Init Containers" />
+          {ds.initContainers
+            .filter((c) => m(c.name) || m(c.image))
+            .map((c) => (
+              <ContainerCard key={c.name} container={c} search={sl} />
+            ))}
+        </div>
+      )}
+
+      {/* Containers */}
+      {ds.containers.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Containers" />
+          {ds.containers
+            .filter((c) => m(c.name) || m(c.image))
+            .map((c) => (
+              <ContainerCard key={c.name} container={c} search={sl} />
+            ))}
+        </div>
+      )}
+
+      {/* Volumes */}
+      {ds.volumes.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Volumes" />
+          {ds.volumes
+            .filter((v) => m(v.name) || m(v.type) || m(v.detail))
+            .map((v) => (
+              <div key={v.name} className="text-xs border rounded p-2 space-y-0.5">
+                <div className="font-medium">{v.name}</div>
+                <div className="text-muted-foreground">
+                  {v.type}
+                  {v.detail ? `: ${v.detail}` : ""}
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {/* Tolerations */}
       {ds.tolerations.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Tolerations
-          </h3>
+          <SectionHeader title="Tolerations" />
           {ds.tolerations.map((t, i) => (
             <div key={i} className="text-sm border rounded p-2 space-y-0.5">
               {t.key && <div className="font-medium">{t.key}</div>}
@@ -256,6 +296,14 @@ function DetailPanel({
           ))}
         </div>
       )}
+
+      {/* Events */}
+      <ResourceEventsSection
+        namespace={ds.namespace}
+        name={ds.name}
+        kind="DaemonSet"
+        search={sl}
+      />
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <AlertDialogContent>
@@ -272,16 +320,12 @@ function DetailPanel({
           <AlertDialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDeleteOpen(false)}
+              onClick={() => setDeleteOpenNotify(false)}
               disabled={deleting}
             >
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Deleting…" : "Delete"}
             </Button>
           </AlertDialogFooter>
@@ -314,17 +358,12 @@ export function DaemonSetsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || daemonSets.length === 0) return
     const fresh = daemonSets.find(
-      (d) =>
-        d.name === selectedItem.name && d.namespace === selectedItem.namespace,
+      (d) => d.name === selectedItem.name && d.namespace === selectedItem.namespace,
     )
     if (fresh) setSelectedItem(fresh)
   }, [daemonSets])
 
-  const visibleDaemonSets = filterResources(
-    daemonSets,
-    nameFilter,
-    selectedNamespace,
-  )
+  const visibleDaemonSets = filterResources(daemonSets, nameFilter, selectedNamespace)
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -348,9 +387,7 @@ export function DaemonSetsView(): JSX.Element {
                   <TableHead className="whitespace-nowrap">Desired</TableHead>
                   <TableHead className="whitespace-nowrap">Current</TableHead>
                   <TableHead className="whitespace-nowrap">Ready</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    Up-to-date
-                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Up-to-date</TableHead>
                   <TableHead className="whitespace-nowrap">Available</TableHead>
                   <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
@@ -374,30 +411,14 @@ export function DaemonSetsView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">
-                      {ds.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ds.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ds.desiredNumberScheduled}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ds.currentNumberScheduled}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ds.numberReady}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ds.updatedNumberScheduled}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ds.numberAvailable}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(ds.creationTimestamp)}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{ds.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{ds.namespace}</TableCell>
+                    <TableCell className="whitespace-nowrap">{ds.desiredNumberScheduled}</TableCell>
+                    <TableCell className="whitespace-nowrap">{ds.currentNumberScheduled}</TableCell>
+                    <TableCell className="whitespace-nowrap">{ds.numberReady}</TableCell>
+                    <TableCell className="whitespace-nowrap">{ds.updatedNumberScheduled}</TableCell>
+                    <TableCell className="whitespace-nowrap">{ds.numberAvailable}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatAge(ds.creationTimestamp)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

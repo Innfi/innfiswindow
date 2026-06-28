@@ -24,11 +24,21 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sPod } from "../types/k8s"
+import { ContainerCard } from "./ContainerCard"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { PodMetricsSection } from "./PodMetricsSection"
 import { RefreshBar } from "./RefreshBar"
+import { ResourceEventsSection } from "./ResourceEventsSection"
+
+function SectionHeader({ title }: { title: string }): JSX.Element {
+  return (
+    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+      {title}
+    </h3>
+  )
+}
 
 function DetailPanel({
   pod,
@@ -58,6 +68,14 @@ function DetailPanel({
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kv = (k: string, v: string): boolean => m(k) || m(v)
+
+  const labelEntries = Object.entries(pod.labels ?? {}).filter(([k, v]) => kv(k, v))
+  const annotationEntries = Object.entries(pod.annotations ?? {})
+    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(([k, v]) => kv(k, v))
 
   function handleEdit(): void {
     openDrawerTab({
@@ -120,18 +138,14 @@ function DetailPanel({
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{pod.name}</h2>
           <span className="text-xs text-muted-foreground">{pod.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={handleEdit}
-          >
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
             Edit
           </Button>
           <Button variant="ghost" size="icon" title="Logs" onClick={onLogs}>
@@ -145,12 +159,7 @@ function DetailPanel({
           >
             <SquareTerminal className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Port Forward"
-            onClick={onPortForward}
-          >
+          <Button variant="ghost" size="icon" title="Port Forward" onClick={onPortForward}>
             <ArrowLeftRight className="h-4 w-4" />
           </Button>
           <Button
@@ -184,11 +193,10 @@ function DetailPanel({
         className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
       />
 
+      {/* Shell container selector */}
       {pod.containers.length > 1 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Shell Container
-          </h3>
+          <SectionHeader title="Shell Container" />
           <select
             value={selectedContainer}
             onChange={(e) => setSelectedContainer(e.target.value)}
@@ -203,68 +211,96 @@ function DetailPanel({
         </div>
       )}
 
+      {/* Info */}
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Info
-        </h3>
+        <SectionHeader title="Info" />
         <MetaEntry label="Status" value={pod.status} />
         <MetaEntry label="Node" value={pod.nodeName || "-"} />
         <MetaEntry label="Deployment" value={pod.deployment || "-"} />
         <MetaEntry label="App" value={pod.app || "-"} />
         <MetaEntry label="Restarts" value={String(pod.restarts)} />
+        {pod.serviceAccountName && m(pod.serviceAccountName) && (
+          <MetaEntry label="Service Account" value={pod.serviceAccountName} />
+        )}
+        {pod.qosClass && m(pod.qosClass) && (
+          <MetaEntry label="QoS Class" value={pod.qosClass} />
+        )}
         <MetaEntry
           label="Created"
           value={new Date(pod.creationTimestamp).toLocaleString()}
         />
       </div>
 
-      {pod.containers.filter(
-        (c) =>
-          !sl ||
-          c.name.toLowerCase().includes(sl) ||
-          c.image.toLowerCase().includes(sl),
-      ).length > 0 && (
+      {/* Labels */}
+      {labelEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Containers
-          </h3>
-          {pod.containers
-            .filter(
-              (c) =>
-                !sl ||
-                c.name.toLowerCase().includes(sl) ||
-                c.image.toLowerCase().includes(sl),
-            )
+          <SectionHeader title="Labels" />
+          {labelEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      {/* Annotations */}
+      {annotationEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Annotations" />
+          {annotationEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      {/* Init Containers */}
+      {pod.initContainers.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Init Containers" />
+          {pod.initContainers
+            .filter((c) => m(c.name) || m(c.image))
             .map((c) => (
-              <div
-                key={c.name}
-                className="text-sm border rounded p-2 space-y-0.5"
-              >
-                <div className="font-medium">{c.name}</div>
-                <div className="text-xs text-muted-foreground break-all">
-                  {c.image}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Restarts: {c.restartCount}
+              <ContainerCard key={c.name} container={c} search={sl} />
+            ))}
+        </div>
+      )}
+
+      {/* Containers */}
+      {pod.containers.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Containers" />
+          {pod.containers
+            .filter((c) => m(c.name) || m(c.image))
+            .map((c) => (
+              <ContainerCard key={c.name} container={c} search={sl} />
+            ))}
+        </div>
+      )}
+
+      {/* Volumes */}
+      {pod.volumes.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Volumes" />
+          {pod.volumes
+            .filter((v) => m(v.name) || m(v.type) || m(v.detail))
+            .map((v) => (
+              <div key={v.name} className="text-xs border rounded p-2 space-y-0.5">
+                <div className="font-medium">{v.name}</div>
+                <div className="text-muted-foreground">
+                  {v.type}
+                  {v.detail ? `: ${v.detail}` : ""}
                 </div>
               </div>
             ))}
         </div>
       )}
 
-      {pod.conditions.filter((c) => !sl || c.type.toLowerCase().includes(sl))
-        .length > 0 && (
+      {/* Conditions */}
+      {pod.conditions.filter((c) => m(c.type)).length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Conditions
-          </h3>
+          <SectionHeader title="Conditions" />
           {pod.conditions
-            .filter((c) => !sl || c.type.toLowerCase().includes(sl))
+            .filter((c) => m(c.type))
             .map((c) => (
-              <div
-                key={c.type}
-                className="text-sm space-y-0.5 border rounded p-2"
-              >
+              <div key={c.type} className="text-sm space-y-0.5 border rounded p-2">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{c.type}</span>
                   <span
@@ -279,14 +315,20 @@ function DetailPanel({
                   </span>
                 </div>
                 {c.reason && (
-                  <div className="text-xs text-muted-foreground">
-                    {c.reason}
-                  </div>
+                  <div className="text-xs text-muted-foreground">{c.reason}</div>
                 )}
               </div>
             ))}
         </div>
       )}
+
+      {/* Events */}
+      <ResourceEventsSection
+        namespace={pod.namespace}
+        name={pod.name}
+        kind="Pod"
+        search={sl}
+      />
 
       <PodMetricsSection namespace={pod.namespace} podName={pod.name} />
 
@@ -311,11 +353,7 @@ function DetailPanel({
             >
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
@@ -376,9 +414,7 @@ export function PodsView(): JSX.Element {
                 <TableRow>
                   <TableHead className="whitespace-nowrap">Name</TableHead>
                   <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    Deployment
-                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Deployment</TableHead>
                   <TableHead className="whitespace-nowrap">App</TableHead>
                   <TableHead className="whitespace-nowrap">Status</TableHead>
                   <TableHead className="whitespace-nowrap">Restarts</TableHead>
@@ -404,24 +440,12 @@ export function PodsView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">
-                      {p.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {p.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {p.deployment || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {p.app || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {p.status}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {p.restarts}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{p.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{p.namespace}</TableCell>
+                    <TableCell className="whitespace-nowrap">{p.deployment || "-"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{p.app || "-"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{p.status}</TableCell>
+                    <TableCell className="whitespace-nowrap">{p.restarts}</TableCell>
                     <TableCell className="whitespace-nowrap">
                       {formatAge(p.creationTimestamp)}
                     </TableCell>

@@ -42,6 +42,8 @@ import { PodsView } from "./components/PodsView"
 import { PrometheusSettings } from "./components/PrometheusSettings"
 import { PVCsView } from "./components/PVCsView"
 import { PVsView } from "./components/PVsView"
+import { StorageClassesView } from "./components/StorageClassesView"
+import { VolumeSnapshotsView } from "./components/VolumeSnapshotsView"
 import { ReplicaSetsView } from "./components/ReplicaSetsView"
 import { ResourceQuotasView } from "./components/ResourceQuotasView"
 import { RoleBindingsView } from "./components/RoleBindingsView"
@@ -302,6 +304,8 @@ function App(): JSX.Element {
               {selectedResourceType === "PersistentVolumeClaims" && (
                 <PVCsView />
               )}
+              {selectedResourceType === "StorageClasses" && <StorageClassesView />}
+              {selectedResourceType === "VolumeSnapshots" && <VolumeSnapshotsView />}
               {selectedResourceType === "Jobs" && <JobsView />}
               {selectedResourceType === "CronJobs" && <CronJobsView />}
               {selectedResourceType === "ResourceQuotas" && (

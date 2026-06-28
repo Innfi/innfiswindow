@@ -1,42 +1,177 @@
 import { load as yamlLoad } from "js-yaml"
-import { AppsV1Api, CoreV1Api } from "@kubernetes/client-node"
+import {
+  AppsV1Api,
+  CoreV1Api,
+  V1Container,
+  V1EnvVar,
+  V1Probe,
+  V1Volume,
+} from "@kubernetes/client-node"
 
 import {
   DaemonSetInfo,
   DeploymentInfo,
   DeploymentRevision,
+  DetailedContainerInfo,
+  EnvVar,
   MutationResult,
+  PodContainerInfo,
   PodInfo,
+  ProbeInfo,
   ReplicaSetInfo,
   ResourceRef,
   StatefulSetInfo,
+  VolumeInfo,
 } from "./types"
+
+function formatProbe(probe: V1Probe | null | undefined): ProbeInfo | null {
+  if (!probe) return null
+  let type = "unknown"
+  let description = ""
+  if (probe.httpGet) {
+    type = "http-get"
+    const port = String(probe.httpGet.port ?? "")
+    const path = probe.httpGet.path ?? "/"
+    const host = probe.httpGet.host ?? ""
+    description = `http-get http://${host}:${port}${path}`
+  } else if (probe.exec) {
+    type = "exec"
+    description = `exec [${(probe.exec.command ?? []).join(" ")}]`
+  } else if (probe.tcpSocket) {
+    type = "tcp-socket"
+    description = `tcp-socket :${String(probe.tcpSocket.port ?? "")}`
+  }
+  return {
+    type,
+    description,
+    initialDelaySeconds: probe.initialDelaySeconds ?? 0,
+    periodSeconds: probe.periodSeconds ?? 10,
+    timeoutSeconds: probe.timeoutSeconds ?? 1,
+    failureThreshold: probe.failureThreshold ?? 3,
+    successThreshold: probe.successThreshold ?? 1,
+  }
+}
+
+function formatEnvVar(env: V1EnvVar): EnvVar {
+  if (env.value !== undefined) {
+    return { name: env.name, value: env.value }
+  }
+  if (env.valueFrom) {
+    const vf = env.valueFrom
+    if (vf.secretKeyRef) {
+      return {
+        name: env.name,
+        value: "",
+        valueFrom: `secret:${vf.secretKeyRef.name ?? ""}/${vf.secretKeyRef.key ?? ""}`,
+      }
+    }
+    if (vf.configMapKeyRef) {
+      return {
+        name: env.name,
+        value: "",
+        valueFrom: `configmap:${vf.configMapKeyRef.name ?? ""}/${vf.configMapKeyRef.key ?? ""}`,
+      }
+    }
+    if (vf.fieldRef) {
+      return { name: env.name, value: "", valueFrom: `field:${vf.fieldRef.fieldPath ?? ""}` }
+    }
+    if (vf.resourceFieldRef) {
+      return { name: env.name, value: "", valueFrom: `resource:${vf.resourceFieldRef.resource ?? ""}` }
+    }
+  }
+  return { name: env.name, value: "" }
+}
+
+function formatVolume(vol: V1Volume): VolumeInfo {
+  if (vol.persistentVolumeClaim) {
+    return { name: vol.name, type: "PersistentVolumeClaim", detail: vol.persistentVolumeClaim.claimName ?? "" }
+  }
+  if (vol.configMap) {
+    return { name: vol.name, type: "ConfigMap", detail: vol.configMap.name ?? "" }
+  }
+  if (vol.secret) {
+    return { name: vol.name, type: "Secret", detail: vol.secret.secretName ?? "" }
+  }
+  if (vol.emptyDir !== undefined) {
+    return { name: vol.name, type: "EmptyDir", detail: "" }
+  }
+  if (vol.hostPath) {
+    return { name: vol.name, type: "HostPath", detail: vol.hostPath.path ?? "" }
+  }
+  if (vol.projected) {
+    return { name: vol.name, type: "Projected", detail: "" }
+  }
+  return { name: vol.name, type: "Unknown", detail: "" }
+}
+
+function mapDetailedContainer(c: V1Container): DetailedContainerInfo {
+  return {
+    name: c.name,
+    image: c.image ?? "",
+    ports: (c.ports ?? []).map((p) => ({
+      name: p.name ?? "",
+      containerPort: p.containerPort,
+      protocol: p.protocol ?? "TCP",
+    })),
+    env: (c.env ?? []).map(formatEnvVar),
+    resources: {
+      requests: Object.fromEntries(
+        Object.entries(c.resources?.requests ?? {}).map(([k, v]) => [k, String(v)]),
+      ),
+      limits: Object.fromEntries(
+        Object.entries(c.resources?.limits ?? {}).map(([k, v]) => [k, String(v)]),
+      ),
+    },
+    volumeMounts: (c.volumeMounts ?? []).map((vm) => ({
+      name: vm.name,
+      mountPath: vm.mountPath,
+      readOnly: vm.readOnly ?? false,
+    })),
+    livenessProbe: formatProbe(c.livenessProbe),
+    readinessProbe: formatProbe(c.readinessProbe),
+    startupProbe: formatProbe(c.startupProbe),
+  }
+}
 
 export async function listDeployments(
   api: AppsV1Api,
 ): Promise<DeploymentInfo[]> {
   const res = await api.listDeploymentForAllNamespaces()
-  return res.items.map((d) => ({
-    name: d.metadata?.name ?? "",
-    namespace: d.metadata?.namespace ?? "",
-    replicas: d.spec?.replicas ?? 0,
-    readyReplicas: d.status?.readyReplicas ?? 0,
-    updatedReplicas: d.status?.updatedReplicas ?? 0,
-    availableReplicas: d.status?.availableReplicas ?? 0,
-    strategy: d.spec?.strategy?.type ?? "",
-    creationTimestamp: d.metadata?.creationTimestamp?.toISOString() ?? "",
-    selector: d.spec?.selector?.matchLabels ?? {},
-    containers: (d.spec?.template?.spec?.containers ?? []).map((c) => ({
-      name: c.name,
-      image: c.image ?? "",
-    })),
-    conditions: (d.status?.conditions ?? []).map((c) => ({
-      type: c.type,
-      status: c.status,
-      reason: c.reason ?? "",
-      message: c.message ?? "",
-    })),
-  }))
+  return res.items.map((d) => {
+    const ru = d.spec?.strategy?.rollingUpdate
+    return {
+      name: d.metadata?.name ?? "",
+      namespace: d.metadata?.namespace ?? "",
+      replicas: d.spec?.replicas ?? 0,
+      readyReplicas: d.status?.readyReplicas ?? 0,
+      updatedReplicas: d.status?.updatedReplicas ?? 0,
+      availableReplicas: d.status?.availableReplicas ?? 0,
+      strategy: d.spec?.strategy?.type ?? "",
+      rollingUpdate: ru
+        ? {
+            maxUnavailable: String(ru.maxUnavailable ?? "25%"),
+            maxSurge: String(ru.maxSurge ?? "25%"),
+          }
+        : null,
+      minReadySeconds: d.spec?.minReadySeconds ?? 0,
+      creationTimestamp: d.metadata?.creationTimestamp?.toISOString() ?? "",
+      labels: d.metadata?.labels ?? {},
+      annotations: d.metadata?.annotations ?? {},
+      selector: d.spec?.selector?.matchLabels ?? {},
+      podTemplateLabels: d.spec?.template?.metadata?.labels ?? {},
+      podTemplateAnnotations: d.spec?.template?.metadata?.annotations ?? {},
+      serviceAccountName: d.spec?.template?.spec?.serviceAccountName ?? "",
+      containers: (d.spec?.template?.spec?.containers ?? []).map(mapDetailedContainer),
+      initContainers: (d.spec?.template?.spec?.initContainers ?? []).map(mapDetailedContainer),
+      volumes: (d.spec?.template?.spec?.volumes ?? []).map(formatVolume),
+      conditions: (d.status?.conditions ?? []).map((c) => ({
+        type: c.type,
+        status: c.status,
+        reason: c.reason ?? "",
+        message: c.message ?? "",
+      })),
+    }
+  })
 }
 
 export async function listReplicaSets(
@@ -50,16 +185,19 @@ export async function listReplicaSets(
     currentReplicas: rs.status?.replicas ?? 0,
     readyReplicas: rs.status?.readyReplicas ?? 0,
     creationTimestamp: rs.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: rs.metadata?.labels ?? {},
+    annotations: rs.metadata?.annotations ?? {},
     selector: rs.spec?.selector?.matchLabels ?? {},
-    containers: (rs.spec?.template?.spec?.containers ?? []).map((c) => ({
-      name: c.name,
-      image: c.image ?? "",
-    })),
+    podTemplateLabels: rs.spec?.template?.metadata?.labels ?? {},
+    podTemplateAnnotations: rs.spec?.template?.metadata?.annotations ?? {},
+    serviceAccountName: rs.spec?.template?.spec?.serviceAccountName ?? "",
+    containers: (rs.spec?.template?.spec?.containers ?? []).map(mapDetailedContainer),
+    initContainers: (rs.spec?.template?.spec?.initContainers ?? []).map(mapDetailedContainer),
+    volumes: (rs.spec?.template?.spec?.volumes ?? []).map(formatVolume),
     ownerReferences: (rs.metadata?.ownerReferences ?? []).map((o) => ({
       kind: o.kind,
       name: o.name,
     })),
-    podTemplateLabels: rs.spec?.template?.metadata?.labels ?? {},
   }))
 }
 
@@ -73,13 +211,17 @@ export async function listStatefulSets(
     replicas: ss.spec?.replicas ?? 0,
     readyReplicas: ss.status?.readyReplicas ?? 0,
     creationTimestamp: ss.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: ss.metadata?.labels ?? {},
+    annotations: ss.metadata?.annotations ?? {},
     serviceName: ss.spec?.serviceName ?? "",
     updateStrategy: ss.spec?.updateStrategy?.type ?? "",
     selector: ss.spec?.selector?.matchLabels ?? {},
-    containers: (ss.spec?.template?.spec?.containers ?? []).map((c) => ({
-      name: c.name,
-      image: c.image ?? "",
-    })),
+    podTemplateLabels: ss.spec?.template?.metadata?.labels ?? {},
+    podTemplateAnnotations: ss.spec?.template?.metadata?.annotations ?? {},
+    serviceAccountName: ss.spec?.template?.spec?.serviceAccountName ?? "",
+    containers: (ss.spec?.template?.spec?.containers ?? []).map(mapDetailedContainer),
+    initContainers: (ss.spec?.template?.spec?.initContainers ?? []).map(mapDetailedContainer),
+    volumes: (ss.spec?.template?.spec?.volumes ?? []).map(formatVolume),
     volumeClaimTemplates: (ss.spec?.volumeClaimTemplates ?? []).map((vct) => ({
       name: vct.metadata?.name ?? "",
       storage: vct.spec?.resources?.requests?.["storage"] ?? "",
@@ -98,13 +240,17 @@ export async function listDaemonSets(api: AppsV1Api): Promise<DaemonSetInfo[]> {
     updatedNumberScheduled: ds.status?.updatedNumberScheduled ?? 0,
     numberAvailable: ds.status?.numberAvailable ?? 0,
     creationTimestamp: ds.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: ds.metadata?.labels ?? {},
+    annotations: ds.metadata?.annotations ?? {},
     updateStrategy: ds.spec?.updateStrategy?.type ?? "",
     selector: ds.spec?.selector?.matchLabels ?? {},
     nodeSelector: ds.spec?.template?.spec?.nodeSelector ?? {},
-    containers: (ds.spec?.template?.spec?.containers ?? []).map((c) => ({
-      name: c.name,
-      image: c.image ?? "",
-    })),
+    podTemplateLabels: ds.spec?.template?.metadata?.labels ?? {},
+    podTemplateAnnotations: ds.spec?.template?.metadata?.annotations ?? {},
+    serviceAccountName: ds.spec?.template?.spec?.serviceAccountName ?? "",
+    containers: (ds.spec?.template?.spec?.containers ?? []).map(mapDetailedContainer),
+    initContainers: (ds.spec?.template?.spec?.initContainers ?? []).map(mapDetailedContainer),
+    volumes: (ds.spec?.template?.spec?.volumes ?? []).map(formatVolume),
     tolerations: (ds.spec?.template?.spec?.tolerations ?? []).map((t) => ({
       key: t.key ?? "",
       operator: t.operator ?? "",
@@ -112,6 +258,18 @@ export async function listDaemonSets(api: AppsV1Api): Promise<DaemonSetInfo[]> {
       effect: t.effect ?? "",
     })),
   }))
+}
+
+function mapPodContainer(
+  c: V1Container,
+  containerStatuses: { name: string; restartCount?: number }[],
+): PodContainerInfo {
+  const detailed = mapDetailedContainer(c)
+  return {
+    ...detailed,
+    restartCount:
+      containerStatuses.find((cs) => cs.name === c.name)?.restartCount ?? 0,
+  }
 }
 
 export async function listPods(api: CoreV1Api): Promise<PodInfo[]> {
@@ -123,7 +281,9 @@ export async function listPods(api: CoreV1Api): Promise<PodInfo[]> {
     const deploymentName = ownerRef
       ? ownerRef.name.replace(/-[a-z0-9]+$/, "")
       : ""
-    const restarts = (pod.status?.containerStatuses ?? []).reduce(
+    const containerStatuses = pod.status?.containerStatuses ?? []
+    const initContainerStatuses = pod.status?.initContainerStatuses ?? []
+    const restarts = containerStatuses.reduce(
       (sum, cs) => sum + (cs.restartCount ?? 0),
       0,
     )
@@ -136,13 +296,17 @@ export async function listPods(api: CoreV1Api): Promise<PodInfo[]> {
       restarts,
       creationTimestamp: pod.metadata?.creationTimestamp?.toISOString() ?? "",
       nodeName: pod.spec?.nodeName ?? "",
-      containers: (pod.spec?.containers ?? []).map((c) => ({
-        name: c.name,
-        image: c.image ?? "",
-        restartCount:
-          (pod.status?.containerStatuses ?? []).find((cs) => cs.name === c.name)
-            ?.restartCount ?? 0,
-      })),
+      labels: pod.metadata?.labels ?? {},
+      annotations: pod.metadata?.annotations ?? {},
+      serviceAccountName: pod.spec?.serviceAccountName ?? "",
+      qosClass: pod.status?.qosClass ?? "",
+      initContainers: (pod.spec?.initContainers ?? []).map((c) =>
+        mapPodContainer(c, initContainerStatuses),
+      ),
+      containers: (pod.spec?.containers ?? []).map((c) =>
+        mapPodContainer(c, containerStatuses),
+      ),
+      volumes: (pod.spec?.volumes ?? []).map(formatVolume),
       conditions: (pod.status?.conditions ?? []).map((c) => ({
         type: c.type,
         status: c.status,

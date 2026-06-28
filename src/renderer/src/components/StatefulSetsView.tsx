@@ -24,10 +24,20 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sStatefulSet } from "../types/k8s"
+import { ContainerCard } from "./ContainerCard"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
+import { ResourceEventsSection } from "./ResourceEventsSection"
+
+function SectionHeader({ title }: { title: string }): JSX.Element {
+  return (
+    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+      {title}
+    </h3>
+  )
+}
 
 function DetailPanel({
   ss,
@@ -47,10 +57,16 @@ function DetailPanel({
   const sl = search.toLowerCase()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const selectorEntries = Object.entries(ss.selector).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
+
+  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kv = (k: string, v: string): boolean => m(k) || m(v)
+
+  const selectorEntries = Object.entries(ss.selector).filter(([k, v]) => kv(k, v))
+  const labelEntries = Object.entries(ss.labels ?? {}).filter(([k, v]) => kv(k, v))
+  const annotationEntries = Object.entries(ss.annotations ?? {})
+    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(([k, v]) => kv(k, v))
+  const podLabelEntries = Object.entries(ss.podTemplateLabels ?? {}).filter(([k, v]) => kv(k, v))
 
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
@@ -70,10 +86,7 @@ function DetailPanel({
         template: {
           metadata: { labels: ss.selector },
           spec: {
-            containers: ss.containers.map((c) => ({
-              name: c.name,
-              image: c.image,
-            })),
+            containers: ss.containers.map((c) => ({ name: c.name, image: c.image })),
           },
         },
       },
@@ -124,18 +137,14 @@ function DetailPanel({
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{ss.name}</h2>
           <span className="text-xs text-muted-foreground">{ss.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={handleEdit}
-          >
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
             Edit
           </Button>
           <Button
@@ -146,11 +155,7 @@ function DetailPanel({
           >
             Delete
           </Button>
-          <CopyResourceButton
-            name={ss.name}
-            namespace={ss.namespace}
-            resourceKind="statefulset"
-          />
+          <CopyResourceButton name={ss.name} namespace={ss.namespace} resourceKind="statefulset" />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
@@ -169,72 +174,121 @@ function DetailPanel({
         className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
       />
 
+      {/* Replicas */}
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Replicas
-        </h3>
+        <SectionHeader title="Replicas" />
         <MetaEntry label="Desired" value={String(ss.replicas)} />
         <MetaEntry label="Ready" value={String(ss.readyReplicas)} />
-        <MetaEntry
-          label="Created"
-          value={new Date(ss.creationTimestamp).toLocaleString()}
-        />
-      </div>
-
-      <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Configuration
-        </h3>
         <MetaEntry label="Service Name" value={ss.serviceName} />
         <MetaEntry label="Update Strategy" value={ss.updateStrategy} />
+        {ss.serviceAccountName && m(ss.serviceAccountName) && (
+          <MetaEntry label="Service Account" value={ss.serviceAccountName} />
+        )}
+        <MetaEntry label="Created" value={new Date(ss.creationTimestamp).toLocaleString()} />
       </div>
 
+      {/* Labels */}
+      {labelEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Labels" />
+          {labelEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      {/* Annotations */}
+      {annotationEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Annotations" />
+          {annotationEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      {/* Selector */}
       {selectorEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Selector Labels
-          </h3>
+          <SectionHeader title="Selector" />
           {selectorEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
 
-      {ss.containers.length > 0 && (
+      {/* Pod Template Labels */}
+      {podLabelEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Containers
-          </h3>
-          {ss.containers.map((c) => (
-            <div
-              key={c.name}
-              className="text-sm border rounded p-2 space-y-0.5"
-            >
-              <div className="font-medium">{c.name}</div>
-              <div className="text-xs text-muted-foreground break-all">
-                {c.image}
-              </div>
-            </div>
+          <SectionHeader title="Pod Template" />
+          {podLabelEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={`label: ${k}`} value={v} />
           ))}
         </div>
       )}
 
+      {/* Init Containers */}
+      {ss.initContainers.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Init Containers" />
+          {ss.initContainers
+            .filter((c) => m(c.name) || m(c.image))
+            .map((c) => (
+              <ContainerCard key={c.name} container={c} search={sl} />
+            ))}
+        </div>
+      )}
+
+      {/* Containers */}
+      {ss.containers.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Containers" />
+          {ss.containers
+            .filter((c) => m(c.name) || m(c.image))
+            .map((c) => (
+              <ContainerCard key={c.name} container={c} search={sl} />
+            ))}
+        </div>
+      )}
+
+      {/* Volumes */}
+      {ss.volumes.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Volumes" />
+          {ss.volumes
+            .filter((v) => m(v.name) || m(v.type) || m(v.detail))
+            .map((v) => (
+              <div key={v.name} className="text-xs border rounded p-2 space-y-0.5">
+                <div className="font-medium">{v.name}</div>
+                <div className="text-muted-foreground">
+                  {v.type}
+                  {v.detail ? `: ${v.detail}` : ""}
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {/* Volume Claim Templates */}
       {ss.volumeClaimTemplates.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Volume Claim Templates
-          </h3>
+          <SectionHeader title="Volume Claim Templates" />
           {ss.volumeClaimTemplates.map((vct) => (
-            <div
-              key={vct.name}
-              className="text-sm border rounded p-2 space-y-0.5"
-            >
+            <div key={vct.name} className="text-sm border rounded p-2 space-y-0.5">
               <div className="font-medium">{vct.name}</div>
               <div className="text-xs text-muted-foreground">{vct.storage}</div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Events */}
+      <ResourceEventsSection
+        namespace={ss.namespace}
+        name={ss.name}
+        kind="StatefulSet"
+        search={sl}
+      />
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <AlertDialogContent>
@@ -256,11 +310,7 @@ function DetailPanel({
             >
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Deleting…" : "Delete"}
             </Button>
           </AlertDialogFooter>
@@ -271,9 +321,7 @@ function DetailPanel({
 }
 
 export function StatefulSetsView(): JSX.Element {
-  const selectedItem = useAppStore(
-    (s) => s.selectedItem,
-  ) as K8sStatefulSet | null
+  const selectedItem = useAppStore((s) => s.selectedItem) as K8sStatefulSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
@@ -301,11 +349,7 @@ export function StatefulSetsView(): JSX.Element {
     if (fresh) setSelectedItem(fresh as object)
   }, [statefulSets])
 
-  const visibleStatefulSets = filterResources(
-    statefulSets,
-    nameFilter,
-    selectedNamespace,
-  )
+  const visibleStatefulSets = filterResources(statefulSets, nameFilter, selectedNamespace)
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -350,21 +394,15 @@ export function StatefulSetsView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">
-                      {ss.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ss.namespace}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{ss.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{ss.namespace}</TableCell>
                     <TableCell className="whitespace-nowrap">
                       {ss.readyReplicas}/{ss.replicas}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {formatAge(ss.creationTimestamp)}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ss.serviceName}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{ss.serviceName}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

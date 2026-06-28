@@ -1,6 +1,6 @@
-import { CoreV1Api, V1PersistentVolume } from "@kubernetes/client-node"
+import { CoreV1Api, CustomObjectsApi, StorageV1Api, V1PersistentVolume } from "@kubernetes/client-node"
 
-import { PVCInfo, PVInfo, PVSourceInfo } from "./types"
+import { PVCInfo, PVInfo, PVSourceInfo, StorageClassInfo, VolumeSnapshotInfo } from "./types"
 
 function detectPVSource(pv: V1PersistentVolume): PVSourceInfo {
   const s = pv.spec
@@ -73,4 +73,55 @@ export async function listPVCs(api: CoreV1Api): Promise<PVCInfo[]> {
     labels: pvc.metadata?.labels ?? {},
     annotations: pvc.metadata?.annotations ?? {},
   }))
+}
+
+export async function listStorageClasses(api: StorageV1Api): Promise<StorageClassInfo[]> {
+  const res = await api.listStorageClass()
+  return res.items.map((sc) => ({
+    name: sc.metadata?.name ?? "",
+    provisioner: sc.provisioner ?? "",
+    reclaimPolicy: sc.reclaimPolicy ?? "",
+    volumeBindingMode: sc.volumeBindingMode ?? "",
+    allowVolumeExpansion: sc.allowVolumeExpansion ?? false,
+    parameters: sc.parameters ?? {},
+    creationTimestamp: sc.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: sc.metadata?.labels ?? {},
+    annotations: sc.metadata?.annotations ?? {},
+  }))
+}
+
+export async function listVolumeSnapshots(api: CustomObjectsApi): Promise<VolumeSnapshotInfo[]> {
+  try {
+    const res = await api.listClusterCustomObject({
+      group: "snapshot.storage.k8s.io",
+      version: "v1",
+      plural: "volumesnapshots",
+    }) as { items?: unknown[] }
+    const items = res.items ?? []
+    return items.map((item: unknown) => {
+      const snap = item as Record<string, unknown>
+      const meta = (snap.metadata ?? {}) as Record<string, unknown>
+      const spec = (snap.spec ?? {}) as Record<string, unknown>
+      const status = (snap.status ?? {}) as Record<string, unknown>
+      const src = (spec.source ?? {}) as Record<string, unknown>
+      return {
+        name: (meta.name as string) ?? "",
+        namespace: (meta.namespace as string) ?? "",
+        volumeSnapshotClassName: (spec.volumeSnapshotClassName as string) ?? "",
+        sourcePVCName: (src.persistentVolumeClaimName as string) ?? "",
+        readyToUse: (status.readyToUse as boolean | null) ?? null,
+        restoreSize: (status.restoreSize as string) ?? "",
+        creationTimestamp: meta.creationTimestamp
+          ? new Date(meta.creationTimestamp as string).toISOString()
+          : "",
+        labels: (meta.labels as Record<string, string>) ?? {},
+        annotations: (meta.annotations as Record<string, string>) ?? {},
+      }
+    })
+  } catch (e: unknown) {
+    const err = e as { response?: { statusCode?: number }; statusCode?: number }
+    const code = err?.response?.statusCode ?? err?.statusCode
+    if (code === 404 || code === 403) return []
+    throw e
+  }
 }

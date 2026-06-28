@@ -11,6 +11,7 @@ import {
   NetworkingV1Api,
   PolicyV1Api,
   RbacAuthorizationV1Api,
+  StorageV1Api,
 } from "@kubernetes/client-node"
 
 import { registerAlarmHandlers } from "./ipc/alarm"
@@ -45,6 +46,7 @@ const autoscalingV2Api = kc.makeApiClient(AutoscalingV2Api)
 const batchV1Api = kc.makeApiClient(BatchV1Api)
 const customObjectsApi = kc.makeApiClient(CustomObjectsApi)
 const policyV1Api = kc.makeApiClient(PolicyV1Api)
+const storageV1Api = kc.makeApiClient(StorageV1Api)
 
 const { getContextClients } = createContextClientsCache({
   coreV1: coreV1Api,
@@ -55,6 +57,7 @@ const { getContextClients } = createContextClientsCache({
   batchV1: batchV1Api,
   customObjects: customObjectsApi,
   policyV1: policyV1Api,
+  storageV1: storageV1Api,
 })
 
 // Export for use in other modules if needed
