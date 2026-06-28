@@ -26,7 +26,17 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sServiceAccount } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
+import { ResourceEventsSection } from "./ResourceEventsSection"
+
+function SectionHeader({ title }: { title: string }): JSX.Element {
+  return (
+    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+      {title}
+    </h3>
+  )
+}
 
 function DetailPanel({
   sa,
@@ -45,14 +55,15 @@ function DetailPanel({
   const appendHistory = useAppStore((s) => s.appendHistory)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-  const labelEntries = Object.entries(sa.labels).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
-  const annotationEntries = Object.entries(sa.annotations).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
+
+  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kv = (k: string, v: string): boolean => m(k) || m(v)
+
+  const labelEntries = Object.entries(sa.labels).filter(([k, v]) => kv(k, v))
+  const annotationEntries = Object.entries(sa.annotations)
+    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(([k, v]) => kv(k, v))
+
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -127,11 +138,7 @@ function DetailPanel({
             <Trash2 className="h-3 w-3 mr-1" />
             Delete
           </Button>
-          <CopyResourceButton
-            name={sa.name}
-            namespace={sa.namespace}
-            resourceKind="serviceaccount"
-          />
+          <CopyResourceButton name={sa.name} namespace={sa.namespace} resourceKind="serviceaccount" />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -141,6 +148,7 @@ function DetailPanel({
           </button>
         </div>
       </div>
+
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <DialogContent>
           <DialogHeader>
@@ -152,18 +160,10 @@ function DetailPanel({
           </DialogHeader>
           {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpenNotify(false)}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={() => setDeleteOpenNotify(false)} disabled={deleting}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
@@ -178,75 +178,64 @@ function DetailPanel({
         className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
       />
 
-      {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Labels
-          </h3>
-          {labelEntries.map(([k, v]) => (
-            <div key={k} className="flex gap-2 text-sm">
-              <span className="shrink-0 font-medium text-muted-foreground">
-                {k}:
-              </span>
-              <span className="break-all">{v}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Annotations
-          </h3>
-          {annotationEntries.map(([k, v]) => (
-            <div key={k} className="flex gap-2 text-sm">
-              <span className="shrink-0 font-medium text-muted-foreground">
-                {k}:
-              </span>
-              <span className="break-all">{v}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
+      {/* Metadata */}
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Secrets ({sa.secrets.length})
-        </h3>
+        <SectionHeader title="Metadata" />
+        <MetaEntry label="Created" value={new Date(sa.creationTimestamp).toLocaleString()} />
+      </div>
+
+      {/* Secrets */}
+      <div className="space-y-1">
+        <SectionHeader title={`Secrets (${sa.secrets.length})`} />
         {sa.secrets.length === 0 ? (
           <p className="text-sm text-muted-foreground">None</p>
         ) : (
-          sa.secrets.map((s) => (
-            <div key={s} className="text-sm font-mono">
-              {s}
-            </div>
+          sa.secrets.filter((s) => m(s)).map((s) => (
+            <div key={s} className="text-xs font-mono">{s}</div>
           ))
         )}
       </div>
 
+      {/* Image Pull Secrets */}
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Image Pull Secrets ({sa.imagePullSecrets.length})
-        </h3>
+        <SectionHeader title={`Image Pull Secrets (${sa.imagePullSecrets.length})`} />
         {sa.imagePullSecrets.length === 0 ? (
           <p className="text-sm text-muted-foreground">None</p>
         ) : (
-          sa.imagePullSecrets.map((s) => (
-            <div key={s} className="text-sm font-mono">
-              {s}
-            </div>
+          sa.imagePullSecrets.filter((s) => m(s)).map((s) => (
+            <div key={s} className="text-xs font-mono">{s}</div>
           ))
         )}
       </div>
+
+      {/* Labels */}
+      {labelEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Labels" />
+          {labelEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      {/* Annotations */}
+      {annotationEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Annotations" />
+          {annotationEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      {/* Events */}
+      <ResourceEventsSection namespace={sa.namespace} name={sa.name} kind="ServiceAccount" search={sl} />
     </div>
   )
 }
 
 export function ServiceAccountsView(): JSX.Element {
-  const selectedItem = useAppStore(
-    (s) => s.selectedItem,
-  ) as K8sServiceAccount | null
+  const selectedItem = useAppStore((s) => s.selectedItem) as K8sServiceAccount | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
@@ -268,17 +257,11 @@ export function ServiceAccountsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || serviceAccounts.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = serviceAccounts.find(
-      (s) => s.name === item.name && s.namespace === item.namespace,
-    )
+    const fresh = serviceAccounts.find((s) => s.name === item.name && s.namespace === item.namespace)
     if (fresh) setSelectedItem(fresh as object)
   }, [serviceAccounts])
 
-  const visible = filterResources(
-    serviceAccounts,
-    nameFilter,
-    selectedNamespace,
-  )
+  const visible = filterResources(serviceAccounts, nameFilter, selectedNamespace)
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -315,25 +298,16 @@ export function ServiceAccountsView(): JSX.Element {
                     )}
                     onClick={() =>
                       setSelectedItem(
-                        selectedItem?.name === sa.name &&
-                          selectedItem?.namespace === sa.namespace
+                        selectedItem?.name === sa.name && selectedItem?.namespace === sa.namespace
                           ? null
                           : sa,
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">
-                      {sa.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {sa.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {sa.secrets.length}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(sa.creationTimestamp)}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{sa.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{sa.namespace}</TableCell>
+                    <TableCell className="whitespace-nowrap">{sa.secrets.length}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatAge(sa.creationTimestamp)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -16,6 +16,8 @@ export async function listResourceQuotas(
       Object.entries(rq.status?.used ?? {}).map(([k, v]) => [k, String(v)]),
     ) as Record<string, string>,
     creationTimestamp: rq.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: rq.metadata?.labels ?? {},
+    annotations: rq.metadata?.annotations ?? {},
   }))
 }
 
@@ -42,6 +44,8 @@ export async function listLimitRanges(
       ) as Record<string, string>,
     })),
     creationTimestamp: lr.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: lr.metadata?.labels ?? {},
+    annotations: lr.metadata?.annotations ?? {},
   }))
 }
 

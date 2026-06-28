@@ -24,6 +24,7 @@ import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
+import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function usagePercent(used: string, hard: string): number {
   const u = parseResourceValue(used)
@@ -42,6 +43,15 @@ function DetailPanel({
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
+
+  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kv = (k: string, v: string): boolean => m(k) || m(v)
+
+  const labelEntries = Object.entries(quota.labels).filter(([k, v]) => kv(k, v))
+  const annotationEntries = Object.entries(quota.annotations)
+    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(([k, v]) => kv(k, v))
+
   const resources = Object.keys(quota.hard).filter(
     (r) => !sl || r.toLowerCase().includes(sl),
   )
@@ -153,11 +163,33 @@ function DetailPanel({
           )
         })}
         {resources.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            No resource limits defined
-          </p>
+          <p className="text-sm text-muted-foreground">No resource limits defined</p>
         )}
       </div>
+
+      {labelEntries.length > 0 && (
+        <div className="space-y-1">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+            Labels
+          </h3>
+          {labelEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      {annotationEntries.length > 0 && (
+        <div className="space-y-1">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+            Annotations
+          </h3>
+          {annotationEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      <ResourceEventsSection namespace={quota.namespace} name={quota.name} kind="ResourceQuota" search={sl} />
     </div>
   )
 }

@@ -401,6 +401,8 @@ export interface K8sNetworkPolicy {
   ingressRuleCount: number
   egressRuleCount: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   ingressRules: K8sNetworkPolicyRule[]
   egressRules: K8sNetworkPolicyRule[]
 }
@@ -840,6 +842,8 @@ export interface K8sResourceQuota {
   hard: Record<string, string>
   used: Record<string, string>
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
 }
 
 export interface K8sLimitRangeItem {
@@ -855,6 +859,8 @@ export interface K8sLimitRange {
   namespace: string
   limits: K8sLimitRangeItem[]
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
 }
 
 export interface K8sPDB {

@@ -396,6 +396,8 @@ export interface EndpointInfo {
   notReadyAddressCount: number
   ports: string
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   subsets: EndpointSubset[]
 }
 
@@ -423,6 +425,8 @@ export interface NetworkPolicyInfo {
   ingressRuleCount: number
   egressRuleCount: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   ingressRules: NetworkPolicyRule[]
   egressRules: NetworkPolicyRule[]
 }
@@ -607,6 +611,8 @@ export interface ResourceQuotaInfo {
   hard: Record<string, string>
   used: Record<string, string>
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
 }
 
 export interface LimitRangeLimit {
@@ -622,6 +628,8 @@ export interface LimitRangeInfo {
   namespace: string
   limits: LimitRangeLimit[]
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
 }
 
 export interface PDBInfo {

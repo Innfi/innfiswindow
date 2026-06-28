@@ -332,6 +332,8 @@ export async function listEndpoints(api: CoreV1Api): Promise<EndpointInfo[]> {
       notReadyAddressCount,
       ports: [...new Set(allPorts)].join(", "),
       creationTimestamp: ep.metadata?.creationTimestamp?.toISOString() ?? "",
+      labels: ep.metadata?.labels ?? {},
+      annotations: ep.metadata?.annotations ?? {},
       subsets: subsetsData,
     }
   })
@@ -385,6 +387,8 @@ export async function listNetworkPolicies(
       ingressRuleCount: ingress.length,
       egressRuleCount: egress.length,
       creationTimestamp: np.metadata?.creationTimestamp?.toISOString() ?? "",
+      labels: np.metadata?.labels ?? {},
+      annotations: np.metadata?.annotations ?? {},
       ingressRules,
       egressRules,
     }
