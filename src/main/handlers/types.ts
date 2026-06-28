@@ -52,6 +52,7 @@ export type {
   PVCInfo,
   PVClaimRef,
   PVInfo,
+  PVSourceInfo,
   RbacRule,
   ResourceRequirements,
   RollingUpdateStrategy,

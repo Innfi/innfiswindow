@@ -484,6 +484,7 @@ export interface K8sPV {
   creationTimestamp: string
   labels: Record<string, string>
   annotations: Record<string, string>
+  source: { type: string; detail: string }
 }
 
 export interface K8sPVC {
@@ -494,6 +495,7 @@ export interface K8sPVC {
   capacity: string
   accessModes: string[]
   storageClass: string
+  volumeMode: string
   creationTimestamp: string
   labels: Record<string, string>
   annotations: Record<string, string>

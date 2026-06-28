@@ -436,6 +436,11 @@ export interface PVClaimRef {
   name: string
 }
 
+export interface PVSourceInfo {
+  type: string
+  detail: string
+}
+
 export interface PVInfo {
   name: string
   capacity: string
@@ -448,6 +453,7 @@ export interface PVInfo {
   creationTimestamp: string
   labels: Record<string, string>
   annotations: Record<string, string>
+  source: PVSourceInfo
 }
 
 export interface PVCInfo {
@@ -458,6 +464,7 @@ export interface PVCInfo {
   capacity: string
   accessModes: string[]
   storageClass: string
+  volumeMode: string
   creationTimestamp: string
   labels: Record<string, string>
   annotations: Record<string, string>

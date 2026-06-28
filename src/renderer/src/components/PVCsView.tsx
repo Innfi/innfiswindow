@@ -19,6 +19,15 @@ import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
+import { ResourceEventsSection } from "./ResourceEventsSection"
+
+function SectionHeader({ title }: { title: string }): JSX.Element {
+  return (
+    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+      {title}
+    </h3>
+  )
+}
 
 function pvcStatusClass(status: string): string {
   if (status === "Bound")
@@ -40,14 +49,14 @@ function DetailPanel({
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-  const labelEntries = Object.entries(pvc.labels).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
-  const annotationEntries = Object.entries(pvc.annotations).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
+
+  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kv = (k: string, v: string): boolean => m(k) || m(v)
+
+  const labelEntries = Object.entries(pvc.labels).filter(([k, v]) => kv(k, v))
+  const annotationEntries = Object.entries(pvc.annotations)
+    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(([k, v]) => kv(k, v))
 
   function handleEdit(): void {
     openDrawerTab({
@@ -76,25 +85,17 @@ function DetailPanel({
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{pvc.name}</h2>
           <span className="text-xs text-muted-foreground">{pvc.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={handleEdit}
-          >
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
             Edit
           </Button>
-          <CopyResourceButton
-            name={pvc.name}
-            namespace={pvc.namespace}
-            resourceKind="persistentvolumeclaim"
-          />
+          <CopyResourceButton name={pvc.name} namespace={pvc.namespace} resourceKind="persistentvolumeclaim" />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -104,6 +105,7 @@ function DetailPanel({
           </button>
         </div>
       </div>
+
       <input
         type="text"
         value={search}
@@ -112,63 +114,53 @@ function DetailPanel({
         className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
       />
 
+      {/* Status */}
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Status
-        </h3>
+        <SectionHeader title="Status" />
         <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "rounded px-1.5 py-0.5 text-xs font-medium",
-              pvcStatusClass(pvc.status),
-            )}
-          >
+          <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", pvcStatusClass(pvc.status))}>
             {pvc.status || "-"}
           </span>
         </div>
-        <MetaEntry label="Volume" value={pvc.volumeName || "-"} />
+        {pvc.volumeName && m(pvc.volumeName) && (
+          <MetaEntry label="Volume" value={pvc.volumeName} />
+        )}
       </div>
 
+      {/* Spec */}
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Spec
-        </h3>
+        <SectionHeader title="Spec" />
         <MetaEntry label="Capacity" value={pvc.capacity || "-"} />
-        <MetaEntry
-          label="Access Modes"
-          value={pvc.accessModes.join(", ") || "-"}
-        />
+        <MetaEntry label="Access Modes" value={pvc.accessModes.join(", ") || "-"} />
         <MetaEntry label="Storage Class" value={pvc.storageClass || "-"} />
+        {pvc.volumeMode && m(pvc.volumeMode) && (
+          <MetaEntry label="Volume Mode" value={pvc.volumeMode} />
+        )}
+        <MetaEntry label="Created" value={new Date(pvc.creationTimestamp).toLocaleString()} />
       </div>
 
-      <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Metadata
-        </h3>
-        <MetaEntry label="Age" value={formatAge(pvc.creationTimestamp)} />
-      </div>
-
+      {/* Labels */}
       {labelEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Labels
-          </h3>
+          <SectionHeader title="Labels" />
           {labelEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
 
+      {/* Annotations */}
       {annotationEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Annotations
-          </h3>
+          <SectionHeader title="Annotations" />
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
+
+      {/* Events */}
+      <ResourceEventsSection namespace={pvc.namespace} name={pvc.name} kind="PersistentVolumeClaim" search={sl} />
     </div>
   )
 }
@@ -194,9 +186,7 @@ export function PVCsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || pvcs.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = pvcs.find(
-      (p) => p.name === item.name && p.namespace === item.namespace,
-    )
+    const fresh = pvcs.find((p) => p.name === item.name && p.namespace === item.namespace)
     if (fresh) setSelectedItem(fresh as object)
   }, [pvcs])
 
@@ -224,12 +214,8 @@ export function PVCsView(): JSX.Element {
                   <TableHead className="whitespace-nowrap">Status</TableHead>
                   <TableHead className="whitespace-nowrap">Volume</TableHead>
                   <TableHead className="whitespace-nowrap">Capacity</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    Access Modes
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    StorageClass
-                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Access Modes</TableHead>
+                  <TableHead className="whitespace-nowrap">StorageClass</TableHead>
                   <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
               </TableHeader>
@@ -252,37 +238,18 @@ export function PVCsView(): JSX.Element {
                       )
                     }
                   >
+                    <TableCell className="whitespace-nowrap">{pvc.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{pvc.namespace}</TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {pvc.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pvc.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <span
-                        className={cn(
-                          "rounded px-1.5 py-0.5 text-xs font-medium",
-                          pvcStatusClass(pvc.status),
-                        )}
-                      >
+                      <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", pvcStatusClass(pvc.status))}>
                         {pvc.status}
                       </span>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pvc.volumeName || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pvc.capacity || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pvc.accessModes.join(", ")}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pvc.storageClass || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(pvc.creationTimestamp)}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{pvc.volumeName || "-"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{pvc.capacity || "-"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{pvc.accessModes.join(", ")}</TableCell>
+                    <TableCell className="whitespace-nowrap">{pvc.storageClass || "-"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatAge(pvc.creationTimestamp)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
