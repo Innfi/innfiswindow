@@ -26,7 +26,17 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sConfigMap } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
+import { ResourceEventsSection } from "./ResourceEventsSection"
+
+function SectionHeader({ title }: { title: string }): JSX.Element {
+  return (
+    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+      {title}
+    </h3>
+  )
+}
 
 function DetailPanel({
   cm,
@@ -47,26 +57,21 @@ function DetailPanel({
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const dataEntries = Object.entries(cm.data).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
+
+  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kv = (k: string, v: string): boolean => m(k) || m(v)
+
+  const dataEntries = Object.entries(cm.data).filter(([k, v]) => kv(k, v))
+  const binaryEntries = Object.entries(cm.binaryData).filter(([k]) => m(k))
+  const labelEntries = Object.entries(cm.labels).filter(([k, v]) => kv(k, v))
+  const annotationEntries = Object.entries(cm.annotations)
+    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(([k, v]) => kv(k, v))
 
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
     onDeleteDialogChange(open)
   }
-  const binaryEntries = Object.entries(cm.binaryData).filter(
-    ([k]) => !sl || k.toLowerCase().includes(sl),
-  )
-  const labelEntries = Object.entries(cm.labels).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
-  const annotationEntries = Object.entries(cm.annotations).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
 
   function handleEdit(): void {
     const obj = {
@@ -76,14 +81,10 @@ function DetailPanel({
         name: cm.name,
         namespace: cm.namespace,
         ...(Object.keys(cm.labels).length > 0 ? { labels: cm.labels } : {}),
-        ...(Object.keys(cm.annotations).length > 0
-          ? { annotations: cm.annotations }
-          : {}),
+        ...(Object.keys(cm.annotations).length > 0 ? { annotations: cm.annotations } : {}),
       },
       ...(Object.keys(cm.data).length > 0 ? { data: cm.data } : {}),
-      ...(Object.keys(cm.binaryData).length > 0
-        ? { binaryData: cm.binaryData }
-        : {}),
+      ...(Object.keys(cm.binaryData).length > 0 ? { binaryData: cm.binaryData } : {}),
     }
     openDrawerTab({
       tabKey: `yaml-edit:ConfigMap:${cm.namespace}/${cm.name}`,
@@ -130,33 +131,20 @@ function DetailPanel({
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{cm.name}</h2>
           <span className="text-xs text-muted-foreground">{cm.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={handleEdit}
-          >
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
             Edit
           </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="h-7 text-xs"
-            onClick={() => setDeleteOpenNotify(true)}
-          >
+          <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => setDeleteOpenNotify(true)}>
             Delete
           </Button>
-          <CopyResourceButton
-            name={cm.name}
-            namespace={cm.namespace}
-            resourceKind="configmap"
-          />
+          <CopyResourceButton name={cm.name} namespace={cm.namespace} resourceKind="configmap" />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
@@ -173,26 +161,15 @@ function DetailPanel({
             <DialogTitle>Delete ConfigMap</DialogTitle>
             <DialogDescription>
               Delete <span className="font-mono">{cm.name}</span> from namespace{" "}
-              <span className="font-mono">{cm.namespace}</span>? This cannot be
-              undone.
+              <span className="font-mono">{cm.namespace}</span>? This cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          {deleteError && (
-            <p className="text-sm text-destructive">{deleteError}</p>
-          )}
+          {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpenNotify(false)}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={() => setDeleteOpenNotify(false)} disabled={deleting}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Deleting…" : "Delete"}
             </Button>
           </DialogFooter>
@@ -207,11 +184,37 @@ function DetailPanel({
         className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
       />
 
+      {/* Info */}
+      <div className="space-y-1">
+        <SectionHeader title="Info" />
+        <MetaEntry label="Keys" value={cm.keys.join(", ") || "none"} />
+        <MetaEntry label="Created" value={new Date(cm.creationTimestamp).toLocaleString()} />
+      </div>
+
+      {/* Labels */}
+      {labelEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Labels" />
+          {labelEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      {/* Annotations */}
+      {annotationEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Annotations" />
+          {annotationEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      {/* Data */}
       {dataEntries.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Data
-          </h3>
+          <SectionHeader title="Data" />
           {dataEntries.map(([key, value]) => (
             <div key={key} className="space-y-0.5">
               <div className="font-mono font-bold text-sm">{key}</div>
@@ -223,11 +226,10 @@ function DetailPanel({
         </div>
       )}
 
+      {/* Binary Data */}
       {binaryEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Binary Data
-          </h3>
+          <SectionHeader title="Binary Data" />
           {binaryEntries.map(([key, size]) => (
             <div key={key} className="flex justify-between text-sm">
               <span className="font-mono font-bold">{key}</span>
@@ -237,37 +239,8 @@ function DetailPanel({
         </div>
       )}
 
-      {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Labels
-          </h3>
-          {labelEntries.map(([k, v]) => (
-            <div key={k} className="flex gap-2 text-sm">
-              <span className="shrink-0 font-medium text-muted-foreground">
-                {k}:
-              </span>
-              <span className="break-all">{v}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Annotations
-          </h3>
-          {annotationEntries.map(([k, v]) => (
-            <div key={k} className="flex gap-2 text-sm">
-              <span className="shrink-0 font-medium text-muted-foreground">
-                {k}:
-              </span>
-              <span className="break-all">{v}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Events */}
+      <ResourceEventsSection namespace={cm.namespace} name={cm.name} kind="ConfigMap" search={sl} />
     </div>
   )
 }
@@ -295,17 +268,11 @@ export function ConfigMapsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || configMaps.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = configMaps.find(
-      (c) => c.name === item.name && c.namespace === item.namespace,
-    )
+    const fresh = configMaps.find((c) => c.name === item.name && c.namespace === item.namespace)
     if (fresh) setSelectedItem(fresh as object)
   }, [configMaps])
 
-  const visibleConfigMaps = filterResources(
-    configMaps,
-    nameFilter,
-    selectedNamespace,
-  )
+  const visibleConfigMaps = filterResources(configMaps, nameFilter, selectedNamespace)
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -349,18 +316,10 @@ export function ConfigMapsView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">
-                      {cm.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {cm.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap max-w-xs truncate">
-                      {cm.keys.join(", ") || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(cm.creationTimestamp)}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{cm.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{cm.namespace}</TableCell>
+                    <TableCell className="whitespace-nowrap max-w-xs truncate">{cm.keys.join(", ") || "-"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatAge(cm.creationTimestamp)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
