@@ -66,6 +66,26 @@ export interface K8sCronJob {
   annotations: Record<string, string>
 }
 
+export interface K8sNodeAddress {
+  type: string
+  address: string
+}
+
+export interface K8sNodeTaint {
+  key: string
+  effect: string
+  value: string
+}
+
+export interface K8sNodeSystemInfo {
+  osImage: string
+  architecture: string
+  operatingSystem: string
+  containerRuntimeVersion: string
+  kubeletVersion: string
+  kubeProxyVersion: string
+}
+
 export interface K8sNode {
   name: string
   status: string
@@ -73,9 +93,13 @@ export interface K8sNode {
   creationTimestamp: string
   version: string
   labels: Record<string, string>
+  annotations: Record<string, string>
   capacity: Record<string, string>
   allocatable: Record<string, string>
   conditions: K8sNodeCondition[]
+  addresses: K8sNodeAddress[]
+  taints: K8sNodeTaint[]
+  systemInfo: K8sNodeSystemInfo
 }
 
 export interface K8sDeploymentCondition {

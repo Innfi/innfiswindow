@@ -132,6 +132,26 @@ export interface NamespaceInfo {
   annotations: Record<string, string>
 }
 
+export interface NodeAddress {
+  type: string
+  address: string
+}
+
+export interface NodeTaint {
+  key: string
+  effect: string
+  value: string
+}
+
+export interface NodeSystemInfo {
+  osImage: string
+  architecture: string
+  operatingSystem: string
+  containerRuntimeVersion: string
+  kubeletVersion: string
+  kubeProxyVersion: string
+}
+
 export interface NodeInfo {
   name: string
   status: string
@@ -139,9 +159,13 @@ export interface NodeInfo {
   creationTimestamp: string
   version: string
   labels: Record<string, string>
+  annotations: Record<string, string>
   capacity: Record<string, string>
   allocatable: Record<string, string>
   conditions: Condition[]
+  addresses: NodeAddress[]
+  taints: NodeTaint[]
+  systemInfo: NodeSystemInfo
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 import { CoreV1Api, KubeConfig } from "@kubernetes/client-node"
 
-import { ContextInfo, NamespaceInfo, NodeInfo } from "./types"
+import { ContextInfo, NamespaceInfo, NodeInfo, NodeAddress, NodeTaint, NodeSystemInfo } from "./types"
 
 export async function listNamespaces(api: CoreV1Api): Promise<NamespaceInfo[]> {
   const res = await api.listNamespace()
@@ -24,6 +24,24 @@ export async function listNodes(api: CoreV1Api): Promise<NodeInfo[]> {
       (c) => c.type === "Ready",
     )
     const status = readyCondition?.status === "True" ? "Ready" : "NotReady"
+    const addresses: NodeAddress[] = (node.status?.addresses ?? []).map((a) => ({
+      type: a.type,
+      address: a.address,
+    }))
+    const taints: NodeTaint[] = (node.spec?.taints ?? []).map((t) => ({
+      key: t.key ?? "",
+      effect: t.effect ?? "",
+      value: t.value ?? "",
+    }))
+    const ni = node.status?.nodeInfo
+    const systemInfo: NodeSystemInfo = {
+      osImage: ni?.osImage ?? "",
+      architecture: ni?.architecture ?? "",
+      operatingSystem: ni?.operatingSystem ?? "",
+      containerRuntimeVersion: ni?.containerRuntimeVersion ?? "",
+      kubeletVersion: ni?.kubeletVersion ?? "",
+      kubeProxyVersion: ni?.kubeProxyVersion ?? "",
+    }
     return {
       name: node.metadata?.name ?? "",
       status,
@@ -31,6 +49,7 @@ export async function listNodes(api: CoreV1Api): Promise<NodeInfo[]> {
       creationTimestamp: node.metadata?.creationTimestamp?.toISOString() ?? "",
       version: node.status?.nodeInfo?.kubeletVersion ?? "",
       labels,
+      annotations: node.metadata?.annotations ?? {},
       capacity: node.status?.capacity ?? {},
       allocatable: node.status?.allocatable ?? {},
       conditions: (node.status?.conditions ?? []).map((c) => ({
@@ -39,6 +58,9 @@ export async function listNodes(api: CoreV1Api): Promise<NodeInfo[]> {
         reason: c.reason ?? "",
         message: c.message ?? "",
       })),
+      addresses,
+      taints,
+      systemInfo,
     }
   })
 }

@@ -19,6 +19,15 @@ import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
+import { ResourceEventsSection } from "./ResourceEventsSection"
+
+function SectionHeader({ title }: { title: string }): JSX.Element {
+  return (
+    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+      {title}
+    </h3>
+  )
+}
 
 function DetailPanel({
   ns,
@@ -30,14 +39,14 @@ function DetailPanel({
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-  const labelEntries = Object.entries(ns.labels).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
-  const annotationEntries = Object.entries(ns.annotations).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
+
+  const kv = (k: string, v: string): boolean =>
+    !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl)
+
+  const labelEntries = Object.entries(ns.labels).filter(([k, v]) => kv(k, v))
+  const annotationEntries = Object.entries(ns.annotations)
+    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(([k, v]) => kv(k, v))
 
   function handleEdit(): void {
     openDrawerTab({
@@ -49,11 +58,7 @@ function DetailPanel({
       initialYaml: yamlDump({
         apiVersion: "v1",
         kind: "Namespace",
-        metadata: {
-          name: ns.name,
-          labels: ns.labels,
-          annotations: ns.annotations,
-        },
+        metadata: { name: ns.name, labels: ns.labels, annotations: ns.annotations },
       }),
     })
   }
@@ -75,12 +80,7 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={handleEdit}
-          >
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
             Edit
           </Button>
           <CopyResourceButton name={ns.name} resourceKind="namespace" />
@@ -103,20 +103,13 @@ function DetailPanel({
       />
 
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Metadata
-        </h3>
-        <MetaEntry
-          label="Created"
-          value={new Date(ns.creationTimestamp).toLocaleString()}
-        />
+        <SectionHeader title="Metadata" />
+        <MetaEntry label="Created" value={new Date(ns.creationTimestamp).toLocaleString()} />
       </div>
 
       {labelEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Labels
-          </h3>
+          <SectionHeader title="Labels" />
           {labelEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
@@ -125,14 +118,15 @@ function DetailPanel({
 
       {annotationEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Annotations
-          </h3>
+          <SectionHeader title="Annotations" />
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
+
+      {/* Namespaces are cluster-scoped; events live across namespaces */}
+      <ResourceEventsSection namespace="" name={ns.name} kind="Namespace" search={sl} />
     </div>
   )
 }

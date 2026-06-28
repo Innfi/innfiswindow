@@ -17,6 +17,7 @@ import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
+import { ResourceEventsSection } from "./ResourceEventsSection"
 
 interface NodeMetric {
   nodeName: string
@@ -152,6 +153,14 @@ function ResourceUsageSection({
   )
 }
 
+function SectionHeader({ title }: { title: string }): JSX.Element {
+  return (
+    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+      {title}
+    </h3>
+  )
+}
+
 function DetailPanel({
   node,
   metric,
@@ -165,18 +174,16 @@ function DetailPanel({
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-  const labelEntries = Object.entries(node.labels).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
-  const capacityEntries = Object.entries(node.capacity).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
-  const allocatableEntries = Object.entries(node.allocatable).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
+
+  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kv = (k: string, v: string): boolean => m(k) || m(v)
+
+  const labelEntries = Object.entries(node.labels).filter(([k, v]) => kv(k, v))
+  const annotationEntries = Object.entries(node.annotations ?? {})
+    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(([k, v]) => kv(k, v))
+  const capacityEntries = Object.entries(node.capacity).filter(([k, v]) => kv(k, v))
+  const allocatableEntries = Object.entries(node.allocatable).filter(([k, v]) => kv(k, v))
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
@@ -205,6 +212,7 @@ function DetailPanel({
           </button>
         </div>
       </div>
+
       <input
         type="text"
         value={search}
@@ -213,87 +221,144 @@ function DetailPanel({
         className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
       />
 
-      <ResourceUsageSection
-        node={node}
-        metric={metric}
-        unavailable={metricsUnavailable}
-      />
+      <ResourceUsageSection node={node} metric={metric} unavailable={metricsUnavailable} />
 
+      {/* Metadata */}
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Metadata
-        </h3>
-        <MetaEntry
-          label="Created"
-          value={new Date(node.creationTimestamp).toLocaleString()}
-        />
+        <SectionHeader title="Metadata" />
+        <MetaEntry label="Created" value={new Date(node.creationTimestamp).toLocaleString()} />
         <MetaEntry label="Roles" value={node.roles} />
         <MetaEntry label="Version" value={node.version} />
       </div>
 
+      {/* Addresses */}
+      {node.addresses.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Addresses" />
+          {node.addresses
+            .filter((a) => m(a.type) || m(a.address))
+            .map((a, i) => (
+              <MetaEntry key={i} label={a.type} value={a.address} mono />
+            ))}
+        </div>
+      )}
+
+      {/* System Info */}
+      {node.systemInfo && (
+        <div className="space-y-1">
+          <SectionHeader title="System Info" />
+          {node.systemInfo.osImage && m(node.systemInfo.osImage) && (
+            <MetaEntry label="OS Image" value={node.systemInfo.osImage} />
+          )}
+          {node.systemInfo.operatingSystem && m(node.systemInfo.operatingSystem) && (
+            <MetaEntry label="OS" value={node.systemInfo.operatingSystem} />
+          )}
+          {node.systemInfo.architecture && m(node.systemInfo.architecture) && (
+            <MetaEntry label="Architecture" value={node.systemInfo.architecture} />
+          )}
+          {node.systemInfo.containerRuntimeVersion && m(node.systemInfo.containerRuntimeVersion) && (
+            <MetaEntry label="Container Runtime" value={node.systemInfo.containerRuntimeVersion} />
+          )}
+          {node.systemInfo.kubeletVersion && m(node.systemInfo.kubeletVersion) && (
+            <MetaEntry label="Kubelet" value={node.systemInfo.kubeletVersion} />
+          )}
+          {node.systemInfo.kubeProxyVersion && m(node.systemInfo.kubeProxyVersion) && (
+            <MetaEntry label="Kube-Proxy" value={node.systemInfo.kubeProxyVersion} />
+          )}
+        </div>
+      )}
+
+      {/* Taints */}
+      {node.taints.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Taints" />
+          {node.taints
+            .filter((t) => m(t.key) || m(t.effect) || m(t.value))
+            .map((t, i) => (
+              <div key={i} className="text-xs border rounded p-2 space-y-0.5">
+                <div className="font-medium font-mono">{t.key}</div>
+                <div className="text-muted-foreground">
+                  {t.value ? `${t.value}:` : ""}{t.effect}
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {/* Capacity */}
       {capacityEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Capacity
-          </h3>
+          <SectionHeader title="Capacity" />
           {capacityEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
 
+      {/* Allocatable */}
       {allocatableEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Allocatable
-          </h3>
+          <SectionHeader title="Allocatable" />
           {allocatableEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
 
+      {/* Conditions */}
       {node.conditions.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Conditions
-          </h3>
-          {node.conditions.map((c) => (
-            <div
-              key={c.type}
-              className="text-sm space-y-0.5 border rounded p-2"
-            >
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{c.type}</span>
-                <span
-                  className={cn(
-                    "rounded px-1.5 py-0.5 text-xs",
-                    c.status === "True"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-yellow-100 text-yellow-800",
-                  )}
-                >
-                  {c.status}
-                </span>
+          <SectionHeader title="Conditions" />
+          {node.conditions
+            .filter((c) => m(c.type) || m(c.reason) || m(c.message))
+            .map((c) => (
+              <div key={c.type} className="text-sm space-y-0.5 border rounded p-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{c.type}</span>
+                  <span
+                    className={cn(
+                      "rounded px-1.5 py-0.5 text-xs",
+                      c.status === "True"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-yellow-100 text-yellow-800",
+                    )}
+                  >
+                    {c.status}
+                  </span>
+                </div>
+                {c.reason && (
+                  <div className="text-xs text-muted-foreground">{c.reason}</div>
+                )}
+                {c.message && (
+                  <div className="text-xs text-muted-foreground">{c.message}</div>
+                )}
               </div>
-              {c.reason && (
-                <div className="text-xs text-muted-foreground">{c.reason}</div>
-              )}
-            </div>
-          ))}
+            ))}
         </div>
       )}
 
+      {/* Labels */}
       {labelEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Labels
-          </h3>
+          <SectionHeader title="Labels" />
           {labelEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
+
+      {/* Annotations */}
+      {annotationEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Annotations" />
+          {annotationEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
+        </div>
+      )}
+
+      {/* Events — nodes are cluster-scoped, pass empty namespace */}
+      <ResourceEventsSection namespace="" name={node.name} kind="Node" search={sl} />
     </div>
   )
 }
