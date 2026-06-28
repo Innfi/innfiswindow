@@ -26,6 +26,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sRoleBinding } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 
 function DetailPanel({
@@ -45,6 +46,10 @@ function DetailPanel({
   const appendHistory = useAppStore((s) => s.appendHistory)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
+
+  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kv = (k: string, v: string): boolean => m(k) || m(v)
+
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -175,6 +180,13 @@ function DetailPanel({
 
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+          Metadata
+        </h3>
+        <MetaEntry label="Created" value={new Date(binding.creationTimestamp).toLocaleString()} />
+      </div>
+
+      <div className="space-y-1">
+        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
           Role Ref
         </h3>
         <div className="text-sm">
@@ -210,15 +222,9 @@ function DetailPanel({
                   )
                   .map((s, i) => (
                     <TableRow key={i}>
-                      <TableCell className="whitespace-nowrap text-xs">
-                        {s.kind}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs font-mono">
-                        {s.name}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs">
-                        {s.namespace}
-                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">{s.kind}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs font-mono">{s.name}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">{s.namespace}</TableCell>
                     </TableRow>
                   ))}
               </TableBody>
@@ -226,6 +232,33 @@ function DetailPanel({
           </div>
         )}
       </div>
+
+      {Object.keys(binding.labels).length > 0 && (
+        <div className="space-y-1">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+            Labels
+          </h3>
+          {Object.entries(binding.labels)
+            .filter(([k, v]) => kv(k, v))
+            .map(([k, v]) => (
+              <MetaEntry key={k} label={k} value={v} />
+            ))}
+        </div>
+      )}
+
+      {Object.keys(binding.annotations).length > 0 && (
+        <div className="space-y-1">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+            Annotations
+          </h3>
+          {Object.entries(binding.annotations)
+            .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+            .filter(([k, v]) => kv(k, v))
+            .map(([k, v]) => (
+              <MetaEntry key={k} label={k} value={v} />
+            ))}
+        </div>
+      )}
     </div>
   )
 }

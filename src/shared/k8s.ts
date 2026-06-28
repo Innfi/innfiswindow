@@ -533,6 +533,8 @@ export interface RoleInfo {
   namespace: string
   rulesCount: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   rules: RbacRule[]
 }
 
@@ -540,6 +542,8 @@ export interface ClusterRoleInfo {
   name: string
   rulesCount: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   rules: RbacRule[]
 }
 
@@ -550,6 +554,8 @@ export interface RoleBindingInfo {
   subjects: RbacSubject[]
   subjectsCount: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
 }
 
 export interface ClusterRoleBindingInfo {
@@ -558,6 +564,8 @@ export interface ClusterRoleBindingInfo {
   subjects: RbacSubject[]
   subjectsCount: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
 }
 
 export interface UpdateRoleResult {
@@ -639,6 +647,8 @@ export interface JobInfo {
   name: string
   namespace: string
   completions: number | null
+  parallelism: number | null
+  backoffLimit: number | null
   succeeded: number
   failed: number
   active: number
@@ -646,6 +656,7 @@ export interface JobInfo {
   completionTime: string
   duration: string
   conditions: Condition[]
+  selector: Record<string, string>
   creationTimestamp: string
   labels: Record<string, string>
   annotations: Record<string, string>
@@ -657,6 +668,9 @@ export interface CronJobInfo {
   schedule: string
   concurrencyPolicy: string
   suspend: boolean
+  successfulJobsHistoryLimit: number | null
+  failedJobsHistoryLimit: number | null
+  startingDeadlineSeconds: number | null
   lastScheduleTime: string
   activeCount: number
   activeJobNames: string[]

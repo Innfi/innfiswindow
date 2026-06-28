@@ -25,6 +25,8 @@ export async function listRoles(
     namespace: r.metadata?.namespace ?? "",
     rulesCount: (r.rules ?? []).length,
     creationTimestamp: r.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: r.metadata?.labels ?? {},
+    annotations: r.metadata?.annotations ?? {},
     rules: (r.rules ?? []).map((rule) => ({
       apiGroups: rule.apiGroups ?? [],
       resources: rule.resources ?? [],
@@ -41,6 +43,8 @@ export async function listClusterRoles(
     name: r.metadata?.name ?? "",
     rulesCount: (r.rules ?? []).length,
     creationTimestamp: r.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: r.metadata?.labels ?? {},
+    annotations: r.metadata?.annotations ?? {},
     rules: (r.rules ?? []).map((rule) => ({
       apiGroups: rule.apiGroups ?? [],
       resources: rule.resources ?? [],
@@ -70,6 +74,8 @@ export async function listRoleBindings(
     })),
     subjectsCount: (rb.subjects ?? []).length,
     creationTimestamp: rb.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: rb.metadata?.labels ?? {},
+    annotations: rb.metadata?.annotations ?? {},
   }))
 }
 
@@ -90,6 +96,8 @@ export async function listClusterRoleBindings(
     })),
     subjectsCount: (crb.subjects ?? []).length,
     creationTimestamp: crb.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: crb.metadata?.labels ?? {},
+    annotations: crb.metadata?.annotations ?? {},
   }))
 }
 

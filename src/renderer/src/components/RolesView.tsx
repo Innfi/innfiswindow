@@ -26,6 +26,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sRole } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 
 function DetailPanel({
@@ -45,6 +46,10 @@ function DetailPanel({
   const appendHistory = useAppStore((s) => s.appendHistory)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
+
+  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kv = (k: string, v: string): boolean => m(k) || m(v)
+
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -174,6 +179,13 @@ function DetailPanel({
 
       <div className="space-y-1">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+          Metadata
+        </h3>
+        <MetaEntry label="Created" value={new Date(role.creationTimestamp).toLocaleString()} />
+      </div>
+
+      <div className="space-y-1">
+        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
           Rules ({role.rules.length})
         </h3>
         {role.rules.length === 0 ? (
@@ -183,9 +195,7 @@ function DetailPanel({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">
-                    API Groups
-                  </TableHead>
+                  <TableHead className="whitespace-nowrap">API Groups</TableHead>
                   <TableHead className="whitespace-nowrap">Resources</TableHead>
                   <TableHead className="whitespace-nowrap">Verbs</TableHead>
                 </TableRow>
@@ -195,9 +205,7 @@ function DetailPanel({
                   .filter(
                     (rule) =>
                       !sl ||
-                      rule.resources.some((r) =>
-                        r.toLowerCase().includes(sl),
-                      ) ||
+                      rule.resources.some((r) => r.toLowerCase().includes(sl)) ||
                       rule.verbs.some((v) => v.toLowerCase().includes(sl)) ||
                       rule.apiGroups.some((g) => g.toLowerCase().includes(sl)),
                   )
@@ -219,6 +227,33 @@ function DetailPanel({
           </div>
         )}
       </div>
+
+      {Object.keys(role.labels).length > 0 && (
+        <div className="space-y-1">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+            Labels
+          </h3>
+          {Object.entries(role.labels)
+            .filter(([k, v]) => kv(k, v))
+            .map(([k, v]) => (
+              <MetaEntry key={k} label={k} value={v} />
+            ))}
+        </div>
+      )}
+
+      {Object.keys(role.annotations).length > 0 && (
+        <div className="space-y-1">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+            Annotations
+          </h3>
+          {Object.entries(role.annotations)
+            .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+            .filter(([k, v]) => kv(k, v))
+            .map(([k, v]) => (
+              <MetaEntry key={k} label={k} value={v} />
+            ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -40,6 +40,8 @@ export interface K8sJob {
   name: string
   namespace: string
   completions: number | null
+  parallelism: number | null
+  backoffLimit: number | null
   succeeded: number
   failed: number
   active: number
@@ -47,6 +49,7 @@ export interface K8sJob {
   completionTime: string
   duration: string
   conditions: K8sJobCondition[]
+  selector: Record<string, string>
   creationTimestamp: string
   labels: Record<string, string>
   annotations: Record<string, string>
@@ -58,6 +61,9 @@ export interface K8sCronJob {
   schedule: string
   concurrencyPolicy: string
   suspend: boolean
+  successfulJobsHistoryLimit: number | null
+  failedJobsHistoryLimit: number | null
+  startingDeadlineSeconds: number | null
   lastScheduleTime: string
   activeCount: number
   activeJobNames: string[]
@@ -533,6 +539,8 @@ export interface K8sRole {
   namespace: string
   rulesCount: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   rules: K8sRoleRule[]
 }
 
@@ -540,6 +548,8 @@ export interface K8sClusterRole {
   name: string
   rulesCount: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
   rules: K8sRoleRule[]
 }
 
@@ -561,6 +571,8 @@ export interface K8sRoleBinding {
   subjects: K8sBindingSubject[]
   subjectsCount: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
 }
 
 export interface K8sClusterRoleBinding {
@@ -569,6 +581,8 @@ export interface K8sClusterRoleBinding {
   subjects: K8sBindingSubject[]
   subjectsCount: number
   creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
 }
 
 export interface DataPoint {
