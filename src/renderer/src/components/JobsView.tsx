@@ -19,6 +19,15 @@ import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
+import { ResourceEventsSection } from "./ResourceEventsSection"
+
+function SectionHeader({ title }: { title: string }): JSX.Element {
+  return (
+    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+      {title}
+    </h3>
+  )
+}
 
 function DetailPanel({
   job,
@@ -30,14 +39,15 @@ function DetailPanel({
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-  const labelEntries = Object.entries(job.labels).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
-  const annotationEntries = Object.entries(job.annotations).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
+
+  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kv = (k: string, v: string): boolean => m(k) || m(v)
+
+  const labelEntries = Object.entries(job.labels).filter(([k, v]) => kv(k, v))
+  const annotationEntries = Object.entries(job.annotations)
+    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(([k, v]) => kv(k, v))
+  const selectorEntries = Object.entries(job.selector).filter(([k, v]) => kv(k, v))
 
   function handleEdit(): void {
     openDrawerTab({
@@ -65,25 +75,17 @@ function DetailPanel({
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{job.name}</h2>
           <span className="text-xs text-muted-foreground">{job.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={handleEdit}
-          >
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
             Edit
           </Button>
-          <CopyResourceButton
-            name={job.name}
-            namespace={job.namespace}
-            resourceKind="job"
-          />
+          <CopyResourceButton name={job.name} namespace={job.namespace} resourceKind="job" />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -93,6 +95,7 @@ function DetailPanel({
           </button>
         </div>
       </div>
+
       <input
         type="text"
         value={search}
@@ -101,12 +104,27 @@ function DetailPanel({
         className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
       />
 
+      {/* Spec */}
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Status
-        </h3>
+        <SectionHeader title="Spec" />
         <MetaEntry
           label="Completions"
+          value={job.completions !== null ? String(job.completions) : "—"}
+        />
+        {job.parallelism !== null && (
+          <MetaEntry label="Parallelism" value={String(job.parallelism)} />
+        )}
+        {job.backoffLimit !== null && (
+          <MetaEntry label="Backoff Limit" value={String(job.backoffLimit)} />
+        )}
+        <MetaEntry label="Created" value={new Date(job.creationTimestamp).toLocaleString()} />
+      </div>
+
+      {/* Status */}
+      <div className="space-y-1">
+        <SectionHeader title="Status" />
+        <MetaEntry
+          label="Progress"
           value={
             job.completions !== null
               ? `${job.succeeded}/${job.completions}`
@@ -116,67 +134,90 @@ function DetailPanel({
         <MetaEntry label="Succeeded" value={String(job.succeeded)} />
         <MetaEntry label="Failed" value={String(job.failed)} />
         <MetaEntry label="Active" value={String(job.active)} />
-        {job.duration && <MetaEntry label="Duration" value={job.duration} />}
-      </div>
-
-      <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Timing
-        </h3>
-        {job.startTime && (
-          <MetaEntry label="Start Time" value={job.startTime} />
-        )}
-        {job.completionTime && (
-          <MetaEntry label="Completion Time" value={job.completionTime} />
+        {job.duration && m(job.duration) && (
+          <MetaEntry label="Duration" value={job.duration} />
         )}
       </div>
 
+      {/* Timing */}
+      {(job.startTime || job.completionTime) && (
+        <div className="space-y-1">
+          <SectionHeader title="Timing" />
+          {job.startTime && m(job.startTime) && (
+            <MetaEntry
+              label="Start"
+              value={new Date(job.startTime).toLocaleString()}
+            />
+          )}
+          {job.completionTime && m(job.completionTime) && (
+            <MetaEntry
+              label="Completed"
+              value={new Date(job.completionTime).toLocaleString()}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Conditions */}
       {job.conditions.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Conditions
-          </h3>
-          {job.conditions.map((c, i) => (
-            <div key={i} className="text-xs">
-              <span className="font-medium">{c.type}</span>
-              {": "}
-              <span>{c.status}</span>
-              {c.reason && (
-                <span className="text-muted-foreground"> ({c.reason})</span>
-              )}
-            </div>
+          <SectionHeader title="Conditions" />
+          {job.conditions
+            .filter((c) => m(c.type) || m(c.reason) || m(c.message))
+            .map((c, i) => (
+              <div key={i} className="text-xs border rounded p-2 space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{c.type}</span>
+                  <span
+                    className={cn(
+                      "rounded px-1.5 py-0.5",
+                      c.status === "True"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-yellow-100 text-yellow-800",
+                    )}
+                  >
+                    {c.status}
+                  </span>
+                </div>
+                {c.reason && <div className="text-muted-foreground">{c.reason}</div>}
+                {c.message && <div className="text-muted-foreground">{c.message}</div>}
+              </div>
+            ))}
+        </div>
+      )}
+
+      {/* Selector */}
+      {selectorEntries.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Selector" />
+          {selectorEntries.map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
 
-      <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Metadata
-        </h3>
-        <MetaEntry label="Age" value={formatAge(job.creationTimestamp)} />
-      </div>
-
+      {/* Labels */}
       {labelEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Labels
-          </h3>
+          <SectionHeader title="Labels" />
           {labelEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
 
+      {/* Annotations */}
       {annotationEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Annotations
-          </h3>
+          <SectionHeader title="Annotations" />
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
+
+      {/* Events */}
+      <ResourceEventsSection namespace={job.namespace} name={job.name} kind="Job" search={sl} />
     </div>
   )
 }
@@ -202,9 +243,7 @@ export function JobsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || jobs.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = jobs.find(
-      (j) => j.name === item.name && j.namespace === item.namespace,
-    )
+    const fresh = jobs.find((j) => j.name === item.name && j.namespace === item.namespace)
     if (fresh) setSelectedItem(fresh as object)
   }, [jobs])
 
@@ -229,9 +268,7 @@ export function JobsView(): JSX.Element {
                 <TableRow>
                   <TableHead className="whitespace-nowrap">Name</TableHead>
                   <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    Completions
-                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Completions</TableHead>
                   <TableHead className="whitespace-nowrap">Active</TableHead>
                   <TableHead className="whitespace-nowrap">Failed</TableHead>
                   <TableHead className="whitespace-nowrap">Duration</TableHead>
@@ -257,29 +294,17 @@ export function JobsView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">
-                      {job.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {job.namespace}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{job.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{job.namespace}</TableCell>
                     <TableCell className="whitespace-nowrap">
                       {job.completions !== null
                         ? `${job.succeeded}/${job.completions}`
                         : String(job.succeeded)}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {job.active}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {job.failed}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {job.duration || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(job.creationTimestamp)}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{job.active}</TableCell>
+                    <TableCell className="whitespace-nowrap">{job.failed}</TableCell>
+                    <TableCell className="whitespace-nowrap">{job.duration || "-"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatAge(job.creationTimestamp)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -289,10 +314,7 @@ export function JobsView(): JSX.Element {
       </div>
 
       {selectedItem && "active" in selectedItem && (
-        <DetailPanel
-          job={selectedItem as K8sJob}
-          onClose={() => setSelectedItem(null)}
-        />
+        <DetailPanel job={selectedItem as K8sJob} onClose={() => setSelectedItem(null)} />
       )}
     </div>
   )
