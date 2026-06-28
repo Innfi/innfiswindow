@@ -19,6 +19,15 @@ import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
+import { ResourceEventsSection } from "./ResourceEventsSection"
+
+function SectionHeader({ title }: { title: string }): JSX.Element {
+  return (
+    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+      {title}
+    </h3>
+  )
+}
 
 function DetailPanel({
   hpa,
@@ -30,14 +39,14 @@ function DetailPanel({
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-  const labelEntries = Object.entries(hpa.labels).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
-  const annotationEntries = Object.entries(hpa.annotations).filter(
-    ([k, v]) =>
-      !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl),
-  )
+
+  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
+  const kv = (k: string, v: string): boolean => m(k) || m(v)
+
+  const labelEntries = Object.entries(hpa.labels).filter(([k, v]) => kv(k, v))
+  const annotationEntries = Object.entries(hpa.annotations)
+    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(([k, v]) => kv(k, v))
 
   function handleEdit(): void {
     openDrawerTab({
@@ -70,18 +79,14 @@ function DetailPanel({
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{hpa.name}</h2>
           <span className="text-xs text-muted-foreground">{hpa.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={handleEdit}
-          >
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
             Edit
           </Button>
           <CopyResourceButton
@@ -98,6 +103,7 @@ function DetailPanel({
           </button>
         </div>
       </div>
+
       <input
         type="text"
         value={search}
@@ -106,106 +112,98 @@ function DetailPanel({
         className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
       />
 
+      {/* Scale Target */}
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Scale Target
-        </h3>
+        <SectionHeader title="Scale Target" />
         <MetaEntry label="Kind" value={hpa.targetRef.kind} />
         <MetaEntry label="Name" value={hpa.targetRef.name} />
+        <MetaEntry label="Created" value={new Date(hpa.creationTimestamp).toLocaleString()} />
       </div>
 
+      {/* Replicas */}
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Replicas
-        </h3>
+        <SectionHeader title="Replicas" />
         <MetaEntry label="Min" value={String(hpa.minReplicas)} />
         <MetaEntry label="Max" value={String(hpa.maxReplicas)} />
         <MetaEntry label="Current" value={String(hpa.currentReplicas)} />
         <MetaEntry label="Desired" value={String(hpa.desiredReplicas)} />
-        <MetaEntry
-          label="Created"
-          value={new Date(hpa.creationTimestamp).toLocaleString()}
-        />
       </div>
 
+      {/* Metrics */}
       {hpa.metrics.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Metrics
-          </h3>
-          {hpa.metrics.map((m, i) => (
-            <div key={i} className="text-sm border rounded p-2 space-y-0.5">
-              <div className="font-medium">{m.type}</div>
-              {m.target && (
-                <div className="text-xs text-muted-foreground">
-                  Target: {m.target}
-                </div>
-              )}
-              {m.current && (
-                <div className="text-xs text-muted-foreground">
-                  Current: {m.current}
-                </div>
-              )}
-            </div>
-          ))}
+          <SectionHeader title="Metrics" />
+          {hpa.metrics
+            .filter((met) => m(met.type) || m(met.target) || m(met.current))
+            .map((met, i) => (
+              <div key={i} className="text-sm border rounded p-2 space-y-0.5">
+                <div className="font-medium">{met.type}</div>
+                {met.target && (
+                  <div className="text-xs text-muted-foreground">Target: {met.target}</div>
+                )}
+                {met.current && (
+                  <div className="text-xs text-muted-foreground">Current: {met.current}</div>
+                )}
+              </div>
+            ))}
         </div>
       )}
 
+      {/* Conditions */}
       {hpa.conditions.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Conditions
-          </h3>
-          {hpa.conditions.map((c) => (
-            <div
-              key={c.type}
-              className="text-sm space-y-0.5 border rounded p-2"
-            >
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{c.type}</span>
-                <span
-                  className={cn(
-                    "rounded px-1.5 py-0.5 text-xs",
-                    c.status === "True"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-yellow-100 text-yellow-800",
-                  )}
-                >
-                  {c.status}
-                </span>
+          <SectionHeader title="Conditions" />
+          {hpa.conditions
+            .filter((c) => m(c.type) || m(c.reason) || m(c.message))
+            .map((c) => (
+              <div key={c.type} className="text-sm space-y-0.5 border rounded p-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{c.type}</span>
+                  <span
+                    className={cn(
+                      "rounded px-1.5 py-0.5 text-xs",
+                      c.status === "True"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-yellow-100 text-yellow-800",
+                    )}
+                  >
+                    {c.status}
+                  </span>
+                </div>
+                {c.reason && <div className="text-xs text-muted-foreground">{c.reason}</div>}
+                {c.message && <div className="text-xs text-muted-foreground">{c.message}</div>}
               </div>
-              {c.reason && (
-                <div className="text-xs text-muted-foreground">{c.reason}</div>
-              )}
-              {c.message && (
-                <div className="text-xs text-muted-foreground">{c.message}</div>
-              )}
-            </div>
-          ))}
+            ))}
         </div>
       )}
 
+      {/* Labels */}
       {labelEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Labels
-          </h3>
+          <SectionHeader title="Labels" />
           {labelEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
 
+      {/* Annotations */}
       {annotationEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Annotations
-          </h3>
+          <SectionHeader title="Annotations" />
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
         </div>
       )}
+
+      {/* Events */}
+      <ResourceEventsSection
+        namespace={hpa.namespace}
+        name={hpa.name}
+        kind="HorizontalPodAutoscaler"
+        search={sl}
+      />
     </div>
   )
 }
@@ -231,9 +229,7 @@ export function HPAsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || hpas.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = hpas.find(
-      (h) => h.name === item.name && h.namespace === item.namespace,
-    )
+    const fresh = hpas.find((h) => h.name === item.name && h.namespace === item.namespace)
     if (fresh) setSelectedItem(fresh as object)
   }, [hpas])
 
@@ -277,32 +273,21 @@ export function HPAsView(): JSX.Element {
                     )}
                     onClick={() =>
                       setSelectedItem(
-                        selectedItem?.name === h.name &&
-                          selectedItem?.namespace === h.namespace
+                        selectedItem?.name === h.name && selectedItem?.namespace === h.namespace
                           ? null
                           : h,
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">
-                      {h.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {h.namespace}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{h.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{h.namespace}</TableCell>
                     <TableCell className="whitespace-nowrap">
                       {h.targetRef.kind}/{h.targetRef.name}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {h.minReplicas}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {h.maxReplicas}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{h.minReplicas}</TableCell>
+                    <TableCell className="whitespace-nowrap">{h.maxReplicas}</TableCell>
                     <TableCell className="whitespace-nowrap">{`${h.currentReplicas}/${h.desiredReplicas}`}</TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(h.creationTimestamp)}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{formatAge(h.creationTimestamp)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
