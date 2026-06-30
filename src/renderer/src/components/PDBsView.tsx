@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -17,6 +16,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sPDB } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -36,7 +36,6 @@ function DetailPanel({
   pdb: K8sPDB
   onClose: () => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
@@ -49,31 +48,6 @@ function DetailPanel({
     .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
     .filter(([k, v]) => kv(k, v))
 
-  function handleEdit(): void {
-    openDrawerTab({
-      tabKey: `yaml-edit:PodDisruptionBudget:${pdb.namespace}/${pdb.name}`,
-      type: "yaml-edit",
-      resourceKind: "PodDisruptionBudget",
-      resourceName: pdb.name,
-      namespace: pdb.namespace,
-      initialYaml: yamlDump({
-        apiVersion: "policy/v1",
-        kind: "PodDisruptionBudget",
-        metadata: {
-          name: pdb.name,
-          namespace: pdb.namespace,
-          labels: pdb.labels,
-          annotations: pdb.annotations,
-        },
-        spec: {
-          ...(pdb.minAvailable != null ? { minAvailable: pdb.minAvailable } : {}),
-          ...(pdb.maxUnavailable != null ? { maxUnavailable: pdb.maxUnavailable } : {}),
-          selector: { matchLabels: pdb.selector },
-        },
-      }),
-    })
-  }
-
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       {/* Header */}
@@ -83,9 +57,7 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{pdb.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
-            Edit
-          </Button>
+          <EditButton resourceKind="PodDisruptionBudget" resourceName={pdb.name} namespace={pdb.namespace} buildYaml={() => ({ apiVersion: "policy/v1", kind: "PodDisruptionBudget", metadata: { name: pdb.name, namespace: pdb.namespace, labels: pdb.labels, annotations: pdb.annotations }, spec: { ...(pdb.minAvailable != null ? { minAvailable: pdb.minAvailable } : {}), ...(pdb.maxUnavailable != null ? { maxUnavailable: pdb.maxUnavailable } : {}), selector: { matchLabels: pdb.selector } } })} />
           <CopyResourceButton
             name={pdb.name}
             namespace={pdb.namespace}

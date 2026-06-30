@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -26,6 +25,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sConfigMap } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -49,7 +49,6 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
   const [search, setSearch] = useState("")
@@ -71,29 +70,6 @@ function DetailPanel({
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
     onDeleteDialogChange(open)
-  }
-
-  function handleEdit(): void {
-    const obj = {
-      apiVersion: "v1",
-      kind: "ConfigMap",
-      metadata: {
-        name: cm.name,
-        namespace: cm.namespace,
-        ...(Object.keys(cm.labels).length > 0 ? { labels: cm.labels } : {}),
-        ...(Object.keys(cm.annotations).length > 0 ? { annotations: cm.annotations } : {}),
-      },
-      ...(Object.keys(cm.data).length > 0 ? { data: cm.data } : {}),
-      ...(Object.keys(cm.binaryData).length > 0 ? { binaryData: cm.binaryData } : {}),
-    }
-    openDrawerTab({
-      tabKey: `yaml-edit:ConfigMap:${cm.namespace}/${cm.name}`,
-      type: "yaml-edit",
-      resourceKind: "ConfigMap",
-      resourceName: cm.name,
-      namespace: cm.namespace,
-      initialYaml: yamlDump(obj),
-    })
   }
 
   async function handleDelete(): Promise<void> {
@@ -138,9 +114,7 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{cm.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
-            Edit
-          </Button>
+          <EditButton resourceKind="ConfigMap" resourceName={cm.name} namespace={cm.namespace} buildYaml={() => ({ apiVersion: "v1", kind: "ConfigMap", metadata: { name: cm.name, namespace: cm.namespace, ...(Object.keys(cm.labels).length > 0 ? { labels: cm.labels } : {}), ...(Object.keys(cm.annotations).length > 0 ? { annotations: cm.annotations } : {}) }, ...(Object.keys(cm.data).length > 0 ? { data: cm.data } : {}), ...(Object.keys(cm.binaryData).length > 0 ? { binaryData: cm.binaryData } : {}) })} />
           <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => setDeleteOpenNotify(true)}>
             Delete
           </Button>

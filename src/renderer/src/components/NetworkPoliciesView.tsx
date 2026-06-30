@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -21,6 +20,7 @@ import {
 } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -112,7 +112,6 @@ function DetailPanel({
   item: K8sNetworkPolicy
   onClose: () => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
@@ -124,22 +123,6 @@ function DetailPanel({
     .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
     .filter(([k, v]) => kv(k, v))
 
-  function handleEdit(): void {
-    openDrawerTab({
-      tabKey: `yaml-edit:NetworkPolicy:${item.namespace}/${item.name}`,
-      type: "yaml-edit",
-      resourceKind: "NetworkPolicy",
-      resourceName: item.name,
-      namespace: item.namespace,
-      initialYaml: yamlDump({
-        apiVersion: "networking.k8s.io/v1",
-        kind: "NetworkPolicy",
-        metadata: { name: item.name, namespace: item.namespace },
-        spec: { podSelector: {}, policyTypes: item.policyTypes },
-      }),
-    })
-  }
-
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
@@ -148,9 +131,7 @@ function DetailPanel({
           <p className="text-xs text-muted-foreground">{item.namespace}</p>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
-            Edit
-          </Button>
+          <EditButton resourceKind="NetworkPolicy" resourceName={item.name} namespace={item.namespace} buildYaml={() => ({ apiVersion: "networking.k8s.io/v1", kind: "NetworkPolicy", metadata: { name: item.name, namespace: item.namespace }, spec: { podSelector: {}, policyTypes: item.policyTypes } })} />
           <CopyResourceButton name={item.name} namespace={item.namespace} resourceKind="networkpolicy" />
           <button
             onClick={onClose}

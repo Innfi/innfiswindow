@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -27,6 +26,7 @@ import { K8sDaemonSet } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -50,7 +50,6 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -72,34 +71,6 @@ function DetailPanel({
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
     onDeleteDialogChange(open)
-  }
-
-  function handleEdit(): void {
-    const obj = {
-      apiVersion: "apps/v1",
-      kind: "DaemonSet",
-      metadata: { name: ds.name, namespace: ds.namespace },
-      spec: {
-        selector: { matchLabels: ds.selector },
-        updateStrategy: { type: ds.updateStrategy },
-        template: {
-          metadata: { labels: ds.selector },
-          spec: {
-            containers: ds.containers.map((c) => ({ name: c.name, image: c.image })),
-            ...(Object.keys(ds.nodeSelector).length ? { nodeSelector: ds.nodeSelector } : {}),
-            ...(ds.tolerations.length ? { tolerations: ds.tolerations } : {}),
-          },
-        },
-      },
-    }
-    openDrawerTab({
-      tabKey: `yaml-edit:DaemonSet:${ds.namespace}/${ds.name}`,
-      type: "yaml-edit",
-      resourceKind: "DaemonSet",
-      resourceName: ds.name,
-      namespace: ds.namespace,
-      initialYaml: yamlDump(obj),
-    })
   }
 
   async function handleDelete(): Promise<void> {
@@ -145,9 +116,7 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{ds.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
-            Edit
-          </Button>
+          <EditButton resourceKind="DaemonSet" resourceName={ds.name} namespace={ds.namespace} buildYaml={() => ({ apiVersion: "apps/v1", kind: "DaemonSet", metadata: { name: ds.name, namespace: ds.namespace }, spec: { selector: { matchLabels: ds.selector }, updateStrategy: { type: ds.updateStrategy }, template: { metadata: { labels: ds.selector }, spec: { containers: ds.containers.map((c) => ({ name: c.name, image: c.image })), ...(Object.keys(ds.nodeSelector).length ? { nodeSelector: ds.nodeSelector } : {}), ...(ds.tolerations.length ? { tolerations: ds.tolerations } : {}) } } } })} />
           <Button
             size="sm"
             variant="destructive"

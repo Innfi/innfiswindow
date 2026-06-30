@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { ArrowLeftRight, ScrollText, SquareTerminal, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -27,6 +26,7 @@ import { K8sPod } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { PodMetricsSection } from "./PodMetricsSection"
 import { RefreshBar } from "./RefreshBar"
@@ -77,27 +77,6 @@ function DetailPanel({
     .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
     .filter(([k, v]) => kv(k, v))
 
-  function handleEdit(): void {
-    openDrawerTab({
-      tabKey: `yaml-edit:Pod:${pod.namespace}/${pod.name}`,
-      type: "yaml-edit",
-      resourceKind: "Pod",
-      resourceName: pod.name,
-      namespace: pod.namespace,
-      initialYaml: yamlDump({
-        apiVersion: "v1",
-        kind: "Pod",
-        metadata: { name: pod.name, namespace: pod.namespace },
-        spec: {
-          containers: pod.containers.map((c) => ({
-            name: c.name,
-            image: c.image,
-          })),
-        },
-      }),
-    })
-  }
-
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
     onDeleteDialogChange(open)
@@ -145,9 +124,7 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{pod.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
-            Edit
-          </Button>
+          <EditButton resourceKind="Pod" resourceName={pod.name} namespace={pod.namespace} buildYaml={() => ({ apiVersion: "v1", kind: "Pod", metadata: { name: pod.name, namespace: pod.namespace }, spec: { containers: pod.containers.map((c) => ({ name: c.name, image: c.image })) } })} />
           <Button variant="ghost" size="icon" title="Logs" onClick={onLogs}>
             <ScrollText className="h-4 w-4" />
           </Button>

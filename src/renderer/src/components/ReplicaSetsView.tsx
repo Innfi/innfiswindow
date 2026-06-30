@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -18,6 +17,7 @@ import { K8sReplicaSet } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -37,7 +37,6 @@ function DetailPanel({
   rs: K8sReplicaSet
   onClose: () => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
@@ -51,31 +50,6 @@ function DetailPanel({
     .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
     .filter(([k, v]) => kv(k, v))
 
-  function handleEdit(): void {
-    openDrawerTab({
-      tabKey: `yaml-edit:ReplicaSet:${rs.namespace}/${rs.name}`,
-      type: "yaml-edit",
-      resourceKind: "ReplicaSet",
-      resourceName: rs.name,
-      namespace: rs.namespace,
-      initialYaml: yamlDump({
-        apiVersion: "apps/v1",
-        kind: "ReplicaSet",
-        metadata: { name: rs.name, namespace: rs.namespace },
-        spec: {
-          replicas: rs.desiredReplicas,
-          selector: { matchLabels: rs.selector },
-          template: {
-            metadata: { labels: rs.podTemplateLabels },
-            spec: {
-              containers: rs.containers.map((c) => ({ name: c.name, image: c.image })),
-            },
-          },
-        },
-      }),
-    })
-  }
-
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       {/* Header */}
@@ -85,9 +59,7 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{rs.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
-            Edit
-          </Button>
+          <EditButton resourceKind="ReplicaSet" resourceName={rs.name} namespace={rs.namespace} buildYaml={() => ({ apiVersion: "apps/v1", kind: "ReplicaSet", metadata: { name: rs.name, namespace: rs.namespace }, spec: { replicas: rs.desiredReplicas, selector: { matchLabels: rs.selector }, template: { metadata: { labels: rs.podTemplateLabels }, spec: { containers: rs.containers.map((c) => ({ name: c.name, image: c.image })) } } } })} />
           <CopyResourceButton name={rs.name} namespace={rs.namespace} resourceKind="replicaset" />
           <button
             onClick={onClose}

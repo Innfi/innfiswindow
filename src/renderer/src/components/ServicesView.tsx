@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { ArrowLeftRight, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -26,6 +25,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sEndpoint, K8sService, K8sServicePort } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -89,37 +89,6 @@ function DetailPanel({
     .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
     .filter(([k, v]) => kv(k, v))
 
-  function handleEdit(): void {
-    const obj = {
-      apiVersion: "v1",
-      kind: "Service",
-      metadata: {
-        name: svc.name,
-        namespace: svc.namespace,
-        ...(Object.keys(svc.labels).length > 0 ? { labels: svc.labels } : {}),
-      },
-      spec: {
-        type: svc.type,
-        ...(Object.keys(svc.selector).length > 0 ? { selector: svc.selector } : {}),
-        ports: svc.ports.map((p) => ({
-          name: p.name || undefined,
-          protocol: p.protocol,
-          port: p.port,
-          targetPort: isNaN(Number(p.targetPort)) ? p.targetPort : Number(p.targetPort),
-          ...(p.nodePort ? { nodePort: p.nodePort } : {}),
-        })),
-      },
-    }
-    openDrawerTab({
-      tabKey: `yaml-edit:Service:${svc.namespace}/${svc.name}`,
-      type: "yaml-edit",
-      resourceKind: "Service",
-      resourceName: svc.name,
-      namespace: svc.namespace,
-      initialYaml: yamlDump(obj),
-    })
-  }
-
   async function handleDelete(): Promise<void> {
     setDeleting(true)
     try {
@@ -174,9 +143,7 @@ function DetailPanel({
           <Button size="sm" variant="ghost" className="h-7 px-1.5" title="Port Forward" onClick={onPortForward}>
             <ArrowLeftRight className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
-            Edit
-          </Button>
+          <EditButton resourceKind="Service" resourceName={svc.name} namespace={svc.namespace} buildYaml={() => ({ apiVersion: "v1", kind: "Service", metadata: { name: svc.name, namespace: svc.namespace, ...(Object.keys(svc.labels).length > 0 ? { labels: svc.labels } : {}) }, spec: { type: svc.type, ...(Object.keys(svc.selector).length > 0 ? { selector: svc.selector } : {}), ports: svc.ports.map((p) => ({ name: p.name || undefined, protocol: p.protocol, port: p.port, targetPort: isNaN(Number(p.targetPort)) ? p.targetPort : Number(p.targetPort), ...(p.nodePort ? { nodePort: p.nodePort } : {}) })) } })} />
           <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => setDeleteOpenNotify(true)}>
             Delete
           </Button>

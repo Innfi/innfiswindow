@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -17,6 +16,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sNamespace } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -36,7 +36,6 @@ function DetailPanel({
   ns: K8sNamespace
   onClose: () => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
@@ -47,21 +46,6 @@ function DetailPanel({
   const annotationEntries = Object.entries(ns.annotations)
     .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
     .filter(([k, v]) => kv(k, v))
-
-  function handleEdit(): void {
-    openDrawerTab({
-      tabKey: `yaml-edit:Namespace:${ns.name}`,
-      type: "yaml-edit",
-      resourceKind: "Namespace",
-      resourceName: ns.name,
-      namespace: "",
-      initialYaml: yamlDump({
-        apiVersion: "v1",
-        kind: "Namespace",
-        metadata: { name: ns.name, labels: ns.labels, annotations: ns.annotations },
-      }),
-    })
-  }
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
@@ -80,9 +64,7 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
-            Edit
-          </Button>
+          <EditButton resourceKind="Namespace" resourceName={ns.name} buildYaml={() => ({ apiVersion: "v1", kind: "Namespace", metadata: { name: ns.name, labels: ns.labels, annotations: ns.annotations } })} />
           <CopyResourceButton name={ns.name} resourceKind="namespace" />
           <button
             onClick={onClose}

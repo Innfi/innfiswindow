@@ -1,5 +1,4 @@
-import { dump as yamlDump } from "js-yaml"
-import { Pencil, Trash2, X } from "lucide-react"
+import { Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -26,6 +25,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sRole } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 
@@ -40,7 +40,6 @@ function DetailPanel({
   onDeleteSuccess: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
@@ -57,17 +56,6 @@ function DetailPanel({
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
     onDeleteDialogChange(open)
-  }
-
-  function handleEdit(): void {
-    openDrawerTab({
-      tabKey: `edit-resource:Role:${role.namespace}/${role.name}`,
-      type: "edit-resource",
-      resourceKind: "Role",
-      resourceName: role.name,
-      namespace: role.namespace,
-      initialYaml: yamlDump(role.rules),
-    })
   }
 
   async function handleDelete(): Promise<void> {
@@ -113,10 +101,7 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={handleEdit}>
-            <Pencil className="h-3 w-3 mr-1" />
-            Edit
-          </Button>
+          <EditButton resourceKind="Role" resourceName={role.name} namespace={role.namespace} buildYaml={() => ({ apiVersion: "rbac.authorization.k8s.io/v1", kind: "Role", metadata: { name: role.name, namespace: role.namespace, ...(Object.keys(role.labels).length > 0 && { labels: role.labels }), ...(Object.keys(role.annotations).length > 0 && { annotations: role.annotations }) }, rules: role.rules })} />
           <Button
             size="sm"
             variant="outline"

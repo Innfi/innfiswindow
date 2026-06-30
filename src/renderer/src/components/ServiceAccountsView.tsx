@@ -1,5 +1,4 @@
-import { dump as yamlDump } from "js-yaml"
-import { Pencil, Trash2, X } from "lucide-react"
+import { Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -26,6 +25,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sServiceAccount } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -49,7 +49,6 @@ function DetailPanel({
   onDeleteSuccess: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
@@ -71,17 +70,6 @@ function DetailPanel({
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
     onDeleteDialogChange(open)
-  }
-
-  function handleEdit(): void {
-    openDrawerTab({
-      tabKey: `edit-resource:ServiceAccount:${sa.namespace}/${sa.name}`,
-      type: "edit-resource",
-      resourceKind: "ServiceAccount",
-      resourceName: sa.name,
-      namespace: sa.namespace,
-      initialYaml: yamlDump({ labels: sa.labels, annotations: sa.annotations }),
-    })
   }
 
   async function handleDelete(): Promise<void> {
@@ -125,10 +113,7 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{sa.namespace}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={handleEdit}>
-            <Pencil className="h-3 w-3 mr-1" />
-            Edit
-          </Button>
+          <EditButton resourceKind="ServiceAccount" resourceName={sa.name} namespace={sa.namespace} buildYaml={() => ({ apiVersion: "v1", kind: "ServiceAccount", metadata: { name: sa.name, namespace: sa.namespace, ...(Object.keys(sa.labels).length > 0 && { labels: sa.labels }), ...(Object.keys(sa.annotations).length > 0 && { annotations: sa.annotations }) } })} />
           <Button
             size="sm"
             variant="outline"

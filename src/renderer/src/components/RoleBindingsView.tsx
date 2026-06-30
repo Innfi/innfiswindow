@@ -1,5 +1,4 @@
-import { dump as yamlDump } from "js-yaml"
-import { Pencil, Trash2, X } from "lucide-react"
+import { Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -26,6 +25,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sRoleBinding } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 
@@ -40,7 +40,6 @@ function DetailPanel({
   onDeleteSuccess: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
@@ -57,18 +56,6 @@ function DetailPanel({
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
     onDeleteDialogChange(open)
-  }
-
-  function handleEdit(): void {
-    openDrawerTab({
-      tabKey: `edit-resource:RoleBinding:${binding.namespace}/${binding.name}`,
-      type: "edit-resource",
-      resourceKind: "RoleBinding",
-      resourceName: binding.name,
-      namespace: binding.namespace,
-      initialYaml: yamlDump(binding.subjects),
-      roleRef: { kind: binding.roleRef.kind, name: binding.roleRef.name },
-    })
   }
 
   async function handleDelete(): Promise<void> {
@@ -114,10 +101,7 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={handleEdit}>
-            <Pencil className="h-3 w-3 mr-1" />
-            Edit
-          </Button>
+          <EditButton resourceKind="RoleBinding" resourceName={binding.name} namespace={binding.namespace} buildYaml={() => ({ apiVersion: "rbac.authorization.k8s.io/v1", kind: "RoleBinding", metadata: { name: binding.name, namespace: binding.namespace, ...(Object.keys(binding.labels).length > 0 && { labels: binding.labels }), ...(Object.keys(binding.annotations).length > 0 && { annotations: binding.annotations }) }, roleRef: { apiGroup: "rbac.authorization.k8s.io", kind: binding.roleRef.kind, name: binding.roleRef.name }, subjects: binding.subjects })} />
           <Button
             size="sm"
             variant="outline"

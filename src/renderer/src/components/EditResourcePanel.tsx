@@ -1,3 +1,4 @@
+import { diffLines } from "diff"
 import { load as yamlLoad } from "js-yaml"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -19,13 +20,15 @@ export function EditResourcePanel({
   const [yaml, setYaml] = useState(tab.initialYaml)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showDiff, setShowDiff] = useState(false)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
 
+  const hasChanges = yaml !== tab.initialYaml
+
   async function handleSave(): Promise<void> {
-    let parsed: unknown
     try {
-      parsed = yamlLoad(yaml)
+      yamlLoad(yaml)
     } catch (e) {
       setError(`YAML syntax error: ${String(e)}`)
       return
@@ -34,75 +37,7 @@ export function EditResourcePanel({
     setSaving(true)
     setError(null)
     try {
-      if (tab.resourceKind === "Role") {
-        if (!Array.isArray(parsed)) {
-          setError("Rules must be a YAML array")
-          setSaving(false)
-          return
-        }
-        await window.api.k8s.updateRole(
-          tab.namespace!,
-          tab.resourceName,
-          parsed as Array<{
-            apiGroups: string[]
-            resources: string[]
-            verbs: string[]
-          }>,
-        )
-      } else if (tab.resourceKind === "ClusterRole") {
-        if (!Array.isArray(parsed)) {
-          setError("Rules must be a YAML array")
-          setSaving(false)
-          return
-        }
-        await window.api.k8s.updateClusterRole(
-          tab.resourceName,
-          parsed as Array<{
-            apiGroups: string[]
-            resources: string[]
-            verbs: string[]
-          }>,
-        )
-      } else if (tab.resourceKind === "RoleBinding") {
-        if (!Array.isArray(parsed)) {
-          setError("Subjects must be a YAML array")
-          setSaving(false)
-          return
-        }
-        await window.api.k8s.updateRoleBinding(
-          tab.namespace!,
-          tab.resourceName,
-          parsed as Array<{ kind: string; name: string; namespace?: string }>,
-        )
-      } else if (tab.resourceKind === "ClusterRoleBinding") {
-        if (!Array.isArray(parsed)) {
-          setError("Subjects must be a YAML array")
-          setSaving(false)
-          return
-        }
-        await window.api.k8s.updateClusterRoleBinding(
-          tab.resourceName,
-          parsed as Array<{ kind: string; name: string; namespace?: string }>,
-        )
-      } else if (tab.resourceKind === "ServiceAccount") {
-        if (
-          typeof parsed !== "object" ||
-          parsed === null ||
-          Array.isArray(parsed)
-        ) {
-          setError("Metadata must be a YAML object")
-          setSaving(false)
-          return
-        }
-        await window.api.k8s.updateServiceAccount(
-          tab.namespace!,
-          tab.resourceName,
-          parsed as {
-            labels?: Record<string, string>
-            annotations?: Record<string, string>
-          },
-        )
-      }
+      await window.api.k8s.applyResource(yaml)
       appendHistory({
         action: "update",
         resourceKind: tab.resourceKind,
@@ -134,20 +69,45 @@ export function EditResourcePanel({
     }
   }
 
+  const diffParts = showDiff ? diffLines(tab.initialYaml, yaml) : []
+
   return (
     <div className="flex flex-col w-full h-full overflow-hidden">
-      {tab.roleRef && (
-        <div className="px-3 py-2 border-b text-xs text-muted-foreground shrink-0">
-          <span className="font-medium">Role Ref (read-only):</span>{" "}
-          {tab.roleRef.kind}/{tab.roleRef.name}
+      {showDiff ? (
+        <div className="flex-1 overflow-auto p-3 font-mono text-sm bg-muted">
+          {!hasChanges ? (
+            <p className="text-muted-foreground italic">No changes</p>
+          ) : (
+            diffParts.map((part, i) => {
+              const lines = part.value.replace(/\n$/, "").split("\n")
+              return lines.map((line, j) => (
+                <div
+                  key={`${i}-${j}`}
+                  className={
+                    part.added
+                      ? "bg-green-500/20 text-green-700 dark:text-green-300"
+                      : part.removed
+                        ? "bg-red-500/20 text-red-700 dark:text-red-300"
+                        : "text-foreground"
+                  }
+                >
+                  <span className="select-none mr-1 text-muted-foreground">
+                    {part.added ? "+" : part.removed ? "-" : " "}
+                  </span>
+                  {line}
+                </div>
+              ))
+            })
+          )}
         </div>
+      ) : (
+        <textarea
+          value={yaml}
+          onChange={(e) => setYaml(e.target.value)}
+          className="flex-1 resize-none p-3 font-mono text-sm bg-muted text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          spellCheck={false}
+        />
       )}
-      <textarea
-        value={yaml}
-        onChange={(e) => setYaml(e.target.value)}
-        className="flex-1 resize-none p-3 font-mono text-sm bg-muted text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-        spellCheck={false}
-      />
       {error && (
         <p className="text-xs text-destructive font-mono whitespace-pre-wrap px-3 py-1.5 border-t border-border bg-destructive/5">
           {error}
@@ -159,9 +119,18 @@ export function EditResourcePanel({
           variant="default"
           className="h-6 gap-1 text-xs px-2"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !hasChanges}
         >
           {saving ? "Saving…" : "Save"}
+        </Button>
+        <Button
+          size="sm"
+          variant={showDiff ? "secondary" : "outline"}
+          className="h-6 gap-1 text-xs px-2"
+          onClick={() => setShowDiff((v) => !v)}
+          disabled={saving}
+        >
+          {showDiff ? "Hide diff" : "Show diff"}
         </Button>
         <Button
           size="sm"

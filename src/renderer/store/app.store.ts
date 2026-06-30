@@ -83,21 +83,6 @@ export type DrawerTab =
   | {
       id: string
       tabKey: string
-      type: "edit-resource"
-      resourceKind:
-        | "Role"
-        | "ClusterRole"
-        | "RoleBinding"
-        | "ClusterRoleBinding"
-        | "ServiceAccount"
-      resourceName: string
-      namespace?: string
-      initialYaml: string
-      roleRef?: { kind: string; name: string }
-    }
-  | {
-      id: string
-      tabKey: string
       type: "yaml-edit"
       resourceKind:
         | "Deployment"
@@ -119,6 +104,11 @@ export type DrawerTab =
         | "PodDisruptionBudget"
         | "CronJob"
         | "Job"
+        | "Role"
+        | "ClusterRole"
+        | "RoleBinding"
+        | "ClusterRoleBinding"
+        | "ServiceAccount"
       resourceName: string
       namespace: string
       initialYaml: string
@@ -160,20 +150,6 @@ export type DrawerTabInput =
     }
   | {
       tabKey: string
-      type: "edit-resource"
-      resourceKind:
-        | "Role"
-        | "ClusterRole"
-        | "RoleBinding"
-        | "ClusterRoleBinding"
-        | "ServiceAccount"
-      resourceName: string
-      namespace?: string
-      initialYaml: string
-      roleRef?: { kind: string; name: string }
-    }
-  | {
-      tabKey: string
       type: "yaml-edit"
       resourceKind:
         | "Deployment"
@@ -195,6 +171,11 @@ export type DrawerTabInput =
         | "PodDisruptionBudget"
         | "CronJob"
         | "Job"
+        | "Role"
+        | "ClusterRole"
+        | "RoleBinding"
+        | "ClusterRoleBinding"
+        | "ServiceAccount"
       resourceName: string
       namespace: string
       initialYaml: string

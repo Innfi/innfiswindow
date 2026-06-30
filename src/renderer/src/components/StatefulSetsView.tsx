@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -27,6 +26,7 @@ import { K8sStatefulSet } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -50,7 +50,6 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
   const [search, setSearch] = useState("")
@@ -71,34 +70,6 @@ function DetailPanel({
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
     onDeleteDialogChange(open)
-  }
-
-  function handleEdit(): void {
-    const obj = {
-      apiVersion: "apps/v1",
-      kind: "StatefulSet",
-      metadata: { name: ss.name, namespace: ss.namespace },
-      spec: {
-        replicas: ss.replicas,
-        serviceName: ss.serviceName,
-        selector: { matchLabels: ss.selector },
-        updateStrategy: { type: ss.updateStrategy },
-        template: {
-          metadata: { labels: ss.selector },
-          spec: {
-            containers: ss.containers.map((c) => ({ name: c.name, image: c.image })),
-          },
-        },
-      },
-    }
-    openDrawerTab({
-      tabKey: `yaml-edit:StatefulSet:${ss.namespace}/${ss.name}`,
-      type: "yaml-edit",
-      resourceKind: "StatefulSet",
-      resourceName: ss.name,
-      namespace: ss.namespace,
-      initialYaml: yamlDump(obj),
-    })
   }
 
   async function handleDelete(): Promise<void> {
@@ -144,9 +115,7 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{ss.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
-            Edit
-          </Button>
+          <EditButton resourceKind="StatefulSet" resourceName={ss.name} namespace={ss.namespace} buildYaml={() => ({ apiVersion: "apps/v1", kind: "StatefulSet", metadata: { name: ss.name, namespace: ss.namespace }, spec: { replicas: ss.replicas, serviceName: ss.serviceName, selector: { matchLabels: ss.selector }, updateStrategy: { type: ss.updateStrategy }, template: { metadata: { labels: ss.selector }, spec: { containers: ss.containers.map((c) => ({ name: c.name, image: c.image })) } } } })} />
           <Button
             size="sm"
             variant="destructive"

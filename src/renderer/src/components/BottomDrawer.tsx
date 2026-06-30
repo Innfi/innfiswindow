@@ -6,7 +6,6 @@ import { toast } from "sonner"
 import { Button } from "../../components/ui/button"
 import { useAppStore } from "../../store/app.store"
 import { CustomStreamPanel } from "./CustomStreamPanel"
-import { EditResourcePanel } from "./EditResourcePanel"
 import { PodLogPanel } from "./PodLogPanel"
 import { PortForwardPanel } from "./PortForwardPanel"
 import { ShellPanel } from "./ShellPanel"
@@ -229,9 +228,7 @@ export function BottomDrawer(): JSX.Element {
               ? tab.podName
               : tab.type === "pod-shell"
                 ? `${tab.podName} / ${tab.containerName}`
-                : tab.type === "edit-resource"
-                  ? `${tab.resourceKind}/${tab.resourceName}`
-                  : tab.type === "yaml-edit"
+                : tab.type === "yaml-edit"
                     ? `${tab.resourceKind}/${tab.resourceName}`
                     : tab.type === "custom-stream"
                       ? tab.label
@@ -316,12 +313,6 @@ export function BottomDrawer(): JSX.Element {
                   podName={tab.podName}
                   containerName={tab.containerName}
                   restored={tab.restored}
-                />
-              )}
-              {tab.type === "edit-resource" && (
-                <EditResourcePanel
-                  tab={tab}
-                  onClose={() => closeDrawerTab(tab.id)}
                 />
               )}
               {tab.type === "yaml-edit" && (

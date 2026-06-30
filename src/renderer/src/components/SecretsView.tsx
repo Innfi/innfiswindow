@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { Eye, EyeOff, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -26,6 +25,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sSecret } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -49,7 +49,6 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
   const [search, setSearch] = useState("")
@@ -79,29 +78,6 @@ function DetailPanel({
       if (next.has(key)) next.delete(key)
       else next.add(key)
       return next
-    })
-  }
-
-  function handleEdit(): void {
-    const obj = {
-      apiVersion: "v1",
-      kind: "Secret",
-      metadata: {
-        name: secret.name,
-        namespace: secret.namespace,
-        ...(Object.keys(secret.labels).length > 0 ? { labels: secret.labels } : {}),
-        ...(Object.keys(secret.annotations).length > 0 ? { annotations: secret.annotations } : {}),
-      },
-      type: secret.type,
-      ...(Object.keys(secret.data).length > 0 ? { data: secret.data } : {}),
-    }
-    openDrawerTab({
-      tabKey: `yaml-edit:Secret:${secret.namespace}/${secret.name}`,
-      type: "yaml-edit",
-      resourceKind: "Secret",
-      resourceName: secret.name,
-      namespace: secret.namespace,
-      initialYaml: yamlDump(obj),
     })
   }
 
@@ -147,9 +123,7 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{secret.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
-            Edit
-          </Button>
+          <EditButton resourceKind="Secret" resourceName={secret.name} namespace={secret.namespace} buildYaml={() => ({ apiVersion: "v1", kind: "Secret", metadata: { name: secret.name, namespace: secret.namespace, ...(Object.keys(secret.labels).length > 0 ? { labels: secret.labels } : {}), ...(Object.keys(secret.annotations).length > 0 ? { annotations: secret.annotations } : {}) }, type: secret.type, ...(Object.keys(secret.data).length > 0 ? { data: secret.data } : {}) })} />
           <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => setDeleteOpenNotify(true)}>
             Delete
           </Button>

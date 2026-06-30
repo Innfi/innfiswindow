@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -17,6 +16,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sPVC } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -46,7 +46,6 @@ function DetailPanel({
   pvc: K8sPVC
   onClose: () => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
@@ -58,31 +57,6 @@ function DetailPanel({
     .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
     .filter(([k, v]) => kv(k, v))
 
-  function handleEdit(): void {
-    openDrawerTab({
-      tabKey: `yaml-edit:PersistentVolumeClaim:${pvc.namespace}/${pvc.name}`,
-      type: "yaml-edit",
-      resourceKind: "PersistentVolumeClaim",
-      resourceName: pvc.name,
-      namespace: pvc.namespace,
-      initialYaml: yamlDump({
-        apiVersion: "v1",
-        kind: "PersistentVolumeClaim",
-        metadata: {
-          name: pvc.name,
-          namespace: pvc.namespace,
-          labels: pvc.labels,
-          annotations: pvc.annotations,
-        },
-        spec: {
-          accessModes: pvc.accessModes,
-          storageClassName: pvc.storageClass,
-          resources: { requests: { storage: pvc.capacity } },
-        },
-      }),
-    })
-  }
-
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       {/* Header */}
@@ -92,9 +66,7 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{pvc.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
-            Edit
-          </Button>
+          <EditButton resourceKind="PersistentVolumeClaim" resourceName={pvc.name} namespace={pvc.namespace} buildYaml={() => ({ apiVersion: "v1", kind: "PersistentVolumeClaim", metadata: { name: pvc.name, namespace: pvc.namespace, labels: pvc.labels, annotations: pvc.annotations }, spec: { accessModes: pvc.accessModes, storageClassName: pvc.storageClass, resources: { requests: { storage: pvc.capacity } } } })} />
           <CopyResourceButton name={pvc.name} namespace={pvc.namespace} resourceKind="persistentvolumeclaim" />
           <button
             onClick={onClose}

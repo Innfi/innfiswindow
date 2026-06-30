@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -22,6 +21,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sResourceQuota } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -40,7 +40,6 @@ function DetailPanel({
   quota: K8sResourceQuota
   onClose: () => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
@@ -56,22 +55,6 @@ function DetailPanel({
     (r) => !sl || r.toLowerCase().includes(sl),
   )
 
-  function handleEdit(): void {
-    openDrawerTab({
-      tabKey: `yaml-edit:ResourceQuota:${quota.namespace}/${quota.name}`,
-      type: "yaml-edit",
-      resourceKind: "ResourceQuota",
-      resourceName: quota.name,
-      namespace: quota.namespace,
-      initialYaml: yamlDump({
-        apiVersion: "v1",
-        kind: "ResourceQuota",
-        metadata: { name: quota.name, namespace: quota.namespace },
-        spec: { hard: quota.hard },
-      }),
-    })
-  }
-
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       <div className="flex items-start justify-between">
@@ -82,14 +65,7 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={handleEdit}
-          >
-            Edit
-          </Button>
+          <EditButton resourceKind="ResourceQuota" resourceName={quota.name} namespace={quota.namespace} buildYaml={() => ({ apiVersion: "v1", kind: "ResourceQuota", metadata: { name: quota.name, namespace: quota.namespace }, spec: { hard: quota.hard } })} />
           <CopyResourceButton
             name={quota.name}
             namespace={quota.namespace}

@@ -8,8 +8,8 @@ export function MetaEntry({
   mono?: boolean
 }): JSX.Element {
   return (
-    <div className="flex gap-2 text-sm">
-      <span className="shrink-0 font-medium text-muted-foreground w-32">{label}</span>
+    <div className="grid grid-cols-[minmax(8rem,40%)_1fr] gap-x-2 text-sm items-baseline">
+      <span className="font-medium text-muted-foreground break-all">{label}</span>
       <span className={`break-all${mono ? " font-mono text-xs" : ""}`}>{value}</span>
     </div>
   )

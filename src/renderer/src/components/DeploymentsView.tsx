@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -27,6 +26,7 @@ import { K8sDeployment } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -57,7 +57,6 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
   const [search, setSearch] = useState("")
@@ -128,35 +127,6 @@ function DetailPanel({
     onDeleteDialogChange(open)
   }
 
-  function handleEdit(): void {
-    const obj = {
-      apiVersion: "apps/v1",
-      kind: "Deployment",
-      metadata: { name: deployment.name, namespace: deployment.namespace },
-      spec: {
-        replicas: deployment.replicas,
-        selector: { matchLabels: deployment.selector },
-        template: {
-          metadata: { labels: deployment.selector },
-          spec: {
-            containers: deployment.containers.map((c) => ({
-              name: c.name,
-              image: c.image,
-            })),
-          },
-        },
-      },
-    }
-    openDrawerTab({
-      tabKey: `yaml-edit:Deployment:${deployment.namespace}/${deployment.name}`,
-      type: "yaml-edit",
-      resourceKind: "Deployment",
-      resourceName: deployment.name,
-      namespace: deployment.namespace,
-      initialYaml: yamlDump(obj),
-    })
-  }
-
   async function handleDelete(): Promise<void> {
     setDeleting(true)
     try {
@@ -200,9 +170,7 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{deployment.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
-            Edit
-          </Button>
+          <EditButton resourceKind="Deployment" resourceName={deployment.name} namespace={deployment.namespace} buildYaml={() => ({ apiVersion: "apps/v1", kind: "Deployment", metadata: { name: deployment.name, namespace: deployment.namespace }, spec: { replicas: deployment.replicas, selector: { matchLabels: deployment.selector }, template: { metadata: { labels: deployment.selector }, spec: { containers: deployment.containers.map((c) => ({ name: c.name, image: c.image })) } } } })} />
           <Button
             size="sm"
             variant="destructive"

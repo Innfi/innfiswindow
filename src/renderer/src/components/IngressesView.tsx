@@ -1,4 +1,3 @@
-import { dump as yamlDump } from "js-yaml"
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -26,6 +25,7 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sIngress, K8sIngressRule, K8sIngressTLS } from "../types/k8s"
 import { CopyResourceButton } from "./CopyResourceButton"
 import { EmptyState } from "./EmptyState"
+import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -49,7 +49,6 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
   const [search, setSearch] = useState("")
@@ -68,53 +67,6 @@ function DetailPanel({
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
     onDeleteDialogChange(open)
-  }
-
-  function handleEdit(): void {
-    const obj = {
-      apiVersion: "networking.k8s.io/v1",
-      kind: "Ingress",
-      metadata: {
-        name: item.name,
-        namespace: item.namespace,
-        ...(Object.keys(item.labels).length > 0 ? { labels: item.labels } : {}),
-        ...(Object.keys(item.annotations).length > 0 ? { annotations: item.annotations } : {}),
-      },
-      spec: {
-        ...(item.ingressClassName ? { ingressClassName: item.ingressClassName } : {}),
-        rules: item.rules.map((r) => ({
-          host: r.host,
-          http: {
-            paths: r.paths.map((p) => ({
-              path: p.path,
-              pathType: p.pathType,
-              backend: {
-                service: {
-                  name: p.serviceName,
-                  port: {
-                    number:
-                      typeof p.servicePort === "number"
-                        ? p.servicePort
-                        : parseInt(String(p.servicePort), 10) || 80,
-                  },
-                },
-              },
-            })),
-          },
-        })),
-        ...(item.tls.length > 0
-          ? { tls: item.tls.map((t) => ({ hosts: t.hosts, secretName: t.secretName })) }
-          : {}),
-      },
-    }
-    openDrawerTab({
-      tabKey: `yaml-edit:Ingress:${item.namespace}/${item.name}`,
-      type: "yaml-edit",
-      resourceKind: "Ingress",
-      resourceName: item.name,
-      namespace: item.namespace,
-      initialYaml: yamlDump(obj),
-    })
   }
 
   async function handleDelete(): Promise<void> {
@@ -160,9 +112,7 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{item.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleEdit}>
-            Edit
-          </Button>
+          <EditButton resourceKind="Ingress" resourceName={item.name} namespace={item.namespace} buildYaml={() => ({ apiVersion: "networking.k8s.io/v1", kind: "Ingress", metadata: { name: item.name, namespace: item.namespace, ...(Object.keys(item.labels).length > 0 ? { labels: item.labels } : {}), ...(Object.keys(item.annotations).length > 0 ? { annotations: item.annotations } : {}) }, spec: { ...(item.ingressClassName ? { ingressClassName: item.ingressClassName } : {}), rules: item.rules.map((r) => ({ host: r.host, http: { paths: r.paths.map((p) => ({ path: p.path, pathType: p.pathType, backend: { service: { name: p.serviceName, port: { number: typeof p.servicePort === "number" ? p.servicePort : parseInt(String(p.servicePort), 10) || 80 } } } })) } })), ...(item.tls.length > 0 ? { tls: item.tls.map((t) => ({ hosts: t.hosts, secretName: t.secretName })) } : {}) } })} />
           <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => setDeleteOpenNotify(true)}>
             Delete
           </Button>
