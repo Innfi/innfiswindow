@@ -1,6 +1,9 @@
 import { X } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -13,10 +16,7 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sNode } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 interface NodeMetric {
@@ -180,10 +180,17 @@ function DetailPanel({
 
   const labelEntries = Object.entries(node.labels).filter(([k, v]) => kv(k, v))
   const annotationEntries = Object.entries(node.annotations ?? {})
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
-  const capacityEntries = Object.entries(node.capacity).filter(([k, v]) => kv(k, v))
-  const allocatableEntries = Object.entries(node.allocatable).filter(([k, v]) => kv(k, v))
+  const capacityEntries = Object.entries(node.capacity).filter(([k, v]) =>
+    kv(k, v),
+  )
+  const allocatableEntries = Object.entries(node.allocatable).filter(([k, v]) =>
+    kv(k, v),
+  )
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
@@ -221,12 +228,19 @@ function DetailPanel({
         className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
       />
 
-      <ResourceUsageSection node={node} metric={metric} unavailable={metricsUnavailable} />
+      <ResourceUsageSection
+        node={node}
+        metric={metric}
+        unavailable={metricsUnavailable}
+      />
 
       {/* Metadata */}
       <div className="space-y-1">
         <SectionHeader title="Metadata" />
-        <MetaEntry label="Created" value={new Date(node.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(node.creationTimestamp).toLocaleString()}
+        />
         <MetaEntry label="Roles" value={node.roles} />
         <MetaEntry label="Version" value={node.version} />
       </div>
@@ -250,21 +264,37 @@ function DetailPanel({
           {node.systemInfo.osImage && m(node.systemInfo.osImage) && (
             <MetaEntry label="OS Image" value={node.systemInfo.osImage} />
           )}
-          {node.systemInfo.operatingSystem && m(node.systemInfo.operatingSystem) && (
-            <MetaEntry label="OS" value={node.systemInfo.operatingSystem} />
-          )}
+          {node.systemInfo.operatingSystem &&
+            m(node.systemInfo.operatingSystem) && (
+              <MetaEntry label="OS" value={node.systemInfo.operatingSystem} />
+            )}
           {node.systemInfo.architecture && m(node.systemInfo.architecture) && (
-            <MetaEntry label="Architecture" value={node.systemInfo.architecture} />
+            <MetaEntry
+              label="Architecture"
+              value={node.systemInfo.architecture}
+            />
           )}
-          {node.systemInfo.containerRuntimeVersion && m(node.systemInfo.containerRuntimeVersion) && (
-            <MetaEntry label="Container Runtime" value={node.systemInfo.containerRuntimeVersion} />
-          )}
-          {node.systemInfo.kubeletVersion && m(node.systemInfo.kubeletVersion) && (
-            <MetaEntry label="Kubelet" value={node.systemInfo.kubeletVersion} />
-          )}
-          {node.systemInfo.kubeProxyVersion && m(node.systemInfo.kubeProxyVersion) && (
-            <MetaEntry label="Kube-Proxy" value={node.systemInfo.kubeProxyVersion} />
-          )}
+          {node.systemInfo.containerRuntimeVersion &&
+            m(node.systemInfo.containerRuntimeVersion) && (
+              <MetaEntry
+                label="Container Runtime"
+                value={node.systemInfo.containerRuntimeVersion}
+              />
+            )}
+          {node.systemInfo.kubeletVersion &&
+            m(node.systemInfo.kubeletVersion) && (
+              <MetaEntry
+                label="Kubelet"
+                value={node.systemInfo.kubeletVersion}
+              />
+            )}
+          {node.systemInfo.kubeProxyVersion &&
+            m(node.systemInfo.kubeProxyVersion) && (
+              <MetaEntry
+                label="Kube-Proxy"
+                value={node.systemInfo.kubeProxyVersion}
+              />
+            )}
         </div>
       )}
 
@@ -278,7 +308,8 @@ function DetailPanel({
               <div key={i} className="text-xs border rounded p-2 space-y-0.5">
                 <div className="font-medium font-mono">{t.key}</div>
                 <div className="text-muted-foreground">
-                  {t.value ? `${t.value}:` : ""}{t.effect}
+                  {t.value ? `${t.value}:` : ""}
+                  {t.effect}
                 </div>
               </div>
             ))}
@@ -312,7 +343,10 @@ function DetailPanel({
           {node.conditions
             .filter((c) => m(c.type) || m(c.reason) || m(c.message))
             .map((c) => (
-              <div key={c.type} className="text-sm space-y-0.5 border rounded p-2">
+              <div
+                key={c.type}
+                className="text-sm space-y-0.5 border rounded p-2"
+              >
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{c.type}</span>
                   <span
@@ -327,10 +361,14 @@ function DetailPanel({
                   </span>
                 </div>
                 {c.reason && (
-                  <div className="text-xs text-muted-foreground">{c.reason}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {c.reason}
+                  </div>
                 )}
                 {c.message && (
-                  <div className="text-xs text-muted-foreground">{c.message}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {c.message}
+                  </div>
                 )}
               </div>
             ))}
@@ -358,7 +396,12 @@ function DetailPanel({
       )}
 
       {/* Events — nodes are cluster-scoped, pass empty namespace */}
-      <ResourceEventsSection namespace="" name={node.name} kind="Node" search={sl} />
+      <ResourceEventsSection
+        namespace=""
+        name={node.name}
+        kind="Node"
+        search={sl}
+      />
     </div>
   )
 }

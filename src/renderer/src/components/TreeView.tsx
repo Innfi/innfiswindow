@@ -38,7 +38,12 @@ const groups = [
   },
   {
     label: "Storage",
-    items: ["PersistentVolumes", "PersistentVolumeClaims", "StorageClasses", "VolumeSnapshots"],
+    items: [
+      "PersistentVolumes",
+      "PersistentVolumeClaims",
+      "StorageClasses",
+      "VolumeSnapshots",
+    ],
   },
   {
     label: "Governance",

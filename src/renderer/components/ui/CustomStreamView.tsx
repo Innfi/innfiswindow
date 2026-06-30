@@ -1,7 +1,7 @@
 import { useState } from "react"
 
-import { Button } from "../../components/ui/button"
 import { useAppStore } from "../../store/app.store"
+import { Button } from "./button"
 
 export function CustomStreamView(): JSX.Element {
   const [socketPath, setSocketPath] = useState("")

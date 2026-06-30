@@ -1,7 +1,9 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -14,11 +16,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sCronJob } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -42,9 +41,14 @@ function DetailPanel({
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const labelEntries = Object.entries(cronJob.labels).filter(([k, v]) => kv(k, v))
+  const labelEntries = Object.entries(cronJob.labels).filter(([k, v]) =>
+    kv(k, v),
+  )
   const annotationEntries = Object.entries(cronJob.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
   const activeNames = cronJob.activeJobNames.filter((n) => m(n))
 
@@ -54,10 +58,34 @@ function DetailPanel({
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{cronJob.name}</h2>
-          <span className="text-xs text-muted-foreground">{cronJob.namespace}</span>
+          <span className="text-xs text-muted-foreground">
+            {cronJob.namespace}
+          </span>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="CronJob" resourceName={cronJob.name} namespace={cronJob.namespace} buildYaml={() => ({ apiVersion: "batch/v1", kind: "CronJob", metadata: { name: cronJob.name, namespace: cronJob.namespace, labels: cronJob.labels, annotations: cronJob.annotations }, spec: { schedule: cronJob.schedule, concurrencyPolicy: cronJob.concurrencyPolicy || "Allow", suspend: cronJob.suspend, jobTemplate: { spec: { template: { spec: { containers: [] } } } } } })} />
+          <EditButton
+            resourceKind="CronJob"
+            resourceName={cronJob.name}
+            namespace={cronJob.namespace}
+            buildYaml={() => ({
+              apiVersion: "batch/v1",
+              kind: "CronJob",
+              metadata: {
+                name: cronJob.name,
+                namespace: cronJob.namespace,
+                labels: cronJob.labels,
+                annotations: cronJob.annotations,
+              },
+              spec: {
+                schedule: cronJob.schedule,
+                concurrencyPolicy: cronJob.concurrencyPolicy || "Allow",
+                suspend: cronJob.suspend,
+                jobTemplate: {
+                  spec: { template: { spec: { containers: [] } } },
+                },
+              },
+            })}
+          />
           <CopyResourceButton
             name={cronJob.name}
             namespace={cronJob.namespace}
@@ -85,7 +113,10 @@ function DetailPanel({
       <div className="space-y-1">
         <SectionHeader title="Spec" />
         <MetaEntry label="Schedule" value={cronJob.schedule} mono />
-        <MetaEntry label="Concurrency Policy" value={cronJob.concurrencyPolicy || "-"} />
+        <MetaEntry
+          label="Concurrency Policy"
+          value={cronJob.concurrencyPolicy || "-"}
+        />
         <MetaEntry label="Suspended" value={cronJob.suspend ? "Yes" : "No"} />
         {cronJob.successfulJobsHistoryLimit !== null && (
           <MetaEntry
@@ -105,7 +136,10 @@ function DetailPanel({
             value={`${cronJob.startingDeadlineSeconds}s`}
           />
         )}
-        <MetaEntry label="Created" value={new Date(cronJob.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(cronJob.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {/* Status */}
@@ -184,11 +218,17 @@ export function CronJobsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || cronJobs.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = cronJobs.find((c) => c.name === item.name && c.namespace === item.namespace)
+    const fresh = cronJobs.find(
+      (c) => c.name === item.name && c.namespace === item.namespace,
+    )
     if (fresh) setSelectedItem(fresh as object)
   }, [cronJobs])
 
-  const visibleCronJobs = filterResources(cronJobs, nameFilter, selectedNamespace)
+  const visibleCronJobs = filterResources(
+    cronJobs,
+    nameFilter,
+    selectedNamespace,
+  )
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -210,7 +250,9 @@ export function CronJobsView(): JSX.Element {
                   <TableHead className="whitespace-nowrap">Name</TableHead>
                   <TableHead className="whitespace-nowrap">Namespace</TableHead>
                   <TableHead className="whitespace-nowrap">Schedule</TableHead>
-                  <TableHead className="whitespace-nowrap">Last Schedule</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Last Schedule
+                  </TableHead>
                   <TableHead className="whitespace-nowrap">Active</TableHead>
                   <TableHead className="whitespace-nowrap">Suspended</TableHead>
                   <TableHead className="whitespace-nowrap">Age</TableHead>
@@ -223,27 +265,43 @@ export function CronJobsView(): JSX.Element {
                     className={cn(
                       "cursor-pointer",
                       selectedItem?.name === cj.name &&
-                        (selectedItem as K8sCronJob).namespace === cj.namespace &&
+                        (selectedItem as K8sCronJob).namespace ===
+                          cj.namespace &&
                         "bg-muted",
                     )}
                     onClick={() =>
                       setSelectedItem(
                         selectedItem?.name === cj.name &&
-                          (selectedItem as K8sCronJob).namespace === cj.namespace
+                          (selectedItem as K8sCronJob).namespace ===
+                            cj.namespace
                           ? null
                           : cj,
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">{cj.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">{cj.namespace}</TableCell>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">{cj.schedule}</TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {cj.lastScheduleTime ? formatAge(cj.lastScheduleTime) : "-"}
+                      {cj.name}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">{cj.activeCount}</TableCell>
-                    <TableCell className="whitespace-nowrap">{cj.suspend ? "Yes" : "No"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatAge(cj.creationTimestamp)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {cj.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
+                      {cj.schedule}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {cj.lastScheduleTime
+                        ? formatAge(cj.lastScheduleTime)
+                        : "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {cj.activeCount}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {cj.suspend ? "Yes" : "No"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(cj.creationTimestamp)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -253,7 +311,10 @@ export function CronJobsView(): JSX.Element {
       </div>
 
       {selectedItem && "schedule" in selectedItem && (
-        <DetailPanel cronJob={selectedItem as K8sCronJob} onClose={() => setSelectedItem(null)} />
+        <DetailPanel
+          cronJob={selectedItem as K8sCronJob}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
     </div>
   )

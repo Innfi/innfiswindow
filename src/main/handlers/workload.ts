@@ -73,10 +73,18 @@ function formatEnvVar(env: V1EnvVar): EnvVar {
       }
     }
     if (vf.fieldRef) {
-      return { name: env.name, value: "", valueFrom: `field:${vf.fieldRef.fieldPath ?? ""}` }
+      return {
+        name: env.name,
+        value: "",
+        valueFrom: `field:${vf.fieldRef.fieldPath ?? ""}`,
+      }
     }
     if (vf.resourceFieldRef) {
-      return { name: env.name, value: "", valueFrom: `resource:${vf.resourceFieldRef.resource ?? ""}` }
+      return {
+        name: env.name,
+        value: "",
+        valueFrom: `resource:${vf.resourceFieldRef.resource ?? ""}`,
+      }
     }
   }
   return { name: env.name, value: "" }
@@ -84,13 +92,25 @@ function formatEnvVar(env: V1EnvVar): EnvVar {
 
 function formatVolume(vol: V1Volume): VolumeInfo {
   if (vol.persistentVolumeClaim) {
-    return { name: vol.name, type: "PersistentVolumeClaim", detail: vol.persistentVolumeClaim.claimName ?? "" }
+    return {
+      name: vol.name,
+      type: "PersistentVolumeClaim",
+      detail: vol.persistentVolumeClaim.claimName ?? "",
+    }
   }
   if (vol.configMap) {
-    return { name: vol.name, type: "ConfigMap", detail: vol.configMap.name ?? "" }
+    return {
+      name: vol.name,
+      type: "ConfigMap",
+      detail: vol.configMap.name ?? "",
+    }
   }
   if (vol.secret) {
-    return { name: vol.name, type: "Secret", detail: vol.secret.secretName ?? "" }
+    return {
+      name: vol.name,
+      type: "Secret",
+      detail: vol.secret.secretName ?? "",
+    }
   }
   if (vol.emptyDir !== undefined) {
     return { name: vol.name, type: "EmptyDir", detail: "" }
@@ -116,10 +136,16 @@ function mapDetailedContainer(c: V1Container): DetailedContainerInfo {
     env: (c.env ?? []).map(formatEnvVar),
     resources: {
       requests: Object.fromEntries(
-        Object.entries(c.resources?.requests ?? {}).map(([k, v]) => [k, String(v)]),
+        Object.entries(c.resources?.requests ?? {}).map(([k, v]) => [
+          k,
+          String(v),
+        ]),
       ),
       limits: Object.fromEntries(
-        Object.entries(c.resources?.limits ?? {}).map(([k, v]) => [k, String(v)]),
+        Object.entries(c.resources?.limits ?? {}).map(([k, v]) => [
+          k,
+          String(v),
+        ]),
       ),
     },
     volumeMounts: (c.volumeMounts ?? []).map((vm) => ({
@@ -161,8 +187,12 @@ export async function listDeployments(
       podTemplateLabels: d.spec?.template?.metadata?.labels ?? {},
       podTemplateAnnotations: d.spec?.template?.metadata?.annotations ?? {},
       serviceAccountName: d.spec?.template?.spec?.serviceAccountName ?? "",
-      containers: (d.spec?.template?.spec?.containers ?? []).map(mapDetailedContainer),
-      initContainers: (d.spec?.template?.spec?.initContainers ?? []).map(mapDetailedContainer),
+      containers: (d.spec?.template?.spec?.containers ?? []).map(
+        mapDetailedContainer,
+      ),
+      initContainers: (d.spec?.template?.spec?.initContainers ?? []).map(
+        mapDetailedContainer,
+      ),
       volumes: (d.spec?.template?.spec?.volumes ?? []).map(formatVolume),
       conditions: (d.status?.conditions ?? []).map((c) => ({
         type: c.type,
@@ -191,8 +221,12 @@ export async function listReplicaSets(
     podTemplateLabels: rs.spec?.template?.metadata?.labels ?? {},
     podTemplateAnnotations: rs.spec?.template?.metadata?.annotations ?? {},
     serviceAccountName: rs.spec?.template?.spec?.serviceAccountName ?? "",
-    containers: (rs.spec?.template?.spec?.containers ?? []).map(mapDetailedContainer),
-    initContainers: (rs.spec?.template?.spec?.initContainers ?? []).map(mapDetailedContainer),
+    containers: (rs.spec?.template?.spec?.containers ?? []).map(
+      mapDetailedContainer,
+    ),
+    initContainers: (rs.spec?.template?.spec?.initContainers ?? []).map(
+      mapDetailedContainer,
+    ),
     volumes: (rs.spec?.template?.spec?.volumes ?? []).map(formatVolume),
     ownerReferences: (rs.metadata?.ownerReferences ?? []).map((o) => ({
       kind: o.kind,
@@ -219,8 +253,12 @@ export async function listStatefulSets(
     podTemplateLabels: ss.spec?.template?.metadata?.labels ?? {},
     podTemplateAnnotations: ss.spec?.template?.metadata?.annotations ?? {},
     serviceAccountName: ss.spec?.template?.spec?.serviceAccountName ?? "",
-    containers: (ss.spec?.template?.spec?.containers ?? []).map(mapDetailedContainer),
-    initContainers: (ss.spec?.template?.spec?.initContainers ?? []).map(mapDetailedContainer),
+    containers: (ss.spec?.template?.spec?.containers ?? []).map(
+      mapDetailedContainer,
+    ),
+    initContainers: (ss.spec?.template?.spec?.initContainers ?? []).map(
+      mapDetailedContainer,
+    ),
     volumes: (ss.spec?.template?.spec?.volumes ?? []).map(formatVolume),
     volumeClaimTemplates: (ss.spec?.volumeClaimTemplates ?? []).map((vct) => ({
       name: vct.metadata?.name ?? "",
@@ -248,8 +286,12 @@ export async function listDaemonSets(api: AppsV1Api): Promise<DaemonSetInfo[]> {
     podTemplateLabels: ds.spec?.template?.metadata?.labels ?? {},
     podTemplateAnnotations: ds.spec?.template?.metadata?.annotations ?? {},
     serviceAccountName: ds.spec?.template?.spec?.serviceAccountName ?? "",
-    containers: (ds.spec?.template?.spec?.containers ?? []).map(mapDetailedContainer),
-    initContainers: (ds.spec?.template?.spec?.initContainers ?? []).map(mapDetailedContainer),
+    containers: (ds.spec?.template?.spec?.containers ?? []).map(
+      mapDetailedContainer,
+    ),
+    initContainers: (ds.spec?.template?.spec?.initContainers ?? []).map(
+      mapDetailedContainer,
+    ),
     volumes: (ds.spec?.template?.spec?.volumes ?? []).map(formatVolume),
     tolerations: (ds.spec?.template?.spec?.tolerations ?? []).map((t) => ({
       key: t.key ?? "",

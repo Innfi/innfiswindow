@@ -23,7 +23,9 @@ export async function listEventsForResource(
       firstTimestamp: ev.firstTimestamp?.toISOString() ?? "",
       lastTimestamp:
         ev.lastTimestamp?.toISOString() ??
-        (ev.eventTime ? new Date(ev.eventTime as unknown as string).toISOString() : "") ??
+        (ev.eventTime
+          ? new Date(ev.eventTime as unknown as string).toISOString()
+          : "") ??
         "",
       creationTimestamp: ev.metadata?.creationTimestamp?.toISOString() ?? "",
     }))
@@ -42,7 +44,9 @@ export async function listEventsForResource(
     firstTimestamp: ev.firstTimestamp?.toISOString() ?? "",
     lastTimestamp:
       ev.lastTimestamp?.toISOString() ??
-      (ev.eventTime ? new Date(ev.eventTime as unknown as string).toISOString() : "") ??
+      (ev.eventTime
+        ? new Date(ev.eventTime as unknown as string).toISOString()
+        : "") ??
       "",
     creationTimestamp: ev.metadata?.creationTimestamp?.toISOString() ?? "",
   }))

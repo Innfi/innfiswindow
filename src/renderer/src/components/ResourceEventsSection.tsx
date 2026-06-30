@@ -31,7 +31,9 @@ export function ResourceEventsSection({
         name,
         kind,
       })
-      setEvents(evs.sort((a, b) => (b.lastTimestamp > a.lastTimestamp ? 1 : -1)))
+      setEvents(
+        evs.sort((a, b) => (b.lastTimestamp > a.lastTimestamp ? 1 : -1)),
+      )
     } catch {
       // non-critical
     } finally {

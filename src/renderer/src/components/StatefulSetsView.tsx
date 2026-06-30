@@ -11,6 +11,9 @@ import {
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog"
 import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -24,11 +27,8 @@ import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sStatefulSet } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -60,12 +60,21 @@ function DetailPanel({
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const selectorEntries = Object.entries(ss.selector).filter(([k, v]) => kv(k, v))
-  const labelEntries = Object.entries(ss.labels ?? {}).filter(([k, v]) => kv(k, v))
+  const selectorEntries = Object.entries(ss.selector).filter(([k, v]) =>
+    kv(k, v),
+  )
+  const labelEntries = Object.entries(ss.labels ?? {}).filter(([k, v]) =>
+    kv(k, v),
+  )
   const annotationEntries = Object.entries(ss.annotations ?? {})
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
-  const podLabelEntries = Object.entries(ss.podTemplateLabels ?? {}).filter(([k, v]) => kv(k, v))
+  const podLabelEntries = Object.entries(ss.podTemplateLabels ?? {}).filter(
+    ([k, v]) => kv(k, v),
+  )
 
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
@@ -115,7 +124,31 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{ss.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="StatefulSet" resourceName={ss.name} namespace={ss.namespace} buildYaml={() => ({ apiVersion: "apps/v1", kind: "StatefulSet", metadata: { name: ss.name, namespace: ss.namespace }, spec: { replicas: ss.replicas, serviceName: ss.serviceName, selector: { matchLabels: ss.selector }, updateStrategy: { type: ss.updateStrategy }, template: { metadata: { labels: ss.selector }, spec: { containers: ss.containers.map((c) => ({ name: c.name, image: c.image })) } } } })} />
+          <EditButton
+            resourceKind="StatefulSet"
+            resourceName={ss.name}
+            namespace={ss.namespace}
+            buildYaml={() => ({
+              apiVersion: "apps/v1",
+              kind: "StatefulSet",
+              metadata: { name: ss.name, namespace: ss.namespace },
+              spec: {
+                replicas: ss.replicas,
+                serviceName: ss.serviceName,
+                selector: { matchLabels: ss.selector },
+                updateStrategy: { type: ss.updateStrategy },
+                template: {
+                  metadata: { labels: ss.selector },
+                  spec: {
+                    containers: ss.containers.map((c) => ({
+                      name: c.name,
+                      image: c.image,
+                    })),
+                  },
+                },
+              },
+            })}
+          />
           <Button
             size="sm"
             variant="destructive"
@@ -124,7 +157,11 @@ function DetailPanel({
           >
             Delete
           </Button>
-          <CopyResourceButton name={ss.name} namespace={ss.namespace} resourceKind="statefulset" />
+          <CopyResourceButton
+            name={ss.name}
+            namespace={ss.namespace}
+            resourceKind="statefulset"
+          />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
@@ -153,7 +190,10 @@ function DetailPanel({
         {ss.serviceAccountName && m(ss.serviceAccountName) && (
           <MetaEntry label="Service Account" value={ss.serviceAccountName} />
         )}
-        <MetaEntry label="Created" value={new Date(ss.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(ss.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {/* Labels */}
@@ -227,7 +267,10 @@ function DetailPanel({
           {ss.volumes
             .filter((v) => m(v.name) || m(v.type) || m(v.detail))
             .map((v) => (
-              <div key={v.name} className="text-xs border rounded p-2 space-y-0.5">
+              <div
+                key={v.name}
+                className="text-xs border rounded p-2 space-y-0.5"
+              >
                 <div className="font-medium">{v.name}</div>
                 <div className="text-muted-foreground">
                   {v.type}
@@ -243,7 +286,10 @@ function DetailPanel({
         <div className="space-y-1">
           <SectionHeader title="Volume Claim Templates" />
           {ss.volumeClaimTemplates.map((vct) => (
-            <div key={vct.name} className="text-sm border rounded p-2 space-y-0.5">
+            <div
+              key={vct.name}
+              className="text-sm border rounded p-2 space-y-0.5"
+            >
               <div className="font-medium">{vct.name}</div>
               <div className="text-xs text-muted-foreground">{vct.storage}</div>
             </div>
@@ -279,7 +325,11 @@ function DetailPanel({
             >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
               {deleting ? "Deleting…" : "Delete"}
             </Button>
           </AlertDialogFooter>
@@ -290,7 +340,9 @@ function DetailPanel({
 }
 
 export function StatefulSetsView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sStatefulSet | null
+  const selectedItem = useAppStore(
+    (s) => s.selectedItem,
+  ) as K8sStatefulSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
@@ -318,7 +370,11 @@ export function StatefulSetsView(): JSX.Element {
     if (fresh) setSelectedItem(fresh as object)
   }, [statefulSets])
 
-  const visibleStatefulSets = filterResources(statefulSets, nameFilter, selectedNamespace)
+  const visibleStatefulSets = filterResources(
+    statefulSets,
+    nameFilter,
+    selectedNamespace,
+  )
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -363,15 +419,21 @@ export function StatefulSetsView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">{ss.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">{ss.namespace}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ss.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ss.namespace}
+                    </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {ss.readyReplicas}/{ss.replicas}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {formatAge(ss.creationTimestamp)}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">{ss.serviceName}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ss.serviceName}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -1,6 +1,13 @@
 import { CoreV1Api, KubeConfig } from "@kubernetes/client-node"
 
-import { ContextInfo, NamespaceInfo, NodeInfo, NodeAddress, NodeTaint, NodeSystemInfo } from "./types"
+import {
+  ContextInfo,
+  NamespaceInfo,
+  NodeAddress,
+  NodeInfo,
+  NodeSystemInfo,
+  NodeTaint,
+} from "./types"
 
 export async function listNamespaces(api: CoreV1Api): Promise<NamespaceInfo[]> {
   const res = await api.listNamespace()
@@ -24,10 +31,12 @@ export async function listNodes(api: CoreV1Api): Promise<NodeInfo[]> {
       (c) => c.type === "Ready",
     )
     const status = readyCondition?.status === "True" ? "Ready" : "NotReady"
-    const addresses: NodeAddress[] = (node.status?.addresses ?? []).map((a) => ({
-      type: a.type,
-      address: a.address,
-    }))
+    const addresses: NodeAddress[] = (node.status?.addresses ?? []).map(
+      (a) => ({
+        type: a.type,
+        address: a.address,
+      }),
+    )
     const taints: NodeTaint[] = (node.spec?.taints ?? []).map((t) => ({
       key: t.key ?? "",
       effect: t.effect ?? "",

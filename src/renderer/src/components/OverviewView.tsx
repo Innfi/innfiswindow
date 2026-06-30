@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -12,7 +13,6 @@ import { handleIpcError } from "../../lib/ipc-error"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { K8sDeployment, K8sEvent, K8sNode, K8sPod } from "../types/k8s"
-import { RefreshBar } from "./RefreshBar"
 
 interface OverviewData {
   pods: K8sPod[]

@@ -1,7 +1,9 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -14,11 +16,8 @@ import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sPV } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -54,16 +53,40 @@ function DetailPanel({
 
   const labelEntries = Object.entries(pv.labels).filter(([k, v]) => kv(k, v))
   const annotationEntries = Object.entries(pv.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <h2 className="font-semibold text-base mb-1 flex-1 truncate pr-2">{pv.name}</h2>
+        <h2 className="font-semibold text-base mb-1 flex-1 truncate pr-2">
+          {pv.name}
+        </h2>
         <div className="flex items-center gap-1 shrink-0">
-          <EditButton resourceKind="PersistentVolume" resourceName={pv.name} buildYaml={() => ({ apiVersion: "v1", kind: "PersistentVolume", metadata: { name: pv.name, labels: pv.labels, annotations: pv.annotations }, spec: { capacity: { storage: pv.capacity }, accessModes: pv.accessModes, persistentVolumeReclaimPolicy: pv.reclaimPolicy, volumeMode: pv.volumeMode, storageClassName: pv.storageClass } })} />
+          <EditButton
+            resourceKind="PersistentVolume"
+            resourceName={pv.name}
+            buildYaml={() => ({
+              apiVersion: "v1",
+              kind: "PersistentVolume",
+              metadata: {
+                name: pv.name,
+                labels: pv.labels,
+                annotations: pv.annotations,
+              },
+              spec: {
+                capacity: { storage: pv.capacity },
+                accessModes: pv.accessModes,
+                persistentVolumeReclaimPolicy: pv.reclaimPolicy,
+                volumeMode: pv.volumeMode,
+                storageClassName: pv.storageClass,
+              },
+            })}
+          />
           <CopyResourceButton name={pv.name} resourceKind="persistentvolume" />
           <button
             onClick={onClose}
@@ -87,23 +110,37 @@ function DetailPanel({
       <div className="space-y-1">
         <SectionHeader title="Spec" />
         <MetaEntry label="Capacity" value={pv.capacity || "-"} />
-        <MetaEntry label="Access Modes" value={pv.accessModes.join(", ") || "-"} />
+        <MetaEntry
+          label="Access Modes"
+          value={pv.accessModes.join(", ") || "-"}
+        />
         <MetaEntry label="Reclaim Policy" value={pv.reclaimPolicy || "-"} />
         <MetaEntry label="Volume Mode" value={pv.volumeMode || "-"} />
         <MetaEntry label="Storage Class" value={pv.storageClass || "-"} />
-        <MetaEntry label="Created" value={new Date(pv.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(pv.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {/* Status */}
       <div className="space-y-1">
         <SectionHeader title="Status" />
         <div className="flex items-center gap-2">
-          <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", pvStatusClass(pv.status))}>
+          <span
+            className={cn(
+              "rounded px-1.5 py-0.5 text-xs font-medium",
+              pvStatusClass(pv.status),
+            )}
+          >
             {pv.status || "-"}
           </span>
         </div>
         {pv.claimRef && m(`${pv.claimRef.namespace}/${pv.claimRef.name}`) && (
-          <MetaEntry label="Claim" value={`${pv.claimRef.namespace}/${pv.claimRef.name}`} />
+          <MetaEntry
+            label="Claim"
+            value={`${pv.claimRef.namespace}/${pv.claimRef.name}`}
+          />
         )}
       </div>
 
@@ -139,7 +176,12 @@ function DetailPanel({
       )}
 
       {/* Events — PVs are cluster-scoped */}
-      <ResourceEventsSection namespace="" name={pv.name} kind="PersistentVolume" search={sl} />
+      <ResourceEventsSection
+        namespace=""
+        name={pv.name}
+        kind="PersistentVolume"
+        search={sl}
+      />
     </div>
   )
 }
@@ -169,7 +211,8 @@ export function PVsView(): JSX.Element {
   }, [pvs])
 
   const visiblePVs = pvs.filter(
-    (p) => !nameFilter || p.name.toLowerCase().includes(nameFilter.toLowerCase()),
+    (p) =>
+      !nameFilter || p.name.toLowerCase().includes(nameFilter.toLowerCase()),
   )
 
   return (
@@ -191,11 +234,17 @@ export function PVsView(): JSX.Element {
                 <TableRow>
                   <TableHead className="whitespace-nowrap">Name</TableHead>
                   <TableHead className="whitespace-nowrap">Capacity</TableHead>
-                  <TableHead className="whitespace-nowrap">Access Modes</TableHead>
-                  <TableHead className="whitespace-nowrap">Reclaim Policy</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Access Modes
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Reclaim Policy
+                  </TableHead>
                   <TableHead className="whitespace-nowrap">Status</TableHead>
                   <TableHead className="whitespace-nowrap">Claim</TableHead>
-                  <TableHead className="whitespace-nowrap">StorageClass</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    StorageClass
+                  </TableHead>
                   <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
               </TableHeader>
@@ -203,23 +252,49 @@ export function PVsView(): JSX.Element {
                 {visiblePVs.map((pv) => (
                   <TableRow
                     key={pv.name}
-                    className={cn("cursor-pointer", selectedItem?.name === pv.name && "bg-muted")}
-                    onClick={() => setSelectedItem(selectedItem?.name === pv.name ? null : pv)}
+                    className={cn(
+                      "cursor-pointer",
+                      selectedItem?.name === pv.name && "bg-muted",
+                    )}
+                    onClick={() =>
+                      setSelectedItem(
+                        selectedItem?.name === pv.name ? null : pv,
+                      )
+                    }
                   >
-                    <TableCell className="whitespace-nowrap">{pv.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">{pv.capacity}</TableCell>
-                    <TableCell className="whitespace-nowrap">{pv.accessModes.join(", ")}</TableCell>
-                    <TableCell className="whitespace-nowrap">{pv.reclaimPolicy}</TableCell>
                     <TableCell className="whitespace-nowrap">
-                      <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", pvStatusClass(pv.status))}>
+                      {pv.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pv.capacity}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pv.accessModes.join(", ")}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pv.reclaimPolicy}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <span
+                        className={cn(
+                          "rounded px-1.5 py-0.5 text-xs font-medium",
+                          pvStatusClass(pv.status),
+                        )}
+                      >
                         {pv.status}
                       </span>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {pv.claimRef ? `${pv.claimRef.namespace}/${pv.claimRef.name}` : "-"}
+                      {pv.claimRef
+                        ? `${pv.claimRef.namespace}/${pv.claimRef.name}`
+                        : "-"}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">{pv.storageClass || "-"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatAge(pv.creationTimestamp)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pv.storageClass || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(pv.creationTimestamp)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

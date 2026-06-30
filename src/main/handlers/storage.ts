@@ -1,6 +1,17 @@
-import { CoreV1Api, CustomObjectsApi, StorageV1Api, V1PersistentVolume } from "@kubernetes/client-node"
+import {
+  CoreV1Api,
+  CustomObjectsApi,
+  StorageV1Api,
+  V1PersistentVolume,
+} from "@kubernetes/client-node"
 
-import { PVCInfo, PVInfo, PVSourceInfo, StorageClassInfo, VolumeSnapshotInfo } from "./types"
+import {
+  PVCInfo,
+  PVInfo,
+  PVSourceInfo,
+  StorageClassInfo,
+  VolumeSnapshotInfo,
+} from "./types"
 
 function detectPVSource(pv: V1PersistentVolume): PVSourceInfo {
   const s = pv.spec
@@ -10,25 +21,26 @@ function detectPVSource(pv: V1PersistentVolume): PVSourceInfo {
   if (s.hostPath) return { type: "HostPath", detail: s.hostPath.path }
   if (s.local) return { type: "Local", detail: s.local.path ?? "" }
   if (s.awsElasticBlockStore)
-    return { type: "AWSElasticBlockStore", detail: s.awsElasticBlockStore.volumeID }
+    return {
+      type: "AWSElasticBlockStore",
+      detail: s.awsElasticBlockStore.volumeID,
+    }
   if (s.gcePersistentDisk)
     return { type: "GCEPersistentDisk", detail: s.gcePersistentDisk.pdName }
-  if (s.azureDisk)
-    return { type: "AzureDisk", detail: s.azureDisk.diskName }
-  if (s.azureFile)
-    return { type: "AzureFile", detail: s.azureFile.shareName }
+  if (s.azureDisk) return { type: "AzureDisk", detail: s.azureDisk.diskName }
+  if (s.azureFile) return { type: "AzureFile", detail: s.azureFile.shareName }
   if (s.iscsi)
     return { type: "iSCSI", detail: `${s.iscsi.targetPortal}/${s.iscsi.iqn}` }
-  if (s.fc)
-    return { type: "FC", detail: (s.fc.targetWWNs ?? []).join(",") }
-  if (s.rbd)
-    return { type: "RBD", detail: s.rbd.image }
+  if (s.fc) return { type: "FC", detail: (s.fc.targetWWNs ?? []).join(",") }
+  if (s.rbd) return { type: "RBD", detail: s.rbd.image }
   if (s.glusterfs)
-    return { type: "Glusterfs", detail: `${s.glusterfs.endpoints}/${s.glusterfs.path}` }
+    return {
+      type: "Glusterfs",
+      detail: `${s.glusterfs.endpoints}/${s.glusterfs.path}`,
+    }
   if (s.portworxVolume)
     return { type: "Portworx", detail: s.portworxVolume.volumeID }
-  if (s.flexVolume)
-    return { type: "FlexVolume", detail: s.flexVolume.driver }
+  if (s.flexVolume) return { type: "FlexVolume", detail: s.flexVolume.driver }
   return { type: "Other", detail: "" }
 }
 
@@ -75,7 +87,9 @@ export async function listPVCs(api: CoreV1Api): Promise<PVCInfo[]> {
   }))
 }
 
-export async function listStorageClasses(api: StorageV1Api): Promise<StorageClassInfo[]> {
+export async function listStorageClasses(
+  api: StorageV1Api,
+): Promise<StorageClassInfo[]> {
   const res = await api.listStorageClass()
   return res.items.map((sc) => ({
     name: sc.metadata?.name ?? "",
@@ -90,13 +104,15 @@ export async function listStorageClasses(api: StorageV1Api): Promise<StorageClas
   }))
 }
 
-export async function listVolumeSnapshots(api: CustomObjectsApi): Promise<VolumeSnapshotInfo[]> {
+export async function listVolumeSnapshots(
+  api: CustomObjectsApi,
+): Promise<VolumeSnapshotInfo[]> {
   try {
-    const res = await api.listClusterCustomObject({
+    const res = (await api.listClusterCustomObject({
       group: "snapshot.storage.k8s.io",
       version: "v1",
       plural: "volumesnapshots",
-    }) as { items?: unknown[] }
+    })) as { items?: unknown[] }
     const items = res.items ?? []
     return items.map((item: unknown) => {
       const snap = item as Record<string, unknown>

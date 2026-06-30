@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import { CustomStreamPanel } from "../../components/ui/CustomStreamPanel"
 import { useAppStore } from "../../store/app.store"
-import { CustomStreamPanel } from "./CustomStreamPanel"
 import { PodLogPanel } from "./PodLogPanel"
 import { PortForwardPanel } from "./PortForwardPanel"
 import { ShellPanel } from "./ShellPanel"
@@ -229,12 +229,12 @@ export function BottomDrawer(): JSX.Element {
               : tab.type === "pod-shell"
                 ? `${tab.podName} / ${tab.containerName}`
                 : tab.type === "yaml-edit"
-                    ? `${tab.resourceKind}/${tab.resourceName}`
-                    : tab.type === "custom-stream"
-                      ? tab.label
-                      : tab.type === "port-forward"
-                        ? `pf:${tab.resourceName}:${tab.localPort}`
-                        : `New ${tab.resourceKind}`
+                  ? `${tab.resourceKind}/${tab.resourceName}`
+                  : tab.type === "custom-stream"
+                    ? tab.label
+                    : tab.type === "port-forward"
+                      ? `pf:${tab.resourceName}:${tab.localPort}`
+                      : `New ${tab.resourceKind}`
           const isActive = tab.id === activeTabId
           return (
             <div

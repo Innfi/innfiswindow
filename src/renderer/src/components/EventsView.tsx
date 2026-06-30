@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { Button } from "../../components/ui/button"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -13,8 +15,6 @@ import { handleIpcError } from "../../lib/ipc-error"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { K8sEvent } from "../types/k8s"
-import { EmptyState } from "./EmptyState"
-import { RefreshBar } from "./RefreshBar"
 
 const MAX_EVENTS = 500
 

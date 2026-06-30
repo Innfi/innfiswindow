@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from "react"
 
 import { ThemePicker } from "../components/ThemePicker"
 import { Button } from "../components/ui/button"
+import { CustomStreamView } from "../components/ui/CustomStreamView"
+import { GlobalFooter } from "../components/ui/GlobalFooter"
+import { GlobalSearch } from "../components/ui/GlobalSearch"
 import { Input } from "../components/ui/input"
 import {
   Popover,
@@ -20,13 +23,10 @@ import { ClusterRoleBindingsView } from "./components/ClusterRoleBindingsView"
 import { ClusterRolesView } from "./components/ClusterRolesView"
 import { ConfigMapsView } from "./components/ConfigMapsView"
 import { CronJobsView } from "./components/CronJobsView"
-import { CustomStreamView } from "./components/CustomStreamView"
 import { DaemonSetsView } from "./components/DaemonSetsView"
 import { DeploymentsView } from "./components/DeploymentsView"
 import { EndpointsView } from "./components/EndpointsView"
 import { EventsView } from "./components/EventsView"
-import { GlobalFooter } from "./components/GlobalFooter"
-import { GlobalSearch } from "./components/GlobalSearch"
 import { HelmReleasesView, HelmRepositoriesView } from "./components/HelmView"
 import { HistoryView } from "./components/HistoryView"
 import { HPAsView } from "./components/HPAsView"
@@ -42,8 +42,6 @@ import { PodsView } from "./components/PodsView"
 import { PrometheusSettings } from "./components/PrometheusSettings"
 import { PVCsView } from "./components/PVCsView"
 import { PVsView } from "./components/PVsView"
-import { StorageClassesView } from "./components/StorageClassesView"
-import { VolumeSnapshotsView } from "./components/VolumeSnapshotsView"
 import { ReplicaSetsView } from "./components/ReplicaSetsView"
 import { ResourceQuotasView } from "./components/ResourceQuotasView"
 import { RoleBindingsView } from "./components/RoleBindingsView"
@@ -52,7 +50,9 @@ import { SecretsView } from "./components/SecretsView"
 import { ServiceAccountsView } from "./components/ServiceAccountsView"
 import { ServicesView } from "./components/ServicesView"
 import { StatefulSetsView } from "./components/StatefulSetsView"
+import { StorageClassesView } from "./components/StorageClassesView"
 import { TreeView } from "./components/TreeView"
+import { VolumeSnapshotsView } from "./components/VolumeSnapshotsView"
 
 function getColorScheme(): "light" | "dark" {
   return window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -304,8 +304,12 @@ function App(): JSX.Element {
               {selectedResourceType === "PersistentVolumeClaims" && (
                 <PVCsView />
               )}
-              {selectedResourceType === "StorageClasses" && <StorageClassesView />}
-              {selectedResourceType === "VolumeSnapshots" && <VolumeSnapshotsView />}
+              {selectedResourceType === "StorageClasses" && (
+                <StorageClassesView />
+              )}
+              {selectedResourceType === "VolumeSnapshots" && (
+                <VolumeSnapshotsView />
+              )}
               {selectedResourceType === "Jobs" && <JobsView />}
               {selectedResourceType === "CronJobs" && <CronJobsView />}
               {selectedResourceType === "ResourceQuotas" && (

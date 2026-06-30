@@ -1,7 +1,9 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -19,11 +21,8 @@ import {
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sResourceQuota } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function usagePercent(used: string, hard: string): number {
@@ -48,7 +47,10 @@ function DetailPanel({
 
   const labelEntries = Object.entries(quota.labels).filter(([k, v]) => kv(k, v))
   const annotationEntries = Object.entries(quota.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   const resources = Object.keys(quota.hard).filter(
@@ -65,7 +67,17 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="ResourceQuota" resourceName={quota.name} namespace={quota.namespace} buildYaml={() => ({ apiVersion: "v1", kind: "ResourceQuota", metadata: { name: quota.name, namespace: quota.namespace }, spec: { hard: quota.hard } })} />
+          <EditButton
+            resourceKind="ResourceQuota"
+            resourceName={quota.name}
+            namespace={quota.namespace}
+            buildYaml={() => ({
+              apiVersion: "v1",
+              kind: "ResourceQuota",
+              metadata: { name: quota.name, namespace: quota.namespace },
+              spec: { hard: quota.hard },
+            })}
+          />
           <CopyResourceButton
             name={quota.name}
             namespace={quota.namespace}
@@ -139,7 +151,9 @@ function DetailPanel({
           )
         })}
         {resources.length === 0 && (
-          <p className="text-sm text-muted-foreground">No resource limits defined</p>
+          <p className="text-sm text-muted-foreground">
+            No resource limits defined
+          </p>
         )}
       </div>
 
@@ -165,7 +179,12 @@ function DetailPanel({
         </div>
       )}
 
-      <ResourceEventsSection namespace={quota.namespace} name={quota.name} kind="ResourceQuota" search={sl} />
+      <ResourceEventsSection
+        namespace={quota.namespace}
+        name={quota.name}
+        kind="ResourceQuota"
+        search={sl}
+      />
     </div>
   )
 }

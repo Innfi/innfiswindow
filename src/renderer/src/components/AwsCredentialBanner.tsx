@@ -41,7 +41,8 @@ export function AwsCredentialBanner({
 
   if (result.type === "sso-cache") {
     const expiresAtMs = result.expiresAt ? Date.parse(result.expiresAt) : NaN
-    const nearExpiry = !Number.isNaN(expiresAtMs) && expiresAtMs - Date.now() < NEAR_EXPIRY_MS
+    const nearExpiry =
+      !Number.isNaN(expiresAtMs) && expiresAtMs - Date.now() < NEAR_EXPIRY_MS
     const expiresLabel = result.expiresAt
       ? new Date(result.expiresAt).toLocaleTimeString()
       : "unknown"

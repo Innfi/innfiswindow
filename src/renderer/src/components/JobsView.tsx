@@ -1,7 +1,9 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -14,11 +16,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sJob } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -44,9 +43,14 @@ function DetailPanel({
 
   const labelEntries = Object.entries(job.labels).filter(([k, v]) => kv(k, v))
   const annotationEntries = Object.entries(job.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
-  const selectorEntries = Object.entries(job.selector).filter(([k, v]) => kv(k, v))
+  const selectorEntries = Object.entries(job.selector).filter(([k, v]) =>
+    kv(k, v),
+  )
 
   return (
     <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
@@ -57,8 +61,32 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{job.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="Job" resourceName={job.name} namespace={job.namespace} buildYaml={() => ({ apiVersion: "batch/v1", kind: "Job", metadata: { name: job.name, namespace: job.namespace, labels: job.labels, annotations: job.annotations }, spec: { ...(job.completions !== null ? { completions: job.completions } : {}), template: { spec: { containers: [], restartPolicy: "Never" } } } })} />
-          <CopyResourceButton name={job.name} namespace={job.namespace} resourceKind="job" />
+          <EditButton
+            resourceKind="Job"
+            resourceName={job.name}
+            namespace={job.namespace}
+            buildYaml={() => ({
+              apiVersion: "batch/v1",
+              kind: "Job",
+              metadata: {
+                name: job.name,
+                namespace: job.namespace,
+                labels: job.labels,
+                annotations: job.annotations,
+              },
+              spec: {
+                ...(job.completions !== null
+                  ? { completions: job.completions }
+                  : {}),
+                template: { spec: { containers: [], restartPolicy: "Never" } },
+              },
+            })}
+          />
+          <CopyResourceButton
+            name={job.name}
+            namespace={job.namespace}
+            resourceKind="job"
+          />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -90,7 +118,10 @@ function DetailPanel({
         {job.backoffLimit !== null && (
           <MetaEntry label="Backoff Limit" value={String(job.backoffLimit)} />
         )}
-        <MetaEntry label="Created" value={new Date(job.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(job.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {/* Status */}
@@ -152,8 +183,12 @@ function DetailPanel({
                     {c.status}
                   </span>
                 </div>
-                {c.reason && <div className="text-muted-foreground">{c.reason}</div>}
-                {c.message && <div className="text-muted-foreground">{c.message}</div>}
+                {c.reason && (
+                  <div className="text-muted-foreground">{c.reason}</div>
+                )}
+                {c.message && (
+                  <div className="text-muted-foreground">{c.message}</div>
+                )}
               </div>
             ))}
         </div>
@@ -190,7 +225,12 @@ function DetailPanel({
       )}
 
       {/* Events */}
-      <ResourceEventsSection namespace={job.namespace} name={job.name} kind="Job" search={sl} />
+      <ResourceEventsSection
+        namespace={job.namespace}
+        name={job.name}
+        kind="Job"
+        search={sl}
+      />
     </div>
   )
 }
@@ -216,7 +256,9 @@ export function JobsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || jobs.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = jobs.find((j) => j.name === item.name && j.namespace === item.namespace)
+    const fresh = jobs.find(
+      (j) => j.name === item.name && j.namespace === item.namespace,
+    )
     if (fresh) setSelectedItem(fresh as object)
   }, [jobs])
 
@@ -241,7 +283,9 @@ export function JobsView(): JSX.Element {
                 <TableRow>
                   <TableHead className="whitespace-nowrap">Name</TableHead>
                   <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Completions</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Completions
+                  </TableHead>
                   <TableHead className="whitespace-nowrap">Active</TableHead>
                   <TableHead className="whitespace-nowrap">Failed</TableHead>
                   <TableHead className="whitespace-nowrap">Duration</TableHead>
@@ -267,17 +311,29 @@ export function JobsView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">{job.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">{job.namespace}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {job.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {job.namespace}
+                    </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {job.completions !== null
                         ? `${job.succeeded}/${job.completions}`
                         : String(job.succeeded)}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">{job.active}</TableCell>
-                    <TableCell className="whitespace-nowrap">{job.failed}</TableCell>
-                    <TableCell className="whitespace-nowrap">{job.duration || "-"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatAge(job.creationTimestamp)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {job.active}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {job.failed}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {job.duration || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(job.creationTimestamp)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -287,7 +343,10 @@ export function JobsView(): JSX.Element {
       </div>
 
       {selectedItem && "active" in selectedItem && (
-        <DetailPanel job={selectedItem as K8sJob} onClose={() => setSelectedItem(null)} />
+        <DetailPanel
+          job={selectedItem as K8sJob}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
     </div>
   )

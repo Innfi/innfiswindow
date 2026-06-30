@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -23,11 +26,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sRoleBinding } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 
 function DetailPanel({
   binding,
@@ -101,7 +101,31 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <EditButton resourceKind="RoleBinding" resourceName={binding.name} namespace={binding.namespace} buildYaml={() => ({ apiVersion: "rbac.authorization.k8s.io/v1", kind: "RoleBinding", metadata: { name: binding.name, namespace: binding.namespace, ...(Object.keys(binding.labels).length > 0 && { labels: binding.labels }), ...(Object.keys(binding.annotations).length > 0 && { annotations: binding.annotations }) }, roleRef: { apiGroup: "rbac.authorization.k8s.io", kind: binding.roleRef.kind, name: binding.roleRef.name }, subjects: binding.subjects })} />
+          <EditButton
+            resourceKind="RoleBinding"
+            resourceName={binding.name}
+            namespace={binding.namespace}
+            buildYaml={() => ({
+              apiVersion: "rbac.authorization.k8s.io/v1",
+              kind: "RoleBinding",
+              metadata: {
+                name: binding.name,
+                namespace: binding.namespace,
+                ...(Object.keys(binding.labels).length > 0 && {
+                  labels: binding.labels,
+                }),
+                ...(Object.keys(binding.annotations).length > 0 && {
+                  annotations: binding.annotations,
+                }),
+              },
+              roleRef: {
+                apiGroup: "rbac.authorization.k8s.io",
+                kind: binding.roleRef.kind,
+                name: binding.roleRef.name,
+              },
+              subjects: binding.subjects,
+            })}
+          />
           <Button
             size="sm"
             variant="outline"
@@ -166,7 +190,10 @@ function DetailPanel({
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
           Metadata
         </h3>
-        <MetaEntry label="Created" value={new Date(binding.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(binding.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       <div className="space-y-1">
@@ -206,9 +233,15 @@ function DetailPanel({
                   )
                   .map((s, i) => (
                     <TableRow key={i}>
-                      <TableCell className="whitespace-nowrap text-xs">{s.kind}</TableCell>
-                      <TableCell className="whitespace-nowrap text-xs font-mono">{s.name}</TableCell>
-                      <TableCell className="whitespace-nowrap text-xs">{s.namespace}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {s.kind}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs font-mono">
+                        {s.name}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {s.namespace}
+                      </TableCell>
                     </TableRow>
                   ))}
               </TableBody>
@@ -236,7 +269,12 @@ function DetailPanel({
             Annotations
           </h3>
           {Object.entries(binding.annotations)
-            .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+            .filter(
+              ([k]) =>
+                !k.startsWith(
+                  "kubectl.kubernetes.io/last-applied-configuration",
+                ),
+            )
             .filter(([k, v]) => kv(k, v))
             .map(([k, v]) => (
               <MetaEntry key={k} label={k} value={v} />

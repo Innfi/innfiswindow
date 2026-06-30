@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -23,11 +26,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sSecret } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -62,9 +62,14 @@ function DetailPanel({
   const kv = (k: string, v: string): boolean => m(k) || m(v)
 
   const dataEntries = Object.entries(secret.data).filter(([k]) => m(k))
-  const labelEntries = Object.entries(secret.labels).filter(([k, v]) => kv(k, v))
+  const labelEntries = Object.entries(secret.labels).filter(([k, v]) =>
+    kv(k, v),
+  )
   const annotationEntries = Object.entries(secret.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   function setDeleteOpenNotify(open: boolean): void {
@@ -120,14 +125,47 @@ function DetailPanel({
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{secret.name}</h2>
-          <span className="text-xs text-muted-foreground">{secret.namespace}</span>
+          <span className="text-xs text-muted-foreground">
+            {secret.namespace}
+          </span>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="Secret" resourceName={secret.name} namespace={secret.namespace} buildYaml={() => ({ apiVersion: "v1", kind: "Secret", metadata: { name: secret.name, namespace: secret.namespace, ...(Object.keys(secret.labels).length > 0 ? { labels: secret.labels } : {}), ...(Object.keys(secret.annotations).length > 0 ? { annotations: secret.annotations } : {}) }, type: secret.type, ...(Object.keys(secret.data).length > 0 ? { data: secret.data } : {}) })} />
-          <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => setDeleteOpenNotify(true)}>
+          <EditButton
+            resourceKind="Secret"
+            resourceName={secret.name}
+            namespace={secret.namespace}
+            buildYaml={() => ({
+              apiVersion: "v1",
+              kind: "Secret",
+              metadata: {
+                name: secret.name,
+                namespace: secret.namespace,
+                ...(Object.keys(secret.labels).length > 0
+                  ? { labels: secret.labels }
+                  : {}),
+                ...(Object.keys(secret.annotations).length > 0
+                  ? { annotations: secret.annotations }
+                  : {}),
+              },
+              type: secret.type,
+              ...(Object.keys(secret.data).length > 0
+                ? { data: secret.data }
+                : {}),
+            })}
+          />
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-7 text-xs"
+            onClick={() => setDeleteOpenNotify(true)}
+          >
             Delete
           </Button>
-          <CopyResourceButton name={secret.name} namespace={secret.namespace} resourceKind="secret" />
+          <CopyResourceButton
+            name={secret.name}
+            namespace={secret.namespace}
+            resourceKind="secret"
+          />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
@@ -143,16 +181,27 @@ function DetailPanel({
           <DialogHeader>
             <DialogTitle>Delete Secret</DialogTitle>
             <DialogDescription>
-              Delete <span className="font-mono">{secret.name}</span> from namespace{" "}
-              <span className="font-mono">{secret.namespace}</span>? This cannot be undone.
+              Delete <span className="font-mono">{secret.name}</span> from
+              namespace <span className="font-mono">{secret.namespace}</span>?
+              This cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
+          {deleteError && (
+            <p className="text-sm text-destructive">{deleteError}</p>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpenNotify(false)} disabled={deleting}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpenNotify(false)}
+              disabled={deleting}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
               {deleting ? "Deleting…" : "Delete"}
             </Button>
           </DialogFooter>
@@ -172,7 +221,10 @@ function DetailPanel({
         <SectionHeader title="Info" />
         <MetaEntry label="Type" value={secret.type} mono />
         <MetaEntry label="Keys" value={secret.keys.join(", ") || "none"} />
-        <MetaEntry label="Created" value={new Date(secret.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(secret.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {/* Labels */}
@@ -202,13 +254,21 @@ function DetailPanel({
           {dataEntries.map(([key, value]) => (
             <div key={key} className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className="font-mono font-bold text-sm flex-1">{key}</span>
+                <span className="font-mono font-bold text-sm flex-1">
+                  {key}
+                </span>
                 <button
                   onClick={() => toggleReveal(key)}
                   className="text-muted-foreground hover:text-foreground"
-                  aria-label={revealedKeys.has(key) ? "Hide value" : "Show value"}
+                  aria-label={
+                    revealedKeys.has(key) ? "Hide value" : "Show value"
+                  }
                 >
-                  {revealedKeys.has(key) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {revealedKeys.has(key) ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
               {revealedKeys.has(key) ? (
@@ -216,7 +276,9 @@ function DetailPanel({
                   {value}
                 </pre>
               ) : (
-                <div className="text-sm text-muted-foreground tracking-widest">••••••••</div>
+                <div className="text-sm text-muted-foreground tracking-widest">
+                  ••••••••
+                </div>
               )}
             </div>
           ))}
@@ -224,7 +286,12 @@ function DetailPanel({
       )}
 
       {/* Events */}
-      <ResourceEventsSection namespace={secret.namespace} name={secret.name} kind="Secret" search={sl} />
+      <ResourceEventsSection
+        namespace={secret.namespace}
+        name={secret.name}
+        kind="Secret"
+        search={sl}
+      />
     </div>
   )
 }
@@ -252,7 +319,9 @@ export function SecretsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || secrets.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = secrets.find((s) => s.name === item.name && s.namespace === item.namespace)
+    const fresh = secrets.find(
+      (s) => s.name === item.name && s.namespace === item.namespace,
+    )
     if (fresh) setSelectedItem(fresh as object)
   }, [secrets])
 
@@ -301,11 +370,21 @@ export function SecretsView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">{secret.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">{secret.namespace}</TableCell>
-                    <TableCell className="whitespace-nowrap text-xs">{secret.type}</TableCell>
-                    <TableCell className="whitespace-nowrap max-w-xs truncate">{secret.keys.join(", ") || "-"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatAge(secret.creationTimestamp)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {secret.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {secret.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {secret.type}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap max-w-xs truncate">
+                      {secret.keys.join(", ") || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(secret.creationTimestamp)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

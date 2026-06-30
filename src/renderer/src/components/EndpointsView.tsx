@@ -1,6 +1,8 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -13,9 +15,7 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sEndpoint } from "../types/k8s"
-import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 
 function DetailPanel({
   endpoint,
@@ -30,9 +30,14 @@ function DetailPanel({
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const labelEntries = Object.entries(endpoint.labels).filter(([k, v]) => kv(k, v))
+  const labelEntries = Object.entries(endpoint.labels).filter(([k, v]) =>
+    kv(k, v),
+  )
   const annotationEntries = Object.entries(endpoint.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   return (

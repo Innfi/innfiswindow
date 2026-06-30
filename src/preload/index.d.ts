@@ -657,8 +657,12 @@ export interface K8sAPI {
   }) => Promise<K8sClusterRoleBinding[]>
   listHPAs: (args?: { contextName?: string }) => Promise<K8sHPA[]>
   listPVs: (args?: { contextName?: string }) => Promise<K8sPV[]>
-  listStorageClasses: (args?: { contextName?: string }) => Promise<K8sStorageClass[]>
-  listVolumeSnapshots: (args?: { contextName?: string }) => Promise<K8sVolumeSnapshot[]>
+  listStorageClasses: (args?: {
+    contextName?: string
+  }) => Promise<K8sStorageClass[]>
+  listVolumeSnapshots: (args?: {
+    contextName?: string
+  }) => Promise<K8sVolumeSnapshot[]>
   listJobs: (args?: { contextName?: string }) => Promise<K8sJob[]>
   listCronJobs: (args?: { contextName?: string }) => Promise<K8sCronJob[]>
   getNodeMetrics: (args?: {

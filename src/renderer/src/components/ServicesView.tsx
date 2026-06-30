@@ -11,6 +11,9 @@ import {
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog"
 import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -23,11 +26,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sEndpoint, K8sService, K8sServicePort } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -56,7 +56,6 @@ function DetailPanel({
   onPortForward: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const openDrawerTab = useAppStore((s) => s.openDrawerTab)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
   const [search, setSearch] = useState("")
@@ -72,7 +71,9 @@ function DetailPanel({
     window.api.k8s
       .listEndpoints({ contextName: selectedContext ?? undefined })
       .then((all) => {
-        const ep = all.find((e) => e.name === svc.name && e.namespace === svc.namespace)
+        const ep = all.find(
+          (e) => e.name === svc.name && e.namespace === svc.namespace,
+        )
         setEndpoints(ep ?? null)
       })
       .catch(() => setEndpoints(null))
@@ -83,10 +84,15 @@ function DetailPanel({
     onDeleteDialogChange(open)
   }
 
-  const selectorEntries = Object.entries(svc.selector).filter(([k, v]) => kv(k, v))
+  const selectorEntries = Object.entries(svc.selector).filter(([k, v]) =>
+    kv(k, v),
+  )
   const labelEntries = Object.entries(svc.labels).filter(([k, v]) => kv(k, v))
   const annotationEntries = Object.entries(svc.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   async function handleDelete(): Promise<void> {
@@ -125,9 +131,15 @@ function DetailPanel({
 
   const allEndpointIPs = endpoints
     ? endpoints.subsets.flatMap((s) =>
-        s.readyAddresses.map((a) => ({ ip: a.ip, pod: a.targetPodName, ready: true })).concat(
-          s.notReadyAddresses.map((a) => ({ ip: a.ip, pod: a.targetPodName, ready: false })),
-        ),
+        s.readyAddresses
+          .map((a) => ({ ip: a.ip, pod: a.targetPodName, ready: true }))
+          .concat(
+            s.notReadyAddresses.map((a) => ({
+              ip: a.ip,
+              pod: a.targetPodName,
+              ready: false,
+            })),
+          ),
       )
     : []
 
@@ -140,14 +152,59 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{svc.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="ghost" className="h-7 px-1.5" title="Port Forward" onClick={onPortForward}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-1.5"
+            title="Port Forward"
+            onClick={onPortForward}
+          >
             <ArrowLeftRight className="h-4 w-4" />
           </Button>
-          <EditButton resourceKind="Service" resourceName={svc.name} namespace={svc.namespace} buildYaml={() => ({ apiVersion: "v1", kind: "Service", metadata: { name: svc.name, namespace: svc.namespace, ...(Object.keys(svc.labels).length > 0 ? { labels: svc.labels } : {}) }, spec: { type: svc.type, ...(Object.keys(svc.selector).length > 0 ? { selector: svc.selector } : {}), ports: svc.ports.map((p) => ({ name: p.name || undefined, protocol: p.protocol, port: p.port, targetPort: isNaN(Number(p.targetPort)) ? p.targetPort : Number(p.targetPort), ...(p.nodePort ? { nodePort: p.nodePort } : {}) })) } })} />
-          <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => setDeleteOpenNotify(true)}>
+          <EditButton
+            resourceKind="Service"
+            resourceName={svc.name}
+            namespace={svc.namespace}
+            buildYaml={() => ({
+              apiVersion: "v1",
+              kind: "Service",
+              metadata: {
+                name: svc.name,
+                namespace: svc.namespace,
+                ...(Object.keys(svc.labels).length > 0
+                  ? { labels: svc.labels }
+                  : {}),
+              },
+              spec: {
+                type: svc.type,
+                ...(Object.keys(svc.selector).length > 0
+                  ? { selector: svc.selector }
+                  : {}),
+                ports: svc.ports.map((p) => ({
+                  name: p.name || undefined,
+                  protocol: p.protocol,
+                  port: p.port,
+                  targetPort: isNaN(Number(p.targetPort))
+                    ? p.targetPort
+                    : Number(p.targetPort),
+                  ...(p.nodePort ? { nodePort: p.nodePort } : {}),
+                })),
+              },
+            })}
+          />
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-7 text-xs"
+            onClick={() => setDeleteOpenNotify(true)}
+          >
             Delete
           </Button>
-          <CopyResourceButton name={svc.name} namespace={svc.namespace} resourceKind="service" />
+          <CopyResourceButton
+            name={svc.name}
+            namespace={svc.namespace}
+            resourceKind="service"
+          />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
@@ -178,9 +235,15 @@ function DetailPanel({
           <MetaEntry label="Session Affinity" value={svc.sessionAffinity} />
         )}
         {svc.externalTrafficPolicy && m(svc.externalTrafficPolicy) && (
-          <MetaEntry label="External Traffic Policy" value={svc.externalTrafficPolicy} />
+          <MetaEntry
+            label="External Traffic Policy"
+            value={svc.externalTrafficPolicy}
+          />
         )}
-        <MetaEntry label="Created" value={new Date(svc.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(svc.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {/* Ports */}
@@ -199,7 +262,9 @@ function DetailPanel({
             </thead>
             <tbody>
               {svc.ports
-                .filter((p) => !sl || m(p.name) || m(String(p.port)) || m(p.protocol))
+                .filter(
+                  (p) => !sl || m(p.name) || m(String(p.port)) || m(p.protocol),
+                )
                 .map((p, i) => (
                   <tr key={i} className="border-t border-border/40">
                     <td className="py-0.5">{p.name || "-"}</td>
@@ -226,7 +291,9 @@ function DetailPanel({
                   key={i}
                   className={cn(
                     "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-mono border",
-                    e.ready ? "bg-green-50 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800" : "bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-800",
+                    e.ready
+                      ? "bg-green-50 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800"
+                      : "bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-800",
                   )}
                   title={e.pod ?? undefined}
                 >
@@ -277,7 +344,12 @@ function DetailPanel({
       )}
 
       {/* Events */}
-      <ResourceEventsSection namespace={svc.namespace} name={svc.name} kind="Service" search={sl} />
+      <ResourceEventsSection
+        namespace={svc.namespace}
+        name={svc.name}
+        kind="Service"
+        search={sl}
+      />
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <AlertDialogContent>
@@ -292,10 +364,18 @@ function DetailPanel({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpenNotify(false)} disabled={deleting}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpenNotify(false)}
+              disabled={deleting}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
               {deleting ? "Deleting…" : "Delete"}
             </Button>
           </AlertDialogFooter>
@@ -329,12 +409,17 @@ export function ServicesView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || services.length === 0) return
     const fresh = services.find(
-      (d) => d.name === selectedItem.name && d.namespace === selectedItem.namespace,
+      (d) =>
+        d.name === selectedItem.name && d.namespace === selectedItem.namespace,
     )
     if (fresh) setSelectedItem(fresh)
   }, [services])
 
-  const visibleServices = filterResources(services, nameFilter, selectedNamespace)
+  const visibleServices = filterResources(
+    services,
+    nameFilter,
+    selectedNamespace,
+  )
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -357,7 +442,9 @@ export function ServicesView(): JSX.Element {
                   <TableHead className="whitespace-nowrap">Namespace</TableHead>
                   <TableHead className="whitespace-nowrap">Type</TableHead>
                   <TableHead className="whitespace-nowrap">ClusterIP</TableHead>
-                  <TableHead className="whitespace-nowrap">External IP</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    External IP
+                  </TableHead>
                   <TableHead className="whitespace-nowrap">Ports</TableHead>
                   <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
@@ -381,13 +468,27 @@ export function ServicesView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">{svc.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">{svc.namespace}</TableCell>
-                    <TableCell className="whitespace-nowrap">{svc.type}</TableCell>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">{svc.clusterIP || "-"}</TableCell>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">{svc.externalIP || "-"}</TableCell>
-                    <TableCell className="whitespace-nowrap text-xs">{formatPorts(svc.ports)}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatAge(svc.creationTimestamp)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {svc.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {svc.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {svc.type}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
+                      {svc.clusterIP || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
+                      {svc.externalIP || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {formatPorts(svc.ports)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(svc.creationTimestamp)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -64,7 +64,9 @@ function checkFileCredentials(): AwsCredentialResult | null {
   return null
 }
 
-function readCacheDir(dir: string): { expiresAt: string; ssoSession?: string }[] {
+function readCacheDir(
+  dir: string,
+): { expiresAt: string; ssoSession?: string }[] {
   const entries: { expiresAt: string; ssoSession?: string }[] = []
   let files: string[]
   try {
@@ -78,7 +80,10 @@ function readCacheDir(dir: string): { expiresAt: string; ssoSession?: string }[]
       const parsed = JSON.parse(content)
       const expiresAt = parsed.expiresAt ?? parsed.Credentials?.Expiration
       if (typeof expiresAt === "string") {
-        entries.push({ expiresAt, ssoSession: parsed.ssoSession ?? parsed.startUrl })
+        entries.push({
+          expiresAt,
+          ssoSession: parsed.ssoSession ?? parsed.startUrl,
+        })
       }
     } catch {
       continue

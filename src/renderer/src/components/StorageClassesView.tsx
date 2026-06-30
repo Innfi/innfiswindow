@@ -1,6 +1,8 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -13,9 +15,7 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sStorageClass } from "../types/k8s"
-import { EmptyState } from "./EmptyState"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -39,10 +39,15 @@ function DetailPanel({
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const paramEntries = Object.entries(sc.parameters).filter(([k, v]) => kv(k, v))
+  const paramEntries = Object.entries(sc.parameters).filter(([k, v]) =>
+    kv(k, v),
+  )
   const labelEntries = Object.entries(sc.labels).filter(([k, v]) => kv(k, v))
   const annotationEntries = Object.entries(sc.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   return (
@@ -73,9 +78,18 @@ function DetailPanel({
         <SectionHeader title="Spec" />
         <MetaEntry label="Provisioner" value={sc.provisioner} mono />
         <MetaEntry label="Reclaim Policy" value={sc.reclaimPolicy || "—"} />
-        <MetaEntry label="Volume Binding Mode" value={sc.volumeBindingMode || "—"} />
-        <MetaEntry label="Allow Volume Expansion" value={sc.allowVolumeExpansion ? "Yes" : "No"} />
-        <MetaEntry label="Created" value={new Date(sc.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Volume Binding Mode"
+          value={sc.volumeBindingMode || "—"}
+        />
+        <MetaEntry
+          label="Allow Volume Expansion"
+          value={sc.allowVolumeExpansion ? "Yes" : "No"}
+        />
+        <MetaEntry
+          label="Created"
+          value={new Date(sc.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {paramEntries.length > 0 && (
@@ -105,13 +119,20 @@ function DetailPanel({
         </div>
       )}
 
-      <ResourceEventsSection namespace="" name={sc.name} kind="StorageClass" search={sl} />
+      <ResourceEventsSection
+        namespace=""
+        name={sc.name}
+        kind="StorageClass"
+        search={sl}
+      />
     </div>
   )
 }
 
 export function StorageClassesView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sStorageClass | null
+  const selectedItem = useAppStore(
+    (s) => s.selectedItem,
+  ) as K8sStorageClass | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
@@ -153,10 +174,18 @@ export function StorageClassesView(): JSX.Element {
               <TableHeader>
                 <TableRow>
                   <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Provisioner</TableHead>
-                  <TableHead className="whitespace-nowrap">Reclaim Policy</TableHead>
-                  <TableHead className="whitespace-nowrap">Binding Mode</TableHead>
-                  <TableHead className="whitespace-nowrap">Expandable</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Provisioner
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Reclaim Policy
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Binding Mode
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Expandable
+                  </TableHead>
                   <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
               </TableHeader>
@@ -169,15 +198,29 @@ export function StorageClassesView(): JSX.Element {
                       selectedItem?.name === sc.name && "bg-muted",
                     )}
                     onClick={() =>
-                      setSelectedItem(selectedItem?.name === sc.name ? null : sc)
+                      setSelectedItem(
+                        selectedItem?.name === sc.name ? null : sc,
+                      )
                     }
                   >
-                    <TableCell className="whitespace-nowrap font-medium">{sc.name}</TableCell>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">{sc.provisioner}</TableCell>
-                    <TableCell className="whitespace-nowrap">{sc.reclaimPolicy || "—"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{sc.volumeBindingMode || "—"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{sc.allowVolumeExpansion ? "Yes" : "No"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatAge(sc.creationTimestamp)}</TableCell>
+                    <TableCell className="whitespace-nowrap font-medium">
+                      {sc.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
+                      {sc.provisioner}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {sc.reclaimPolicy || "—"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {sc.volumeBindingMode || "—"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {sc.allowVolumeExpansion ? "Yes" : "No"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(sc.creationTimestamp)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

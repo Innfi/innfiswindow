@@ -1,7 +1,9 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -14,11 +16,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sNamespace } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -44,7 +43,10 @@ function DetailPanel({
 
   const labelEntries = Object.entries(ns.labels).filter(([k, v]) => kv(k, v))
   const annotationEntries = Object.entries(ns.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   return (
@@ -64,7 +66,19 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="Namespace" resourceName={ns.name} buildYaml={() => ({ apiVersion: "v1", kind: "Namespace", metadata: { name: ns.name, labels: ns.labels, annotations: ns.annotations } })} />
+          <EditButton
+            resourceKind="Namespace"
+            resourceName={ns.name}
+            buildYaml={() => ({
+              apiVersion: "v1",
+              kind: "Namespace",
+              metadata: {
+                name: ns.name,
+                labels: ns.labels,
+                annotations: ns.annotations,
+              },
+            })}
+          />
           <CopyResourceButton name={ns.name} resourceKind="namespace" />
           <button
             onClick={onClose}
@@ -86,7 +100,10 @@ function DetailPanel({
 
       <div className="space-y-1">
         <SectionHeader title="Metadata" />
-        <MetaEntry label="Created" value={new Date(ns.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(ns.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {labelEntries.length > 0 && (
@@ -108,7 +125,12 @@ function DetailPanel({
       )}
 
       {/* Namespaces are cluster-scoped; events live across namespaces */}
-      <ResourceEventsSection namespace="" name={ns.name} kind="Namespace" search={sl} />
+      <ResourceEventsSection
+        namespace=""
+        name={ns.name}
+        kind="Namespace"
+        search={sl}
+      />
     </div>
   )
 }

@@ -6,7 +6,10 @@ export interface ContainerCardData {
   restartCount?: number
   ports: { name: string; containerPort: number; protocol: string }[]
   env: { name: string; value: string; valueFrom?: string }[]
-  resources: { requests: Record<string, string>; limits: Record<string, string> }
+  resources: {
+    requests: Record<string, string>
+    limits: Record<string, string>
+  }
   volumeMounts: { name: string; mountPath: string; readOnly: boolean }[]
   livenessProbe: {
     description: string

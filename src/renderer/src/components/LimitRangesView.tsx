@@ -1,7 +1,9 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -14,11 +16,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sLimitRange } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -34,9 +33,14 @@ function DetailPanel({
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const labelEntries = Object.entries(limitRange.labels).filter(([k, v]) => kv(k, v))
+  const labelEntries = Object.entries(limitRange.labels).filter(([k, v]) =>
+    kv(k, v),
+  )
   const annotationEntries = Object.entries(limitRange.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   return (
@@ -49,7 +53,20 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="LimitRange" resourceName={limitRange.name} namespace={limitRange.namespace} buildYaml={() => ({ apiVersion: "v1", kind: "LimitRange", metadata: { name: limitRange.name, namespace: limitRange.namespace }, spec: { limits: limitRange.limits } })} />
+          <EditButton
+            resourceKind="LimitRange"
+            resourceName={limitRange.name}
+            namespace={limitRange.namespace}
+            buildYaml={() => ({
+              apiVersion: "v1",
+              kind: "LimitRange",
+              metadata: {
+                name: limitRange.name,
+                namespace: limitRange.namespace,
+              },
+              spec: { limits: limitRange.limits },
+            })}
+          />
           <CopyResourceButton
             name={limitRange.name}
             namespace={limitRange.namespace}
@@ -168,7 +185,12 @@ function DetailPanel({
         </div>
       )}
 
-      <ResourceEventsSection namespace={limitRange.namespace} name={limitRange.name} kind="LimitRange" search={sl} />
+      <ResourceEventsSection
+        namespace={limitRange.namespace}
+        name={limitRange.name}
+        kind="LimitRange"
+        search={sl}
+      />
     </div>
   )
 }

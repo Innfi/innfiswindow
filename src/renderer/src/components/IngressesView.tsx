@@ -11,6 +11,9 @@ import {
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog"
 import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -23,11 +26,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sIngress, K8sIngressRule, K8sIngressTLS } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -61,7 +61,10 @@ function DetailPanel({
 
   const labelEntries = Object.entries(item.labels).filter(([k, v]) => kv(k, v))
   const annotationEntries = Object.entries(item.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   function setDeleteOpenNotify(open: boolean): void {
@@ -109,14 +112,76 @@ function DetailPanel({
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{item.name}</h2>
-          <span className="text-xs text-muted-foreground">{item.namespace}</span>
+          <span className="text-xs text-muted-foreground">
+            {item.namespace}
+          </span>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="Ingress" resourceName={item.name} namespace={item.namespace} buildYaml={() => ({ apiVersion: "networking.k8s.io/v1", kind: "Ingress", metadata: { name: item.name, namespace: item.namespace, ...(Object.keys(item.labels).length > 0 ? { labels: item.labels } : {}), ...(Object.keys(item.annotations).length > 0 ? { annotations: item.annotations } : {}) }, spec: { ...(item.ingressClassName ? { ingressClassName: item.ingressClassName } : {}), rules: item.rules.map((r) => ({ host: r.host, http: { paths: r.paths.map((p) => ({ path: p.path, pathType: p.pathType, backend: { service: { name: p.serviceName, port: { number: typeof p.servicePort === "number" ? p.servicePort : parseInt(String(p.servicePort), 10) || 80 } } } })) } })), ...(item.tls.length > 0 ? { tls: item.tls.map((t) => ({ hosts: t.hosts, secretName: t.secretName })) } : {}) } })} />
-          <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => setDeleteOpenNotify(true)}>
+          <EditButton
+            resourceKind="Ingress"
+            resourceName={item.name}
+            namespace={item.namespace}
+            buildYaml={() => ({
+              apiVersion: "networking.k8s.io/v1",
+              kind: "Ingress",
+              metadata: {
+                name: item.name,
+                namespace: item.namespace,
+                ...(Object.keys(item.labels).length > 0
+                  ? { labels: item.labels }
+                  : {}),
+                ...(Object.keys(item.annotations).length > 0
+                  ? { annotations: item.annotations }
+                  : {}),
+              },
+              spec: {
+                ...(item.ingressClassName
+                  ? { ingressClassName: item.ingressClassName }
+                  : {}),
+                rules: item.rules.map((r) => ({
+                  host: r.host,
+                  http: {
+                    paths: r.paths.map((p) => ({
+                      path: p.path,
+                      pathType: p.pathType,
+                      backend: {
+                        service: {
+                          name: p.serviceName,
+                          port: {
+                            number:
+                              typeof p.servicePort === "number"
+                                ? p.servicePort
+                                : parseInt(String(p.servicePort), 10) || 80,
+                          },
+                        },
+                      },
+                    })),
+                  },
+                })),
+                ...(item.tls.length > 0
+                  ? {
+                      tls: item.tls.map((t) => ({
+                        hosts: t.hosts,
+                        secretName: t.secretName,
+                      })),
+                    }
+                  : {}),
+              },
+            })}
+          />
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-7 text-xs"
+            onClick={() => setDeleteOpenNotify(true)}
+          >
             Delete
           </Button>
-          <CopyResourceButton name={item.name} namespace={item.namespace} resourceKind="ingress" />
+          <CopyResourceButton
+            name={item.name}
+            namespace={item.namespace}
+            resourceKind="ingress"
+          />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
@@ -145,7 +210,10 @@ function DetailPanel({
         {item.address && m(item.address) && (
           <MetaEntry label="Address" value={item.address} mono />
         )}
-        <MetaEntry label="Created" value={new Date(item.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(item.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {/* TLS */}
@@ -177,11 +245,16 @@ function DetailPanel({
               .filter((rule: K8sIngressRule) => {
                 if (!sl) return true
                 if (m(rule.host)) return true
-                return rule.paths.some((p) => m(p.path) || m(p.serviceName) || m(String(p.servicePort)))
+                return rule.paths.some(
+                  (p) =>
+                    m(p.path) || m(p.serviceName) || m(String(p.servicePort)),
+                )
               })
               .map((rule: K8sIngressRule, i: number) => (
                 <div key={i} className="rounded border p-2">
-                  <p className="font-mono text-sm font-medium mb-2">{rule.host || "*"}</p>
+                  <p className="font-mono text-sm font-medium mb-2">
+                    {rule.host || "*"}
+                  </p>
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="text-muted-foreground">
@@ -193,7 +266,13 @@ function DetailPanel({
                     </thead>
                     <tbody>
                       {rule.paths
-                        .filter((p) => !sl || m(p.path) || m(p.serviceName) || m(String(p.servicePort)))
+                        .filter(
+                          (p) =>
+                            !sl ||
+                            m(p.path) ||
+                            m(p.serviceName) ||
+                            m(String(p.servicePort)),
+                        )
                         .map((p, j) => (
                           <tr key={j} className="border-t border-border/40">
                             <td className="font-mono py-0.5 pr-2">{p.path}</td>
@@ -231,7 +310,12 @@ function DetailPanel({
       )}
 
       {/* Events */}
-      <ResourceEventsSection namespace={item.namespace} name={item.name} kind="Ingress" search={sl} />
+      <ResourceEventsSection
+        namespace={item.namespace}
+        name={item.name}
+        kind="Ingress"
+        search={sl}
+      />
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <AlertDialogContent>
@@ -246,10 +330,18 @@ function DetailPanel({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpenNotify(false)} disabled={deleting}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpenNotify(false)}
+              disabled={deleting}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
               {deleting ? "Deleting…" : "Delete"}
             </Button>
           </AlertDialogFooter>
@@ -282,11 +374,17 @@ export function IngressesView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || ingresses.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = ingresses.find((i) => i.name === item.name && i.namespace === item.namespace)
+    const fresh = ingresses.find(
+      (i) => i.name === item.name && i.namespace === item.namespace,
+    )
     if (fresh) setSelectedItem(fresh as object)
   }, [ingresses])
 
-  const visibleIngresses = filterResources(ingresses, nameFilter, selectedNamespace)
+  const visibleIngresses = filterResources(
+    ingresses,
+    nameFilter,
+    selectedNamespace,
+  )
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -333,13 +431,27 @@ export function IngressesView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap font-medium">{ing.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">{ing.namespace}</TableCell>
-                    <TableCell className="whitespace-nowrap">{ing.ingressClassName || "-"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{ing.hosts}</TableCell>
-                    <TableCell className="whitespace-nowrap">{ing.address || "-"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{ing.ports}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatAge(ing.creationTimestamp)}</TableCell>
+                    <TableCell className="whitespace-nowrap font-medium">
+                      {ing.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ing.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ing.ingressClassName || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ing.hosts}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ing.address || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {ing.ports}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(ing.creationTimestamp)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

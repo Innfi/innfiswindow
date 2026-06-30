@@ -1,7 +1,9 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -18,11 +20,8 @@ import {
   K8sNetworkPolicyPeer,
   K8sNetworkPolicyRule,
 } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -36,7 +35,9 @@ function SectionHeader({ title }: { title: string }): JSX.Element {
 function peerDescription(peer: K8sNetworkPolicyPeer): string {
   if (peer.ipBlock) {
     const excepts =
-      peer.ipBlock.except.length > 0 ? ` (except: ${peer.ipBlock.except.join(", ")})` : ""
+      peer.ipBlock.except.length > 0
+        ? ` (except: ${peer.ipBlock.except.join(", ")})`
+        : ""
     return `CIDR: ${peer.ipBlock.cidr}${excepts}`
   }
   const parts: string[] = []
@@ -65,21 +66,31 @@ function RuleSection({
   if (rules.length === 0) {
     return (
       <div>
-        <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">{title}</p>
-        <p className="text-sm text-muted-foreground italic">Deny all (no rules)</p>
+        <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">
+          {title}
+        </p>
+        <p className="text-sm text-muted-foreground italic">
+          Deny all (no rules)
+        </p>
       </div>
     )
   }
   return (
     <div>
-      <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">{title}</p>
+      <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">
+        {title}
+      </p>
       <div className="space-y-2">
         {rules.map((rule, i) => (
           <div key={i} className="rounded border p-2 text-xs space-y-1">
             <div>
-              <span className="text-muted-foreground font-medium">From/To: </span>
+              <span className="text-muted-foreground font-medium">
+                From/To:{" "}
+              </span>
               {rule.peers.length === 0 ? (
-                <span className="italic text-muted-foreground">all sources</span>
+                <span className="italic text-muted-foreground">
+                  all sources
+                </span>
               ) : (
                 <ul className="list-disc list-inside">
                   {rule.peers.map((peer, j) => (
@@ -92,7 +103,9 @@ function RuleSection({
             </div>
             {rule.ports.length > 0 && (
               <div>
-                <span className="text-muted-foreground font-medium">Ports: </span>
+                <span className="text-muted-foreground font-medium">
+                  Ports:{" "}
+                </span>
                 {rule.ports
                   .map((p) => (p.port ? `${p.protocol}/${p.port}` : p.protocol))
                   .join(", ")}
@@ -120,7 +133,10 @@ function DetailPanel({
 
   const labelEntries = Object.entries(item.labels).filter(([k, v]) => kv(k, v))
   const annotationEntries = Object.entries(item.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   return (
@@ -131,8 +147,22 @@ function DetailPanel({
           <p className="text-xs text-muted-foreground">{item.namespace}</p>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="NetworkPolicy" resourceName={item.name} namespace={item.namespace} buildYaml={() => ({ apiVersion: "networking.k8s.io/v1", kind: "NetworkPolicy", metadata: { name: item.name, namespace: item.namespace }, spec: { podSelector: {}, policyTypes: item.policyTypes } })} />
-          <CopyResourceButton name={item.name} namespace={item.namespace} resourceKind="networkpolicy" />
+          <EditButton
+            resourceKind="NetworkPolicy"
+            resourceName={item.name}
+            namespace={item.namespace}
+            buildYaml={() => ({
+              apiVersion: "networking.k8s.io/v1",
+              kind: "NetworkPolicy",
+              metadata: { name: item.name, namespace: item.namespace },
+              spec: { podSelector: {}, policyTypes: item.policyTypes },
+            })}
+          />
+          <CopyResourceButton
+            name={item.name}
+            namespace={item.namespace}
+            resourceKind="networkpolicy"
+          />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -157,9 +187,16 @@ function DetailPanel({
         <MetaEntry label="Pod Selector" value={item.podSelector} mono />
         <MetaEntry
           label="Policy Types"
-          value={item.policyTypes.length > 0 ? item.policyTypes.join(", ") : "None specified"}
+          value={
+            item.policyTypes.length > 0
+              ? item.policyTypes.join(", ")
+              : "None specified"
+          }
         />
-        <MetaEntry label="Created" value={new Date(item.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(item.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       <RuleSection title="Ingress Rules" rules={item.ingressRules} />
@@ -186,13 +223,20 @@ function DetailPanel({
       )}
 
       {/* Events */}
-      <ResourceEventsSection namespace={item.namespace} name={item.name} kind="NetworkPolicy" search={sl} />
+      <ResourceEventsSection
+        namespace={item.namespace}
+        name={item.name}
+        kind="NetworkPolicy"
+        search={sl}
+      />
     </div>
   )
 }
 
 export function NetworkPoliciesView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sNetworkPolicy | null
+  const selectedItem = useAppStore(
+    (s) => s.selectedItem,
+  ) as K8sNetworkPolicy | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
@@ -212,7 +256,9 @@ export function NetworkPoliciesView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || policies.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = policies.find((p) => p.name === item.name && p.namespace === item.namespace)
+    const fresh = policies.find(
+      (p) => p.name === item.name && p.namespace === item.namespace,
+    )
     if (fresh) setSelectedItem(fresh as object)
   }, [policies])
 
@@ -237,10 +283,18 @@ export function NetworkPoliciesView(): JSX.Element {
                 <TableRow>
                   <TableHead className="whitespace-nowrap">Name</TableHead>
                   <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Pod Selector</TableHead>
-                  <TableHead className="whitespace-nowrap">Policy Types</TableHead>
-                  <TableHead className="whitespace-nowrap">Ingress Rules</TableHead>
-                  <TableHead className="whitespace-nowrap">Egress Rules</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Pod Selector
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Policy Types
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Ingress Rules
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Egress Rules
+                  </TableHead>
                   <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
               </TableHeader>
@@ -256,19 +310,34 @@ export function NetworkPoliciesView(): JSX.Element {
                     )}
                     onClick={() =>
                       setSelectedItem(
-                        selectedItem?.name === np.name && selectedItem?.namespace === np.namespace
+                        selectedItem?.name === np.name &&
+                          selectedItem?.namespace === np.namespace
                           ? null
                           : np,
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap font-medium">{np.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">{np.namespace}</TableCell>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">{np.podSelector}</TableCell>
-                    <TableCell className="whitespace-nowrap">{np.policyTypes.join(", ") || "-"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{np.ingressRuleCount}</TableCell>
-                    <TableCell className="whitespace-nowrap">{np.egressRuleCount}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatAge(np.creationTimestamp)}</TableCell>
+                    <TableCell className="whitespace-nowrap font-medium">
+                      {np.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {np.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-mono text-xs">
+                      {np.podSelector}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {np.policyTypes.join(", ") || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {np.ingressRuleCount}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {np.egressRuleCount}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(np.creationTimestamp)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -278,7 +347,10 @@ export function NetworkPoliciesView(): JSX.Element {
       </div>
 
       {selectedItem && selectedItem.policyTypes !== undefined && (
-        <DetailPanel item={selectedItem} onClose={() => setSelectedItem(null)} />
+        <DetailPanel
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
     </div>
   )

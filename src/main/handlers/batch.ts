@@ -9,7 +9,8 @@ export async function listJobs(api: BatchV1Api): Promise<JobInfo[]> {
     const completionTime = job.status?.completionTime?.toISOString() ?? ""
     let duration = ""
     if (startTime && completionTime) {
-      const ms = new Date(completionTime).getTime() - new Date(startTime).getTime()
+      const ms =
+        new Date(completionTime).getTime() - new Date(startTime).getTime()
       const totalSecs = Math.floor(ms / 1000)
       const mins = Math.floor(totalSecs / 60)
       const secs = totalSecs % 60

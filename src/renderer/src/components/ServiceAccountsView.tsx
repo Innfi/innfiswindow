@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -23,11 +26,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sServiceAccount } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -60,7 +60,10 @@ function DetailPanel({
 
   const labelEntries = Object.entries(sa.labels).filter(([k, v]) => kv(k, v))
   const annotationEntries = Object.entries(sa.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -113,7 +116,23 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{sa.namespace}</span>
         </div>
         <div className="flex items-center gap-2">
-          <EditButton resourceKind="ServiceAccount" resourceName={sa.name} namespace={sa.namespace} buildYaml={() => ({ apiVersion: "v1", kind: "ServiceAccount", metadata: { name: sa.name, namespace: sa.namespace, ...(Object.keys(sa.labels).length > 0 && { labels: sa.labels }), ...(Object.keys(sa.annotations).length > 0 && { annotations: sa.annotations }) } })} />
+          <EditButton
+            resourceKind="ServiceAccount"
+            resourceName={sa.name}
+            namespace={sa.namespace}
+            buildYaml={() => ({
+              apiVersion: "v1",
+              kind: "ServiceAccount",
+              metadata: {
+                name: sa.name,
+                namespace: sa.namespace,
+                ...(Object.keys(sa.labels).length > 0 && { labels: sa.labels }),
+                ...(Object.keys(sa.annotations).length > 0 && {
+                  annotations: sa.annotations,
+                }),
+              },
+            })}
+          />
           <Button
             size="sm"
             variant="outline"
@@ -123,7 +142,11 @@ function DetailPanel({
             <Trash2 className="h-3 w-3 mr-1" />
             Delete
           </Button>
-          <CopyResourceButton name={sa.name} namespace={sa.namespace} resourceKind="serviceaccount" />
+          <CopyResourceButton
+            name={sa.name}
+            namespace={sa.namespace}
+            resourceKind="serviceaccount"
+          />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -145,10 +168,18 @@ function DetailPanel({
           </DialogHeader>
           {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpenNotify(false)} disabled={deleting}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpenNotify(false)}
+              disabled={deleting}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
               {deleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
@@ -166,7 +197,10 @@ function DetailPanel({
       {/* Metadata */}
       <div className="space-y-1">
         <SectionHeader title="Metadata" />
-        <MetaEntry label="Created" value={new Date(sa.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(sa.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {/* Secrets */}
@@ -175,21 +209,31 @@ function DetailPanel({
         {sa.secrets.length === 0 ? (
           <p className="text-sm text-muted-foreground">None</p>
         ) : (
-          sa.secrets.filter((s) => m(s)).map((s) => (
-            <div key={s} className="text-xs font-mono">{s}</div>
-          ))
+          sa.secrets
+            .filter((s) => m(s))
+            .map((s) => (
+              <div key={s} className="text-xs font-mono">
+                {s}
+              </div>
+            ))
         )}
       </div>
 
       {/* Image Pull Secrets */}
       <div className="space-y-1">
-        <SectionHeader title={`Image Pull Secrets (${sa.imagePullSecrets.length})`} />
+        <SectionHeader
+          title={`Image Pull Secrets (${sa.imagePullSecrets.length})`}
+        />
         {sa.imagePullSecrets.length === 0 ? (
           <p className="text-sm text-muted-foreground">None</p>
         ) : (
-          sa.imagePullSecrets.filter((s) => m(s)).map((s) => (
-            <div key={s} className="text-xs font-mono">{s}</div>
-          ))
+          sa.imagePullSecrets
+            .filter((s) => m(s))
+            .map((s) => (
+              <div key={s} className="text-xs font-mono">
+                {s}
+              </div>
+            ))
         )}
       </div>
 
@@ -214,13 +258,20 @@ function DetailPanel({
       )}
 
       {/* Events */}
-      <ResourceEventsSection namespace={sa.namespace} name={sa.name} kind="ServiceAccount" search={sl} />
+      <ResourceEventsSection
+        namespace={sa.namespace}
+        name={sa.name}
+        kind="ServiceAccount"
+        search={sl}
+      />
     </div>
   )
 }
 
 export function ServiceAccountsView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sServiceAccount | null
+  const selectedItem = useAppStore(
+    (s) => s.selectedItem,
+  ) as K8sServiceAccount | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
@@ -242,11 +293,17 @@ export function ServiceAccountsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || serviceAccounts.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = serviceAccounts.find((s) => s.name === item.name && s.namespace === item.namespace)
+    const fresh = serviceAccounts.find(
+      (s) => s.name === item.name && s.namespace === item.namespace,
+    )
     if (fresh) setSelectedItem(fresh as object)
   }, [serviceAccounts])
 
-  const visible = filterResources(serviceAccounts, nameFilter, selectedNamespace)
+  const visible = filterResources(
+    serviceAccounts,
+    nameFilter,
+    selectedNamespace,
+  )
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -283,16 +340,25 @@ export function ServiceAccountsView(): JSX.Element {
                     )}
                     onClick={() =>
                       setSelectedItem(
-                        selectedItem?.name === sa.name && selectedItem?.namespace === sa.namespace
+                        selectedItem?.name === sa.name &&
+                          selectedItem?.namespace === sa.namespace
                           ? null
                           : sa,
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">{sa.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">{sa.namespace}</TableCell>
-                    <TableCell className="whitespace-nowrap">{sa.secrets.length}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatAge(sa.creationTimestamp)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {sa.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {sa.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {sa.secrets.length}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(sa.creationTimestamp)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

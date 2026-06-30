@@ -1,7 +1,9 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -14,11 +16,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sPDB } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -42,10 +41,15 @@ function DetailPanel({
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const selectorEntries = Object.entries(pdb.selector).filter(([k, v]) => kv(k, v))
+  const selectorEntries = Object.entries(pdb.selector).filter(([k, v]) =>
+    kv(k, v),
+  )
   const labelEntries = Object.entries(pdb.labels).filter(([k, v]) => kv(k, v))
   const annotationEntries = Object.entries(pdb.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   return (
@@ -57,7 +61,30 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{pdb.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="PodDisruptionBudget" resourceName={pdb.name} namespace={pdb.namespace} buildYaml={() => ({ apiVersion: "policy/v1", kind: "PodDisruptionBudget", metadata: { name: pdb.name, namespace: pdb.namespace, labels: pdb.labels, annotations: pdb.annotations }, spec: { ...(pdb.minAvailable != null ? { minAvailable: pdb.minAvailable } : {}), ...(pdb.maxUnavailable != null ? { maxUnavailable: pdb.maxUnavailable } : {}), selector: { matchLabels: pdb.selector } } })} />
+          <EditButton
+            resourceKind="PodDisruptionBudget"
+            resourceName={pdb.name}
+            namespace={pdb.namespace}
+            buildYaml={() => ({
+              apiVersion: "policy/v1",
+              kind: "PodDisruptionBudget",
+              metadata: {
+                name: pdb.name,
+                namespace: pdb.namespace,
+                labels: pdb.labels,
+                annotations: pdb.annotations,
+              },
+              spec: {
+                ...(pdb.minAvailable != null
+                  ? { minAvailable: pdb.minAvailable }
+                  : {}),
+                ...(pdb.maxUnavailable != null
+                  ? { maxUnavailable: pdb.maxUnavailable }
+                  : {}),
+                selector: { matchLabels: pdb.selector },
+              },
+            })}
+          />
           <CopyResourceButton
             name={pdb.name}
             namespace={pdb.namespace}
@@ -90,7 +117,10 @@ function DetailPanel({
         {pdb.maxUnavailable != null && m(String(pdb.maxUnavailable)) && (
           <MetaEntry label="Max Unavailable" value={pdb.maxUnavailable} />
         )}
-        <MetaEntry label="Created" value={new Date(pdb.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(pdb.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {/* Status */}
@@ -167,7 +197,9 @@ export function PDBsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || pdbs.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = pdbs.find((p) => p.name === item.name && p.namespace === item.namespace)
+    const fresh = pdbs.find(
+      (p) => p.name === item.name && p.namespace === item.namespace,
+    )
     if (fresh) setSelectedItem(fresh as object)
   }, [pdbs])
 
@@ -192,10 +224,18 @@ export function PDBsView(): JSX.Element {
                 <TableRow>
                   <TableHead className="whitespace-nowrap">Name</TableHead>
                   <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Min Available</TableHead>
-                  <TableHead className="whitespace-nowrap">Max Unavailable</TableHead>
-                  <TableHead className="whitespace-nowrap">Current Healthy</TableHead>
-                  <TableHead className="whitespace-nowrap">Disruptions Allowed</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Min Available
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Max Unavailable
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Current Healthy
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Disruptions Allowed
+                  </TableHead>
                   <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
               </TableHeader>
@@ -218,20 +258,33 @@ export function PDBsView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">{p.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">{p.namespace}</TableCell>
-                    <TableCell className="whitespace-nowrap">{p.minAvailable ?? "—"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{p.maxUnavailable ?? "—"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{p.currentHealthy}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.minAvailable ?? "—"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.maxUnavailable ?? "—"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {p.currentHealthy}
+                    </TableCell>
                     <TableCell
                       className={cn(
                         "whitespace-nowrap",
-                        p.disruptionsAllowed === 0 && "text-red-500 font-semibold",
+                        p.disruptionsAllowed === 0 &&
+                          "text-red-500 font-semibold",
                       )}
                     >
                       {p.disruptionsAllowed}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">{formatAge(p.creationTimestamp)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(p.creationTimestamp)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -241,7 +294,10 @@ export function PDBsView(): JSX.Element {
       </div>
 
       {selectedItem && (selectedItem as K8sPDB).selector !== undefined && (
-        <DetailPanel pdb={selectedItem as K8sPDB} onClose={() => setSelectedItem(null)} />
+        <DetailPanel
+          pdb={selectedItem as K8sPDB}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
     </div>
   )

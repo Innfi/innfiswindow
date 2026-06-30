@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -23,11 +26,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sRole } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 
 function DetailPanel({
   role,
@@ -101,7 +101,26 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <EditButton resourceKind="Role" resourceName={role.name} namespace={role.namespace} buildYaml={() => ({ apiVersion: "rbac.authorization.k8s.io/v1", kind: "Role", metadata: { name: role.name, namespace: role.namespace, ...(Object.keys(role.labels).length > 0 && { labels: role.labels }), ...(Object.keys(role.annotations).length > 0 && { annotations: role.annotations }) }, rules: role.rules })} />
+          <EditButton
+            resourceKind="Role"
+            resourceName={role.name}
+            namespace={role.namespace}
+            buildYaml={() => ({
+              apiVersion: "rbac.authorization.k8s.io/v1",
+              kind: "Role",
+              metadata: {
+                name: role.name,
+                namespace: role.namespace,
+                ...(Object.keys(role.labels).length > 0 && {
+                  labels: role.labels,
+                }),
+                ...(Object.keys(role.annotations).length > 0 && {
+                  annotations: role.annotations,
+                }),
+              },
+              rules: role.rules,
+            })}
+          />
           <Button
             size="sm"
             variant="outline"
@@ -166,7 +185,10 @@ function DetailPanel({
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
           Metadata
         </h3>
-        <MetaEntry label="Created" value={new Date(role.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(role.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       <div className="space-y-1">
@@ -180,7 +202,9 @@ function DetailPanel({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">API Groups</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    API Groups
+                  </TableHead>
                   <TableHead className="whitespace-nowrap">Resources</TableHead>
                   <TableHead className="whitespace-nowrap">Verbs</TableHead>
                 </TableRow>
@@ -190,7 +214,9 @@ function DetailPanel({
                   .filter(
                     (rule) =>
                       !sl ||
-                      rule.resources.some((r) => r.toLowerCase().includes(sl)) ||
+                      rule.resources.some((r) =>
+                        r.toLowerCase().includes(sl),
+                      ) ||
                       rule.verbs.some((v) => v.toLowerCase().includes(sl)) ||
                       rule.apiGroups.some((g) => g.toLowerCase().includes(sl)),
                   )
@@ -232,7 +258,12 @@ function DetailPanel({
             Annotations
           </h3>
           {Object.entries(role.annotations)
-            .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+            .filter(
+              ([k]) =>
+                !k.startsWith(
+                  "kubectl.kubernetes.io/last-applied-configuration",
+                ),
+            )
             .filter(([k, v]) => kv(k, v))
             .map(([k, v]) => (
               <MetaEntry key={k} label={k} value={v} />

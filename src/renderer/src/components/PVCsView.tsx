@@ -1,7 +1,9 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -14,11 +16,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sPVC } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -54,7 +53,10 @@ function DetailPanel({
 
   const labelEntries = Object.entries(pvc.labels).filter(([k, v]) => kv(k, v))
   const annotationEntries = Object.entries(pvc.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   return (
@@ -66,8 +68,31 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{pvc.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="PersistentVolumeClaim" resourceName={pvc.name} namespace={pvc.namespace} buildYaml={() => ({ apiVersion: "v1", kind: "PersistentVolumeClaim", metadata: { name: pvc.name, namespace: pvc.namespace, labels: pvc.labels, annotations: pvc.annotations }, spec: { accessModes: pvc.accessModes, storageClassName: pvc.storageClass, resources: { requests: { storage: pvc.capacity } } } })} />
-          <CopyResourceButton name={pvc.name} namespace={pvc.namespace} resourceKind="persistentvolumeclaim" />
+          <EditButton
+            resourceKind="PersistentVolumeClaim"
+            resourceName={pvc.name}
+            namespace={pvc.namespace}
+            buildYaml={() => ({
+              apiVersion: "v1",
+              kind: "PersistentVolumeClaim",
+              metadata: {
+                name: pvc.name,
+                namespace: pvc.namespace,
+                labels: pvc.labels,
+                annotations: pvc.annotations,
+              },
+              spec: {
+                accessModes: pvc.accessModes,
+                storageClassName: pvc.storageClass,
+                resources: { requests: { storage: pvc.capacity } },
+              },
+            })}
+          />
+          <CopyResourceButton
+            name={pvc.name}
+            namespace={pvc.namespace}
+            resourceKind="persistentvolumeclaim"
+          />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -90,7 +115,12 @@ function DetailPanel({
       <div className="space-y-1">
         <SectionHeader title="Status" />
         <div className="flex items-center gap-2">
-          <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", pvcStatusClass(pvc.status))}>
+          <span
+            className={cn(
+              "rounded px-1.5 py-0.5 text-xs font-medium",
+              pvcStatusClass(pvc.status),
+            )}
+          >
             {pvc.status || "-"}
           </span>
         </div>
@@ -103,12 +133,18 @@ function DetailPanel({
       <div className="space-y-1">
         <SectionHeader title="Spec" />
         <MetaEntry label="Capacity" value={pvc.capacity || "-"} />
-        <MetaEntry label="Access Modes" value={pvc.accessModes.join(", ") || "-"} />
+        <MetaEntry
+          label="Access Modes"
+          value={pvc.accessModes.join(", ") || "-"}
+        />
         <MetaEntry label="Storage Class" value={pvc.storageClass || "-"} />
         {pvc.volumeMode && m(pvc.volumeMode) && (
           <MetaEntry label="Volume Mode" value={pvc.volumeMode} />
         )}
-        <MetaEntry label="Created" value={new Date(pvc.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(pvc.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {/* Labels */}
@@ -132,7 +168,12 @@ function DetailPanel({
       )}
 
       {/* Events */}
-      <ResourceEventsSection namespace={pvc.namespace} name={pvc.name} kind="PersistentVolumeClaim" search={sl} />
+      <ResourceEventsSection
+        namespace={pvc.namespace}
+        name={pvc.name}
+        kind="PersistentVolumeClaim"
+        search={sl}
+      />
     </div>
   )
 }
@@ -158,7 +199,9 @@ export function PVCsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || pvcs.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = pvcs.find((p) => p.name === item.name && p.namespace === item.namespace)
+    const fresh = pvcs.find(
+      (p) => p.name === item.name && p.namespace === item.namespace,
+    )
     if (fresh) setSelectedItem(fresh as object)
   }, [pvcs])
 
@@ -186,8 +229,12 @@ export function PVCsView(): JSX.Element {
                   <TableHead className="whitespace-nowrap">Status</TableHead>
                   <TableHead className="whitespace-nowrap">Volume</TableHead>
                   <TableHead className="whitespace-nowrap">Capacity</TableHead>
-                  <TableHead className="whitespace-nowrap">Access Modes</TableHead>
-                  <TableHead className="whitespace-nowrap">StorageClass</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    Access Modes
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    StorageClass
+                  </TableHead>
                   <TableHead className="whitespace-nowrap">Age</TableHead>
                 </TableRow>
               </TableHeader>
@@ -210,18 +257,37 @@ export function PVCsView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">{pvc.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">{pvc.namespace}</TableCell>
                     <TableCell className="whitespace-nowrap">
-                      <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", pvcStatusClass(pvc.status))}>
+                      {pvc.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pvc.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <span
+                        className={cn(
+                          "rounded px-1.5 py-0.5 text-xs font-medium",
+                          pvcStatusClass(pvc.status),
+                        )}
+                      >
                         {pvc.status}
                       </span>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">{pvc.volumeName || "-"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{pvc.capacity || "-"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{pvc.accessModes.join(", ")}</TableCell>
-                    <TableCell className="whitespace-nowrap">{pvc.storageClass || "-"}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatAge(pvc.creationTimestamp)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pvc.volumeName || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pvc.capacity || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pvc.accessModes.join(", ")}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {pvc.storageClass || "-"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(pvc.creationTimestamp)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

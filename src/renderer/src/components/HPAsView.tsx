@@ -1,7 +1,9 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -14,11 +16,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sHPA } from "../types/k8s"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -44,7 +43,10 @@ function DetailPanel({
 
   const labelEntries = Object.entries(hpa.labels).filter(([k, v]) => kv(k, v))
   const annotationEntries = Object.entries(hpa.annotations)
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   return (
@@ -56,7 +58,30 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{hpa.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="HPA" resourceName={hpa.name} namespace={hpa.namespace} buildYaml={() => ({ apiVersion: "autoscaling/v2", kind: "HorizontalPodAutoscaler", metadata: { name: hpa.name, namespace: hpa.namespace, labels: hpa.labels, annotations: hpa.annotations }, spec: { scaleTargetRef: { apiVersion: "apps/v1", kind: hpa.targetRef.kind, name: hpa.targetRef.name }, minReplicas: hpa.minReplicas, maxReplicas: hpa.maxReplicas } })} />
+          <EditButton
+            resourceKind="HPA"
+            resourceName={hpa.name}
+            namespace={hpa.namespace}
+            buildYaml={() => ({
+              apiVersion: "autoscaling/v2",
+              kind: "HorizontalPodAutoscaler",
+              metadata: {
+                name: hpa.name,
+                namespace: hpa.namespace,
+                labels: hpa.labels,
+                annotations: hpa.annotations,
+              },
+              spec: {
+                scaleTargetRef: {
+                  apiVersion: "apps/v1",
+                  kind: hpa.targetRef.kind,
+                  name: hpa.targetRef.name,
+                },
+                minReplicas: hpa.minReplicas,
+                maxReplicas: hpa.maxReplicas,
+              },
+            })}
+          />
           <CopyResourceButton
             name={hpa.name}
             namespace={hpa.namespace}
@@ -85,7 +110,10 @@ function DetailPanel({
         <SectionHeader title="Scale Target" />
         <MetaEntry label="Kind" value={hpa.targetRef.kind} />
         <MetaEntry label="Name" value={hpa.targetRef.name} />
-        <MetaEntry label="Created" value={new Date(hpa.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(hpa.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {/* Replicas */}
@@ -107,10 +135,14 @@ function DetailPanel({
               <div key={i} className="text-sm border rounded p-2 space-y-0.5">
                 <div className="font-medium">{met.type}</div>
                 {met.target && (
-                  <div className="text-xs text-muted-foreground">Target: {met.target}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Target: {met.target}
+                  </div>
                 )}
                 {met.current && (
-                  <div className="text-xs text-muted-foreground">Current: {met.current}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Current: {met.current}
+                  </div>
                 )}
               </div>
             ))}
@@ -124,7 +156,10 @@ function DetailPanel({
           {hpa.conditions
             .filter((c) => m(c.type) || m(c.reason) || m(c.message))
             .map((c) => (
-              <div key={c.type} className="text-sm space-y-0.5 border rounded p-2">
+              <div
+                key={c.type}
+                className="text-sm space-y-0.5 border rounded p-2"
+              >
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{c.type}</span>
                   <span
@@ -138,8 +173,16 @@ function DetailPanel({
                     {c.status}
                   </span>
                 </div>
-                {c.reason && <div className="text-xs text-muted-foreground">{c.reason}</div>}
-                {c.message && <div className="text-xs text-muted-foreground">{c.message}</div>}
+                {c.reason && (
+                  <div className="text-xs text-muted-foreground">
+                    {c.reason}
+                  </div>
+                )}
+                {c.message && (
+                  <div className="text-xs text-muted-foreground">
+                    {c.message}
+                  </div>
+                )}
               </div>
             ))}
         </div>
@@ -197,7 +240,9 @@ export function HPAsView(): JSX.Element {
   useEffect(() => {
     if (!selectedItem || hpas.length === 0) return
     const item = selectedItem as { name: string; namespace: string }
-    const fresh = hpas.find((h) => h.name === item.name && h.namespace === item.namespace)
+    const fresh = hpas.find(
+      (h) => h.name === item.name && h.namespace === item.namespace,
+    )
     if (fresh) setSelectedItem(fresh as object)
   }, [hpas])
 
@@ -241,21 +286,32 @@ export function HPAsView(): JSX.Element {
                     )}
                     onClick={() =>
                       setSelectedItem(
-                        selectedItem?.name === h.name && selectedItem?.namespace === h.namespace
+                        selectedItem?.name === h.name &&
+                          selectedItem?.namespace === h.namespace
                           ? null
                           : h,
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">{h.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">{h.namespace}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {h.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {h.namespace}
+                    </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {h.targetRef.kind}/{h.targetRef.name}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">{h.minReplicas}</TableCell>
-                    <TableCell className="whitespace-nowrap">{h.maxReplicas}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {h.minReplicas}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {h.maxReplicas}
+                    </TableCell>
                     <TableCell className="whitespace-nowrap">{`${h.currentReplicas}/${h.desiredReplicas}`}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatAge(h.creationTimestamp)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatAge(h.creationTimestamp)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

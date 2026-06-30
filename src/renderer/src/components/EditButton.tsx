@@ -4,7 +4,10 @@ import { Pencil } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { DrawerTabInput, useAppStore } from "../../store/app.store"
 
-type YamlEditKind = Extract<DrawerTabInput, { type: "yaml-edit" }>["resourceKind"]
+type YamlEditKind = Extract<
+  DrawerTabInput,
+  { type: "yaml-edit" }
+>["resourceKind"]
 
 interface EditButtonProps {
   resourceKind: YamlEditKind

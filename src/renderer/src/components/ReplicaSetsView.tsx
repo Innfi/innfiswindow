@@ -1,7 +1,9 @@
 import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -15,11 +17,8 @@ import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sReplicaSet } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function SectionHeader({ title }: { title: string }): JSX.Element {
@@ -43,11 +42,20 @@ function DetailPanel({
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const selectorEntries = Object.entries(rs.selector).filter(([k, v]) => kv(k, v))
-  const podTemplateEntries = Object.entries(rs.podTemplateLabels).filter(([k, v]) => kv(k, v))
-  const labelEntries = Object.entries(rs.labels ?? {}).filter(([k, v]) => kv(k, v))
+  const selectorEntries = Object.entries(rs.selector).filter(([k, v]) =>
+    kv(k, v),
+  )
+  const podTemplateEntries = Object.entries(rs.podTemplateLabels).filter(
+    ([k, v]) => kv(k, v),
+  )
+  const labelEntries = Object.entries(rs.labels ?? {}).filter(([k, v]) =>
+    kv(k, v),
+  )
   const annotationEntries = Object.entries(rs.annotations ?? {})
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kv(k, v))
 
   return (
@@ -59,8 +67,34 @@ function DetailPanel({
           <span className="text-xs text-muted-foreground">{rs.namespace}</span>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="ReplicaSet" resourceName={rs.name} namespace={rs.namespace} buildYaml={() => ({ apiVersion: "apps/v1", kind: "ReplicaSet", metadata: { name: rs.name, namespace: rs.namespace }, spec: { replicas: rs.desiredReplicas, selector: { matchLabels: rs.selector }, template: { metadata: { labels: rs.podTemplateLabels }, spec: { containers: rs.containers.map((c) => ({ name: c.name, image: c.image })) } } } })} />
-          <CopyResourceButton name={rs.name} namespace={rs.namespace} resourceKind="replicaset" />
+          <EditButton
+            resourceKind="ReplicaSet"
+            resourceName={rs.name}
+            namespace={rs.namespace}
+            buildYaml={() => ({
+              apiVersion: "apps/v1",
+              kind: "ReplicaSet",
+              metadata: { name: rs.name, namespace: rs.namespace },
+              spec: {
+                replicas: rs.desiredReplicas,
+                selector: { matchLabels: rs.selector },
+                template: {
+                  metadata: { labels: rs.podTemplateLabels },
+                  spec: {
+                    containers: rs.containers.map((c) => ({
+                      name: c.name,
+                      image: c.image,
+                    })),
+                  },
+                },
+              },
+            })}
+          />
+          <CopyResourceButton
+            name={rs.name}
+            namespace={rs.namespace}
+            resourceKind="replicaset"
+          />
           <button
             onClick={onClose}
             className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -88,7 +122,10 @@ function DetailPanel({
         {rs.serviceAccountName && m(rs.serviceAccountName) && (
           <MetaEntry label="Service Account" value={rs.serviceAccountName} />
         )}
-        <MetaEntry label="Created" value={new Date(rs.creationTimestamp).toLocaleString()} />
+        <MetaEntry
+          label="Created"
+          value={new Date(rs.creationTimestamp).toLocaleString()}
+        />
       </div>
 
       {/* Owner References */}
@@ -175,7 +212,10 @@ function DetailPanel({
           {rs.volumes
             .filter((v) => m(v.name) || m(v.type) || m(v.detail))
             .map((v) => (
-              <div key={v.name} className="text-xs border rounded p-2 space-y-0.5">
+              <div
+                key={v.name}
+                className="text-xs border rounded p-2 space-y-0.5"
+              >
                 <div className="font-medium">{v.name}</div>
                 <div className="text-muted-foreground">
                   {v.type}
@@ -198,7 +238,9 @@ function DetailPanel({
 }
 
 export function ReplicaSetsView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sReplicaSet | null
+  const selectedItem = useAppStore(
+    (s) => s.selectedItem,
+  ) as K8sReplicaSet | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
@@ -275,11 +317,21 @@ export function ReplicaSetsView(): JSX.Element {
                       )
                     }
                   >
-                    <TableCell className="whitespace-nowrap">{rs.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">{rs.namespace}</TableCell>
-                    <TableCell className="whitespace-nowrap">{rs.desiredReplicas}</TableCell>
-                    <TableCell className="whitespace-nowrap">{rs.currentReplicas}</TableCell>
-                    <TableCell className="whitespace-nowrap">{rs.readyReplicas}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {rs.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {rs.namespace}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {rs.desiredReplicas}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {rs.currentReplicas}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {rs.readyReplicas}
+                    </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {formatAge(rs.creationTimestamp)}
                     </TableCell>
@@ -294,7 +346,10 @@ export function ReplicaSetsView(): JSX.Element {
       {selectedItem &&
         selectedItem.namespace !== undefined &&
         selectedItem.desiredReplicas !== undefined && (
-          <DetailPanel rs={selectedItem} onClose={() => setSelectedItem(null)} />
+          <DetailPanel
+            rs={selectedItem}
+            onClose={() => setSelectedItem(null)}
+          />
         )}
     </div>
   )

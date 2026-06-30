@@ -11,6 +11,9 @@ import {
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog"
 import { Button } from "../../components/ui/button"
+import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { EmptyState } from "../../components/ui/EmptyState"
+import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
   TableBody,
@@ -24,11 +27,8 @@ import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sDeployment } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
-import { CopyResourceButton } from "./CopyResourceButton"
-import { EmptyState } from "./EmptyState"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { RefreshBar } from "./RefreshBar"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 type DeploymentRevision = {
@@ -71,12 +71,21 @@ function DetailPanel({
   const matches = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kvMatches = (k: string, v: string): boolean => matches(k) || matches(v)
 
-  const selectorEntries = Object.entries(deployment.selector).filter(([k, v]) => kvMatches(k, v))
-  const labelEntries = Object.entries(deployment.labels ?? {}).filter(([k, v]) => kvMatches(k, v))
+  const selectorEntries = Object.entries(deployment.selector).filter(([k, v]) =>
+    kvMatches(k, v),
+  )
+  const labelEntries = Object.entries(deployment.labels ?? {}).filter(
+    ([k, v]) => kvMatches(k, v),
+  )
   const annotationEntries = Object.entries(deployment.annotations ?? {})
-    .filter(([k]) => !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"))
+    .filter(
+      ([k]) =>
+        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
+    )
     .filter(([k, v]) => kvMatches(k, v))
-  const podLabelEntries = Object.entries(deployment.podTemplateLabels ?? {}).filter(([k, v]) => kvMatches(k, v))
+  const podLabelEntries = Object.entries(
+    deployment.podTemplateLabels ?? {},
+  ).filter(([k, v]) => kvMatches(k, v))
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true)
@@ -90,11 +99,18 @@ function DetailPanel({
       setHistory(revisions)
     } catch (e) {
       toast.error(`Failed to load rollout history: ${String(e)}`)
-      useAppStore.getState().addGlobalError(String(e), "Deployment: rollout history")
+      useAppStore
+        .getState()
+        .addGlobalError(String(e), "Deployment: rollout history")
     } finally {
       setHistoryLoading(false)
     }
-  }, [deployment.namespace, deployment.name, deployment.selector, selectedContext])
+  }, [
+    deployment.namespace,
+    deployment.name,
+    deployment.selector,
+    selectedContext,
+  ])
 
   useEffect(() => {
     loadHistory()
@@ -110,7 +126,9 @@ function DetailPanel({
         name: deployment.name,
         revision: rollbackRevision,
       })
-      toast.success(`Rolled back ${deployment.name} to revision ${rollbackRevision}`)
+      toast.success(
+        `Rolled back ${deployment.name} to revision ${rollbackRevision}`,
+      )
       setRollbackRevision(null)
       await loadHistory()
     } catch (e) {
@@ -130,7 +148,10 @@ function DetailPanel({
   async function handleDelete(): Promise<void> {
     setDeleting(true)
     try {
-      await window.api.k8s.deleteDeployment(deployment.namespace, deployment.name)
+      await window.api.k8s.deleteDeployment(
+        deployment.namespace,
+        deployment.name,
+      )
       appendHistory({
         action: "delete",
         resourceKind: "Deployment",
@@ -167,10 +188,37 @@ function DetailPanel({
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{deployment.name}</h2>
-          <span className="text-xs text-muted-foreground">{deployment.namespace}</span>
+          <span className="text-xs text-muted-foreground">
+            {deployment.namespace}
+          </span>
         </div>
         <div className="flex items-center gap-1">
-          <EditButton resourceKind="Deployment" resourceName={deployment.name} namespace={deployment.namespace} buildYaml={() => ({ apiVersion: "apps/v1", kind: "Deployment", metadata: { name: deployment.name, namespace: deployment.namespace }, spec: { replicas: deployment.replicas, selector: { matchLabels: deployment.selector }, template: { metadata: { labels: deployment.selector }, spec: { containers: deployment.containers.map((c) => ({ name: c.name, image: c.image })) } } } })} />
+          <EditButton
+            resourceKind="Deployment"
+            resourceName={deployment.name}
+            namespace={deployment.namespace}
+            buildYaml={() => ({
+              apiVersion: "apps/v1",
+              kind: "Deployment",
+              metadata: {
+                name: deployment.name,
+                namespace: deployment.namespace,
+              },
+              spec: {
+                replicas: deployment.replicas,
+                selector: { matchLabels: deployment.selector },
+                template: {
+                  metadata: { labels: deployment.selector },
+                  spec: {
+                    containers: deployment.containers.map((c) => ({
+                      name: c.name,
+                      image: c.image,
+                    })),
+                  },
+                },
+              },
+            })}
+          />
           <Button
             size="sm"
             variant="destructive"
@@ -207,17 +255,32 @@ function DetailPanel({
         <SectionHeader title="Replicas" />
         <MetaEntry label="Desired" value={String(deployment.replicas)} />
         <MetaEntry label="Ready" value={String(deployment.readyReplicas)} />
-        <MetaEntry label="Up-to-date" value={String(deployment.updatedReplicas)} />
-        <MetaEntry label="Available" value={String(deployment.availableReplicas)} />
+        <MetaEntry
+          label="Up-to-date"
+          value={String(deployment.updatedReplicas)}
+        />
+        <MetaEntry
+          label="Available"
+          value={String(deployment.availableReplicas)}
+        />
         <MetaEntry label="Strategy" value={deployment.strategy} />
         {deployment.rollingUpdate && (
           <>
-            <MetaEntry label="Max Unavailable" value={deployment.rollingUpdate.maxUnavailable} />
-            <MetaEntry label="Max Surge" value={deployment.rollingUpdate.maxSurge} />
+            <MetaEntry
+              label="Max Unavailable"
+              value={deployment.rollingUpdate.maxUnavailable}
+            />
+            <MetaEntry
+              label="Max Surge"
+              value={deployment.rollingUpdate.maxSurge}
+            />
           </>
         )}
         {deployment.minReadySeconds > 0 && (
-          <MetaEntry label="Min Ready Seconds" value={String(deployment.minReadySeconds)} />
+          <MetaEntry
+            label="Min Ready Seconds"
+            value={String(deployment.minReadySeconds)}
+          />
         )}
         <MetaEntry
           label="Created"
@@ -259,9 +322,13 @@ function DetailPanel({
       {(podLabelEntries.length > 0 || deployment.serviceAccountName) && (
         <div className="space-y-1">
           <SectionHeader title="Pod Template" />
-          {deployment.serviceAccountName && matches(deployment.serviceAccountName) && (
-            <MetaEntry label="Service Account" value={deployment.serviceAccountName} />
-          )}
+          {deployment.serviceAccountName &&
+            matches(deployment.serviceAccountName) && (
+              <MetaEntry
+                label="Service Account"
+                value={deployment.serviceAccountName}
+              />
+            )}
           {podLabelEntries.map(([k, v]) => (
             <MetaEntry key={k} label={`label: ${k}`} value={v} />
           ))}
@@ -297,9 +364,14 @@ function DetailPanel({
         <div className="space-y-1">
           <SectionHeader title="Volumes" />
           {deployment.volumes
-            .filter((v) => matches(v.name) || matches(v.type) || matches(v.detail))
+            .filter(
+              (v) => matches(v.name) || matches(v.type) || matches(v.detail),
+            )
             .map((v) => (
-              <div key={v.name} className="text-xs border rounded p-2 space-y-0.5">
+              <div
+                key={v.name}
+                className="text-xs border rounded p-2 space-y-0.5"
+              >
                 <div className="font-medium">{v.name}</div>
                 <div className="text-muted-foreground">
                   {v.type}
@@ -315,7 +387,10 @@ function DetailPanel({
         <div className="space-y-1">
           <SectionHeader title="Conditions" />
           {deployment.conditions.map((c) => (
-            <div key={c.type} className="text-sm space-y-0.5 border rounded p-2">
+            <div
+              key={c.type}
+              className="text-sm space-y-0.5 border rounded p-2"
+            >
               <div className="flex items-center gap-2">
                 <span className="font-medium">{c.type}</span>
                 <span
@@ -348,14 +423,19 @@ function DetailPanel({
       {/* Rollout History */}
       <div className="space-y-1">
         <SectionHeader title="Rollout History" />
-        {historyLoading && <p className="text-xs text-muted-foreground">Loading...</p>}
+        {historyLoading && (
+          <p className="text-xs text-muted-foreground">Loading...</p>
+        )}
         {!historyLoading && history.length === 0 && (
           <p className="text-xs text-muted-foreground">No history found</p>
         )}
         {!historyLoading && history.length > 0 && (
           <div className="space-y-1">
             {history.map((rev) => (
-              <div key={rev.revision} className="border rounded p-2 text-xs space-y-1">
+              <div
+                key={rev.revision}
+                className="border rounded p-2 text-xs space-y-1"
+              >
                 <div className="flex items-center justify-between gap-1">
                   <span className="font-medium">#{rev.revision}</span>
                   <Button
@@ -404,7 +484,11 @@ function DetailPanel({
             >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
               {deleting ? "Deleting…" : "Delete"}
             </Button>
           </AlertDialogFooter>
