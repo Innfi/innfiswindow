@@ -1,8 +1,9 @@
 import { app } from "electron"
 import * as fs from "fs"
+import { createServer, Server } from "net"
 import { join } from "path"
 import { PrometheusDriver, RangeVector, SampleValue } from "prometheus-query"
-import { KubeConfig } from "@kubernetes/client-node"
+import { CoreV1Api, KubeConfig, PortForward } from "@kubernetes/client-node"
 
 export interface PrometheusConfig {
   namespace: string
@@ -62,13 +63,110 @@ export function setPrometheusConfig(config: PrometheusConfig): {
   success: boolean
 } {
   saveConfig(config)
+  if (pfTunnel) {
+    pfTunnel.server.close()
+    pfTunnel = null
+  }
+  proxyMode = "apiserver"
   return { success: true }
+}
+
+type ProxyMode = "apiserver" | "portforward"
+
+// Some clusters deny the API server's services/proxy subresource via RBAC.
+// Fall back to a pod-level port-forward tunnel (needs only pods/portforward)
+// once that's detected, and stick with it for subsequent calls.
+let proxyMode: ProxyMode = "apiserver"
+
+interface PortForwardTunnel {
+  key: string
+  server: Server
+  localPort: number
+}
+
+let pfTunnel: PortForwardTunnel | null = null
+
+function isForbidden(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e)
+  return /forbidden|403/i.test(msg)
+}
+
+async function resolveEndpointPod(
+  coreV1Api: CoreV1Api,
+  namespace: string,
+  service: string,
+): Promise<{ podName: string; podNamespace: string; targetPort: number }> {
+  const ep = await coreV1Api.readNamespacedEndpoints({
+    name: service,
+    namespace,
+  })
+  const subset = ep.subsets?.[0]
+  const addr = subset?.addresses?.[0]
+  if (!addr?.targetRef?.name) {
+    throw new Error("No ready pods found for prometheus service")
+  }
+  const targetPort = subset?.ports?.[0]?.port
+  if (!targetPort) {
+    throw new Error("Could not resolve target port for prometheus service")
+  }
+  return {
+    podName: addr.targetRef.name,
+    podNamespace: addr.targetRef.namespace ?? namespace,
+    targetPort,
+  }
+}
+
+async function getPortForwardEndpoint(
+  kc: KubeConfig,
+  config: PrometheusConfig,
+): Promise<string> {
+  const { namespace, service, port } = config
+  const key = `${namespace}/${service}/${port}`
+
+  if (pfTunnel && pfTunnel.key === key) {
+    return `http://127.0.0.1:${pfTunnel.localPort}`
+  }
+  if (pfTunnel) {
+    pfTunnel.server.close()
+    pfTunnel = null
+  }
+
+  const coreV1Api = kc.makeApiClient(CoreV1Api)
+  const { podName, podNamespace, targetPort } = await resolveEndpointPod(
+    coreV1Api,
+    namespace,
+    service,
+  )
+
+  const forward = new PortForward(kc)
+  const server = createServer((socket) => {
+    forward
+      .portForward(podNamespace, podName, [targetPort], socket, null, socket)
+      .catch(() => socket.destroy())
+  })
+
+  const localPort = await new Promise<number>((resolve, reject) => {
+    server.listen(0, "127.0.0.1", () => {
+      const addr = server.address()
+      if (addr && typeof addr === "object") resolve(addr.port)
+      else reject(new Error("Failed to allocate local port"))
+    })
+    server.on("error", reject)
+  })
+
+  pfTunnel = { key, server, localPort }
+  return `http://127.0.0.1:${localPort}`
 }
 
 async function buildDriver(
   kc: KubeConfig,
   config: PrometheusConfig,
 ): Promise<PrometheusDriver> {
+  if (proxyMode === "portforward") {
+    const endpoint = await getPortForwardEndpoint(kc, config)
+    return new PrometheusDriver({ endpoint })
+  }
+
   const cluster = kc.getCurrentCluster()
   if (!cluster) throw new Error("No active k8s cluster")
 
@@ -91,6 +189,34 @@ async function buildDriver(
       },
     },
   })
+}
+
+async function withProxyFallback<T>(
+  kc: KubeConfig,
+  config: PrometheusConfig,
+  fn: (driver: PrometheusDriver) => Promise<T>,
+): Promise<T> {
+  const driver = await buildDriver(kc, config)
+  try {
+    return await fn(driver)
+  } catch (e) {
+    if (proxyMode !== "apiserver" || !isForbidden(e)) throw e
+    proxyMode = "portforward"
+    const fallbackDriver = await buildDriver(kc, config)
+    return fn(fallbackDriver)
+  }
+}
+
+function currentEndpointLabel(
+  kc: KubeConfig,
+  config: PrometheusConfig,
+): string {
+  const { namespace, service, port } = config
+  if (proxyMode === "portforward") {
+    return `portforward://${namespace}/${service}:${port}`
+  }
+  const cluster = kc.getCurrentCluster()
+  return `${cluster?.server ?? ""}/api/v1/namespaces/${namespace}/services/http:${service}:${port}/proxy`
 }
 
 async function queryPrometheus(
@@ -122,29 +248,13 @@ export async function checkPrometheusConnectivity(): Promise<PrometheusDiscovery
   const kc = new KubeConfig()
   kc.loadFromDefault()
 
-  let driver: PrometheusDriver
-  let endpoint: string
   try {
-    const cluster = kc.getCurrentCluster()
-    if (!cluster) throw new Error("No active k8s cluster")
-    const { namespace, service, port } = config
-    endpoint = `${cluster.server}/api/v1/namespaces/${namespace}/services/http:${service}:${port}/proxy`
-    driver = await buildDriver(kc, config)
-  } catch (e) {
-    return {
-      ok: false,
-      endpoint: "",
-      error: e instanceof Error ? e.message : String(e),
-    }
-  }
-
-  try {
-    await driver.instantQuery("1")
-    return { ok: true, endpoint }
+    await withProxyFallback(kc, config, (driver) => driver.instantQuery("1"))
+    return { ok: true, endpoint: currentEndpointLabel(kc, config) }
   } catch (e) {
     const error =
       e instanceof Error ? e.message : (JSON.stringify(e) ?? String(e))
-    return { ok: false, endpoint, error }
+    return { ok: false, endpoint: currentEndpointLabel(kc, config), error }
   }
 }
 
@@ -158,13 +268,6 @@ export async function getPodMetrics(
 
   const kc = new KubeConfig()
   kc.loadFromDefault()
-
-  let driver: PrometheusDriver
-  try {
-    driver = await buildDriver(kc, config)
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : String(e) }
-  }
 
   const end = Math.floor(Date.now() / 1000)
   const start = end - rangeMinutes * 60
@@ -181,14 +284,16 @@ export async function getPodMetrics(
 
   try {
     const [cpu, memory, networkRx, networkTx, diskRead, diskWrite] =
-      await Promise.all([
-        queryPrometheus(driver, cpuQuery, start, end, step),
-        queryPrometheus(driver, memQuery, start, end, step),
-        queryPrometheus(driver, netRxQuery, start, end, step),
-        queryPrometheus(driver, netTxQuery, start, end, step),
-        queryPrometheus(driver, diskReadQuery, start, end, step),
-        queryPrometheus(driver, diskWriteQuery, start, end, step),
-      ])
+      await withProxyFallback(kc, config, (driver) =>
+        Promise.all([
+          queryPrometheus(driver, cpuQuery, start, end, step),
+          queryPrometheus(driver, memQuery, start, end, step),
+          queryPrometheus(driver, netRxQuery, start, end, step),
+          queryPrometheus(driver, netTxQuery, start, end, step),
+          queryPrometheus(driver, diskReadQuery, start, end, step),
+          queryPrometheus(driver, diskWriteQuery, start, end, step),
+        ]),
+      )
 
     return { cpu, memory, networkRx, networkTx, diskRead, diskWrite }
   } catch (e) {
