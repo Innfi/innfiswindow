@@ -1,4 +1,4 @@
-import { X } from "lucide-react"
+﻿import { X } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
@@ -18,6 +18,8 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sNode } from "../types/k8s"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
+import { DetailPanelLayout } from "./DetailPanelLayout"
+import { SectionHeader } from "./SectionHeader"
 
 interface NodeMetric {
   nodeName: string
@@ -112,9 +114,7 @@ function ResourceUsageSection({
   if (unavailable) {
     return (
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Resource Usage
-        </h3>
+        <SectionHeader title="Resource Usage" />
         <p className="text-xs text-muted-foreground">Metrics unavailable</p>
       </div>
     )
@@ -123,9 +123,7 @@ function ResourceUsageSection({
   if (!metric) {
     return (
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Resource Usage
-        </h3>
+        <SectionHeader title="Resource Usage" />
         <p className="text-xs text-muted-foreground">Loading metrics…</p>
       </div>
     )
@@ -150,14 +148,6 @@ function ResourceUsageSection({
         <ProgressBar value={memPct} label={memLabel} />
       </div>
     </div>
-  )
-}
-
-function SectionHeader({ title }: { title: string }): JSX.Element {
-  return (
-    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-      {title}
-    </h3>
   )
 }
 
@@ -193,7 +183,7 @@ function DetailPanel({
   )
 
   return (
-    <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+    <DetailPanelLayout>
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{node.name}</h2>
@@ -402,7 +392,7 @@ function DetailPanel({
         kind="Node"
         search={sl}
       />
-    </div>
+    </DetailPanelLayout>
   )
 }
 

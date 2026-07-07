@@ -291,6 +291,8 @@ export interface PodInfo {
   name: string
   namespace: string
   deployment: string
+  ownerKind: string
+  ownerName: string
   app: string
   status: string
   restarts: number

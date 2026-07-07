@@ -27,16 +27,43 @@ import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sPod } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
+import { DetailPanelLayout } from "./DetailPanelLayout"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { PodMetricsSection } from "./PodMetricsSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
+import { SectionHeader } from "./SectionHeader"
 
-function SectionHeader({ title }: { title: string }): JSX.Element {
+const WORKLOAD_KIND_CLASS: Record<string, string> = {
+  Deployment:
+    "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+  StatefulSet:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+  DaemonSet:
+    "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+  Job: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300",
+  CronJob:
+    "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+  ReplicaSet:
+    "bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200",
+}
+
+function WorkloadBadge({
+  kind,
+  name,
+}: {
+  kind: string
+  name: string
+}): JSX.Element {
+  if (!kind) return <span className="text-muted-foreground">-</span>
+  const cls = WORKLOAD_KIND_CLASS[kind] ?? "bg-muted text-muted-foreground"
   return (
-    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-      {title}
-    </h3>
+    <span className="inline-flex items-center gap-1">
+      <span className="text-xs text-muted-foreground">{kind}</span>
+      <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", cls)}>
+        {name}
+      </span>
+    </span>
   )
 }
 
@@ -120,7 +147,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+    <DetailPanelLayout>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -217,7 +244,11 @@ function DetailPanel({
         <SectionHeader title="Info" />
         <MetaEntry label="Status" value={pod.status} />
         <MetaEntry label="Node" value={pod.nodeName || "-"} />
-        <MetaEntry label="Deployment" value={pod.deployment || "-"} />
+        {pod.ownerKind ? (
+          <MetaEntry label={pod.ownerKind} value={pod.ownerName} />
+        ) : (
+          <MetaEntry label="Workload" value="-" />
+        )}
         <MetaEntry label="App" value={pod.app || "-"} />
         <MetaEntry label="Restarts" value={String(pod.restarts)} />
         {pod.serviceAccountName && m(pod.serviceAccountName) && (
@@ -312,10 +343,10 @@ function DetailPanel({
                   <span className="font-medium">{c.type}</span>
                   <span
                     className={cn(
-                      "rounded px-1.5 py-0.5 text-xs",
+                      "rounded px-1.5 py-0.5 text-xs font-medium",
                       c.status === "True"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800",
+                        ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
+                        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300",
                     )}
                   >
                     {c.status}
@@ -372,7 +403,7 @@ function DetailPanel({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DetailPanelLayout>
   )
 }
 
@@ -427,9 +458,7 @@ export function PodsView(): JSX.Element {
                 <TableRow>
                   <TableHead className="whitespace-nowrap">Name</TableHead>
                   <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    Deployment
-                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Workload</TableHead>
                   <TableHead className="whitespace-nowrap">App</TableHead>
                   <TableHead className="whitespace-nowrap">Status</TableHead>
                   <TableHead className="whitespace-nowrap">Restarts</TableHead>
@@ -462,7 +491,7 @@ export function PodsView(): JSX.Element {
                       {p.namespace}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {p.deployment || "-"}
+                      <WorkloadBadge kind={p.ownerKind} name={p.ownerName} />
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {p.app || "-"}

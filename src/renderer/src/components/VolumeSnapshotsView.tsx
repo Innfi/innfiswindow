@@ -1,4 +1,4 @@
-import { X } from "lucide-react"
+﻿import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { EmptyState } from "../../components/ui/EmptyState"
@@ -16,14 +16,8 @@ import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sVolumeSnapshot } from "../types/k8s"
 import { MetaEntry } from "./MetaEntry"
-
-function SectionHeader({ title }: { title: string }): JSX.Element {
-  return (
-    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-      {title}
-    </h3>
-  )
-}
+import { DetailPanelLayout } from "./DetailPanelLayout"
+import { SectionHeader } from "./SectionHeader"
 
 function ReadyBadge({ ready }: { ready: boolean | null }): JSX.Element {
   if (ready === null) {
@@ -62,7 +56,7 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+    <DetailPanelLayout>
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{snap.name}</h2>
@@ -128,7 +122,7 @@ function DetailPanel({
           ))}
         </div>
       )}
-    </div>
+    </DetailPanelLayout>
   )
 }
 

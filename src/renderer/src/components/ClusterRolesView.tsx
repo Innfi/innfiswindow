@@ -28,6 +28,8 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sClusterRole } from "../types/k8s"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
+import { DetailPanelLayout } from "./DetailPanelLayout"
+import { SectionHeader } from "./SectionHeader"
 
 function DetailPanel({
   role,
@@ -92,7 +94,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+    <DetailPanelLayout>
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{role.name}</h2>
@@ -174,9 +176,7 @@ function DetailPanel({
       />
 
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Metadata
-        </h3>
+        <SectionHeader title="Metadata" />
         <MetaEntry
           label="Created"
           value={new Date(role.creationTimestamp).toLocaleString()}
@@ -184,9 +184,7 @@ function DetailPanel({
       </div>
 
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Rules ({role.rules.length})
-        </h3>
+        <SectionHeader title={`Rules (${role.rules.length})`} />
         {role.rules.length === 0 ? (
           <p className="text-sm text-muted-foreground">No rules</p>
         ) : (
@@ -233,9 +231,7 @@ function DetailPanel({
 
       {Object.keys(role.labels).length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Labels
-          </h3>
+          <SectionHeader title="Labels" />
           {Object.entries(role.labels)
             .filter(([k, v]) => kv(k, v))
             .map(([k, v]) => (
@@ -246,9 +242,7 @@ function DetailPanel({
 
       {Object.keys(role.annotations).length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Annotations
-          </h3>
+          <SectionHeader title="Annotations" />
           {Object.entries(role.annotations)
             .filter(
               ([k]) =>
@@ -262,7 +256,7 @@ function DetailPanel({
             ))}
         </div>
       )}
-    </div>
+    </DetailPanelLayout>
   )
 }
 

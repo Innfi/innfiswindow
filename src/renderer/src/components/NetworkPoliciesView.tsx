@@ -1,4 +1,4 @@
-import { X } from "lucide-react"
+﻿import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
@@ -23,14 +23,8 @@ import {
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
-
-function SectionHeader({ title }: { title: string }): JSX.Element {
-  return (
-    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-      {title}
-    </h3>
-  )
-}
+import { DetailPanelLayout } from "./DetailPanelLayout"
+import { SectionHeader } from "./SectionHeader"
 
 function peerDescription(peer: K8sNetworkPolicyPeer): string {
   if (peer.ipBlock) {
@@ -140,7 +134,7 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md overflow-auto p-4 space-y-4">
+    <DetailPanelLayout>
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
@@ -229,7 +223,7 @@ function DetailPanel({
         kind="NetworkPolicy"
         search={sl}
       />
-    </div>
+    </DetailPanelLayout>
   )
 }
 

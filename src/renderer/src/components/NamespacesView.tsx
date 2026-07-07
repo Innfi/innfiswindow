@@ -1,4 +1,4 @@
-import { X } from "lucide-react"
+﻿import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
@@ -19,14 +19,8 @@ import { K8sNamespace } from "../types/k8s"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
-
-function SectionHeader({ title }: { title: string }): JSX.Element {
-  return (
-    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-      {title}
-    </h3>
-  )
-}
+import { DetailPanelLayout } from "./DetailPanelLayout"
+import { SectionHeader } from "./SectionHeader"
 
 function DetailPanel({
   ns,
@@ -50,7 +44,7 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+    <DetailPanelLayout>
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{ns.name}</h2>
@@ -131,7 +125,7 @@ function DetailPanel({
         kind="Namespace"
         search={sl}
       />
-    </div>
+    </DetailPanelLayout>
   )
 }
 

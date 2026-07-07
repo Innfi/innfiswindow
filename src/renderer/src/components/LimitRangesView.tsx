@@ -19,6 +19,8 @@ import { K8sLimitRange } from "../types/k8s"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
+import { DetailPanelLayout } from "./DetailPanelLayout"
+import { SectionHeader } from "./SectionHeader"
 
 function DetailPanel({
   limitRange,
@@ -44,7 +46,7 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+    <DetailPanelLayout>
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{limitRange.name}</h2>
@@ -165,9 +167,7 @@ function DetailPanel({
 
       {labelEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Labels
-          </h3>
+          <SectionHeader title="Labels" />
           {labelEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
@@ -176,9 +176,7 @@ function DetailPanel({
 
       {annotationEntries.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Annotations
-          </h3>
+          <SectionHeader title="Annotations" />
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
@@ -191,7 +189,7 @@ function DetailPanel({
         kind="LimitRange"
         search={sl}
       />
-    </div>
+    </DetailPanelLayout>
   )
 }
 

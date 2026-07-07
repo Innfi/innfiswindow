@@ -213,6 +213,8 @@ export interface K8sPod {
   name: string
   namespace: string
   deployment: string
+  ownerKind: string
+  ownerName: string
   app: string
   status: string
   restarts: number

@@ -317,12 +317,21 @@ function mapPodContainer(
 export async function listPods(api: CoreV1Api): Promise<PodInfo[]> {
   const res = await api.listPodForAllNamespaces()
   return res.items.map((pod) => {
-    const ownerRef = (pod.metadata?.ownerReferences ?? []).find(
-      (r) => r.kind === "ReplicaSet",
-    )
-    const deploymentName = ownerRef
-      ? ownerRef.name.replace(/-[a-z0-9]+$/, "")
-      : ""
+    const owners = pod.metadata?.ownerReferences ?? []
+    const firstOwner = owners[0]
+    let deploymentName = ""
+    let ownerKind = ""
+    let ownerName = ""
+    if (firstOwner) {
+      if (firstOwner.kind === "ReplicaSet") {
+        ownerKind = "Deployment"
+        ownerName = firstOwner.name.replace(/-[a-z0-9]+$/, "")
+        deploymentName = ownerName
+      } else {
+        ownerKind = firstOwner.kind
+        ownerName = firstOwner.name
+      }
+    }
     const containerStatuses = pod.status?.containerStatuses ?? []
     const initContainerStatuses = pod.status?.initContainerStatuses ?? []
     const restarts = containerStatuses.reduce(
@@ -333,6 +342,8 @@ export async function listPods(api: CoreV1Api): Promise<PodInfo[]> {
       name: pod.metadata?.name ?? "",
       namespace: pod.metadata?.namespace ?? "",
       deployment: deploymentName,
+      ownerKind,
+      ownerName,
       app: pod.metadata?.labels?.["app"] ?? "",
       status: pod.status?.phase ?? "",
       restarts,

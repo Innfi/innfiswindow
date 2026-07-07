@@ -28,6 +28,8 @@ import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sRoleBinding } from "../types/k8s"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
+import { DetailPanelLayout } from "./DetailPanelLayout"
+import { SectionHeader } from "./SectionHeader"
 
 function DetailPanel({
   binding,
@@ -92,7 +94,7 @@ function DetailPanel({
   }
 
   return (
-    <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+    <DetailPanelLayout>
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-semibold text-base mb-1">{binding.name}</h2>
@@ -187,9 +189,7 @@ function DetailPanel({
       />
 
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Metadata
-        </h3>
+        <SectionHeader title="Metadata" />
         <MetaEntry
           label="Created"
           value={new Date(binding.creationTimestamp).toLocaleString()}
@@ -197,9 +197,7 @@ function DetailPanel({
       </div>
 
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Role Ref
-        </h3>
+        <SectionHeader title="Role Ref" />
         <div className="text-sm">
           <span className="font-medium">{binding.roleRef.kind}:</span>{" "}
           {binding.roleRef.name}
@@ -207,9 +205,7 @@ function DetailPanel({
       </div>
 
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Subjects ({binding.subjects.length})
-        </h3>
+        <SectionHeader title={`Subjects (${binding.subjects.length})`} />
         {binding.subjects.length === 0 ? (
           <p className="text-sm text-muted-foreground">No subjects</p>
         ) : (
@@ -252,9 +248,7 @@ function DetailPanel({
 
       {Object.keys(binding.labels).length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Labels
-          </h3>
+          <SectionHeader title="Labels" />
           {Object.entries(binding.labels)
             .filter(([k, v]) => kv(k, v))
             .map(([k, v]) => (
@@ -265,9 +259,7 @@ function DetailPanel({
 
       {Object.keys(binding.annotations).length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-            Annotations
-          </h3>
+          <SectionHeader title="Annotations" />
           {Object.entries(binding.annotations)
             .filter(
               ([k]) =>
@@ -281,7 +273,7 @@ function DetailPanel({
             ))}
         </div>
       )}
-    </div>
+    </DetailPanelLayout>
   )
 }
 

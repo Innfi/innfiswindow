@@ -1,4 +1,4 @@
-import { X } from "lucide-react"
+﻿import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
@@ -19,14 +19,8 @@ import { K8sJob } from "../types/k8s"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
-
-function SectionHeader({ title }: { title: string }): JSX.Element {
-  return (
-    <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-      {title}
-    </h3>
-  )
-}
+import { DetailPanelLayout } from "./DetailPanelLayout"
+import { SectionHeader } from "./SectionHeader"
 
 function DetailPanel({
   job,
@@ -53,7 +47,7 @@ function DetailPanel({
   )
 
   return (
-    <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full overflow-auto p-4 space-y-4">
+    <DetailPanelLayout>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -231,7 +225,7 @@ function DetailPanel({
         kind="Job"
         search={sl}
       />
-    </div>
+    </DetailPanelLayout>
   )
 }
 
