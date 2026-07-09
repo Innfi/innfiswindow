@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
+import { DetailPanelLayout } from "../../components/DetailPanelLayout"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -27,7 +28,6 @@ import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sDaemonSet } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
-import { DetailPanelLayout } from "./DetailPanelLayout"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"

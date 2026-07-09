@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EmptyState } from "../../components/ui/EmptyState"
 import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
@@ -16,7 +17,6 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sJob } from "../types/k8s"
-import { DetailPanelLayout } from "./DetailPanelLayout"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"

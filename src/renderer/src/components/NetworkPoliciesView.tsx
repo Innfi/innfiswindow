@@ -1,6 +1,7 @@
 ﻿import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import { DetailPanelLayout } from "../../components/DetailPanelLayout"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { EmptyState } from "../../components/ui/EmptyState"
 import { RefreshBar } from "../../components/ui/RefreshBar"
@@ -20,7 +21,6 @@ import {
   K8sNetworkPolicyPeer,
   K8sNetworkPolicyRule,
 } from "../types/k8s"
-import { DetailPanelLayout } from "./DetailPanelLayout"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
