@@ -15,8 +15,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sEndpoint } from "../types/k8s"
-import { MetaEntry } from "./MetaEntry"
 import { DetailPanelLayout } from "./DetailPanelLayout"
+import { MetaEntry } from "./MetaEntry"
 import { SectionHeader } from "./SectionHeader"
 
 function DetailPanel({
@@ -82,7 +82,9 @@ function DetailPanel({
 
       {endpoint.subsets.map((subset, i) => (
         <div key={i} className="space-y-2">
-          <SectionHeader title={`Subset ${endpoint.subsets.length > 1 ? i + 1 : ""}`} />
+          <SectionHeader
+            title={`Subset ${endpoint.subsets.length > 1 ? i + 1 : ""}`}
+          />
 
           {subset.ports.length > 0 && (
             <div className="space-y-1">

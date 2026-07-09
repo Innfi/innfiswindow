@@ -15,8 +15,8 @@ import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sVolumeSnapshot } from "../types/k8s"
-import { MetaEntry } from "./MetaEntry"
 import { DetailPanelLayout } from "./DetailPanelLayout"
+import { MetaEntry } from "./MetaEntry"
 import { SectionHeader } from "./SectionHeader"
 
 function ReadyBadge({ ready }: { ready: boolean | null }): JSX.Element {

@@ -27,10 +27,10 @@ import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sDeployment } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
+import { DetailPanelLayout } from "./DetailPanelLayout"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
-import { DetailPanelLayout } from "./DetailPanelLayout"
 import { SectionHeader } from "./SectionHeader"
 
 type DeploymentRevision = {

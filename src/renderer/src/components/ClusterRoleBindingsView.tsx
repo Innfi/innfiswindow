@@ -26,9 +26,9 @@ import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sClusterRoleBinding } from "../types/k8s"
+import { DetailPanelLayout } from "./DetailPanelLayout"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
-import { DetailPanelLayout } from "./DetailPanelLayout"
 import { SectionHeader } from "./SectionHeader"
 
 function DetailPanel({

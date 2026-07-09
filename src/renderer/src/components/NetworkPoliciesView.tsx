@@ -20,10 +20,10 @@ import {
   K8sNetworkPolicyPeer,
   K8sNetworkPolicyRule,
 } from "../types/k8s"
+import { DetailPanelLayout } from "./DetailPanelLayout"
 import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
-import { DetailPanelLayout } from "./DetailPanelLayout"
 import { SectionHeader } from "./SectionHeader"
 
 function peerDescription(peer: K8sNetworkPolicyPeer): string {
