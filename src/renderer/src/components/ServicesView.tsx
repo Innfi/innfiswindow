@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { DetailPanelLayout } from "../../components/DetailPanelLayout"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -13,6 +12,7 @@ import {
 } from "../../components/ui/alert-dialog"
 import { Button } from "../../components/ui/button"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EmptyState } from "../../components/ui/EmptyState"
 import { RefreshBar } from "../../components/ui/RefreshBar"
 import {

@@ -2,9 +2,9 @@
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { DetailPanelLayout } from "../../components/DetailPanelLayout"
 import { Button } from "../../components/ui/button"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import {
   Dialog,
   DialogContent,

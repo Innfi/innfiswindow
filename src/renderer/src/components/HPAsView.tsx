@@ -1,8 +1,8 @@
 ﻿import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { DetailPanelLayout } from "../../components/DetailPanelLayout"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EmptyState } from "../../components/ui/EmptyState"
 import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
