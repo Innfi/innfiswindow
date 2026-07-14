@@ -1,28 +1,16 @@
-import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import {
-  cn,
-  filterResources,
-  formatAge,
-  parseResourceValue,
-} from "../../lib/utils"
-import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
+import { cn, parseResourceValue } from "../../lib/utils"
 import { K8sResourceQuota } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -85,13 +73,7 @@ function DetailPanel({
             namespace={quota.namespace}
             resourceKind="resourcequota"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} />
         </div>
       </div>
       <input
@@ -186,107 +168,20 @@ function DetailPanel({
 }
 
 export function ResourceQuotasView(): JSX.Element {
-  const selectedItem = useAppStore(
-    (s) => s.selectedItem,
-  ) as K8sResourceQuota | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-
-  const {
-    data: quotas,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listResourceQuotas({ contextName: ctx }),
-    selectedContext,
-  )
-
-  useEffect(() => {
-    if (!selectedItem || quotas.length === 0) return
-    const item = selectedItem as { name: string; namespace: string }
-    const fresh = quotas.find(
-      (q) => q.name === item.name && q.namespace === item.namespace,
-    )
-    if (fresh) setSelectedItem(fresh as object)
-  }, [quotas])
-
-  const visible = filterResources(quotas, nameFilter, selectedNamespace)
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">ResourceQuotas</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visible.length === 0 && (
-          <EmptyState message="No ResourceQuotas found" />
-        )}
-        {!loading && !error && visible.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Resources</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visible.map((q) => (
-                  <TableRow
-                    key={`${q.namespace}/${q.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === q.name &&
-                        (selectedItem as K8sResourceQuota)?.namespace ===
-                          q.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === q.name &&
-                          (selectedItem as K8sResourceQuota)?.namespace ===
-                            q.namespace
-                          ? null
-                          : q,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {q.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {q.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {Object.keys(q.hard).length}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(q.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem &&
-        (selectedItem as K8sResourceQuota).hard !== undefined && (
-          <DetailPanel
-            quota={selectedItem as K8sResourceQuota}
-            onClose={() => setSelectedItem(null)}
-          />
-        )}
-    </div>
+    <ResourceListView<K8sResourceQuota>
+      title="ResourceQuotas"
+      list={(ctx) => window.api.k8s.listResourceQuotas({ contextName: ctx })}
+      detailGuard={(item) => (item as K8sResourceQuota).hard !== undefined}
+      columns={[
+        { head: "Name", cell: (q) => q.name },
+        { head: "Namespace", cell: (q) => q.namespace },
+        { head: "Resources", cell: (q) => Object.keys(q.hard).length },
+        ageColumn<K8sResourceQuota>(),
+      ]}
+      renderDetail={(quota, ctl: DetailController) => (
+        <DetailPanel quota={quota} onClose={ctl.onClose} />
+      )}
+    />
   )
 }

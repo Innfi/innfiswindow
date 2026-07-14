@@ -1,23 +1,16 @@
-﻿import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+﻿import { useState } from "react"
 
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
-import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
+import { formatAge } from "../../lib/utils"
 import { K8sCronJob } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -85,13 +78,7 @@ function DetailPanel({
             namespace={cronJob.namespace}
             resourceKind="cronjob"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} />
         </div>
       </div>
 
@@ -192,124 +179,31 @@ function DetailPanel({
 }
 
 export function CronJobsView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sCronJob | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-
-  const {
-    data: cronJobs,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listCronJobs({ contextName: ctx }),
-    selectedContext,
-  )
-
-  useEffect(() => {
-    if (!selectedItem || cronJobs.length === 0) return
-    const item = selectedItem as { name: string; namespace: string }
-    const fresh = cronJobs.find(
-      (c) => c.name === item.name && c.namespace === item.namespace,
-    )
-    if (fresh) setSelectedItem(fresh as object)
-  }, [cronJobs])
-
-  const visibleCronJobs = filterResources(
-    cronJobs,
-    nameFilter,
-    selectedNamespace,
-  )
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">CronJobs</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visibleCronJobs.length === 0 && (
-          <EmptyState message="No CronJobs found" />
-        )}
-        {!loading && !error && visibleCronJobs.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Schedule</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    Last Schedule
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">Active</TableHead>
-                  <TableHead className="whitespace-nowrap">Suspended</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleCronJobs.map((cj) => (
-                  <TableRow
-                    key={`${cj.namespace}/${cj.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === cj.name &&
-                        (selectedItem as K8sCronJob).namespace ===
-                          cj.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === cj.name &&
-                          (selectedItem as K8sCronJob).namespace ===
-                            cj.namespace
-                          ? null
-                          : cj,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {cj.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {cj.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">
-                      {cj.schedule}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {cj.lastScheduleTime
-                        ? formatAge(cj.lastScheduleTime)
-                        : "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {cj.activeCount}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {cj.suspend ? "Yes" : "No"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(cj.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && "schedule" in selectedItem && (
-        <DetailPanel
-          cronJob={selectedItem as K8sCronJob}
-          onClose={() => setSelectedItem(null)}
-        />
+    <ResourceListView<K8sCronJob>
+      title="CronJobs"
+      list={(ctx) => window.api.k8s.listCronJobs({ contextName: ctx })}
+      detailGuard={(item) => "schedule" in item}
+      columns={[
+        { head: "Name", cell: (cj) => cj.name },
+        { head: "Namespace", cell: (cj) => cj.namespace },
+        {
+          head: "Schedule",
+          cell: (cj) => cj.schedule,
+          className: "font-mono text-xs",
+        },
+        {
+          head: "Last Schedule",
+          cell: (cj) =>
+            cj.lastScheduleTime ? formatAge(cj.lastScheduleTime) : "-",
+        },
+        { head: "Active", cell: (cj) => cj.activeCount },
+        { head: "Suspended", cell: (cj) => (cj.suspend ? "Yes" : "No") },
+        ageColumn<K8sCronJob>(),
+      ]}
+      renderDetail={(cronJob, ctl: DetailController) => (
+        <DetailPanel cronJob={cronJob} onClose={ctl.onClose} />
       )}
-    </div>
+    />
   )
 }

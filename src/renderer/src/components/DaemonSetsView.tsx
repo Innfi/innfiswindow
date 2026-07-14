@@ -1,5 +1,4 @@
-﻿import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+﻿import { useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -11,24 +10,18 @@ import {
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog"
 import { Button } from "../../components/ui/button"
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
 import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sDaemonSet } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -163,13 +156,7 @@ function DetailPanel({
             namespace={ds.namespace}
             resourceKind="daemonset"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} className="ml-1" />
         </div>
       </div>
 
@@ -355,131 +342,35 @@ function DetailPanel({
 }
 
 export function DaemonSetsView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sDaemonSet | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-
-  const {
-    data: daemonSets,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listDaemonSets({ contextName: ctx }),
-    selectedContext,
-    { paused: deleteDialogOpen },
-  )
-
-  useEffect(() => {
-    if (!selectedItem || daemonSets.length === 0) return
-    const fresh = daemonSets.find(
-      (d) =>
-        d.name === selectedItem.name && d.namespace === selectedItem.namespace,
-    )
-    if (fresh) setSelectedItem(fresh)
-  }, [daemonSets])
-
-  const visibleDaemonSets = filterResources(
-    daemonSets,
-    nameFilter,
-    selectedNamespace,
-  )
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">DaemonSets</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visibleDaemonSets.length === 0 && (
-          <EmptyState message="No Daemon Sets found" />
-        )}
-        {!loading && !error && visibleDaemonSets.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Desired</TableHead>
-                  <TableHead className="whitespace-nowrap">Current</TableHead>
-                  <TableHead className="whitespace-nowrap">Ready</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    Up-to-date
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">Available</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleDaemonSets.map((ds) => (
-                  <TableRow
-                    key={`${ds.namespace}/${ds.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === ds.name &&
-                        selectedItem?.namespace === ds.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === ds.name &&
-                          selectedItem?.namespace === ds.namespace
-                          ? null
-                          : ds,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {ds.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ds.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ds.desiredNumberScheduled}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ds.currentNumberScheduled}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ds.numberReady}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ds.updatedNumberScheduled}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ds.numberAvailable}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(ds.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && selectedItem.desiredNumberScheduled !== undefined && (
+    <ResourceListView<K8sDaemonSet>
+      title="DaemonSets"
+      emptyMessage="No Daemon Sets found"
+      list={(ctx) => window.api.k8s.listDaemonSets({ contextName: ctx })}
+      detailGuard={(item) =>
+        (item as K8sDaemonSet).desiredNumberScheduled !== undefined
+      }
+      columns={[
+        { head: "Name", cell: (ds) => ds.name },
+        { head: "Namespace", cell: (ds) => ds.namespace },
+        { head: "Desired", cell: (ds) => ds.desiredNumberScheduled },
+        { head: "Current", cell: (ds) => ds.currentNumberScheduled },
+        { head: "Ready", cell: (ds) => ds.numberReady },
+        { head: "Up-to-date", cell: (ds) => ds.updatedNumberScheduled },
+        { head: "Available", cell: (ds) => ds.numberAvailable },
+        ageColumn<K8sDaemonSet>(),
+      ]}
+      renderDetail={(ds, ctl: DetailController) => (
         <DetailPanel
-          ds={selectedItem}
-          onClose={() => setSelectedItem(null)}
+          ds={ds}
+          onClose={ctl.onClose}
           onDeleted={() => {
-            reload()
-            setSelectedItem(null)
+            ctl.onDeleted()
+            ctl.onClose()
           }}
-          onDeleteDialogChange={setDeleteDialogOpen}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
         />
       )}
-    </div>
+    />
   )
 }

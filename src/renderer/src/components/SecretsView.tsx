@@ -1,8 +1,9 @@
-﻿import { Eye, EyeOff, X } from "lucide-react"
-import { useEffect, useState } from "react"
+﻿import { Eye, EyeOff } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import {
@@ -13,21 +14,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
 import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sSecret } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -160,13 +154,7 @@ function DetailPanel({
             namespace={secret.namespace}
             resourceKind="secret"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} className="ml-1" />
         </div>
       </div>
 
@@ -291,110 +279,25 @@ function DetailPanel({
 }
 
 export function SecretsView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sSecret | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-
-  const {
-    data: secrets,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listSecrets({ contextName: ctx }),
-    selectedContext,
-    { paused: deleteDialogOpen },
-  )
-
-  useEffect(() => {
-    if (!selectedItem || secrets.length === 0) return
-    const item = selectedItem as { name: string; namespace: string }
-    const fresh = secrets.find(
-      (s) => s.name === item.name && s.namespace === item.namespace,
-    )
-    if (fresh) setSelectedItem(fresh as object)
-  }, [secrets])
-
-  const visibleSecrets = filterResources(secrets, nameFilter, selectedNamespace)
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">Secrets</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visibleSecrets.length === 0 && (
-          <EmptyState message="No Secrets found" />
-        )}
-        {!loading && !error && visibleSecrets.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Type</TableHead>
-                  <TableHead className="whitespace-nowrap">Keys</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleSecrets.map((secret) => (
-                  <TableRow
-                    key={`${secret.namespace}/${secret.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === secret.name &&
-                        selectedItem?.namespace === secret.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === secret.name &&
-                          selectedItem?.namespace === secret.namespace
-                          ? null
-                          : secret,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {secret.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {secret.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-xs">
-                      {secret.type}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap max-w-xs truncate">
-                      {secret.keys.join(", ") || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(secret.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && selectedItem.type !== undefined && (
-        <DetailPanel
-          secret={selectedItem}
-          onClose={() => setSelectedItem(null)}
-          onDeleted={reload}
-          onDeleteDialogChange={setDeleteDialogOpen}
-        />
+    <ResourceListView<K8sSecret>
+      title="Secrets"
+      list={(ctx) => window.api.k8s.listSecrets({ contextName: ctx })}
+      detailGuard={(item) => (item as K8sSecret).type !== undefined}
+      columns={[
+        { head: "Name", cell: (s) => s.name },
+        { head: "Namespace", cell: (s) => s.namespace },
+        { head: "Type", cell: (s) => s.type, className: "text-xs" },
+        {
+          head: "Keys",
+          cell: (s) => s.keys.join(", ") || "-",
+          className: "max-w-xs truncate",
+        },
+        ageColumn<K8sSecret>(),
+      ]}
+      renderDetail={(secret, ctl: DetailController) => (
+        <DetailPanel secret={secret} {...ctl} />
       )}
-    </div>
+    />
   )
 }

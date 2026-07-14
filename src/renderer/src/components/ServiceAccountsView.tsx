@@ -1,8 +1,9 @@
-﻿import { Trash2, X } from "lucide-react"
-import { useEffect, useState } from "react"
+﻿import { Trash2 } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import {
@@ -13,21 +14,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
 import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sServiceAccount } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -141,13 +135,7 @@ function DetailPanel({
             namespace={sa.namespace}
             resourceKind="serviceaccount"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} />
         </div>
       </div>
 
@@ -263,112 +251,26 @@ function DetailPanel({
 }
 
 export function ServiceAccountsView(): JSX.Element {
-  const selectedItem = useAppStore(
-    (s) => s.selectedItem,
-  ) as K8sServiceAccount | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-
-  const {
-    data: serviceAccounts,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listServiceAccounts({ contextName: ctx }),
-    selectedContext,
-    { paused: deleteDialogOpen },
-  )
-
-  useEffect(() => {
-    if (!selectedItem || serviceAccounts.length === 0) return
-    const item = selectedItem as { name: string; namespace: string }
-    const fresh = serviceAccounts.find(
-      (s) => s.name === item.name && s.namespace === item.namespace,
-    )
-    if (fresh) setSelectedItem(fresh as object)
-  }, [serviceAccounts])
-
-  const visible = filterResources(
-    serviceAccounts,
-    nameFilter,
-    selectedNamespace,
-  )
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">Service Accounts</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visible.length === 0 && (
-          <EmptyState message="No Service Accounts found" />
-        )}
-        {!loading && !error && visible.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Secrets</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visible.map((sa) => (
-                  <TableRow
-                    key={`${sa.namespace}/${sa.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === sa.name &&
-                        selectedItem?.namespace === sa.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === sa.name &&
-                          selectedItem?.namespace === sa.namespace
-                          ? null
-                          : sa,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {sa.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {sa.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {sa.secrets.length}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(sa.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && selectedItem.secrets !== undefined && (
+    <ResourceListView<K8sServiceAccount>
+      title="Service Accounts"
+      emptyMessage="No Service Accounts found"
+      list={(ctx) => window.api.k8s.listServiceAccounts({ contextName: ctx })}
+      detailGuard={(item) => (item as K8sServiceAccount).secrets !== undefined}
+      columns={[
+        { head: "Name", cell: (sa) => sa.name },
+        { head: "Namespace", cell: (sa) => sa.namespace },
+        { head: "Secrets", cell: (sa) => sa.secrets.length },
+        ageColumn<K8sServiceAccount>(),
+      ]}
+      renderDetail={(sa, ctl: DetailController) => (
         <DetailPanel
-          sa={selectedItem}
-          onClose={() => setSelectedItem(null)}
-          onDeleteSuccess={reload}
-          onDeleteDialogChange={setDeleteDialogOpen}
+          sa={sa}
+          onClose={ctl.onClose}
+          onDeleteSuccess={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
         />
       )}
-    </div>
+    />
   )
 }

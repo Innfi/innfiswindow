@@ -5,6 +5,7 @@ import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
 import { CustomStreamPanel } from "../../components/ui/CustomStreamPanel"
+import type { DrawerTab } from "../../store/app.store"
 import { useAppStore } from "../../store/app.store"
 import { PodLogPanel } from "./PodLogPanel"
 import { PortForwardPanel } from "./PortForwardPanel"
@@ -106,6 +107,23 @@ function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
       </div>
     </div>
   )
+}
+
+function tabLabel(tab: DrawerTab): string {
+  switch (tab.type) {
+    case "pod-log":
+      return tab.podName
+    case "pod-shell":
+      return `${tab.podName} / ${tab.containerName}`
+    case "yaml-edit":
+      return `${tab.resourceKind}/${tab.resourceName}`
+    case "custom-stream":
+      return tab.label
+    case "port-forward":
+      return `pf:${tab.resourceName}:${tab.localPort}`
+    default:
+      return `New ${tab.resourceKind}`
+  }
 }
 
 export function BottomDrawer(): JSX.Element {
@@ -223,18 +241,7 @@ export function BottomDrawer(): JSX.Element {
 
         {/* Tabs */}
         {drawerTabs.map((tab) => {
-          const label =
-            tab.type === "pod-log"
-              ? tab.podName
-              : tab.type === "pod-shell"
-                ? `${tab.podName} / ${tab.containerName}`
-                : tab.type === "yaml-edit"
-                  ? `${tab.resourceKind}/${tab.resourceName}`
-                  : tab.type === "custom-stream"
-                    ? tab.label
-                    : tab.type === "port-forward"
-                      ? `pf:${tab.resourceName}:${tab.localPort}`
-                      : `New ${tab.resourceKind}`
+          const label = tabLabel(tab)
           const isActive = tab.id === activeTabId
           return (
             <div

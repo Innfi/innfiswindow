@@ -1,8 +1,9 @@
-import { ArrowLeftRight, ScrollText, SquareTerminal, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { ArrowLeftRight, ScrollText, SquareTerminal } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import {
@@ -13,22 +14,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
+import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sPod } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { PodMetricsSection } from "./PodMetricsSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -203,13 +198,7 @@ function DetailPanel({
             namespace={pod.namespace}
             resourceKind="pod"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} className="ml-1" />
         </div>
       </div>
 
@@ -408,122 +397,36 @@ function DetailPanel({
 }
 
 export function PodsView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sPod | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-
-  const {
-    data: pods,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listPods({ contextName: ctx }),
-    selectedContext,
-    { paused: deleteDialogOpen },
-  )
-
-  useEffect(() => {
-    if (!selectedItem || pods.length === 0) return
-    const item = selectedItem as { name: string; namespace: string }
-    const fresh = pods.find(
-      (p) => p.name === item.name && p.namespace === item.namespace,
-    )
-    if (fresh) setSelectedItem(fresh as object)
-  }, [pods])
-
-  const visiblePods = filterResources(pods, nameFilter, selectedNamespace)
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">Pods</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visiblePods.length === 0 && (
-          <EmptyState message="No Pods found" />
-        )}
-        {!loading && !error && visiblePods.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Workload</TableHead>
-                  <TableHead className="whitespace-nowrap">App</TableHead>
-                  <TableHead className="whitespace-nowrap">Status</TableHead>
-                  <TableHead className="whitespace-nowrap">Restarts</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visiblePods.map((p) => (
-                  <TableRow
-                    key={`${p.namespace}/${p.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === p.name &&
-                        selectedItem?.namespace === p.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === p.name &&
-                          selectedItem?.namespace === p.namespace
-                          ? null
-                          : p,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {p.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {p.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <WorkloadBadge kind={p.ownerKind} name={p.ownerName} />
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {p.app || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {p.status}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {p.restarts}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(p.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && selectedItem.containers !== undefined && (
+    <ResourceListView<K8sPod>
+      title="Pods"
+      list={(ctx) => window.api.k8s.listPods({ contextName: ctx })}
+      detailGuard={(item) => (item as K8sPod).containers !== undefined}
+      columns={[
+        { head: "Name", cell: (p) => p.name },
+        { head: "Namespace", cell: (p) => p.namespace },
+        {
+          head: "Workload",
+          cell: (p) => <WorkloadBadge kind={p.ownerKind} name={p.ownerName} />,
+        },
+        { head: "App", cell: (p) => p.app || "-" },
+        { head: "Status", cell: (p) => p.status },
+        { head: "Restarts", cell: (p) => p.restarts },
+        ageColumn<K8sPod>(),
+      ]}
+      renderDetail={(pod, ctl: DetailController) => (
         <DetailPanel
-          pod={selectedItem}
-          onClose={() => setSelectedItem(null)}
+          pod={pod}
+          onClose={ctl.onClose}
           onLogs={() =>
             openDrawerTab({
-              tabKey: `pod-log:${selectedItem.namespace}/${selectedItem.name}`,
+              tabKey: `pod-log:${pod.namespace}/${pod.name}`,
               type: "pod-log",
-              namespace: selectedItem.namespace,
-              podName: selectedItem.name,
-              containers: selectedItem.containers,
+              namespace: pod.namespace,
+              podName: pod.name,
+              containers: pod.containers,
             })
           }
           onShell={(containerName) => {
@@ -532,29 +435,29 @@ export function PodsView(): JSX.Element {
               tabKey: `pod-shell:${sessionId}`,
               type: "pod-shell",
               sessionId,
-              namespace: selectedItem.namespace,
-              podName: selectedItem.name,
+              namespace: pod.namespace,
+              podName: pod.name,
               containerName,
             })
           }}
           onPortForward={() => {
             openDrawerTab({
-              tabKey: `port-forward:Pod:${selectedItem.namespace}/${selectedItem.name}`,
+              tabKey: `port-forward:Pod:${pod.namespace}/${pod.name}`,
               type: "port-forward",
               resourceKind: "Pod",
-              resourceName: selectedItem.name,
-              namespace: selectedItem.namespace,
+              resourceName: pod.name,
+              namespace: pod.namespace,
               localPort: 8080,
               targetPort: 8080,
             })
           }}
           onDeleteSuccess={() => {
-            setSelectedItem(null)
-            reload()
+            ctl.onClose()
+            ctl.onDeleted()
           }}
-          onDeleteDialogChange={setDeleteDialogOpen}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
         />
       )}
-    </div>
+    />
   )
 }

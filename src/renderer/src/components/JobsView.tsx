@@ -1,23 +1,16 @@
-﻿import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+﻿import { useState } from "react"
 
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
-import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
+import { cn } from "../../lib/utils"
 import { K8sJob } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -81,13 +74,7 @@ function DetailPanel({
             namespace={job.namespace}
             resourceKind="job"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} />
         </div>
       </div>
 
@@ -230,118 +217,29 @@ function DetailPanel({
 }
 
 export function JobsView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sJob | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-
-  const {
-    data: jobs,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listJobs({ contextName: ctx }),
-    selectedContext,
-  )
-
-  useEffect(() => {
-    if (!selectedItem || jobs.length === 0) return
-    const item = selectedItem as { name: string; namespace: string }
-    const fresh = jobs.find(
-      (j) => j.name === item.name && j.namespace === item.namespace,
-    )
-    if (fresh) setSelectedItem(fresh as object)
-  }, [jobs])
-
-  const visibleJobs = filterResources(jobs, nameFilter, selectedNamespace)
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">Jobs</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visibleJobs.length === 0 && (
-          <EmptyState message="No Jobs found" />
-        )}
-        {!loading && !error && visibleJobs.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    Completions
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">Active</TableHead>
-                  <TableHead className="whitespace-nowrap">Failed</TableHead>
-                  <TableHead className="whitespace-nowrap">Duration</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleJobs.map((job) => (
-                  <TableRow
-                    key={`${job.namespace}/${job.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === job.name &&
-                        (selectedItem as K8sJob).namespace === job.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === job.name &&
-                          (selectedItem as K8sJob).namespace === job.namespace
-                          ? null
-                          : job,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {job.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {job.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {job.completions !== null
-                        ? `${job.succeeded}/${job.completions}`
-                        : String(job.succeeded)}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {job.active}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {job.failed}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {job.duration || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(job.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && "active" in selectedItem && (
-        <DetailPanel
-          job={selectedItem as K8sJob}
-          onClose={() => setSelectedItem(null)}
-        />
+    <ResourceListView<K8sJob>
+      title="Jobs"
+      list={(ctx) => window.api.k8s.listJobs({ contextName: ctx })}
+      detailGuard={(item) => "active" in item}
+      columns={[
+        { head: "Name", cell: (job) => job.name },
+        { head: "Namespace", cell: (job) => job.namespace },
+        {
+          head: "Completions",
+          cell: (job) =>
+            job.completions !== null
+              ? `${job.succeeded}/${job.completions}`
+              : String(job.succeeded),
+        },
+        { head: "Active", cell: (job) => job.active },
+        { head: "Failed", cell: (job) => job.failed },
+        { head: "Duration", cell: (job) => job.duration || "-" },
+        ageColumn<K8sJob>(),
+      ]}
+      renderDetail={(job, ctl: DetailController) => (
+        <DetailPanel job={job} onClose={ctl.onClose} />
       )}
-    </div>
+    />
   )
 }

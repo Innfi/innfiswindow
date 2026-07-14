@@ -1,4 +1,4 @@
-﻿import { ArrowLeftRight, X } from "lucide-react"
+﻿import { ArrowLeftRight } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -11,23 +11,18 @@ import {
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog"
 import { Button } from "../../components/ui/button"
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
+import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sEndpoint, K8sService, K8sServicePort } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -199,13 +194,7 @@ function DetailPanel({
             namespace={svc.namespace}
             resourceKind="service"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} className="ml-1" />
         </div>
       </div>
 
@@ -380,137 +369,54 @@ function DetailPanel({
 }
 
 export function ServicesView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sService | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-
-  const {
-    data: services,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listServices({ contextName: ctx }),
-    selectedContext,
-    { paused: deleteDialogOpen },
-  )
-
-  useEffect(() => {
-    if (!selectedItem || services.length === 0) return
-    const fresh = services.find(
-      (d) =>
-        d.name === selectedItem.name && d.namespace === selectedItem.namespace,
-    )
-    if (fresh) setSelectedItem(fresh)
-  }, [services])
-
-  const visibleServices = filterResources(
-    services,
-    nameFilter,
-    selectedNamespace,
-  )
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">Services</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visibleServices.length === 0 && (
-          <EmptyState message="No Services found" />
-        )}
-        {!loading && !error && visibleServices.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Type</TableHead>
-                  <TableHead className="whitespace-nowrap">ClusterIP</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    External IP
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">Ports</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleServices.map((svc) => (
-                  <TableRow
-                    key={`${svc.namespace}/${svc.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === svc.name &&
-                        selectedItem?.namespace === svc.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === svc.name &&
-                          selectedItem?.namespace === svc.namespace
-                          ? null
-                          : svc,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {svc.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {svc.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {svc.type}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">
-                      {svc.clusterIP || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">
-                      {svc.externalIP || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-xs">
-                      {formatPorts(svc.ports)}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(svc.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && selectedItem.type !== undefined && (
+    <ResourceListView<K8sService>
+      title="Services"
+      list={(ctx) => window.api.k8s.listServices({ contextName: ctx })}
+      detailGuard={(item) => (item as K8sService).type !== undefined}
+      columns={[
+        { head: "Name", cell: (svc) => svc.name },
+        { head: "Namespace", cell: (svc) => svc.namespace },
+        { head: "Type", cell: (svc) => svc.type },
+        {
+          head: "ClusterIP",
+          cell: (svc) => svc.clusterIP || "-",
+          className: "font-mono text-xs",
+        },
+        {
+          head: "External IP",
+          cell: (svc) => svc.externalIP || "-",
+          className: "font-mono text-xs",
+        },
+        {
+          head: "Ports",
+          cell: (svc) => formatPorts(svc.ports),
+          className: "text-xs",
+        },
+        ageColumn<K8sService>(),
+      ]}
+      renderDetail={(svc, ctl: DetailController) => (
         <DetailPanel
-          svc={selectedItem}
-          onClose={() => setSelectedItem(null)}
-          onDeleted={reload}
+          svc={svc}
+          onClose={ctl.onClose}
+          onDeleted={ctl.onDeleted}
           onPortForward={() => {
-            const firstPort = selectedItem.ports[0]?.port ?? 80
+            const firstPort = svc.ports[0]?.port ?? 80
             openDrawerTab({
-              tabKey: `port-forward:Service:${selectedItem.namespace}/${selectedItem.name}`,
+              tabKey: `port-forward:Service:${svc.namespace}/${svc.name}`,
               type: "port-forward",
               resourceKind: "Service",
-              resourceName: selectedItem.name,
-              namespace: selectedItem.namespace,
+              resourceName: svc.name,
+              namespace: svc.namespace,
               localPort: firstPort,
               targetPort: firstPort,
             })
           }}
-          onDeleteDialogChange={setDeleteDialogOpen}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
         />
       )}
-    </div>
+    />
   )
 }

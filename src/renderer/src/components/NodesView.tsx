@@ -1,6 +1,6 @@
-﻿import { X } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+﻿import { useCallback, useEffect, useRef, useState } from "react"
 
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EmptyState } from "../../components/ui/EmptyState"
@@ -200,13 +200,7 @@ function DetailPanel({
         </div>
         <div className="flex items-center gap-1">
           <CopyResourceButton name={node.name} resourceKind="node" />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} />
         </div>
       </div>
 

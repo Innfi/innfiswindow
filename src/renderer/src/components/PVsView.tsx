@@ -1,23 +1,16 @@
-﻿import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+﻿import { useState } from "react"
 
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, formatAge } from "../../lib/utils"
-import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
+import { cn } from "../../lib/utils"
 import { K8sPV } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -82,13 +75,7 @@ function DetailPanel({
             })}
           />
           <CopyResourceButton name={pv.name} resourceKind="persistentvolume" />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} />
         </div>
       </div>
 
@@ -181,125 +168,41 @@ function DetailPanel({
 }
 
 export function PVsView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sPV | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-
-  const {
-    data: pvs,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listPVs({ contextName: ctx }),
-    selectedContext,
-  )
-
-  useEffect(() => {
-    if (!selectedItem || pvs.length === 0) return
-    const item = selectedItem as { name: string }
-    const fresh = pvs.find((p) => p.name === item.name)
-    if (fresh) setSelectedItem(fresh as object)
-  }, [pvs])
-
-  const visiblePVs = pvs.filter(
-    (p) =>
-      !nameFilter || p.name.toLowerCase().includes(nameFilter.toLowerCase()),
-  )
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">PersistentVolumes</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visiblePVs.length === 0 && (
-          <EmptyState message="No PersistentVolumes found" />
-        )}
-        {!loading && !error && visiblePVs.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Capacity</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    Access Modes
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    Reclaim Policy
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">Status</TableHead>
-                  <TableHead className="whitespace-nowrap">Claim</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    StorageClass
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visiblePVs.map((pv) => (
-                  <TableRow
-                    key={pv.name}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === pv.name && "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === pv.name ? null : pv,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {pv.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pv.capacity}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pv.accessModes.join(", ")}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pv.reclaimPolicy}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <span
-                        className={cn(
-                          "rounded px-1.5 py-0.5 text-xs font-medium",
-                          pvStatusClass(pv.status),
-                        )}
-                      >
-                        {pv.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pv.claimRef
-                        ? `${pv.claimRef.namespace}/${pv.claimRef.name}`
-                        : "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pv.storageClass || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(pv.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && !("namespace" in selectedItem) && (
-        <DetailPanel pv={selectedItem} onClose={() => setSelectedItem(null)} />
+    <ResourceListView<K8sPV>
+      title="PersistentVolumes"
+      namespaced={false}
+      list={(ctx) => window.api.k8s.listPVs({ contextName: ctx })}
+      detailGuard={(item) => !("namespace" in item)}
+      columns={[
+        { head: "Name", cell: (pv) => pv.name },
+        { head: "Capacity", cell: (pv) => pv.capacity },
+        { head: "Access Modes", cell: (pv) => pv.accessModes.join(", ") },
+        { head: "Reclaim Policy", cell: (pv) => pv.reclaimPolicy },
+        {
+          head: "Status",
+          cell: (pv) => (
+            <span
+              className={cn(
+                "rounded px-1.5 py-0.5 text-xs font-medium",
+                pvStatusClass(pv.status),
+              )}
+            >
+              {pv.status}
+            </span>
+          ),
+        },
+        {
+          head: "Claim",
+          cell: (pv) =>
+            pv.claimRef ? `${pv.claimRef.namespace}/${pv.claimRef.name}` : "-",
+        },
+        { head: "StorageClass", cell: (pv) => pv.storageClass || "-" },
+        ageColumn<K8sPV>(),
+      ]}
+      renderDetail={(pv, ctl: DetailController) => (
+        <DetailPanel pv={pv} onClose={ctl.onClose} />
       )}
-    </div>
+    />
   )
 }

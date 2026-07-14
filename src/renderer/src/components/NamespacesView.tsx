@@ -1,23 +1,16 @@
-﻿import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+﻿import { useState } from "react"
 
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
-import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
+import { cn } from "../../lib/utils"
 import { K8sNamespace } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -74,13 +67,7 @@ function DetailPanel({
             })}
           />
           <CopyResourceButton name={ns.name} resourceKind="namespace" />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} />
         </div>
       </div>
 
@@ -130,87 +117,20 @@ function DetailPanel({
 }
 
 export function NamespacesView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sNamespace | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-
-  const {
-    data: namespaces,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listNamespaces({ contextName: ctx }),
-    selectedContext,
-  )
-
-  useEffect(() => {
-    if (!selectedItem || namespaces.length === 0) return
-    const item = selectedItem as { name: string }
-    const fresh = namespaces.find((n) => n.name === item.name)
-    if (fresh) setSelectedItem(fresh as object)
-  }, [namespaces])
-
-  const visibleNamespaces = filterResources(namespaces, nameFilter)
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">Namespaces</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visibleNamespaces.length === 0 && (
-          <EmptyState message="No Namespaces found" />
-        )}
-        {!loading && !error && visibleNamespaces.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Status</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleNamespaces.map((ns) => (
-                  <TableRow
-                    key={ns.name}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === ns.name && "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === ns.name ? null : ns,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {ns.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ns.status}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(ns.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && (
-        <DetailPanel ns={selectedItem} onClose={() => setSelectedItem(null)} />
+    <ResourceListView<K8sNamespace>
+      title="Namespaces"
+      namespaced={false}
+      list={(ctx) => window.api.k8s.listNamespaces({ contextName: ctx })}
+      detailGuard={() => true}
+      columns={[
+        { head: "Name", cell: (ns) => ns.name },
+        { head: "Status", cell: (ns) => ns.status },
+        ageColumn<K8sNamespace>(),
+      ]}
+      renderDetail={(ns, ctl: DetailController) => (
+        <DetailPanel ns={ns} onClose={ctl.onClose} />
       )}
-    </div>
+    />
   )
 }

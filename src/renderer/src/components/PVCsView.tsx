@@ -1,23 +1,16 @@
-﻿import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+﻿import { useState } from "react"
 
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
-import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
+import { cn } from "../../lib/utils"
 import { K8sPVC } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -87,13 +80,7 @@ function DetailPanel({
             namespace={pvc.namespace}
             resourceKind="persistentvolumeclaim"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} />
         </div>
       </div>
 
@@ -173,126 +160,36 @@ function DetailPanel({
 }
 
 export function PVCsView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sPVC | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-
-  const {
-    data: pvcs,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listPVCs({ contextName: ctx }),
-    selectedContext,
-  )
-
-  useEffect(() => {
-    if (!selectedItem || pvcs.length === 0) return
-    const item = selectedItem as { name: string; namespace: string }
-    const fresh = pvcs.find(
-      (p) => p.name === item.name && p.namespace === item.namespace,
-    )
-    if (fresh) setSelectedItem(fresh as object)
-  }, [pvcs])
-
-  const visiblePVCs = filterResources(pvcs, nameFilter, selectedNamespace)
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">PersistentVolumeClaims</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visiblePVCs.length === 0 && (
-          <EmptyState message="No PersistentVolumeClaims found" />
-        )}
-        {!loading && !error && visiblePVCs.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Status</TableHead>
-                  <TableHead className="whitespace-nowrap">Volume</TableHead>
-                  <TableHead className="whitespace-nowrap">Capacity</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    Access Modes
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    StorageClass
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visiblePVCs.map((pvc) => (
-                  <TableRow
-                    key={`${pvc.namespace}/${pvc.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === pvc.name &&
-                        selectedItem?.namespace === pvc.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === pvc.name &&
-                          selectedItem?.namespace === pvc.namespace
-                          ? null
-                          : pvc,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {pvc.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pvc.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <span
-                        className={cn(
-                          "rounded px-1.5 py-0.5 text-xs font-medium",
-                          pvcStatusClass(pvc.status),
-                        )}
-                      >
-                        {pvc.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pvc.volumeName || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pvc.capacity || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pvc.accessModes.join(", ")}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {pvc.storageClass || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(pvc.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && selectedItem.namespace !== undefined && (
-        <DetailPanel pvc={selectedItem} onClose={() => setSelectedItem(null)} />
+    <ResourceListView<K8sPVC>
+      title="PersistentVolumeClaims"
+      list={(ctx) => window.api.k8s.listPVCs({ contextName: ctx })}
+      detailGuard={(item) => (item as K8sPVC).namespace !== undefined}
+      columns={[
+        { head: "Name", cell: (pvc) => pvc.name },
+        { head: "Namespace", cell: (pvc) => pvc.namespace },
+        {
+          head: "Status",
+          cell: (pvc) => (
+            <span
+              className={cn(
+                "rounded px-1.5 py-0.5 text-xs font-medium",
+                pvcStatusClass(pvc.status),
+              )}
+            >
+              {pvc.status}
+            </span>
+          ),
+        },
+        { head: "Volume", cell: (pvc) => pvc.volumeName || "-" },
+        { head: "Capacity", cell: (pvc) => pvc.capacity || "-" },
+        { head: "Access Modes", cell: (pvc) => pvc.accessModes.join(", ") },
+        { head: "StorageClass", cell: (pvc) => pvc.storageClass || "-" },
+        ageColumn<K8sPVC>(),
+      ]}
+      renderDetail={(pvc, ctl: DetailController) => (
+        <DetailPanel pvc={pvc} onClose={ctl.onClose} />
       )}
-    </div>
+    />
   )
 }

@@ -1,23 +1,16 @@
-﻿import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+﻿import { useState } from "react"
 
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
-import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
+import { cn } from "../../lib/utils"
 import { K8sHPA } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -81,13 +74,7 @@ function DetailPanel({
             namespace={hpa.namespace}
             resourceKind="horizontalpodautoscaler"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} />
         </div>
       </div>
 
@@ -214,109 +201,29 @@ function DetailPanel({
 }
 
 export function HPAsView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sHPA | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-
-  const {
-    data: hpas,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listHPAs({ contextName: ctx }),
-    selectedContext,
-  )
-
-  useEffect(() => {
-    if (!selectedItem || hpas.length === 0) return
-    const item = selectedItem as { name: string; namespace: string }
-    const fresh = hpas.find(
-      (h) => h.name === item.name && h.namespace === item.namespace,
-    )
-    if (fresh) setSelectedItem(fresh as object)
-  }, [hpas])
-
-  const visibleHPAs = filterResources(hpas, nameFilter, selectedNamespace)
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">HorizontalPodAutoscalers</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visibleHPAs.length === 0 && (
-          <EmptyState message="No HorizontalPodAutoscalers found" />
-        )}
-        {!loading && !error && visibleHPAs.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Target</TableHead>
-                  <TableHead className="whitespace-nowrap">Min</TableHead>
-                  <TableHead className="whitespace-nowrap">Max</TableHead>
-                  <TableHead className="whitespace-nowrap">Replicas</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleHPAs.map((h) => (
-                  <TableRow
-                    key={`${h.namespace}/${h.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === h.name &&
-                        selectedItem?.namespace === h.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === h.name &&
-                          selectedItem?.namespace === h.namespace
-                          ? null
-                          : h,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {h.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {h.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {h.targetRef.kind}/{h.targetRef.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {h.minReplicas}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {h.maxReplicas}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">{`${h.currentReplicas}/${h.desiredReplicas}`}</TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(h.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && selectedItem.namespace !== undefined && (
-        <DetailPanel hpa={selectedItem} onClose={() => setSelectedItem(null)} />
+    <ResourceListView<K8sHPA>
+      title="HorizontalPodAutoscalers"
+      list={(ctx) => window.api.k8s.listHPAs({ contextName: ctx })}
+      detailGuard={(item) => (item as K8sHPA).namespace !== undefined}
+      columns={[
+        { head: "Name", cell: (h) => h.name },
+        { head: "Namespace", cell: (h) => h.namespace },
+        {
+          head: "Target",
+          cell: (h) => `${h.targetRef.kind}/${h.targetRef.name}`,
+        },
+        { head: "Min", cell: (h) => h.minReplicas },
+        { head: "Max", cell: (h) => h.maxReplicas },
+        {
+          head: "Replicas",
+          cell: (h) => `${h.currentReplicas}/${h.desiredReplicas}`,
+        },
+        ageColumn<K8sHPA>(),
+      ]}
+      renderDetail={(hpa, ctl: DetailController) => (
+        <DetailPanel hpa={hpa} onClose={ctl.onClose} />
       )}
-    </div>
+    />
   )
 }

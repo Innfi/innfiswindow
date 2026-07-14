@@ -1,8 +1,9 @@
-import { Trash2, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Trash2 } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import {
@@ -13,8 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
+import {
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
 import {
   Table,
   TableBody,
@@ -23,11 +28,8 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sClusterRole } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { SectionHeader } from "./SectionHeader"
 
@@ -129,13 +131,7 @@ function DetailPanel({
             Delete
           </Button>
           <CopyResourceButton name={role.name} resourceKind="clusterrole" />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} />
         </div>
       </div>
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
@@ -261,101 +257,29 @@ function DetailPanel({
 }
 
 export function ClusterRolesView(): JSX.Element {
-  const selectedItem = useAppStore(
-    (s) => s.selectedItem,
-  ) as K8sClusterRole | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-
-  const {
-    data: clusterRoles,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listClusterRoles({ contextName: ctx }),
-    selectedContext,
-    { paused: deleteDialogOpen },
-  )
-
-  useEffect(() => {
-    if (!selectedItem || clusterRoles.length === 0) return
-    const fresh = clusterRoles.find((r) => r.name === selectedItem.name)
-    if (fresh) setSelectedItem(fresh as object)
-  }, [clusterRoles])
-
-  const visible = nameFilter
-    ? clusterRoles.filter((r) =>
-        r.name.toLowerCase().includes(nameFilter.toLowerCase()),
-      )
-    : clusterRoles
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">Cluster Roles</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visible.length === 0 && (
-          <EmptyState message="No Cluster Roles found" />
-        )}
-        {!loading && !error && visible.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Rules</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visible.map((role) => (
-                  <TableRow
-                    key={role.name}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === role.name && "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === role.name ? null : role,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {role.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {role.rulesCount}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(role.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem &&
-        selectedItem.rulesCount !== undefined &&
-        !("namespace" in selectedItem) && (
-          <DetailPanel
-            role={selectedItem}
-            onClose={() => setSelectedItem(null)}
-            onDeleteSuccess={reload}
-            onDeleteDialogChange={setDeleteDialogOpen}
-          />
-        )}
-    </div>
+    <ResourceListView<K8sClusterRole>
+      title="Cluster Roles"
+      emptyMessage="No Cluster Roles found"
+      namespaced={false}
+      list={(ctx) => window.api.k8s.listClusterRoles({ contextName: ctx })}
+      detailGuard={(item) =>
+        (item as K8sClusterRole).rulesCount !== undefined &&
+        !("namespace" in item)
+      }
+      columns={[
+        { head: "Name", cell: (role) => role.name },
+        { head: "Rules", cell: (role) => role.rulesCount },
+        ageColumn<K8sClusterRole>(),
+      ]}
+      renderDetail={(role, ctl: DetailController) => (
+        <DetailPanel
+          role={role}
+          onClose={ctl.onClose}
+          onDeleteSuccess={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
+        />
+      )}
+    />
   )
 }

@@ -1,5 +1,4 @@
-﻿import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+﻿import { useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -11,23 +10,17 @@ import {
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog"
 import { Button } from "../../components/ui/button"
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
 import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sIngress, K8sIngressRule, K8sIngressTLS } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -176,13 +169,7 @@ function DetailPanel({
             namespace={item.namespace}
             resourceKind="ingress"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} className="ml-1" />
         </div>
       </div>
 
@@ -346,122 +333,28 @@ function DetailPanel({
 }
 
 export function IngressesView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sIngress | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-
-  const {
-    data: ingresses,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listIngresses({ contextName: ctx }),
-    selectedContext,
-    { paused: deleteDialogOpen },
-  )
-
-  useEffect(() => {
-    if (!selectedItem || ingresses.length === 0) return
-    const item = selectedItem as { name: string; namespace: string }
-    const fresh = ingresses.find(
-      (i) => i.name === item.name && i.namespace === item.namespace,
-    )
-    if (fresh) setSelectedItem(fresh as object)
-  }, [ingresses])
-
-  const visibleIngresses = filterResources(
-    ingresses,
-    nameFilter,
-    selectedNamespace,
-  )
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">Ingresses</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visibleIngresses.length === 0 && (
-          <EmptyState message="No Ingresses found" />
-        )}
-        {!loading && !error && visibleIngresses.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Class</TableHead>
-                  <TableHead className="whitespace-nowrap">Hosts</TableHead>
-                  <TableHead className="whitespace-nowrap">Address</TableHead>
-                  <TableHead className="whitespace-nowrap">Ports</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleIngresses.map((ing) => (
-                  <TableRow
-                    key={`${ing.namespace}/${ing.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === ing.name &&
-                        selectedItem?.namespace === ing.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === ing.name &&
-                          selectedItem?.namespace === ing.namespace
-                          ? null
-                          : ing,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap font-medium">
-                      {ing.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ing.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ing.ingressClassName || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ing.hosts}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ing.address || "-"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ing.ports}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(ing.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && selectedItem.rules !== undefined && (
+    <ResourceListView<K8sIngress>
+      title="Ingresses"
+      list={(ctx) => window.api.k8s.listIngresses({ contextName: ctx })}
+      detailGuard={(item) => (item as K8sIngress).rules !== undefined}
+      columns={[
+        { head: "Name", cell: (ing) => ing.name, className: "font-medium" },
+        { head: "Namespace", cell: (ing) => ing.namespace },
+        { head: "Class", cell: (ing) => ing.ingressClassName || "-" },
+        { head: "Hosts", cell: (ing) => ing.hosts },
+        { head: "Address", cell: (ing) => ing.address || "-" },
+        { head: "Ports", cell: (ing) => ing.ports },
+        ageColumn<K8sIngress>(),
+      ]}
+      renderDetail={(ing, ctl: DetailController) => (
         <DetailPanel
-          item={selectedItem}
-          onClose={() => setSelectedItem(null)}
-          onDeleted={reload}
-          onDeleteDialogChange={setDeleteDialogOpen}
+          item={ing}
+          onClose={ctl.onClose}
+          onDeleted={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
         />
       )}
-    </div>
+    />
   )
 }

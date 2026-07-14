@@ -1,23 +1,15 @@
-import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
-import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
 import { K8sLimitRange } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -74,13 +66,7 @@ function DetailPanel({
             namespace={limitRange.namespace}
             resourceKind="limitrange"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} />
         </div>
       </div>
       <input
@@ -194,112 +180,26 @@ function DetailPanel({
 }
 
 export function LimitRangesView(): JSX.Element {
-  const selectedItem = useAppStore(
-    (s) => s.selectedItem,
-  ) as K8sLimitRange | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-
-  const {
-    data: limitRanges,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listLimitRanges({ contextName: ctx }),
-    selectedContext,
-  )
-
-  useEffect(() => {
-    if (!selectedItem || limitRanges.length === 0) return
-    const item = selectedItem as { name: string; namespace: string }
-    const fresh = limitRanges.find(
-      (lr) => lr.name === item.name && lr.namespace === item.namespace,
-    )
-    if (fresh) setSelectedItem(fresh as object)
-  }, [limitRanges])
-
-  const visible = filterResources(limitRanges, nameFilter, selectedNamespace)
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">LimitRanges</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visible.length === 0 && (
-          <EmptyState message="No LimitRanges found" />
-        )}
-        {!loading && !error && visible.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Types</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visible.map((lr) => {
-                  const types = Array.from(
-                    new Set(lr.limits.map((l) => l.type).filter(Boolean)),
-                  ).join(", ")
-
-                  return (
-                    <TableRow
-                      key={`${lr.namespace}/${lr.name}`}
-                      className={cn(
-                        "cursor-pointer",
-                        selectedItem?.name === lr.name &&
-                          (selectedItem as K8sLimitRange)?.namespace ===
-                            lr.namespace &&
-                          "bg-muted",
-                      )}
-                      onClick={() =>
-                        setSelectedItem(
-                          selectedItem?.name === lr.name &&
-                            (selectedItem as K8sLimitRange)?.namespace ===
-                              lr.namespace
-                            ? null
-                            : lr,
-                        )
-                      }
-                    >
-                      <TableCell className="whitespace-nowrap">
-                        {lr.name}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {lr.namespace}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {types || "-"}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {formatAge(lr.creationTimestamp)}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && (selectedItem as K8sLimitRange).limits !== undefined && (
-        <DetailPanel
-          limitRange={selectedItem as K8sLimitRange}
-          onClose={() => setSelectedItem(null)}
-        />
+    <ResourceListView<K8sLimitRange>
+      title="LimitRanges"
+      list={(ctx) => window.api.k8s.listLimitRanges({ contextName: ctx })}
+      detailGuard={(item) => (item as K8sLimitRange).limits !== undefined}
+      columns={[
+        { head: "Name", cell: (lr) => lr.name },
+        { head: "Namespace", cell: (lr) => lr.namespace },
+        {
+          head: "Types",
+          cell: (lr) =>
+            Array.from(
+              new Set(lr.limits.map((l) => l.type).filter(Boolean)),
+            ).join(", ") || "-",
+        },
+        ageColumn<K8sLimitRange>(),
+      ]}
+      renderDetail={(limitRange, ctl: DetailController) => (
+        <DetailPanel limitRange={limitRange} onClose={ctl.onClose} />
       )}
-    </div>
+    />
   )
 }

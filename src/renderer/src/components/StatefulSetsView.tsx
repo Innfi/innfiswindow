@@ -1,5 +1,4 @@
-﻿import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+﻿import { useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -11,24 +10,18 @@ import {
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog"
 import { Button } from "../../components/ui/button"
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
 import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sStatefulSet } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -156,13 +149,7 @@ function DetailPanel({
             namespace={ss.namespace}
             resourceKind="statefulset"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ml-1"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} className="ml-1" />
         </div>
       </div>
 
@@ -334,119 +321,30 @@ function DetailPanel({
 }
 
 export function StatefulSetsView(): JSX.Element {
-  const selectedItem = useAppStore(
-    (s) => s.selectedItem,
-  ) as K8sStatefulSet | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-
-  const {
-    data: statefulSets,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listStatefulSets({ contextName: ctx }),
-    selectedContext,
-    { paused: deleteDialogOpen },
-  )
-
-  useEffect(() => {
-    if (!selectedItem || statefulSets.length === 0) return
-    const item = selectedItem as { name: string; namespace: string }
-    const fresh = statefulSets.find(
-      (ss) => ss.name === item.name && ss.namespace === item.namespace,
-    )
-    if (fresh) setSelectedItem(fresh as object)
-  }, [statefulSets])
-
-  const visibleStatefulSets = filterResources(
-    statefulSets,
-    nameFilter,
-    selectedNamespace,
-  )
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">StatefulSets</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visibleStatefulSets.length === 0 && (
-          <EmptyState message="No Stateful Sets found" />
-        )}
-        {!loading && !error && visibleStatefulSets.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Ready</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                  <TableHead className="whitespace-nowrap">Service</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleStatefulSets.map((ss) => (
-                  <TableRow
-                    key={`${ss.namespace}/${ss.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === ss.name &&
-                        selectedItem?.namespace === ss.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === ss.name &&
-                          selectedItem?.namespace === ss.namespace
-                          ? null
-                          : ss,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {ss.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ss.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ss.readyReplicas}/{ss.replicas}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(ss.creationTimestamp)}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {ss.serviceName}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && selectedItem.serviceName !== undefined && (
+    <ResourceListView<K8sStatefulSet>
+      title="StatefulSets"
+      emptyMessage="No Stateful Sets found"
+      list={(ctx) => window.api.k8s.listStatefulSets({ contextName: ctx })}
+      detailGuard={(item) => (item as K8sStatefulSet).serviceName !== undefined}
+      columns={[
+        { head: "Name", cell: (ss) => ss.name },
+        { head: "Namespace", cell: (ss) => ss.namespace },
+        { head: "Ready", cell: (ss) => `${ss.readyReplicas}/${ss.replicas}` },
+        ageColumn<K8sStatefulSet>(),
+        { head: "Service", cell: (ss) => ss.serviceName },
+      ]}
+      renderDetail={(ss, ctl: DetailController) => (
         <DetailPanel
-          ss={selectedItem}
-          onClose={() => setSelectedItem(null)}
+          ss={ss}
+          onClose={ctl.onClose}
           onDeleted={() => {
-            reload()
-            setSelectedItem(null)
+            ctl.onDeleted()
+            ctl.onClose()
           }}
-          onDeleteDialogChange={setDeleteDialogOpen}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
         />
       )}
-    </div>
+    />
   )
 }

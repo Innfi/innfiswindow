@@ -1,24 +1,16 @@
-﻿import { X } from "lucide-react"
-import { useEffect, useState } from "react"
+﻿import { useState } from "react"
 
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table"
-import { cn, formatAge } from "../../lib/utils"
-import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
 import { K8sReplicaSet } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SectionHeader } from "./SectionHeader"
@@ -89,13 +81,7 @@ function DetailPanel({
             namespace={rs.namespace}
             resourceKind="replicaset"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} />
         </div>
       </div>
 
@@ -232,119 +218,26 @@ function DetailPanel({
 }
 
 export function ReplicaSetsView(): JSX.Element {
-  const selectedItem = useAppStore(
-    (s) => s.selectedItem,
-  ) as K8sReplicaSet | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-
-  const {
-    data: replicaSets,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listReplicaSets({ contextName: ctx }),
-    selectedContext,
-  )
-
-  useEffect(() => {
-    if (!selectedItem || replicaSets.length === 0) return
-    const item = selectedItem as { name: string; namespace: string }
-    const fresh = replicaSets.find(
-      (rs) => rs.name === item.name && rs.namespace === item.namespace,
-    )
-    if (fresh) setSelectedItem(fresh as object)
-  }, [replicaSets])
-
-  const visibleReplicaSets = replicaSets
-    .filter((rs) => !selectedNamespace || rs.namespace === selectedNamespace)
-    .filter(
-      (rs) =>
-        !nameFilter || rs.name.toLowerCase().includes(nameFilter.toLowerCase()),
-    )
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">ReplicaSets</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visibleReplicaSets.length === 0 && (
-          <EmptyState message="No Replica Sets found" />
-        )}
-        {!loading && !error && visibleReplicaSets.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Desired</TableHead>
-                  <TableHead className="whitespace-nowrap">Current</TableHead>
-                  <TableHead className="whitespace-nowrap">Ready</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleReplicaSets.map((rs) => (
-                  <TableRow
-                    key={`${rs.namespace}/${rs.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === rs.name &&
-                        selectedItem?.namespace === rs.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === rs.name &&
-                          selectedItem?.namespace === rs.namespace
-                          ? null
-                          : rs,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {rs.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {rs.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {rs.desiredReplicas}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {rs.currentReplicas}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {rs.readyReplicas}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(rs.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem &&
-        selectedItem.namespace !== undefined &&
-        selectedItem.desiredReplicas !== undefined && (
-          <DetailPanel
-            rs={selectedItem}
-            onClose={() => setSelectedItem(null)}
-          />
-        )}
-    </div>
+    <ResourceListView<K8sReplicaSet>
+      title="ReplicaSets"
+      emptyMessage="No Replica Sets found"
+      list={(ctx) => window.api.k8s.listReplicaSets({ contextName: ctx })}
+      detailGuard={(item) => {
+        const rs = item as K8sReplicaSet
+        return rs.namespace !== undefined && rs.desiredReplicas !== undefined
+      }}
+      columns={[
+        { head: "Name", cell: (rs) => rs.name },
+        { head: "Namespace", cell: (rs) => rs.namespace },
+        { head: "Desired", cell: (rs) => rs.desiredReplicas },
+        { head: "Current", cell: (rs) => rs.currentReplicas },
+        { head: "Ready", cell: (rs) => rs.readyReplicas },
+        ageColumn<K8sReplicaSet>(),
+      ]}
+      renderDetail={(rs, ctl: DetailController) => (
+        <DetailPanel rs={rs} onClose={ctl.onClose} />
+      )}
+    />
   )
 }

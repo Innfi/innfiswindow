@@ -1,8 +1,9 @@
-import { Trash2, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Trash2 } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "../../components/ui/button"
+import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import {
@@ -13,8 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog"
-import { EmptyState } from "../../components/ui/EmptyState"
-import { RefreshBar } from "../../components/ui/RefreshBar"
+import { EditButton } from "../../components/ui/EditButton"
+import {
+  ageColumn,
+  DetailController,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
 import {
   Table,
   TableBody,
@@ -23,11 +28,8 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sRoleBinding } from "../types/k8s"
-import { EditButton } from "./EditButton"
 import { MetaEntry } from "./MetaEntry"
 import { SectionHeader } from "./SectionHeader"
 
@@ -142,13 +144,7 @@ function DetailPanel({
             namespace={binding.namespace}
             resourceKind="rolebinding"
           />
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Close panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ClosePanelButton onClose={onClose} />
         </div>
       </div>
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
@@ -278,114 +274,30 @@ function DetailPanel({
 }
 
 export function RoleBindingsView(): JSX.Element {
-  const selectedItem = useAppStore(
-    (s) => s.selectedItem,
-  ) as K8sRoleBinding | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-
-  const {
-    data: bindings,
-    loading,
-    error,
-    reload,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx) => window.api.k8s.listRoleBindings({ contextName: ctx }),
-    selectedContext,
-    { paused: deleteDialogOpen },
-  )
-
-  useEffect(() => {
-    if (!selectedItem || bindings.length === 0) return
-    const item = selectedItem as { name: string; namespace: string }
-    const fresh = bindings.find(
-      (b) => b.name === item.name && b.namespace === item.namespace,
-    )
-    if (fresh) setSelectedItem(fresh as object)
-  }, [bindings])
-
-  const visible = filterResources(bindings, nameFilter, selectedNamespace)
-
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">Role Bindings</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visible.length === 0 && (
-          <EmptyState message="No Role Bindings found" />
-        )}
-        {!loading && !error && visible.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Namespace</TableHead>
-                  <TableHead className="whitespace-nowrap">Role</TableHead>
-                  <TableHead className="whitespace-nowrap">Subjects</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visible.map((binding) => (
-                  <TableRow
-                    key={`${binding.namespace}/${binding.name}`}
-                    className={cn(
-                      "cursor-pointer",
-                      selectedItem?.name === binding.name &&
-                        selectedItem?.namespace === binding.namespace &&
-                        "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        selectedItem?.name === binding.name &&
-                          selectedItem?.namespace === binding.namespace
-                          ? null
-                          : binding,
-                      )
-                    }
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      {binding.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {binding.namespace}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {binding.roleRef.name}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {binding.subjectsCount}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatAge(binding.creationTimestamp)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem &&
-        selectedItem.namespace !== undefined &&
-        selectedItem.roleRef !== undefined && (
-          <DetailPanel
-            binding={selectedItem}
-            onClose={() => setSelectedItem(null)}
-            onDeleteSuccess={reload}
-            onDeleteDialogChange={setDeleteDialogOpen}
-          />
-        )}
-    </div>
+    <ResourceListView<K8sRoleBinding>
+      title="Role Bindings"
+      emptyMessage="No Role Bindings found"
+      list={(ctx) => window.api.k8s.listRoleBindings({ contextName: ctx })}
+      detailGuard={(item) => {
+        const b = item as K8sRoleBinding
+        return b.namespace !== undefined && b.roleRef !== undefined
+      }}
+      columns={[
+        { head: "Name", cell: (b) => b.name },
+        { head: "Namespace", cell: (b) => b.namespace },
+        { head: "Role", cell: (b) => b.roleRef.name },
+        { head: "Subjects", cell: (b) => b.subjectsCount },
+        ageColumn<K8sRoleBinding>(),
+      ]}
+      renderDetail={(binding, ctl: DetailController) => (
+        <DetailPanel
+          binding={binding}
+          onClose={ctl.onClose}
+          onDeleteSuccess={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
+        />
+      )}
+    />
   )
 }

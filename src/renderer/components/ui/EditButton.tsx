@@ -1,8 +1,8 @@
 import { dump as yamlDump } from "js-yaml"
 import { Pencil } from "lucide-react"
 
-import { Button } from "../../components/ui/button"
 import { DrawerTabInput, useAppStore } from "../../store/app.store"
+import { Button } from "./button"
 
 type YamlEditKind = Extract<
   DrawerTabInput,
