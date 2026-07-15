@@ -2,8 +2,8 @@ import { Copy } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { Button } from "./button"
-import { Popover, PopoverContent, PopoverTrigger } from "./popover"
+import { Button } from "./Button"
+import { Popover, PopoverContent, PopoverTrigger } from "./Popover"
 
 interface CopyResourceButtonProps {
   name: string

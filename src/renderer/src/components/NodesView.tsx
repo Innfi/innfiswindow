@@ -4,7 +4,9 @@ import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EmptyState } from "../../components/ui/EmptyState"
+import { MetaEntry } from "../../components/ui/MetaEntry"
 import { RefreshBar } from "../../components/ui/RefreshBar"
+import { SectionHeader } from "../../components/ui/SectionHeader"
 import {
   Table,
   TableBody,
@@ -12,14 +14,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../components/ui/table"
+} from "../../components/ui/Table"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sNode } from "../types/k8s"
-import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
-import { SectionHeader } from "./SectionHeader"
 
 interface NodeMetric {
   nodeName: string

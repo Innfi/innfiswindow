@@ -8,24 +8,24 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "../../components/ui/alert-dialog"
-import { Button } from "../../components/ui/button"
+} from "../../components/ui/AlertDialog"
+import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
+import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { K8sDeployment } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
-import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
-import { SectionHeader } from "./SectionHeader"
 
 type DeploymentRevision = {
   revision: number

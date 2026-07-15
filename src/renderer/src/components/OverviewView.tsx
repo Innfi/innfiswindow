@@ -8,11 +8,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../components/ui/table"
+} from "../../components/ui/Table"
 import { handleIpcError } from "../../lib/ipc-error"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { K8sDeployment, K8sEvent, K8sNode, K8sPod } from "../types/k8s"
+import type { ResourceType } from "../types/resource"
 
 interface OverviewData {
   pods: K8sPod[]
@@ -108,7 +109,13 @@ export function OverviewView(): JSX.Element {
     .slice(0, 20)
   const recentWarningCount = data.events.filter(isRecentWarningEvent).length
 
-  const cards = [
+  const cards: {
+    label: string
+    count: number
+    color: string
+    textColor: string
+    resourceType: ResourceType
+  }[] = [
     {
       label: "Unhealthy Pods",
       count: unhealthyPods.length,

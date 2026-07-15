@@ -1,16 +1,17 @@
 import { Loader2, Search } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 
+import type { ResourceType } from "../../src/types/resource"
 import { useAppStore } from "../../store/app.store"
 
 type SearchResult = {
   name: string
   namespace?: string
-  resourceType: string
+  resourceType: ResourceType
   item: object
 }
 
-const RESOURCE_ORDER = [
+const RESOURCE_ORDER: ResourceType[] = [
   "Pods",
   "Deployments",
   "StatefulSets",
@@ -115,7 +116,7 @@ export function GlobalSearch(): JSX.Element {
 
       function process<T extends { name: string; namespace?: string }>(
         settled: PromiseSettledResult<T[]>,
-        kind: string,
+        kind: ResourceType,
       ): void {
         if (settled.status !== "fulfilled") return
         const matches = settled.value

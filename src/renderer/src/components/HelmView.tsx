@@ -8,17 +8,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "../../components/ui/alert-dialog"
-import { Button } from "../../components/ui/button"
+} from "../../components/ui/AlertDialog"
+import { Button } from "../../components/ui/Button"
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../../components/ui/dialog"
-import { Input } from "../../components/ui/input"
-import { Label } from "../../components/ui/label"
+} from "../../components/ui/Dialog"
+import { Input } from "../../components/ui/Input"
+import { Label } from "../../components/ui/Label"
 import {
   Table,
   TableBody,
@@ -26,7 +26,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../components/ui/table"
+} from "../../components/ui/Table"
 import { useAppStore } from "../../store/app.store"
 
 interface HelmRepo {

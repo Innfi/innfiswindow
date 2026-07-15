@@ -1,6 +1,8 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
+import type { ResourceType } from "../src/types/resource"
+
 interface K8sPodContainer {
   name: string
   image: string
@@ -199,7 +201,7 @@ export type DrawerTabInput =
 export type RefreshIntervalValue = 10 | 30 | 60 | 120 | "off"
 
 export interface ContextState {
-  selectedResourceType: string | null
+  selectedResourceType: ResourceType | null
   selectedItem: object | null
   selectedNamespace: string | null
   nameFilter: string
@@ -208,7 +210,7 @@ export interface ContextState {
 }
 
 interface AppState {
-  selectedResourceType: string | null
+  selectedResourceType: ResourceType | null
   selectedItem: object | null
   selectedNamespace: string | null
   selectedContext: string | null
@@ -225,9 +227,9 @@ interface AppState {
   alarmEntries: AlarmEntry[]
   globalErrors: ErrorEntry[]
   unreadErrorCount: number
-  setSelectedResourceType: (type: string | null) => void
+  setSelectedResourceType: (type: ResourceType | null) => void
   setSelectedItem: (item: object | null) => void
-  navigateToResource: (type: string, item: object) => void
+  navigateToResource: (type: ResourceType, item: object) => void
   setSelectedNamespace: (ns: string | null) => void
   setSelectedContext: (ctx: string | null) => void
   setNameFilter: (filter: string) => void

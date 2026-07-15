@@ -2,7 +2,7 @@
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { Button } from "../../components/ui/button"
+import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -13,18 +13,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../../components/ui/dialog"
+} from "../../components/ui/Dialog"
 import { EditButton } from "../../components/ui/EditButton"
+import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { SectionHeader } from "../../components/ui/SectionHeader"
 import { useAppStore } from "../../store/app.store"
 import { K8sServiceAccount } from "../types/k8s"
-import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
-import { SectionHeader } from "./SectionHeader"
 
 function DetailPanel({
   sa,

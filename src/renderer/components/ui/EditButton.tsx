@@ -2,7 +2,7 @@ import { dump as yamlDump } from "js-yaml"
 import { Pencil } from "lucide-react"
 
 import { DrawerTabInput, useAppStore } from "../../store/app.store"
-import { Button } from "./button"
+import { Button } from "./Button"
 
 type YamlEditKind = Extract<
   DrawerTabInput,

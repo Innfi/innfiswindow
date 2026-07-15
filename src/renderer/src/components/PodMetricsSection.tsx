@@ -9,7 +9,7 @@ import {
   YAxis,
 } from "recharts"
 
-import { Button } from "../../components/ui/button"
+import { Button } from "../../components/ui/Button"
 
 interface DataPoint {
   timestamp: number

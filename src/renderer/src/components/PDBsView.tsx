@@ -4,15 +4,15 @@ import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
+import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sPDB } from "../types/k8s"
-import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
-import { SectionHeader } from "./SectionHeader"
 
 function DetailPanel({
   pdb,

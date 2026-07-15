@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import { Button } from "../../components/ui/button"
+import { Button } from "../../components/ui/Button"
 import { EmptyState } from "../../components/ui/EmptyState"
 import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
@@ -10,7 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../components/ui/table"
+} from "../../components/ui/Table"
 import { handleIpcError } from "../../lib/ipc-error"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"

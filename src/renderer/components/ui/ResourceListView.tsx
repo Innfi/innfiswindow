@@ -12,7 +12,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./table"
+} from "./Table"
 
 interface Namespaced {
   name: string

@@ -1,6 +1,6 @@
 import { RefreshCw } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { Button } from "@components/ui/button"
+import { Button } from "@components/ui/Button"
 import { useAppStore } from "@store/app.store"
 import { FitAddon } from "@xterm/addon-fit"
 import { Terminal } from "@xterm/xterm"

@@ -2,15 +2,15 @@
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
+import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sStorageClass } from "../types/k8s"
-import { MetaEntry } from "./MetaEntry"
 import { ResourceEventsSection } from "./ResourceEventsSection"
-import { SectionHeader } from "./SectionHeader"
 
 function DetailPanel({
   sc,

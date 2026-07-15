@@ -2,7 +2,7 @@ import { RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { type RefreshIntervalValue, useAppStore } from "../../store/app.store"
-import { Button } from "./button"
+import { Button } from "./Button"
 
 export function RefreshBar({
   lastRefreshedAt,

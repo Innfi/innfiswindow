@@ -3,10 +3,11 @@ import { useEffect, useState } from "react"
 import * as Collapsible from "@radix-ui/react-collapsible"
 
 import { cn } from "../../lib/utils"
+import { K8sContext } from "../../src/types/k8s"
+import type { ResourceType } from "../../src/types/resource"
 import { useAppStore } from "../../store/app.store"
-import { K8sContext } from "../types/k8s"
 
-const groups = [
+const groups: { label: string; items: ResourceType[] }[] = [
   { label: "Cluster", items: ["Namespaces", "Nodes", "Events"] },
   {
     label: "Workloads",
@@ -103,7 +104,7 @@ export function TreeView(): JSX.Element {
     setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
-  function selectLeaf(contextName: string, resourceType: string) {
+  function selectLeaf(contextName: string, resourceType: ResourceType) {
     setSelectedContext(contextName)
     setSelectedResourceType(resourceType)
   }
@@ -273,25 +274,26 @@ export function TreeView(): JSX.Element {
           </button>
         </Collapsible.Trigger>
         <Collapsible.Content>
-          {["Repositories", "Releases"].map((item) => {
-            const resourceType = `helm-${item.toLowerCase()}`
-            return (
-              <div
-                key={item}
-                className={cn(
-                  "cursor-pointer py-1.5 pl-8 pr-3 text-sm hover:bg-accent",
-                  selectedResourceType === resourceType &&
-                    "bg-accent font-medium",
-                )}
-                onClick={() => {
-                  setSelectedContext(null)
-                  setSelectedResourceType(resourceType)
-                }}
-              >
-                {item}
-              </div>
-            )
-          })}
+          {(
+            [
+              { label: "Repositories", type: "helm-repositories" },
+              { label: "Releases", type: "helm-releases" },
+            ] as const
+          ).map(({ label, type }) => (
+            <div
+              key={type}
+              className={cn(
+                "cursor-pointer py-1.5 pl-8 pr-3 text-sm hover:bg-accent",
+                selectedResourceType === type && "bg-accent font-medium",
+              )}
+              onClick={() => {
+                setSelectedContext(null)
+                setSelectedResourceType(type)
+              }}
+            >
+              {label}
+            </div>
+          ))}
         </Collapsible.Content>
       </Collapsible.Root>
     </div>

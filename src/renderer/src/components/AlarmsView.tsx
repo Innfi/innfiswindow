@@ -2,16 +2,16 @@ import { Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { Button } from "../../components/ui/button"
+import { Button } from "../../components/ui/Button"
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../../components/ui/dialog"
-import { Input } from "../../components/ui/input"
-import { Label } from "../../components/ui/label"
+} from "../../components/ui/Dialog"
+import { Input } from "../../components/ui/Input"
+import { Label } from "../../components/ui/Label"
 import {
   Table,
   TableBody,
@@ -19,7 +19,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../components/ui/table"
+} from "../../components/ui/Table"
 import { AlarmEntry, AlarmRule, useAppStore } from "../../store/app.store"
 import { K8sContext } from "../types/k8s"
 

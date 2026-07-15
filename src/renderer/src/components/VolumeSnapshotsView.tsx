@@ -2,14 +2,14 @@
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
+import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sVolumeSnapshot } from "../types/k8s"
-import { MetaEntry } from "./MetaEntry"
-import { SectionHeader } from "./SectionHeader"
 
 function ReadyBadge({ ready }: { ready: boolean | null }): JSX.Element {
   if (ready === null) {

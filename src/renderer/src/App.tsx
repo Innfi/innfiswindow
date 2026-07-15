@@ -2,57 +2,24 @@ import { Pencil, Settings } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { ThemePicker } from "../components/ThemePicker"
-import { Button } from "../components/ui/button"
-import { CustomStreamView } from "../components/ui/CustomStreamView"
+import { Button } from "../components/ui/Button"
 import { GlobalFooter } from "../components/ui/GlobalFooter"
 import { GlobalSearch } from "../components/ui/GlobalSearch"
-import { Input } from "../components/ui/input"
+import { Input } from "../components/ui/Input"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "../components/ui/popover"
-import { Toaster } from "../components/ui/sonner"
+} from "../components/ui/Popover"
+import { Toaster } from "../components/ui/Toaster"
+import { TreeView } from "../components/ui/TreeView"
 import { handleIpcError } from "../lib/ipc-error"
 import { applyTheme } from "../lib/themes"
 import { useAppStore } from "../store/app.store"
-import { AlarmActiveView, AlarmRulesView } from "./components/AlarmsView"
 import { AwsCredentialBanner } from "./components/AwsCredentialBanner"
 import { BottomDrawer } from "./components/BottomDrawer"
-import { ClusterRoleBindingsView } from "./components/ClusterRoleBindingsView"
-import { ClusterRolesView } from "./components/ClusterRolesView"
-import { ConfigMapsView } from "./components/ConfigMapsView"
-import { CronJobsView } from "./components/CronJobsView"
-import { DaemonSetsView } from "./components/DaemonSetsView"
-import { DeploymentsView } from "./components/DeploymentsView"
-import { EndpointsView } from "./components/EndpointsView"
-import { EventsView } from "./components/EventsView"
-import { HelmReleasesView, HelmRepositoriesView } from "./components/HelmView"
-import { HistoryView } from "./components/HistoryView"
-import { HPAsView } from "./components/HPAsView"
-import { IngressesView } from "./components/IngressesView"
-import { JobsView } from "./components/JobsView"
-import { LimitRangesView } from "./components/LimitRangesView"
-import { NamespacesView } from "./components/NamespacesView"
-import { NetworkPoliciesView } from "./components/NetworkPoliciesView"
-import { NodesView } from "./components/NodesView"
-import { OverviewView } from "./components/OverviewView"
-import { PDBsView } from "./components/PDBsView"
-import { PodsView } from "./components/PodsView"
 import { PrometheusSettings } from "./components/PrometheusSettings"
-import { PVCsView } from "./components/PVCsView"
-import { PVsView } from "./components/PVsView"
-import { ReplicaSetsView } from "./components/ReplicaSetsView"
-import { ResourceQuotasView } from "./components/ResourceQuotasView"
-import { RoleBindingsView } from "./components/RoleBindingsView"
-import { RolesView } from "./components/RolesView"
-import { SecretsView } from "./components/SecretsView"
-import { ServiceAccountsView } from "./components/ServiceAccountsView"
-import { ServicesView } from "./components/ServicesView"
-import { StatefulSetsView } from "./components/StatefulSetsView"
-import { StorageClassesView } from "./components/StorageClassesView"
-import { TreeView } from "./components/TreeView"
-import { VolumeSnapshotsView } from "./components/VolumeSnapshotsView"
+import { resourceViews } from "./resourceViews"
 
 function getColorScheme(): "light" | "dark" {
   return window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -136,6 +103,10 @@ function App(): JSX.Element {
       .then((nsList) => setNamespaces(nsList.map((n) => n.name)))
       .catch((err) => handleIpcError(err, "namespaces"))
   }, [currentContext, selectedContext])
+
+  const ResourceView = selectedResourceType
+    ? resourceViews[selectedResourceType]
+    : undefined
 
   return (
     <>
@@ -274,58 +245,7 @@ function App(): JSX.Element {
 
             {/* Main content */}
             <div className="flex-1 overflow-hidden">
-              {selectedResourceType === "Namespaces" && <NamespacesView />}
-              {selectedResourceType === "Nodes" && <NodesView />}
-              {selectedResourceType === "Deployments" && <DeploymentsView />}
-              {selectedResourceType === "ReplicaSets" && <ReplicaSetsView />}
-              {selectedResourceType === "StatefulSets" && <StatefulSetsView />}
-              {selectedResourceType === "DaemonSets" && <DaemonSetsView />}
-              {selectedResourceType === "ConfigMaps" && <ConfigMapsView />}
-              {selectedResourceType === "Secrets" && <SecretsView />}
-              {selectedResourceType === "Pods" && <PodsView />}
-              {selectedResourceType === "Services" && <ServicesView />}
-              {selectedResourceType === "Ingresses" && <IngressesView />}
-              {selectedResourceType === "NetworkPolicies" && (
-                <NetworkPoliciesView />
-              )}
-              {selectedResourceType === "Endpoints" && <EndpointsView />}
-              {selectedResourceType === "Events" && <EventsView />}
-              {selectedResourceType === "HPAs" && <HPAsView />}
-              {selectedResourceType === "ServiceAccounts" && (
-                <ServiceAccountsView />
-              )}
-              {selectedResourceType === "Roles" && <RolesView />}
-              {selectedResourceType === "ClusterRoles" && <ClusterRolesView />}
-              {selectedResourceType === "RoleBindings" && <RoleBindingsView />}
-              {selectedResourceType === "ClusterRoleBindings" && (
-                <ClusterRoleBindingsView />
-              )}
-              {selectedResourceType === "PersistentVolumes" && <PVsView />}
-              {selectedResourceType === "PersistentVolumeClaims" && (
-                <PVCsView />
-              )}
-              {selectedResourceType === "StorageClasses" && (
-                <StorageClassesView />
-              )}
-              {selectedResourceType === "VolumeSnapshots" && (
-                <VolumeSnapshotsView />
-              )}
-              {selectedResourceType === "Jobs" && <JobsView />}
-              {selectedResourceType === "CronJobs" && <CronJobsView />}
-              {selectedResourceType === "ResourceQuotas" && (
-                <ResourceQuotasView />
-              )}
-              {selectedResourceType === "LimitRanges" && <LimitRangesView />}
-              {selectedResourceType === "PodDisruptionBudgets" && <PDBsView />}
-              {selectedResourceType === "overview" && <OverviewView />}
-              {selectedResourceType === "custom-stream" && <CustomStreamView />}
-              {selectedResourceType === "history" && <HistoryView />}
-              {selectedResourceType === "helm-repositories" && (
-                <HelmRepositoriesView />
-              )}
-              {selectedResourceType === "helm-releases" && <HelmReleasesView />}
-              {selectedResourceType === "alarm-rules" && <AlarmRulesView />}
-              {selectedResourceType === "alarm-active" && <AlarmActiveView />}
+              {ResourceView && <ResourceView />}
             </div>
           </div>
 

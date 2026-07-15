@@ -2,7 +2,7 @@ import { Layers, RefreshCw, Square } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useAppStore } from "@store/app.store"
 
-import { Button } from "../../components/ui/button"
+import { Button } from "../../components/ui/Button"
 
 const MAX_LOG_LINES = 5000
 const SENTINEL_TEXT = `--- [older lines removed, showing last ${MAX_LOG_LINES}] ---`
@@ -45,7 +45,7 @@ export function PodLogPanel({
   const [searchTerm, setSearchTerm] = useState("")
   const [regexMode, setRegexMode] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const userScrolledRef = useRef(false)
+  const stickToBottomRef = useRef(true)
   // sessionId → containerName for active merge streams
   const mergeSessionMapRef = useRef<Map<string, string>>(new Map())
   const mergeSessionIdsRef = useRef<string[]>([])
@@ -55,7 +55,7 @@ export function PodLogPanel({
   function startSingleStream(containerName: string): void {
     setLines([])
     setStreaming(true)
-    userScrolledRef.current = false
+    stickToBottomRef.current = true
     window.api
       .startPodLog(namespace, podName, containerName, tabKey)
       .catch((err) => {
@@ -71,7 +71,7 @@ export function PodLogPanel({
 
   function startMergeStreams(): void {
     setMergedLines([])
-    userScrolledRef.current = false
+    stickToBottomRef.current = true
     const ts = Date.now()
     const sessionMap = new Map<string, string>()
     const sessionIds: string[] = []
@@ -183,18 +183,35 @@ export function PodLogPanel({
     }
   }, [])
 
+  function scrollToBottom(): void {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }
+
   // Auto-scroll to bottom
   useEffect(() => {
-    if (!userScrolledRef.current && !searchActive && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
+    if (stickToBottomRef.current && !searchActive) scrollToBottom()
   }, [lines, mergedLines, searchActive])
+
+  // Inactive drawer tabs stay mounted under `display: none`, where scrollTop
+  // writes are dropped. Re-pin once the panel has a real box again.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      if (el.clientHeight === 0) return
+      if (stickToBottomRef.current && !searchActive) scrollToBottom()
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [searchActive])
 
   function handleScroll(): void {
     const el = scrollRef.current
-    if (!el) return
-    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 10
-    userScrolledRef.current = !atBottom
+    if (!el || el.clientHeight === 0) return
+    stickToBottomRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight < 10
   }
 
   function handleContainerChange(name: string): void {

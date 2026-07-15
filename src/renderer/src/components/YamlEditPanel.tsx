@@ -3,7 +3,7 @@ import { dump as yamlDump, load as yamlLoad } from "js-yaml"
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { Button } from "../../components/ui/button"
+import { Button } from "../../components/ui/Button"
 import { DrawerTab, useAppStore } from "../../store/app.store"
 
 type YamlEditTab = Extract<DrawerTab, { type: "yaml-edit" }>
