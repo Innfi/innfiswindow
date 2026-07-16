@@ -210,6 +210,21 @@ const api = {
       ipcRenderer.invoke("k8s:ingress:delete", namespace, name),
     applyResource: (yaml: string) =>
       ipcRenderer.invoke("k8s:resource:apply", yaml),
+    replaceResource: (yaml: string) =>
+      ipcRenderer.invoke("k8s:resource:replace", yaml),
+    readResource: (
+      apiVersion: string,
+      kind: string,
+      name: string,
+      namespace?: string,
+    ) =>
+      ipcRenderer.invoke(
+        "k8s:resource:read",
+        apiVersion,
+        kind,
+        name,
+        namespace,
+      ),
     updateConfigMap: (namespace: string, name: string, yaml: string) =>
       ipcRenderer.invoke("k8s:configmap:update", namespace, name, yaml),
     deleteConfigMap: (namespace: string, name: string) =>

@@ -1,10 +1,17 @@
-import { diffLines } from "diff"
-import { dump as yamlDump, load as yamlLoad } from "js-yaml"
-import { useState } from "react"
+import { load as yamlLoad, YAMLException } from "js-yaml"
+import type { editor } from "monaco-editor"
+import { lazy, Suspense, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
+import { Monaco } from "@monaco-editor/react"
 
 import { Button } from "../../components/ui/Button"
+import { resourceGvk } from "../../lib/resource-gvk"
+import { dumpYaml } from "../../lib/yaml"
 import { DrawerTab, useAppStore } from "../../store/app.store"
+import { useColorScheme } from "../hooks/useColorScheme"
+
+// Monaco is ~6 MB; keep it out of the startup chunk.
+const YamlMonacoEditor = lazy(() => import("./YamlMonacoEditor"))
 
 type YamlEditTab = Extract<DrawerTab, { type: "yaml-edit" }>
 
@@ -18,13 +25,77 @@ export function YamlEditPanel({
   onClose,
 }: YamlEditPanelProps): JSX.Element {
   const [yaml, setYaml] = useState(tab.initialYaml)
+  const [baseline, setBaseline] = useState(tab.initialYaml)
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showDiff, setShowDiff] = useState(false)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const appendHistory = useAppStore((s) => s.appendHistory)
+  const colorScheme = useColorScheme()
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+  const monacoRef = useRef<Monaco | null>(null)
+  // Bumped on every editor mount so markers are reapplied to a fresh model.
+  const [editorMounted, setEditorMounted] = useState(0)
 
-  const hasChanges = yaml !== tab.initialYaml
+  useEffect(() => {
+    let cancelled = false
+    const { apiVersion, kind } = resourceGvk(tab.resourceKind)
+    setLoading(true)
+    window.api.k8s
+      .readResource(
+        apiVersion,
+        kind,
+        tab.resourceName,
+        tab.namespace || undefined,
+      )
+      .then((obj) => {
+        if (cancelled) return
+        const text = dumpYaml(obj)
+        setYaml(text)
+        setBaseline(text)
+        setError(null)
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return
+        const msg = e instanceof Error ? e.message : String(e)
+        setError(`Failed to load live manifest: ${msg}`)
+        useAppStore.getState().addGlobalError(msg, "YamlEdit: load")
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [tab.resourceKind, tab.resourceName, tab.namespace])
+
+  const hasChanges = yaml !== baseline
+
+  // Mark YAML syntax errors inline instead of only on save.
+  useEffect(() => {
+    const monaco = monacoRef.current
+    const model = editorRef.current?.getModel()
+    if (!monaco || !model) return
+    try {
+      yamlLoad(yaml)
+      monaco.editor.setModelMarkers(model, "yaml", [])
+    } catch (e) {
+      const mark = e instanceof YAMLException ? e.mark : undefined
+      const line = (mark?.line ?? 0) + 1
+      const column = (mark?.column ?? 0) + 1
+      monaco.editor.setModelMarkers(model, "yaml", [
+        {
+          severity: monaco.MarkerSeverity.Error,
+          message: e instanceof Error ? e.message : String(e),
+          startLineNumber: line,
+          startColumn: column,
+          endLineNumber: line,
+          endColumn: column + 1,
+        },
+      ])
+    }
+  }, [yaml, editorMounted])
 
   async function handleSave(): Promise<void> {
     let parsed: unknown
@@ -34,56 +105,11 @@ export function YamlEditPanel({
       setError(`YAML syntax error: ${String(e)}`)
       return
     }
-    const yamlStr = yamlDump(parsed)
+    const yamlStr = dumpYaml(parsed)
     setSaving(true)
     setError(null)
     try {
-      // FIXME: too much if/else
-      if (tab.resourceKind === "Deployment") {
-        await window.api.k8s.updateDeployment(
-          tab.namespace,
-          tab.resourceName,
-          yamlStr,
-        )
-      } else if (tab.resourceKind === "Service") {
-        await window.api.k8s.updateService(
-          tab.namespace,
-          tab.resourceName,
-          yamlStr,
-        )
-      } else if (tab.resourceKind === "Ingress") {
-        await window.api.k8s.updateIngress(
-          tab.namespace,
-          tab.resourceName,
-          yamlStr,
-        )
-      } else if (tab.resourceKind === "DaemonSet") {
-        await window.api.k8s.updateDaemonSet(
-          tab.namespace,
-          tab.resourceName,
-          yamlStr,
-        )
-      } else if (tab.resourceKind === "StatefulSet") {
-        await window.api.k8s.updateStatefulSet(
-          tab.namespace,
-          tab.resourceName,
-          yamlStr,
-        )
-      } else if (tab.resourceKind === "ConfigMap") {
-        await window.api.k8s.updateConfigMap(
-          tab.namespace,
-          tab.resourceName,
-          yamlStr,
-        )
-      } else if (tab.resourceKind === "Secret") {
-        await window.api.k8s.updateSecret(
-          tab.namespace,
-          tab.resourceName,
-          yamlStr,
-        )
-      } else {
-        await window.api.k8s.applyResource(yamlStr)
-      }
+      await window.api.k8s.replaceResource(yamlStr)
       appendHistory({
         action: "update",
         resourceKind: tab.resourceKind,
@@ -115,44 +141,35 @@ export function YamlEditPanel({
     }
   }
 
-  const diffParts = showDiff ? diffLines(tab.initialYaml, yaml) : []
+  const theme = colorScheme === "dark" ? "vs-dark" : "vs"
 
   return (
     <div className="flex flex-col w-full h-full overflow-hidden">
-      {showDiff ? (
+      {showDiff && !hasChanges ? (
         <div className="flex-1 overflow-auto p-3 font-mono text-sm bg-muted">
-          {!hasChanges ? (
-            <p className="text-muted-foreground italic">No changes</p>
-          ) : (
-            diffParts.map((part, i) => {
-              const lines = part.value.replace(/\n$/, "").split("\n")
-              return lines.map((line, j) => (
-                <div
-                  key={`${i}-${j}`}
-                  className={
-                    part.added
-                      ? "bg-green-500/20 text-green-700 dark:text-green-300"
-                      : part.removed
-                        ? "bg-red-500/20 text-red-700 dark:text-red-300"
-                        : "text-foreground"
-                  }
-                >
-                  <span className="select-none mr-1 text-muted-foreground">
-                    {part.added ? "+" : part.removed ? "-" : " "}
-                  </span>
-                  {line}
-                </div>
-              ))
-            })
-          )}
+          <p className="text-muted-foreground italic">No changes</p>
         </div>
       ) : (
-        <textarea
-          value={yaml}
-          onChange={(e) => setYaml(e.target.value)}
-          className="flex-1 resize-none p-3 font-mono text-sm bg-muted text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          spellCheck={false}
-        />
+        <Suspense
+          fallback={
+            <div className="flex-1 grid place-items-center text-xs text-muted-foreground">
+              Loading editor…
+            </div>
+          }
+        >
+          <YamlMonacoEditor
+            value={loading ? "" : yaml}
+            original={showDiff ? baseline : undefined}
+            readOnly={loading}
+            theme={theme}
+            onChange={setYaml}
+            onMount={(editorInstance, monaco) => {
+              editorRef.current = editorInstance
+              monacoRef.current = monaco
+              setEditorMounted((v) => v + 1)
+            }}
+          />
+        </Suspense>
       )}
       {error && (
         <p className="text-xs text-destructive font-mono whitespace-pre-wrap px-3 py-1.5 border-t border-border bg-destructive/5">
@@ -165,7 +182,7 @@ export function YamlEditPanel({
           variant="default"
           className="h-6 gap-1 text-xs px-2"
           onClick={handleSave}
-          disabled={saving || !hasChanges}
+          disabled={saving || loading || !hasChanges}
         >
           {saving ? "Saving…" : "Save"}
         </Button>
@@ -174,7 +191,7 @@ export function YamlEditPanel({
           variant={showDiff ? "secondary" : "outline"}
           className="h-6 gap-1 text-xs px-2"
           onClick={() => setShowDiff((v) => !v)}
-          disabled={saving}
+          disabled={saving || loading}
         >
           {showDiff ? "Hide diff" : "Show diff"}
         </Button>

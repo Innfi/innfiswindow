@@ -791,6 +791,15 @@ export interface K8sAPI {
     name: string,
   ) => Promise<{ success: boolean; name: string; namespace: string }>
   applyResource: (yaml: string) => Promise<{ name: string; namespace: string }>
+  replaceResource: (
+    yaml: string,
+  ) => Promise<{ name: string; namespace: string }>
+  readResource: (
+    apiVersion: string,
+    kind: string,
+    name: string,
+    namespace?: string,
+  ) => Promise<Record<string, unknown>>
   updateConfigMap: (
     namespace: string,
     name: string,

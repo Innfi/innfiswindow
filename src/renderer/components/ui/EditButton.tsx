@@ -1,6 +1,6 @@
-import { dump as yamlDump } from "js-yaml"
 import { Pencil } from "lucide-react"
 
+import { dumpYaml } from "../../lib/yaml"
 import { DrawerTabInput, useAppStore } from "../../store/app.store"
 import { Button } from "./Button"
 
@@ -37,7 +37,7 @@ export function EditButton({
       resourceKind,
       resourceName,
       namespace: ns,
-      initialYaml: yamlDump(buildYaml()),
+      initialYaml: dumpYaml(buildYaml()),
     })
   }
 

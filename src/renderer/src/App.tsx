@@ -19,22 +19,15 @@ import { useAppStore } from "../store/app.store"
 import { AwsCredentialBanner } from "./components/AwsCredentialBanner"
 import { BottomDrawer } from "./components/BottomDrawer"
 import { PrometheusSettings } from "./components/PrometheusSettings"
+import { useColorScheme } from "./hooks/useColorScheme"
 import { resourceViews } from "./resourceViews"
-
-function getColorScheme(): "light" | "dark" {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light"
-}
 
 function App(): JSX.Element {
   const [currentContext, setCurrentContext] = useState<string>("")
   const [clusterType, setClusterType] = useState<"EKS" | "AKS" | "Local">(
     "Local",
   )
-  const [colorScheme, setColorScheme] = useState<"light" | "dark">(
-    getColorScheme,
-  )
+  const colorScheme = useColorScheme()
   const [namespaces, setNamespaces] = useState<string[]>([])
   const selectedResourceType = useAppStore((s) => s.selectedResourceType)
   const themeId = useAppStore((s) => s.themeId)
@@ -72,16 +65,6 @@ function App(): JSX.Element {
   useEffect(() => {
     applyTheme(themeId, colorScheme)
   }, [themeId, colorScheme])
-
-  // Listen for OS color scheme changes
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-color-scheme: dark)")
-    const handler = (e: MediaQueryListEvent): void => {
-      setColorScheme(e.matches ? "dark" : "light")
-    }
-    mq.addEventListener("change", handler)
-    return () => mq.removeEventListener("change", handler)
-  }, [])
 
   useEffect(() => {
     window.api.k8s
