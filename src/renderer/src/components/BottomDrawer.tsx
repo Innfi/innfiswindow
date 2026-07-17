@@ -7,6 +7,7 @@ import { Button } from "../../components/ui/Button"
 import { CustomStreamPanel } from "../../components/ui/CustomStreamPanel"
 import type { DrawerTab } from "../../store/app.store"
 import { useAppStore } from "../../store/app.store"
+import { useRecordHistory } from "../hooks/useRecordHistory"
 import { PodLogPanel } from "./PodLogPanel"
 import { PortForwardPanel } from "./PortForwardPanel"
 import { ShellPanel } from "./ShellPanel"
@@ -28,8 +29,7 @@ function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
   const [yaml, setYaml] = useState(YAML_SKELETON)
   const [error, setError] = useState<string | null>(null)
   const [applying, setApplying] = useState(false)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const appendHistory = useAppStore((s) => s.appendHistory)
+  const recordHistory = useRecordHistory()
 
   async function handleApply(): Promise<void> {
     let parsed: unknown
@@ -43,36 +43,23 @@ function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
       kind?: string
       metadata?: { name?: string; namespace?: string }
     } | null
-    const resourceKind = meta?.kind ?? "Resource"
-    const resourceName = meta?.metadata?.name ?? ""
-    const namespace = meta?.metadata?.namespace ?? null
+    const target = {
+      action: "apply",
+      resourceKind: meta?.kind ?? "Resource",
+      resourceName: meta?.metadata?.name ?? "",
+      namespace: meta?.metadata?.namespace ?? null,
+      yamlSnapshot: yaml,
+    } as const
     setApplying(true)
     setError(null)
     try {
       await window.api.k8s.applyResource(yaml)
-      appendHistory({
-        action: "apply",
-        resourceKind,
-        resourceName,
-        namespace,
-        context: selectedContext ?? "",
-        success: true,
-        yamlSnapshot: yaml,
-      })
+      recordHistory(target, { success: true })
       toast.success("Resource applied successfully")
       onClose()
     } catch (e) {
       const msg = String(e)
-      appendHistory({
-        action: "apply",
-        resourceKind,
-        resourceName,
-        namespace,
-        context: selectedContext ?? "",
-        success: false,
-        error: msg,
-        yamlSnapshot: yaml,
-      })
+      recordHistory(target, { success: false, error: msg })
       setError(msg)
       toast.error(`Apply failed: ${msg}`)
       useAppStore.getState().addGlobalError(msg, "Apply")

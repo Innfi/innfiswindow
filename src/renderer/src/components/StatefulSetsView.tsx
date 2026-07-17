@@ -22,6 +22,7 @@ import {
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { useAppStore } from "../../store/app.store"
+import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sStatefulSet } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -37,8 +38,7 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const appendHistory = useAppStore((s) => s.appendHistory)
+  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -69,31 +69,22 @@ function DetailPanel({
   }
 
   async function handleDelete(): Promise<void> {
+    const target = {
+      action: "delete",
+      resourceKind: "StatefulSet",
+      resourceName: ss.name,
+      namespace: ss.namespace,
+    } as const
     setDeleting(true)
     try {
       await window.api.k8s.deleteStatefulSet(ss.namespace, ss.name)
-      appendHistory({
-        action: "delete",
-        resourceKind: "StatefulSet",
-        resourceName: ss.name,
-        namespace: ss.namespace,
-        context: selectedContext ?? "",
-        success: true,
-      })
+      recordHistory(target, { success: true })
       toast.success(`StatefulSet ${ss.name} deleted`)
       setDeleteOpenNotify(false)
       onDeleted()
       onClose()
     } catch (e) {
-      appendHistory({
-        action: "delete",
-        resourceKind: "StatefulSet",
-        resourceName: ss.name,
-        namespace: ss.namespace,
-        context: selectedContext ?? "",
-        success: false,
-        error: String(e),
-      })
+      recordHistory(target, { success: false, error: String(e) })
       toast.error(String(e))
       useAppStore.getState().addGlobalError(String(e), "StatefulSet: delete")
       setDeleteOpenNotify(false)

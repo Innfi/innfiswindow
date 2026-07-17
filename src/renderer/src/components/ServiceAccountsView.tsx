@@ -23,6 +23,7 @@ import {
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { useAppStore } from "../../store/app.store"
+import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sServiceAccount } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -38,8 +39,7 @@ function DetailPanel({
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const appendHistory = useAppStore((s) => s.appendHistory)
+  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
@@ -64,32 +64,23 @@ function DetailPanel({
   }
 
   async function handleDelete(): Promise<void> {
+    const target = {
+      action: "delete",
+      resourceKind: "ServiceAccount",
+      resourceName: sa.name,
+      namespace: sa.namespace,
+    } as const
     setDeleting(true)
     setDeleteError(null)
     try {
       await window.api.k8s.deleteServiceAccount(sa.namespace, sa.name)
-      appendHistory({
-        action: "delete",
-        resourceKind: "ServiceAccount",
-        resourceName: sa.name,
-        namespace: sa.namespace,
-        context: selectedContext ?? "",
-        success: true,
-      })
+      recordHistory(target, { success: true })
       toast.success(`ServiceAccount ${sa.name} deleted`)
       setDeleteOpenNotify(false)
       setSelectedItem(null)
       onDeleteSuccess()
     } catch (e) {
-      appendHistory({
-        action: "delete",
-        resourceKind: "ServiceAccount",
-        resourceName: sa.name,
-        namespace: sa.namespace,
-        context: selectedContext ?? "",
-        success: false,
-        error: String(e),
-      })
+      recordHistory(target, { success: false, error: String(e) })
       setDeleteError(String(e))
     } finally {
       setDeleting(false)

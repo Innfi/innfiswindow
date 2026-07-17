@@ -9,6 +9,7 @@ import { resourceGvk } from "../../lib/resource-gvk"
 import { dumpYaml } from "../../lib/yaml"
 import { DrawerTab, useAppStore } from "../../store/app.store"
 import { useColorScheme } from "../hooks/useColorScheme"
+import { useRecordHistory } from "../hooks/useRecordHistory"
 
 // Monaco is ~6 MB; keep it out of the startup chunk.
 const YamlMonacoEditor = lazy(() => import("./YamlMonacoEditor"))
@@ -30,8 +31,7 @@ export function YamlEditPanel({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showDiff, setShowDiff] = useState(false)
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const appendHistory = useAppStore((s) => s.appendHistory)
+  const recordHistory = useRecordHistory()
   const colorScheme = useColorScheme()
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const monacoRef = useRef<Monaco | null>(null)
@@ -106,33 +106,23 @@ export function YamlEditPanel({
       return
     }
     const yamlStr = dumpYaml(parsed)
+    const target = {
+      action: "update",
+      resourceKind: tab.resourceKind,
+      resourceName: tab.resourceName,
+      namespace: tab.namespace,
+      yamlSnapshot: yamlStr,
+    } as const
     setSaving(true)
     setError(null)
     try {
       await window.api.k8s.replaceResource(yamlStr)
-      appendHistory({
-        action: "update",
-        resourceKind: tab.resourceKind,
-        resourceName: tab.resourceName,
-        namespace: tab.namespace,
-        context: selectedContext ?? "",
-        success: true,
-        yamlSnapshot: yamlStr,
-      })
+      recordHistory(target, { success: true })
       toast.success(`${tab.resourceKind}/${tab.resourceName} saved`)
       onClose()
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
-      appendHistory({
-        action: "update",
-        resourceKind: tab.resourceKind,
-        resourceName: tab.resourceName,
-        namespace: tab.namespace,
-        context: selectedContext ?? "",
-        success: false,
-        error: msg,
-        yamlSnapshot: yamlStr,
-      })
+      recordHistory(target, { success: false, error: msg })
       toast.error(`Failed to save: ${msg}`)
       useAppStore.getState().addGlobalError(msg, "YamlEdit: save")
       setError(msg)

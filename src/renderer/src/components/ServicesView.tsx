@@ -24,6 +24,7 @@ import {
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sEndpoint, K8sService, K8sServicePort } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -46,7 +47,7 @@ function DetailPanel({
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
-  const appendHistory = useAppStore((s) => s.appendHistory)
+  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -85,31 +86,22 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   async function handleDelete(): Promise<void> {
+    const target = {
+      action: "delete",
+      resourceKind: "Service",
+      resourceName: svc.name,
+      namespace: svc.namespace,
+    } as const
     setDeleting(true)
     try {
       await window.api.k8s.deleteService(svc.namespace, svc.name)
-      appendHistory({
-        action: "delete",
-        resourceKind: "Service",
-        resourceName: svc.name,
-        namespace: svc.namespace,
-        context: selectedContext ?? "",
-        success: true,
-      })
+      recordHistory(target, { success: true })
       toast.success(`Service ${svc.name} deleted`)
       setDeleteOpenNotify(false)
       onDeleted()
       onClose()
     } catch (e) {
-      appendHistory({
-        action: "delete",
-        resourceKind: "Service",
-        resourceName: svc.name,
-        namespace: svc.namespace,
-        context: selectedContext ?? "",
-        success: false,
-        error: String(e),
-      })
+      recordHistory(target, { success: false, error: String(e) })
       toast.error(String(e))
       useAppStore.getState().addGlobalError(String(e), "Service: delete")
       setDeleteOpenNotify(false)
