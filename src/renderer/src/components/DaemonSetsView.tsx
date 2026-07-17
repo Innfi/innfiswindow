@@ -22,6 +22,7 @@ import {
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { useAppStore } from "../../store/app.store"
+import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sDaemonSet } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -37,8 +38,7 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const appendHistory = useAppStore((s) => s.appendHistory)
+  const recordHistory = useRecordHistory()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [search, setSearch] = useState("")
@@ -72,31 +72,22 @@ function DetailPanel({
   }
 
   async function handleDelete(): Promise<void> {
+    const target = {
+      action: "delete",
+      resourceKind: "DaemonSet",
+      resourceName: ds.name,
+      namespace: ds.namespace,
+    } as const
     setDeleting(true)
     try {
       await window.api.k8s.deleteDaemonSet(ds.namespace, ds.name)
-      appendHistory({
-        action: "delete",
-        resourceKind: "DaemonSet",
-        resourceName: ds.name,
-        namespace: ds.namespace,
-        context: selectedContext ?? "",
-        success: true,
-      })
+      recordHistory(target, { success: true })
       toast.success(`DaemonSet ${ds.name} deleted`)
       setDeleteOpenNotify(false)
       onDeleted()
       onClose()
     } catch (e) {
-      appendHistory({
-        action: "delete",
-        resourceKind: "DaemonSet",
-        resourceName: ds.name,
-        namespace: ds.namespace,
-        context: selectedContext ?? "",
-        success: false,
-        error: String(e),
-      })
+      recordHistory(target, { success: false, error: String(e) })
       toast.error(String(e))
       useAppStore.getState().addGlobalError(String(e), "DaemonSet: delete")
       setDeleteOpenNotify(false)

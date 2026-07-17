@@ -24,6 +24,7 @@ import {
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sPod } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { PodMetricsSection } from "./PodMetricsSection"
@@ -79,8 +80,7 @@ function DetailPanel({
   onDeleteSuccess: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const appendHistory = useAppStore((s) => s.appendHistory)
+  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   const [selectedContainer, setSelectedContainer] = useState(
@@ -109,32 +109,23 @@ function DetailPanel({
   }
 
   async function handleDelete(): Promise<void> {
+    const target = {
+      action: "delete",
+      resourceKind: "Pod",
+      resourceName: pod.name,
+      namespace: pod.namespace,
+    } as const
     setDeleting(true)
     setDeleteError(null)
     try {
       await window.api.k8s.deletePod(pod.namespace, pod.name)
-      appendHistory({
-        action: "delete",
-        resourceKind: "Pod",
-        resourceName: pod.name,
-        namespace: pod.namespace,
-        context: selectedContext ?? "",
-        success: true,
-      })
+      recordHistory(target, { success: true })
       toast.success(`Pod ${pod.name} deleted`)
       setDeleteOpenNotify(false)
       onDeleteSuccess()
       onClose()
     } catch (e) {
-      appendHistory({
-        action: "delete",
-        resourceKind: "Pod",
-        resourceName: pod.name,
-        namespace: pod.namespace,
-        context: selectedContext ?? "",
-        success: false,
-        error: String(e),
-      })
+      recordHistory(target, { success: false, error: String(e) })
       setDeleteError(String(e))
     } finally {
       setDeleting(false)

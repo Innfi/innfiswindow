@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "../../components/ui/Table"
 import { useAppStore } from "../../store/app.store"
+import { useRecordHistory } from "../hooks/useRecordHistory"
 
 interface HelmRepo {
   name: string
@@ -53,8 +54,7 @@ export function HelmRepositoriesView(): JSX.Element {
   const [repoName, setRepoName] = useState("")
   const [repoUrl, setRepoUrl] = useState("")
   const [saving, setSaving] = useState(false)
-  const appendHistory = useAppStore((s) => s.appendHistory)
-  const selectedContext = useAppStore((s) => s.selectedContext)
+  const recordHistory = useRecordHistory()
 
   async function load(): Promise<void> {
     setLoading(true)
@@ -81,15 +81,15 @@ export function HelmRepositoriesView(): JSX.Element {
         repoName.trim(),
         repoUrl.trim(),
       )
-      appendHistory({
-        action: "create",
-        resourceKind: "HelmRepo",
-        resourceName: repoName.trim(),
-        namespace: null,
-        context: selectedContext ?? "",
-        success: result.success,
-        error: result.error,
-      })
+      recordHistory(
+        {
+          action: "create",
+          resourceKind: "HelmRepo",
+          resourceName: repoName.trim(),
+          namespace: null,
+        },
+        { success: result.success, error: result.error },
+      )
       if (result.success) {
         toast.success(`Repo "${repoName}" added`)
         setAddOpen(false)
@@ -231,8 +231,7 @@ export function HelmReleasesView(): JSX.Element {
   const [releases, setReleases] = useState<HelmRelease[]>([])
   const [namespaces, setNamespaces] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
-  const appendHistory = useAppStore((s) => s.appendHistory)
-  const selectedContext = useAppStore((s) => s.selectedContext)
+  const recordHistory = useRecordHistory()
 
   // Install dialog
   const [installOpen, setInstallOpen] = useState(false)
@@ -291,16 +290,16 @@ export function HelmReleasesView(): JSX.Element {
         namespace: installNs.trim(),
         values: installValues.trim() || undefined,
       })
-      appendHistory({
-        action: "create",
-        resourceKind: "HelmRelease",
-        resourceName: installName.trim(),
-        namespace: installNs.trim(),
-        context: selectedContext ?? "",
-        success: result.success,
-        error: result.error,
-        yamlSnapshot: installValues.trim() || undefined,
-      })
+      recordHistory(
+        {
+          action: "create",
+          resourceKind: "HelmRelease",
+          resourceName: installName.trim(),
+          namespace: installNs.trim(),
+          yamlSnapshot: installValues.trim() || undefined,
+        },
+        { success: result.success, error: result.error },
+      )
       if (result.success) {
         toast.success(`Release "${installName}" installed`)
         setInstallOpen(false)
@@ -333,16 +332,16 @@ export function HelmReleasesView(): JSX.Element {
         namespace: upgradeTarget.namespace,
         values: upgradeValues.trim() || undefined,
       })
-      appendHistory({
-        action: "update",
-        resourceKind: "HelmRelease",
-        resourceName: upgradeTarget.name,
-        namespace: upgradeTarget.namespace,
-        context: selectedContext ?? "",
-        success: result.success,
-        error: result.error,
-        yamlSnapshot: upgradeValues.trim() || undefined,
-      })
+      recordHistory(
+        {
+          action: "update",
+          resourceKind: "HelmRelease",
+          resourceName: upgradeTarget.name,
+          namespace: upgradeTarget.namespace,
+          yamlSnapshot: upgradeValues.trim() || undefined,
+        },
+        { success: result.success, error: result.error },
+      )
       if (result.success) {
         toast.success(`Release "${upgradeTarget.name}" upgraded`)
         setUpgradeTarget(null)
@@ -369,15 +368,15 @@ export function HelmReleasesView(): JSX.Element {
         releaseName: uninstallTarget.name,
         namespace: uninstallTarget.namespace,
       })
-      appendHistory({
-        action: "delete",
-        resourceKind: "HelmRelease",
-        resourceName: uninstallTarget.name,
-        namespace: uninstallTarget.namespace,
-        context: selectedContext ?? "",
-        success: result.success,
-        error: result.error,
-      })
+      recordHistory(
+        {
+          action: "delete",
+          resourceKind: "HelmRelease",
+          resourceName: uninstallTarget.name,
+          namespace: uninstallTarget.namespace,
+        },
+        { success: result.success, error: result.error },
+      )
       if (result.success) {
         toast.success(`Release "${uninstallTarget.name}" uninstalled`)
         setUninstallTarget(null)

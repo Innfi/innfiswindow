@@ -23,6 +23,7 @@ import {
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sDeployment } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -46,7 +47,7 @@ function DetailPanel({
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
-  const appendHistory = useAppStore((s) => s.appendHistory)
+  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -134,34 +135,25 @@ function DetailPanel({
   }
 
   async function handleDelete(): Promise<void> {
+    const target = {
+      action: "delete",
+      resourceKind: "Deployment",
+      resourceName: deployment.name,
+      namespace: deployment.namespace,
+    } as const
     setDeleting(true)
     try {
       await window.api.k8s.deleteDeployment(
         deployment.namespace,
         deployment.name,
       )
-      appendHistory({
-        action: "delete",
-        resourceKind: "Deployment",
-        resourceName: deployment.name,
-        namespace: deployment.namespace,
-        context: selectedContext ?? "",
-        success: true,
-      })
+      recordHistory(target, { success: true })
       toast.success(`Deployment ${deployment.name} deleted`)
       setDeleteOpenNotify(false)
       onDeleted()
       onClose()
     } catch (e) {
-      appendHistory({
-        action: "delete",
-        resourceKind: "Deployment",
-        resourceName: deployment.name,
-        namespace: deployment.namespace,
-        context: selectedContext ?? "",
-        success: false,
-        error: String(e),
-      })
+      recordHistory(target, { success: false, error: String(e) })
       toast.error(String(e))
       useAppStore.getState().addGlobalError(String(e), "Deployment: delete")
       setDeleteOpenNotify(false)
