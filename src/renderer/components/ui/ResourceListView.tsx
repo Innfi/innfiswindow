@@ -1,4 +1,5 @@
-import { ReactNode, useEffect, useState } from "react"
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useK8sResource } from "../../src/hooks/useK8sResource"
@@ -61,6 +62,8 @@ interface ResourceListViewProps<T extends Namespaced> {
 const sameItem = (a: Namespaced | null, b: Namespaced): boolean =>
   a?.name === b.name && a?.namespace === b.namespace
 
+const ESTIMATED_ROW_HEIGHT = 37
+
 export function ResourceListView<T extends Namespaced>({
   title,
   emptyMessage,
@@ -84,18 +87,27 @@ export function ResourceListView<T extends Namespaced>({
     { paused: deleteDialogOpen },
   )
 
-  // Re-sync the selected item with fresh data after a reload.
+  // Re-sync the selected item with fresh data after a reload. Every poll hands
+  // back newly-deserialized objects, so compare by content: an unconditional
+  // write re-renders the detail panel (events, metrics, charts) every interval
+  // even when nothing about the resource changed.
   useEffect(() => {
     if (!selectedItem || data.length === 0) return
     if (!detailGuard(selectedItem)) return
     const fresh = data.find((d) => sameItem(selectedItem, d))
-    if (fresh) setSelectedItem(fresh as object)
+    if (!fresh) return
+    if (JSON.stringify(fresh) === JSON.stringify(selectedItem)) return
+    setSelectedItem(fresh as object)
   }, [data])
 
-  const visible = filterResources(
-    data,
-    nameFilter,
-    namespaced ? selectedNamespace : undefined,
+  const visible = useMemo(
+    () =>
+      filterResources(
+        data,
+        nameFilter,
+        namespaced ? selectedNamespace : undefined,
+      ),
+    [data, nameFilter, namespaced, selectedNamespace],
   )
   const keyOf =
     rowKey ??
@@ -104,10 +116,34 @@ export function ResourceListView<T extends Namespaced>({
 
   const showDetail = selectedItem !== null && detailGuard(selectedItem)
 
+  // Only the rows in view are mounted; a large cluster otherwise puts thousands
+  // of cells in the DOM. Spacer rows above/below preserve auto table layout,
+  // which absolute-positioned rows would collapse.
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const tbodyRef = useRef<HTMLTableSectionElement>(null)
+  const rowVirtualizer = useVirtualizer({
+    count: visible.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: 12,
+    scrollMargin: tbodyRef.current?.offsetTop ?? 0,
+  })
+  const virtualRows = rowVirtualizer.getVirtualItems()
+  const paddingTop =
+    virtualRows.length > 0
+      ? virtualRows[0].start - rowVirtualizer.options.scrollMargin
+      : 0
+  const paddingBottom =
+    virtualRows.length > 0
+      ? rowVirtualizer.getTotalSize() -
+        (virtualRows[virtualRows.length - 1].end -
+          rowVirtualizer.options.scrollMargin)
+      : 0
+
   return (
     <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-1 flex-col overflow-hidden p-4">
+        <div className="flex shrink-0 items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">{title}</h1>
           <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
         </div>
@@ -117,7 +153,7 @@ export function ResourceListView<T extends Namespaced>({
           <EmptyState message={emptyMessage ?? `No ${title} found`} />
         )}
         {!loading && !error && visible.length > 0 && (
-          <div className="overflow-x-auto">
+          <div ref={scrollRef} className="flex-1 overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -131,35 +167,56 @@ export function ResourceListView<T extends Namespaced>({
                   ))}
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {visible.map((item) => (
-                  <TableRow
-                    key={keyOf(item)}
-                    className={cn(
-                      "cursor-pointer",
-                      sameItem(selectedItem, item) && "bg-muted",
-                    )}
-                    onClick={() =>
-                      setSelectedItem(
-                        sameItem(selectedItem, item) ? null : item,
-                      )
-                    }
-                  >
-                    {columns.map((col) => (
-                      <TableCell
-                        key={col.head}
-                        className={cn(
-                          "whitespace-nowrap",
-                          typeof col.className === "function"
-                            ? col.className(item)
-                            : col.className,
-                        )}
-                      >
-                        {col.cell(item)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
+              <TableBody ref={tbodyRef}>
+                {paddingTop > 0 && (
+                  <tr aria-hidden>
+                    <td
+                      colSpan={columns.length}
+                      style={{ height: paddingTop }}
+                    />
+                  </tr>
+                )}
+                {virtualRows.map((virtualRow) => {
+                  const item = visible[virtualRow.index]
+                  return (
+                    <TableRow
+                      key={keyOf(item)}
+                      data-index={virtualRow.index}
+                      ref={rowVirtualizer.measureElement}
+                      className={cn(
+                        "cursor-pointer",
+                        sameItem(selectedItem, item) && "bg-muted",
+                      )}
+                      onClick={() =>
+                        setSelectedItem(
+                          sameItem(selectedItem, item) ? null : item,
+                        )
+                      }
+                    >
+                      {columns.map((col) => (
+                        <TableCell
+                          key={col.head}
+                          className={cn(
+                            "whitespace-nowrap",
+                            typeof col.className === "function"
+                              ? col.className(item)
+                              : col.className,
+                          )}
+                        >
+                          {col.cell(item)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )
+                })}
+                {paddingBottom > 0 && (
+                  <tr aria-hidden>
+                    <td
+                      colSpan={columns.length}
+                      style={{ height: paddingBottom }}
+                    />
+                  </tr>
+                )}
               </TableBody>
             </Table>
           </div>

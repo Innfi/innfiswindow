@@ -1,11 +1,13 @@
 import { Layers, RefreshCw, Square } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAppStore } from "@store/app.store"
+import { useVirtualizer } from "@tanstack/react-virtual"
 
 import { Button } from "../../components/ui/Button"
 
 const MAX_LOG_LINES = 5000
 const SENTINEL_TEXT = `--- [older lines removed, showing last ${MAX_LOG_LINES}] ---`
+const ESTIMATED_LINE_HEIGHT = 18
 
 interface K8sPodContainer {
   name: string
@@ -16,6 +18,18 @@ interface K8sPodContainer {
 interface MergedLine {
   containerName: string
   line: string
+}
+
+/** Appends a batch, trimming to MAX_LOG_LINES and re-stamping the sentinel. */
+function appendCapped<T>(prev: T[], incoming: T[], sentinel: T): T[] {
+  if (incoming.length === 0) return prev
+  const next = prev.concat(incoming)
+  if (next.length > MAX_LOG_LINES) {
+    const trimmed = next.slice(-MAX_LOG_LINES)
+    trimmed[0] = sentinel
+    return trimmed
+  }
+  return next
 }
 
 interface PodLogPanelProps {
@@ -52,7 +66,44 @@ export function PodLogPanel({
   const prevContainerRef = useRef(containers[0]?.name ?? "")
   const searchActive = searchTerm.length > 0
 
+  // Log lines arrive one IPC event at a time. Buffer them and flush once per
+  // frame so a chatty pod costs ~60 renders/sec instead of one render per line.
+  const pendingRef = useRef<{ single: string[]; merged: MergedLine[] }>({
+    single: [],
+    merged: [],
+  })
+  const flushHandleRef = useRef<number | null>(null)
+
+  const cancelFlush = useCallback((): void => {
+    if (flushHandleRef.current !== null) {
+      cancelAnimationFrame(flushHandleRef.current)
+      flushHandleRef.current = null
+    }
+    pendingRef.current = { single: [], merged: [] }
+  }, [])
+
+  const scheduleFlush = useCallback((): void => {
+    if (flushHandleRef.current !== null) return
+    flushHandleRef.current = requestAnimationFrame(() => {
+      flushHandleRef.current = null
+      const { single, merged } = pendingRef.current
+      pendingRef.current = { single: [], merged: [] }
+      if (single.length > 0) {
+        setLines((prev) => appendCapped(prev, single, SENTINEL_TEXT))
+      }
+      if (merged.length > 0) {
+        setMergedLines((prev) =>
+          appendCapped(prev, merged, {
+            containerName: "",
+            line: SENTINEL_TEXT,
+          }),
+        )
+      }
+    })
+  }, [])
+
   function startSingleStream(containerName: string): void {
+    cancelFlush()
     setLines([])
     setStreaming(true)
     stickToBottomRef.current = true
@@ -70,6 +121,7 @@ export function PodLogPanel({
   }
 
   function startMergeStreams(): void {
+    cancelFlush()
     setMergedLines([])
     stickToBottomRef.current = true
     const ts = Date.now()
@@ -105,6 +157,7 @@ export function PodLogPanel({
     } else {
       stopMergeStreams()
       setMergeMode(false)
+      cancelFlush()
       setMergedLines([])
       setSelectedContainer(prevContainerRef.current)
     }
@@ -114,32 +167,21 @@ export function PodLogPanel({
   useEffect(() => {
     const unsub = window.api.onPodLogData((data) => {
       if (data.tabKey === tabKey) {
-        setLines((prev) => {
-          const next = [...prev, data.line]
-          if (next.length > MAX_LOG_LINES) {
-            const trimmed = next.slice(-MAX_LOG_LINES)
-            trimmed[0] = SENTINEL_TEXT
-            return trimmed
-          }
-          return next
-        })
+        pendingRef.current.single.push(data.line)
+        scheduleFlush()
       } else {
         const cname = mergeSessionMapRef.current.get(data.tabKey)
         if (cname !== undefined) {
-          setMergedLines((prev) => {
-            const next = [...prev, { containerName: cname, line: data.line }]
-            if (next.length > MAX_LOG_LINES) {
-              const trimmed = next.slice(-MAX_LOG_LINES)
-              trimmed[0] = { containerName: "", line: SENTINEL_TEXT }
-              return trimmed
-            }
-            return next
+          pendingRef.current.merged.push({
+            containerName: cname,
+            line: data.line,
           })
+          scheduleFlush()
         }
       }
     })
     return unsub
-  }, [tabKey])
+  }, [tabKey, scheduleFlush])
 
   // Reset when pod changes
   useEffect(() => {
@@ -147,6 +189,7 @@ export function PodLogPanel({
     setSelectedContainer(first)
     prevContainerRef.current = first
     setMergeMode(false)
+    cancelFlush()
     setMergedLines([])
     mergeSessionMapRef.current = new Map()
     mergeSessionIdsRef.current = []
@@ -176,36 +219,13 @@ export function PodLogPanel({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      cancelFlush()
       window.api.stopPodLogSession(tabKey).catch(console.error)
       for (const sid of mergeSessionIdsRef.current) {
         window.api.stopPodLogSession(sid).catch(console.error)
       }
     }
   }, [])
-
-  function scrollToBottom(): void {
-    const el = scrollRef.current
-    if (!el) return
-    el.scrollTop = el.scrollHeight
-  }
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    if (stickToBottomRef.current && !searchActive) scrollToBottom()
-  }, [lines, mergedLines, searchActive])
-
-  // Inactive drawer tabs stay mounted under `display: none`, where scrollTop
-  // writes are dropped. Re-pin once the panel has a real box again.
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const ro = new ResizeObserver(() => {
-      if (el.clientHeight === 0) return
-      if (stickToBottomRef.current && !searchActive) scrollToBottom()
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [searchActive])
 
   function handleScroll(): void {
     const el = scrollRef.current
@@ -289,6 +309,76 @@ export function PodLogPanel({
   }
 
   const displayCount = mergeMode ? filteredMerged.length : filteredLines.length
+
+  const rowVirtualizer = useVirtualizer({
+    count: displayCount,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ESTIMATED_LINE_HEIGHT,
+    overscan: 20,
+  })
+
+  const scrollToBottom = useCallback((): void => {
+    if (displayCount === 0) return
+    rowVirtualizer.scrollToIndex(displayCount - 1, { align: "end" })
+  }, [displayCount, rowVirtualizer])
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    if (stickToBottomRef.current && !searchActive) scrollToBottom()
+  }, [lines, mergedLines, searchActive, scrollToBottom])
+
+  // Inactive drawer tabs stay mounted under `display: none`, where scroll
+  // writes are dropped. Re-pin once the panel has a real box again.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      if (el.clientHeight === 0) return
+      if (stickToBottomRef.current && !searchActive) scrollToBottom()
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [searchActive, scrollToBottom])
+
+  function renderLine(index: number): JSX.Element {
+    if (mergeMode) {
+      const m = filteredMerged[index]
+      if (m.containerName === "" && m.line === SENTINEL_TEXT) {
+        return (
+          <div className="whitespace-pre-wrap break-all text-zinc-500 italic">
+            {m.line}
+          </div>
+        )
+      }
+      const prefix = `[${m.containerName}] `
+      if (matchRegex) {
+        return (
+          <div className="whitespace-pre-wrap break-all text-zinc-200">
+            {highlightLine(prefix + m.line, matchRegex)}
+          </div>
+        )
+      }
+      return (
+        <div className="whitespace-pre-wrap break-all">
+          <span className="text-zinc-500">{prefix}</span>
+          <span className="text-zinc-200">{m.line}</span>
+        </div>
+      )
+    }
+    const line = filteredLines[index]
+    if (line === SENTINEL_TEXT) {
+      return (
+        <div className="whitespace-pre-wrap break-all text-zinc-500 italic">
+          {line}
+        </div>
+      )
+    }
+    return (
+      <div className="whitespace-pre-wrap break-all text-zinc-200">
+        {matchRegex ? highlightLine(line, matchRegex) : line}
+      </div>
+    )
+  }
 
   if (sessionEnded) {
     return (
@@ -403,84 +493,31 @@ export function PodLogPanel({
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-2 font-mono text-xs leading-relaxed"
       >
-        {mergeMode ? (
-          filteredMerged.length === 0 ? (
-            <span className="text-zinc-500">
-              {searchTerm
-                ? "No matching lines."
-                : streaming
-                  ? "Waiting for logs…"
-                  : "No logs."}
-            </span>
-          ) : (
-            filteredMerged.map((m, i) => {
-              if (m.containerName === "" && m.line === SENTINEL_TEXT) {
-                return (
-                  <div
-                    key={i}
-                    className="whitespace-pre-wrap break-all text-zinc-500 italic"
-                  >
-                    {m.line}
-                  </div>
-                )
-              }
-              const prefix = `[${m.containerName}] `
-              if (matchRegex) {
-                const fullLine = prefix + m.line
-                return (
-                  <div
-                    key={i}
-                    className="whitespace-pre-wrap break-all text-zinc-200"
-                  >
-                    {highlightLine(
-                      fullLine,
-                      new RegExp(matchRegex.source, matchRegex.flags),
-                    )}
-                  </div>
-                )
-              }
-              return (
-                <div key={i} className="whitespace-pre-wrap break-all">
-                  <span className="text-zinc-500">{prefix}</span>
-                  <span className="text-zinc-200">{m.line}</span>
-                </div>
-              )
-            })
-          )
+        {displayCount === 0 ? (
+          <span className="text-zinc-500">
+            {searchTerm
+              ? "No matching lines."
+              : streaming
+                ? "Waiting for logs…"
+                : "No logs."}
+          </span>
         ) : (
-          <>
-            {filteredLines.length === 0 && (
-              <span className="text-zinc-500">
-                {searchTerm
-                  ? "No matching lines."
-                  : streaming
-                    ? "Waiting for logs…"
-                    : "No logs."}
-              </span>
-            )}
-            {filteredLines.map((line, i) =>
-              line === SENTINEL_TEXT ? (
-                <div
-                  key={i}
-                  className="whitespace-pre-wrap break-all text-zinc-500 italic"
-                >
-                  {line}
-                </div>
-              ) : (
-                <div
-                  key={i}
-                  className="whitespace-pre-wrap break-all text-zinc-200"
-                >
-                  {matchRegex
-                    ? highlightLine(
-                        line,
-                        new RegExp(matchRegex.source, matchRegex.flags),
-                      )
-                    : line}
-                </div>
-              ),
-            )}
-          </>
+          <div
+            className="relative w-full"
+            style={{ height: rowVirtualizer.getTotalSize() }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={rowVirtualizer.measureElement}
+                className="absolute left-0 top-0 w-full"
+                style={{ transform: `translateY(${virtualRow.start}px)` }}
+              >
+                {renderLine(virtualRow.index)}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

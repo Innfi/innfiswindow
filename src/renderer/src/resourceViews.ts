@@ -1,76 +1,122 @@
-import type { ComponentType } from "react"
+import { type ComponentType, lazy } from "react"
 
-import { CustomStreamView } from "../components/ui/CustomStreamView"
-import { AlarmActiveView, AlarmRulesView } from "./components/AlarmsView"
-import { ClusterRoleBindingsView } from "./components/ClusterRoleBindingsView"
-import { ClusterRolesView } from "./components/ClusterRolesView"
-import { ConfigMapsView } from "./components/ConfigMapsView"
-import { CronJobsView } from "./components/CronJobsView"
-import { DaemonSetsView } from "./components/DaemonSetsView"
-import { DeploymentsView } from "./components/DeploymentsView"
-import { EndpointsView } from "./components/EndpointsView"
-import { EventsView } from "./components/EventsView"
-import { HelmReleasesView, HelmRepositoriesView } from "./components/HelmView"
-import { HistoryView } from "./components/HistoryView"
-import { HPAsView } from "./components/HPAsView"
-import { IngressesView } from "./components/IngressesView"
-import { JobsView } from "./components/JobsView"
-import { LimitRangesView } from "./components/LimitRangesView"
-import { NamespacesView } from "./components/NamespacesView"
-import { NetworkPoliciesView } from "./components/NetworkPoliciesView"
-import { NodesView } from "./components/NodesView"
-import { OverviewView } from "./components/OverviewView"
-import { PDBsView } from "./components/PDBsView"
-import { PodsView } from "./components/PodsView"
-import { PVCsView } from "./components/PVCsView"
-import { PVsView } from "./components/PVsView"
-import { ReplicaSetsView } from "./components/ReplicaSetsView"
-import { ResourceQuotasView } from "./components/ResourceQuotasView"
-import { RoleBindingsView } from "./components/RoleBindingsView"
-import { RolesView } from "./components/RolesView"
-import { SecretsView } from "./components/SecretsView"
-import { ServiceAccountsView } from "./components/ServiceAccountsView"
-import { ServicesView } from "./components/ServicesView"
-import { StatefulSetsView } from "./components/StatefulSetsView"
-import { StorageClassesView } from "./components/StorageClassesView"
-import { VolumeSnapshotsView } from "./components/VolumeSnapshotsView"
 import type { ResourceType } from "./types/resource"
 
+/**
+ * Views are code-split: only the selected one is fetched and evaluated, so the
+ * initial bundle doesn't carry all 35 (plus Monaco, xterm, and recharts behind
+ * them). Consumers must render these under a <Suspense> boundary.
+ */
+const named = <M, K extends keyof M>(
+  loader: () => Promise<M>,
+  key: K,
+): ComponentType =>
+  lazy(async () => {
+    const mod = await loader()
+    return { default: mod[key] as ComponentType }
+  })
+
 export const resourceViews: Record<ResourceType, ComponentType> = {
-  Namespaces: NamespacesView,
-  Nodes: NodesView,
-  Deployments: DeploymentsView,
-  ReplicaSets: ReplicaSetsView,
-  StatefulSets: StatefulSetsView,
-  DaemonSets: DaemonSetsView,
-  ConfigMaps: ConfigMapsView,
-  Secrets: SecretsView,
-  Pods: PodsView,
-  Services: ServicesView,
-  Ingresses: IngressesView,
-  NetworkPolicies: NetworkPoliciesView,
-  Endpoints: EndpointsView,
-  Events: EventsView,
-  HPAs: HPAsView,
-  ServiceAccounts: ServiceAccountsView,
-  Roles: RolesView,
-  ClusterRoles: ClusterRolesView,
-  RoleBindings: RoleBindingsView,
-  ClusterRoleBindings: ClusterRoleBindingsView,
-  PersistentVolumes: PVsView,
-  PersistentVolumeClaims: PVCsView,
-  StorageClasses: StorageClassesView,
-  VolumeSnapshots: VolumeSnapshotsView,
-  Jobs: JobsView,
-  CronJobs: CronJobsView,
-  ResourceQuotas: ResourceQuotasView,
-  LimitRanges: LimitRangesView,
-  PodDisruptionBudgets: PDBsView,
-  overview: OverviewView,
-  "custom-stream": CustomStreamView,
-  history: HistoryView,
-  "helm-repositories": HelmRepositoriesView,
-  "helm-releases": HelmReleasesView,
-  "alarm-rules": AlarmRulesView,
-  "alarm-active": AlarmActiveView,
+  Namespaces: named(
+    () => import("./components/NamespacesView"),
+    "NamespacesView",
+  ),
+  Nodes: named(() => import("./components/NodesView"), "NodesView"),
+  Deployments: named(
+    () => import("./components/DeploymentsView"),
+    "DeploymentsView",
+  ),
+  ReplicaSets: named(
+    () => import("./components/ReplicaSetsView"),
+    "ReplicaSetsView",
+  ),
+  StatefulSets: named(
+    () => import("./components/StatefulSetsView"),
+    "StatefulSetsView",
+  ),
+  DaemonSets: named(
+    () => import("./components/DaemonSetsView"),
+    "DaemonSetsView",
+  ),
+  ConfigMaps: named(
+    () => import("./components/ConfigMapsView"),
+    "ConfigMapsView",
+  ),
+  Secrets: named(() => import("./components/SecretsView"), "SecretsView"),
+  Pods: named(() => import("./components/PodsView"), "PodsView"),
+  Services: named(() => import("./components/ServicesView"), "ServicesView"),
+  Ingresses: named(() => import("./components/IngressesView"), "IngressesView"),
+  NetworkPolicies: named(
+    () => import("./components/NetworkPoliciesView"),
+    "NetworkPoliciesView",
+  ),
+  Endpoints: named(() => import("./components/EndpointsView"), "EndpointsView"),
+  Events: named(() => import("./components/EventsView"), "EventsView"),
+  HPAs: named(() => import("./components/HPAsView"), "HPAsView"),
+  ServiceAccounts: named(
+    () => import("./components/ServiceAccountsView"),
+    "ServiceAccountsView",
+  ),
+  Roles: named(() => import("./components/RolesView"), "RolesView"),
+  ClusterRoles: named(
+    () => import("./components/ClusterRolesView"),
+    "ClusterRolesView",
+  ),
+  RoleBindings: named(
+    () => import("./components/RoleBindingsView"),
+    "RoleBindingsView",
+  ),
+  ClusterRoleBindings: named(
+    () => import("./components/ClusterRoleBindingsView"),
+    "ClusterRoleBindingsView",
+  ),
+  PersistentVolumes: named(() => import("./components/PVsView"), "PVsView"),
+  PersistentVolumeClaims: named(
+    () => import("./components/PVCsView"),
+    "PVCsView",
+  ),
+  StorageClasses: named(
+    () => import("./components/StorageClassesView"),
+    "StorageClassesView",
+  ),
+  VolumeSnapshots: named(
+    () => import("./components/VolumeSnapshotsView"),
+    "VolumeSnapshotsView",
+  ),
+  Jobs: named(() => import("./components/JobsView"), "JobsView"),
+  CronJobs: named(() => import("./components/CronJobsView"), "CronJobsView"),
+  ResourceQuotas: named(
+    () => import("./components/ResourceQuotasView"),
+    "ResourceQuotasView",
+  ),
+  LimitRanges: named(
+    () => import("./components/LimitRangesView"),
+    "LimitRangesView",
+  ),
+  PodDisruptionBudgets: named(
+    () => import("./components/PDBsView"),
+    "PDBsView",
+  ),
+  overview: named(() => import("./components/OverviewView"), "OverviewView"),
+  "custom-stream": named(
+    () => import("../components/ui/CustomStreamView"),
+    "CustomStreamView",
+  ),
+  history: named(() => import("./components/HistoryView"), "HistoryView"),
+  "helm-repositories": named(
+    () => import("./components/HelmView"),
+    "HelmRepositoriesView",
+  ),
+  "helm-releases": named(
+    () => import("./components/HelmView"),
+    "HelmReleasesView",
+  ),
+  "alarm-rules": named(
+    () => import("./components/AlarmsView"),
+    "AlarmRulesView",
+  ),
+  "alarm-active": named(
+    () => import("./components/AlarmsView"),
+    "AlarmActiveView",
+  ),
 }

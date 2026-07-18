@@ -27,3 +27,6 @@ examples
 .claude
 out
 prd_history.json
+dependency-report.html
+dependency-graph.svg
+dependency-graph-archi.svg

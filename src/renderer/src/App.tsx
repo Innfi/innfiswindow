@@ -1,11 +1,12 @@
 import { Pencil, Settings } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { Suspense, useEffect, useRef, useState } from "react"
 
 import { ThemePicker } from "../components/ThemePicker"
 import { Button } from "../components/ui/Button"
 import { GlobalFooter } from "../components/ui/GlobalFooter"
 import { GlobalSearch } from "../components/ui/GlobalSearch"
 import { Input } from "../components/ui/Input"
+import { NameFilterInput } from "../components/ui/NameFilterInput"
 import {
   Popover,
   PopoverContent,
@@ -34,7 +35,6 @@ function App(): JSX.Element {
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const setSelectedNamespace = useAppStore((s) => s.setSelectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
   const setNameFilter = useAppStore((s) => s.setNameFilter)
   const contextAliases = useAppStore((s) => s.contextAliases)
   const setContextAlias = useAppStore((s) => s.setContextAlias)
@@ -118,13 +118,7 @@ function App(): JSX.Element {
               </option>
             ))}
           </select>
-          <input
-            type="text"
-            value={nameFilter}
-            onChange={(e) => setNameFilter(e.target.value)}
-            placeholder="Filter by name..."
-            className="rounded border px-2 py-0.5 text-xs mr-2 bg-background text-foreground w-40"
-          />
+          <NameFilterInput />
           <span className="rounded border px-2 py-0.5 text-xs mr-2 ml-2">
             {clusterType}
           </span>
@@ -228,7 +222,17 @@ function App(): JSX.Element {
 
             {/* Main content */}
             <div className="flex-1 overflow-hidden">
-              {ResourceView && <ResourceView />}
+              {ResourceView && (
+                <Suspense
+                  fallback={
+                    <p className="p-4 text-sm text-muted-foreground">
+                      Loading...
+                    </p>
+                  }
+                >
+                  <ResourceView />
+                </Suspense>
+              )}
             </div>
           </div>
 

@@ -8,12 +8,13 @@ export function cn(...inputs: ClassValue[]): string {
 export function filterResources<
   T extends { name: string; namespace?: string | null },
 >(resources: T[], nameFilter: string, namespace?: string | null): T[] {
-  return resources
-    .filter((r) => !namespace || r.namespace === namespace)
-    .filter(
-      (r) =>
-        !nameFilter || r.name.toLowerCase().includes(nameFilter.toLowerCase()),
-    )
+  if (!namespace && !nameFilter) return resources
+  const needle = nameFilter.toLowerCase()
+  return resources.filter(
+    (r) =>
+      (!namespace || r.namespace === namespace) &&
+      (!needle || r.name.toLowerCase().includes(needle)),
+  )
 }
 
 export function parseResourceValue(value: string): number {
