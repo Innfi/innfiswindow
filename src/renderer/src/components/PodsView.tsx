@@ -44,6 +44,21 @@ const WORKLOAD_KIND_CLASS: Record<string, string> = {
     "bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200",
 }
 
+// Grouping order for the "Workload type" sort. Kinds not listed sort last.
+const WORKLOAD_KIND_ORDER = [
+  "Deployment",
+  "StatefulSet",
+  "DaemonSet",
+  "ReplicaSet",
+  "Job",
+  "CronJob",
+]
+
+function kindRank(kind: string): number {
+  const i = WORKLOAD_KIND_ORDER.indexOf(kind)
+  return i === -1 ? WORKLOAD_KIND_ORDER.length : i
+}
+
 function WorkloadBadge({
   kind,
   name,
@@ -395,6 +410,20 @@ export function PodsView(): JSX.Element {
       title="Pods"
       list={(ctx) => window.api.k8s.listPods({ contextName: ctx })}
       detailGuard={(item) => (item as K8sPod).containers !== undefined}
+      sortOptions={[
+        { label: "Name", compare: (a, b) => a.name.localeCompare(b.name) },
+        {
+          label: "Workload type",
+          compare: (a, b) =>
+            kindRank(a.ownerKind) - kindRank(b.ownerKind) ||
+            a.ownerKind.localeCompare(b.ownerKind) ||
+            a.name.localeCompare(b.name),
+        },
+        {
+          label: "Status",
+          compare: (a, b) => a.status.localeCompare(b.status),
+        },
+      ]}
       columns={[
         { head: "Name", cell: (p) => p.name },
         { head: "Namespace", cell: (p) => p.namespace },

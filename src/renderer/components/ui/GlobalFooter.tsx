@@ -95,7 +95,7 @@ export function GlobalFooter(): JSX.Element {
         >
           <AlertTriangle className="h-3 w-3" />
           {unreadErrorCount > 0 && (
-            <span className="rounded-full bg-destructive text-destructive-foreground px-1 min-w-[1rem] text-center leading-tight">
+            <span className="rounded-full bg-destructive text-destructive-foreground px-1 min-w-4 text-center leading-tight">
               {unreadErrorCount > 99 ? "99+" : unreadErrorCount}
             </span>
           )}

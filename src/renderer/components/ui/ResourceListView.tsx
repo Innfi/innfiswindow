@@ -31,6 +31,11 @@ export interface ResourceColumn<T> {
   headClassName?: string
 }
 
+export interface SortOption<T> {
+  label: string
+  compare: (a: T, b: T) => number
+}
+
 export interface DetailController {
   onClose: () => void
   onDeleted: () => void
@@ -50,6 +55,11 @@ interface ResourceListViewProps<T extends Namespaced> {
    */
   detailGuard: (item: Namespaced) => boolean
   renderDetail: (item: T, ctl: DetailController) => ReactNode
+  /**
+   * When provided, a sort dropdown is rendered in the header. The first option
+   * is the default; picking one sorts the visible rows by its comparator.
+   */
+  sortOptions?: SortOption<T>[]
   /** Defaults to `namespace/name` (or `name` when cluster-scoped). */
   rowKey?: (item: T) => string
   /**
@@ -73,6 +83,7 @@ export function ResourceListView<T extends Namespaced>({
   renderDetail,
   rowKey,
   namespaced = true,
+  sortOptions,
 }: ResourceListViewProps<T>): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as T | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
@@ -80,6 +91,7 @@ export function ResourceListView<T extends Namespaced>({
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [sortIndex, setSortIndex] = useState(0)
 
   const { data, loading, error, reload, lastRefreshedAt } = useK8sResource(
     list,
@@ -100,15 +112,15 @@ export function ResourceListView<T extends Namespaced>({
     setSelectedItem(fresh as object)
   }, [data])
 
-  const visible = useMemo(
-    () =>
-      filterResources(
-        data,
-        nameFilter,
-        namespaced ? selectedNamespace : undefined,
-      ),
-    [data, nameFilter, namespaced, selectedNamespace],
-  )
+  const visible = useMemo(() => {
+    const filtered = filterResources(
+      data,
+      nameFilter,
+      namespaced ? selectedNamespace : undefined,
+    )
+    const compare = sortOptions?.[sortIndex]?.compare
+    return compare ? [...filtered].sort(compare) : filtered
+  }, [data, nameFilter, namespaced, selectedNamespace, sortOptions, sortIndex])
   const keyOf =
     rowKey ??
     ((item: T): string =>
@@ -145,7 +157,23 @@ export function ResourceListView<T extends Namespaced>({
       <div className="flex flex-1 flex-col overflow-hidden p-4">
         <div className="flex shrink-0 items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">{title}</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
+          <div className="flex items-center gap-2">
+            {sortOptions && sortOptions.length > 0 && (
+              <select
+                value={sortIndex}
+                onChange={(e) => setSortIndex(Number(e.target.value))}
+                title="Sort by"
+                className="rounded border px-2 py-1 text-xs bg-background text-foreground"
+              >
+                {sortOptions.map((opt, i) => (
+                  <option key={opt.label} value={i}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
+          </div>
         </div>
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
