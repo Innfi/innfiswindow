@@ -4,6 +4,7 @@ import {
   CoreV1Api,
   V1Container,
   V1EnvVar,
+  V1Pod,
   V1Probe,
   V1Volume,
 } from "@kubernetes/client-node"
@@ -314,6 +315,78 @@ function mapPodContainer(
   }
 }
 
+// Derive the status column `kubectl get pods` shows, rather than the bare
+// `pod.status.phase`. Phase alone reports "Running" for a container stuck in
+// CrashLoopBackOff/ImagePullBackOff and "Running" for a completed job pod, so
+// it hides exactly the unhealthy states the list view wants to flag. Mirrors
+// kubectl's printPod logic (init containers → container waiting/terminated
+// reasons → Completed/deletion overrides).
+function computePodStatus(pod: V1Pod): string {
+  let reason = pod.status?.phase ?? ""
+  if (pod.status?.reason) reason = pod.status.reason
+
+  const initStatuses = pod.status?.initContainerStatuses ?? []
+  const initSpecCount = pod.spec?.initContainers?.length ?? 0
+  let initializing = false
+  for (let i = 0; i < initStatuses.length; i++) {
+    const state = initStatuses[i].state
+    const term = state?.terminated
+    const wait = state?.waiting
+    if (term && term.exitCode === 0) {
+      continue
+    } else if (term) {
+      if (!term.reason) {
+        reason = term.signal
+          ? `Init:Signal:${term.signal}`
+          : `Init:ExitCode:${term.exitCode}`
+      } else {
+        reason = `Init:${term.reason}`
+      }
+      initializing = true
+    } else if (wait && wait.reason && wait.reason !== "PodInitializing") {
+      reason = `Init:${wait.reason}`
+      initializing = true
+    } else {
+      reason = `Init:${i}/${initSpecCount}`
+      initializing = true
+    }
+    break
+  }
+
+  if (!initializing) {
+    let hasRunning = false
+    const statuses = pod.status?.containerStatuses ?? []
+    for (let i = statuses.length - 1; i >= 0; i--) {
+      const cs = statuses[i]
+      const term = cs.state?.terminated
+      const wait = cs.state?.waiting
+      if (wait && wait.reason) {
+        reason = wait.reason
+      } else if (term && term.reason) {
+        reason = term.reason
+      } else if (term && !term.reason) {
+        reason = term.signal
+          ? `Signal:${term.signal}`
+          : `ExitCode:${term.exitCode}`
+      } else if (cs.ready && cs.state?.running) {
+        hasRunning = true
+      }
+    }
+    if (reason === "Completed" && hasRunning) {
+      const podReady = (pod.status?.conditions ?? []).some(
+        (c) => c.type === "Ready" && c.status === "True",
+      )
+      reason = podReady ? "Running" : "NotReady"
+    }
+  }
+
+  if (pod.metadata?.deletionTimestamp) {
+    reason = pod.status?.reason === "NodeLost" ? "Unknown" : "Terminating"
+  }
+
+  return reason
+}
+
 export async function listPods(api: CoreV1Api): Promise<PodInfo[]> {
   const res = await api.listPodForAllNamespaces()
   return res.items.map((pod) => {
@@ -345,7 +418,7 @@ export async function listPods(api: CoreV1Api): Promise<PodInfo[]> {
       ownerKind,
       ownerName,
       app: pod.metadata?.labels?.["app"] ?? "",
-      status: pod.status?.phase ?? "",
+      status: computePodStatus(pod),
       restarts,
       creationTimestamp: pod.metadata?.creationTimestamp?.toISOString() ?? "",
       nodeName: pod.spec?.nodeName ?? "",

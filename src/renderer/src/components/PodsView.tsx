@@ -59,6 +59,17 @@ function kindRank(kind: string): number {
   return i === -1 ? WORKLOAD_KIND_ORDER.length : i
 }
 
+// Row tint for resources that aren't fully healthy.
+const UNHEALTHY_ROW = "bg-red-50 dark:bg-red-950/30"
+
+// A pod is healthy while Running or once it has Succeeded/Completed. Any other
+// phase (Pending, Failed, Unknown, CrashLoopBackOff, …) flags the row.
+function isPodHealthy(status: string): boolean {
+  return (
+    status === "Running" || status === "Succeeded" || status === "Completed"
+  )
+}
+
 function WorkloadBadge({
   kind,
   name,
@@ -410,6 +421,7 @@ export function PodsView(): JSX.Element {
       title="Pods"
       list={(ctx) => window.api.k8s.listPods({ contextName: ctx })}
       detailGuard={(item) => (item as K8sPod).containers !== undefined}
+      rowClassName={(p) => (isPodHealthy(p.status) ? undefined : UNHEALTHY_ROW)}
       sortOptions={[
         { label: "Name", compare: (a, b) => a.name.localeCompare(b.name) },
         {

@@ -227,6 +227,11 @@ export function ReplicaSetsView(): JSX.Element {
         const rs = item as K8sReplicaSet
         return rs.namespace !== undefined && rs.desiredReplicas !== undefined
       }}
+      rowClassName={(rs) =>
+        rs.readyReplicas < rs.desiredReplicas
+          ? "bg-red-50 dark:bg-red-950/30"
+          : undefined
+      }
       columns={[
         { head: "Name", cell: (rs) => rs.name },
         { head: "Namespace", cell: (rs) => rs.namespace },

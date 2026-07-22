@@ -510,6 +510,11 @@ export function DeploymentsView(): JSX.Element {
       title="Deployments"
       list={(ctx) => window.api.k8s.listDeployments({ contextName: ctx })}
       detailGuard={(item) => (item as K8sDeployment).namespace !== undefined}
+      rowClassName={(d) =>
+        d.readyReplicas < d.replicas
+          ? "bg-red-50 dark:bg-red-950/30"
+          : undefined
+      }
       columns={[
         { head: "Name", cell: (d) => d.name },
         { head: "Namespace", cell: (d) => d.namespace },

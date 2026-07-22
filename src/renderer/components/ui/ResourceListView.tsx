@@ -63,6 +63,11 @@ interface ResourceListViewProps<T extends Namespaced> {
   /** Defaults to `namespace/name` (or `name` when cluster-scoped). */
   rowKey?: (item: T) => string
   /**
+   * Extra classes for a row's `<TableRow>`, keyed off the item — used to flag
+   * unhealthy resources. The selected-row highlight still wins over this.
+   */
+  rowClassName?: (item: T) => string | undefined
+  /**
    * When false, the active namespace filter is not applied (cluster-scoped
    * resources). Defaults to true.
    */
@@ -84,6 +89,7 @@ export function ResourceListView<T extends Namespaced>({
   rowKey,
   namespaced = true,
   sortOptions,
+  rowClassName,
 }: ResourceListViewProps<T>): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as T | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
@@ -213,6 +219,7 @@ export function ResourceListView<T extends Namespaced>({
                       ref={rowVirtualizer.measureElement}
                       className={cn(
                         "cursor-pointer",
+                        rowClassName?.(item),
                         sameItem(selectedItem, item) && "bg-muted",
                       )}
                       onClick={() =>
