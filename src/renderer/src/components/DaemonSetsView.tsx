@@ -38,9 +38,12 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const recordHistory = useRecordHistory()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [restartOpen, setRestartOpen] = useState(false)
+  const [restarting, setRestarting] = useState(false)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
@@ -65,6 +68,33 @@ function DetailPanel({
   const podLabelEntries = Object.entries(ds.podTemplateLabels ?? {}).filter(
     ([k, v]) => kv(k, v),
   )
+
+  async function handleRestart(): Promise<void> {
+    const target = {
+      action: "restart",
+      resourceKind: "DaemonSet",
+      resourceName: ds.name,
+      namespace: ds.namespace,
+    } as const
+    setRestarting(true)
+    try {
+      await window.api.k8s.restartDaemonSet({
+        contextName: selectedContext ?? undefined,
+        namespace: ds.namespace,
+        name: ds.name,
+      })
+      recordHistory(target, { success: true })
+      toast.success(`Restarting ${ds.name}`)
+      setRestartOpen(false)
+    } catch (e) {
+      recordHistory(target, { success: false, error: String(e) })
+      toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "DaemonSet: restart")
+      setRestartOpen(false)
+    } finally {
+      setRestarting(false)
+    }
+  }
 
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
@@ -134,6 +164,14 @@ function DetailPanel({
               },
             })}
           />
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={() => setRestartOpen(true)}
+          >
+            Restart
+          </Button>
           <Button
             size="sm"
             variant="destructive"
@@ -297,6 +335,33 @@ function DetailPanel({
         kind="DaemonSet"
         search={sl}
       />
+
+      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restart DaemonSet</AlertDialogTitle>
+            <AlertDialogDescription>
+              Trigger a rolling restart of{" "}
+              <strong>
+                {ds.namespace}/{ds.name}
+              </strong>
+              ? Pods will be recreated on every node.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRestartOpen(false)}
+              disabled={restarting}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleRestart} disabled={restarting}>
+              {restarting ? "Restarting…" : "Restart"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <AlertDialogContent>

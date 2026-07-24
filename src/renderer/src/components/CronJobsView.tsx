@@ -1,5 +1,15 @@
 ﻿import { useState } from "react"
+import { toast } from "sonner"
 
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../components/ui/AlertDialog"
+import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -12,18 +22,54 @@ import {
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { formatAge } from "../../lib/utils"
+import { useAppStore } from "../../store/app.store"
+import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sCronJob } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
   cronJob,
   onClose,
+  onReloaded,
 }: {
   cronJob: K8sCronJob
   onClose: () => void
+  onReloaded: () => void
 }): JSX.Element {
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
+  const [restartOpen, setRestartOpen] = useState(false)
+  const [restarting, setRestarting] = useState(false)
+
+  async function handleRestart(): Promise<void> {
+    const target = {
+      action: "restart",
+      resourceKind: "CronJob",
+      resourceName: cronJob.name,
+      namespace: cronJob.namespace,
+    } as const
+    setRestarting(true)
+    try {
+      await window.api.k8s.restartCronJob({
+        contextName: selectedContext ?? undefined,
+        namespace: cronJob.namespace,
+        name: cronJob.name,
+      })
+      recordHistory(target, { success: true })
+      toast.success(`Triggered a new job run for ${cronJob.name}`)
+      setRestartOpen(false)
+      onReloaded()
+    } catch (e) {
+      recordHistory(target, { success: false, error: String(e) })
+      toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "CronJob: restart")
+      setRestartOpen(false)
+    } finally {
+      setRestarting(false)
+    }
+  }
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
@@ -73,6 +119,14 @@ function DetailPanel({
               },
             })}
           />
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={() => setRestartOpen(true)}
+          >
+            Restart
+          </Button>
           <CopyResourceButton
             name={cronJob.name}
             namespace={cronJob.namespace}
@@ -174,6 +228,34 @@ function DetailPanel({
         kind="CronJob"
         search={sl}
       />
+
+      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restart CronJob</AlertDialogTitle>
+            <AlertDialogDescription>
+              CronJobs have no restart, so this manually triggers a new job run
+              for{" "}
+              <strong>
+                {cronJob.namespace}/{cronJob.name}
+              </strong>{" "}
+              now, from its job template.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRestartOpen(false)}
+              disabled={restarting}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleRestart} disabled={restarting}>
+              {restarting ? "Triggering…" : "Restart"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DetailPanelLayout>
   )
 }
@@ -202,7 +284,11 @@ export function CronJobsView(): JSX.Element {
         ageColumn<K8sCronJob>(),
       ]}
       renderDetail={(cronJob, ctl: DetailController) => (
-        <DetailPanel cronJob={cronJob} onClose={ctl.onClose} />
+        <DetailPanel
+          cronJob={cronJob}
+          onClose={ctl.onClose}
+          onReloaded={ctl.onDeleted}
+        />
       )}
     />
   )

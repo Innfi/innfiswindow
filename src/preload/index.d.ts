@@ -627,11 +627,21 @@ export interface PodMetricsResult {
   diskWrite: DataPoint[]
 }
 
+export interface ConnectionStatus {
+  connected: boolean
+  reason?: "network" | "auth" | "unknown"
+  error?: string
+}
+
 export interface K8sAPI {
   listContexts: () => Promise<K8sContext[]>
   getCurrentContext: () => Promise<string>
   listNamespaces: (args?: { contextName?: string }) => Promise<K8sNamespace[]>
   listNodes: (args?: { contextName?: string }) => Promise<K8sNode[]>
+  checkConnection: (args?: {
+    contextName?: string
+  }) => Promise<ConnectionStatus>
+  reconnect: (args?: { contextName?: string }) => Promise<ConnectionStatus>
   listDeployments: (args?: { contextName?: string }) => Promise<K8sDeployment[]>
   listReplicaSets: (args?: { contextName?: string }) => Promise<K8sReplicaSet[]>
   listStatefulSets: (args?: {
@@ -667,6 +677,16 @@ export interface K8sAPI {
   }) => Promise<K8sVolumeSnapshot[]>
   listJobs: (args?: { contextName?: string }) => Promise<K8sJob[]>
   listCronJobs: (args?: { contextName?: string }) => Promise<K8sCronJob[]>
+  restartJob: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
+  restartCronJob: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
   getNodeMetrics: (args?: {
     contextName?: string
   }) => Promise<NodeMetric[] | { unavailable: true }>
@@ -699,6 +719,11 @@ export interface K8sAPI {
     namespace: string,
     name: string,
   ) => Promise<{ success: boolean; name: string; namespace: string }>
+  restartDeployment: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
   getDeploymentHistory: (args: {
     contextName?: string
     namespace: string
@@ -734,6 +759,11 @@ export interface K8sAPI {
     namespace: string,
     name: string,
   ) => Promise<{ success: boolean; name: string; namespace: string }>
+  restartStatefulSet: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
   createDaemonSet: (
     namespace: string,
     name: string,
@@ -748,6 +778,11 @@ export interface K8sAPI {
     namespace: string,
     name: string,
   ) => Promise<{ success: boolean; name: string; namespace: string }>
+  restartDaemonSet: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
   createService: (
     namespace: string,
     name: string,

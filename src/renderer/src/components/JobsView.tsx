@@ -1,5 +1,15 @@
 ﻿import { useState } from "react"
+import { toast } from "sonner"
 
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../components/ui/AlertDialog"
+import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -12,18 +22,54 @@ import {
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
+import { useAppStore } from "../../store/app.store"
+import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sJob } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
   job,
   onClose,
+  onReloaded,
 }: {
   job: K8sJob
   onClose: () => void
+  onReloaded: () => void
 }): JSX.Element {
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
+  const [restartOpen, setRestartOpen] = useState(false)
+  const [restarting, setRestarting] = useState(false)
+
+  async function handleRestart(): Promise<void> {
+    const target = {
+      action: "restart",
+      resourceKind: "Job",
+      resourceName: job.name,
+      namespace: job.namespace,
+    } as const
+    setRestarting(true)
+    try {
+      await window.api.k8s.restartJob({
+        contextName: selectedContext ?? undefined,
+        namespace: job.namespace,
+        name: job.name,
+      })
+      recordHistory(target, { success: true })
+      toast.success(`Restarted ${job.name}`)
+      setRestartOpen(false)
+      onReloaded()
+    } catch (e) {
+      recordHistory(target, { success: false, error: String(e) })
+      toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "Job: restart")
+      setRestartOpen(false)
+    } finally {
+      setRestarting(false)
+    }
+  }
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
@@ -69,6 +115,14 @@ function DetailPanel({
               },
             })}
           />
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={() => setRestartOpen(true)}
+          >
+            Restart
+          </Button>
           <CopyResourceButton
             name={job.name}
             namespace={job.namespace}
@@ -212,6 +266,34 @@ function DetailPanel({
         kind="Job"
         search={sl}
       />
+
+      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restart Job</AlertDialogTitle>
+            <AlertDialogDescription>
+              Jobs are immutable, so{" "}
+              <strong>
+                {job.namespace}/{job.name}
+              </strong>{" "}
+              will be deleted and recreated from its spec to run again. This
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRestartOpen(false)}
+              disabled={restarting}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleRestart} disabled={restarting}>
+              {restarting ? "Restarting…" : "Restart"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DetailPanelLayout>
   )
 }
@@ -238,7 +320,11 @@ export function JobsView(): JSX.Element {
         ageColumn<K8sJob>(),
       ]}
       renderDetail={(job, ctl: DetailController) => (
-        <DetailPanel job={job} onClose={ctl.onClose} />
+        <DetailPanel
+          job={job}
+          onClose={ctl.onClose}
+          onReloaded={ctl.onDeleted}
+        />
       )}
     />
   )

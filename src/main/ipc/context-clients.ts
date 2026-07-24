@@ -25,8 +25,13 @@ export interface ApiClients {
 
 export type GetContextClients = (contextName?: string | null) => ApiClients
 
+/** Drops cached clients so the next `getContextClients` rebuilds them from a
+ *  fresh KubeConfig, re-running the exec credential plugin (e.g. for EKS). */
+export type InvalidateContext = (contextName?: string | null) => void
+
 export function createContextClientsCache(defaultClients: ApiClients): {
   getContextClients: GetContextClients
+  invalidateContext: InvalidateContext
 } {
   const clientCache = new Map<string, ApiClients>()
 
@@ -51,5 +56,11 @@ export function createContextClientsCache(defaultClients: ApiClients): {
     return clients
   }
 
-  return { getContextClients }
+  function invalidateContext(contextName?: string | null): void {
+    // The default clients own a KubeConfig whose exec auth provider refreshes
+    // credentials on its own, so only the per-context cache needs clearing.
+    if (contextName) clientCache.delete(contextName)
+  }
+
+  return { getContextClients, invalidateContext }
 }

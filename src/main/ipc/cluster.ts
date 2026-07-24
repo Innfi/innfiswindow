@@ -2,6 +2,7 @@ import { IpcMain } from "electron"
 import { KubeConfig } from "@kubernetes/client-node"
 
 import {
+  checkConnection,
   getClusterType,
   getCurrentContext,
   getNodeMetrics,
@@ -9,12 +10,13 @@ import {
   listNamespaces,
   listNodes,
 } from "../k8s-handlers"
-import { GetContextClients } from "./context-clients"
+import { GetContextClients, InvalidateContext } from "./context-clients"
 
 export function registerClusterHandlers(
   ipcMain: IpcMain,
   kc: KubeConfig,
   getContextClients: GetContextClients,
+  invalidateContext: InvalidateContext,
 ): void {
   ipcMain.handle("k8s:contexts:list", () => listContexts(kc))
   ipcMain.handle("k8s:context:current", () => getCurrentContext(kc))
@@ -27,5 +29,19 @@ export function registerClusterHandlers(
   )
   ipcMain.handle("k8s:node:metrics", (_e, args?: { contextName?: string }) =>
     getNodeMetrics(getContextClients(args?.contextName).customObjects),
+  )
+  ipcMain.handle(
+    "k8s:connection:check",
+    (_e, args?: { contextName?: string }) =>
+      checkConnection(getContextClients(args?.contextName).coreV1),
+  )
+  // Reconnect: drop any cached client so the exec credential plugin re-runs,
+  // then probe again.
+  ipcMain.handle(
+    "k8s:connection:reconnect",
+    (_e, args?: { contextName?: string }) => {
+      invalidateContext(args?.contextName)
+      return checkConnection(getContextClients(args?.contextName).coreV1)
+    },
   )
 }

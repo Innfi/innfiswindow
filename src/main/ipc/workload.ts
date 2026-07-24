@@ -18,6 +18,9 @@ import {
   replaceDaemonSetFromYaml,
   replaceDeploymentFromYaml,
   replaceStatefulSetFromYaml,
+  restartDaemonSet,
+  restartDeployment,
+  restartStatefulSet,
   rollbackDeployment,
 } from "../k8s-handlers"
 import { GetContextClients } from "./context-clients"
@@ -64,6 +67,15 @@ export function registerWorkloadHandlers(
     "k8s:deployment:delete",
     (_e, namespace: string, name: string) =>
       deleteDeployment(appsV1Api, namespace, name),
+  )
+  ipcMain.handle(
+    "k8s:deployment:restart",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      restartDeployment(
+        getContextClients(args.contextName).appsV1,
+        args.namespace,
+        args.name,
+      ),
   )
   ipcMain.handle(
     "k8s:deployment:history",
@@ -131,6 +143,15 @@ export function registerWorkloadHandlers(
     (_e, namespace: string, name: string) =>
       deleteStatefulSet(appsV1Api, namespace, name),
   )
+  ipcMain.handle(
+    "k8s:statefulset:restart",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      restartStatefulSet(
+        getContextClients(args.contextName).appsV1,
+        args.namespace,
+        args.name,
+      ),
+  )
 
   ipcMain.handle(
     "k8s:daemonset:create",
@@ -146,6 +167,15 @@ export function registerWorkloadHandlers(
     "k8s:daemonset:delete",
     (_e, namespace: string, name: string) =>
       deleteDaemonSet(appsV1Api, namespace, name),
+  )
+  ipcMain.handle(
+    "k8s:daemonset:restart",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      restartDaemonSet(
+        getContextClients(args.contextName).appsV1,
+        args.namespace,
+        args.name,
+      ),
   )
 
   ipcMain.handle("k8s:pod:delete", (_e, namespace: string, name: string) =>

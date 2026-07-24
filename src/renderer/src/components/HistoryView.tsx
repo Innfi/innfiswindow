@@ -25,6 +25,11 @@ const ACTION_BADGE: Record<
     className:
       "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
   },
+  restart: {
+    label: "restart",
+    className:
+      "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300",
+  },
 }
 
 export function HistoryView(): JSX.Element {

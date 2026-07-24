@@ -38,11 +38,14 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [restartOpen, setRestartOpen] = useState(false)
+  const [restarting, setRestarting] = useState(false)
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
@@ -62,6 +65,33 @@ function DetailPanel({
   const podLabelEntries = Object.entries(ss.podTemplateLabels ?? {}).filter(
     ([k, v]) => kv(k, v),
   )
+
+  async function handleRestart(): Promise<void> {
+    const target = {
+      action: "restart",
+      resourceKind: "StatefulSet",
+      resourceName: ss.name,
+      namespace: ss.namespace,
+    } as const
+    setRestarting(true)
+    try {
+      await window.api.k8s.restartStatefulSet({
+        contextName: selectedContext ?? undefined,
+        namespace: ss.namespace,
+        name: ss.name,
+      })
+      recordHistory(target, { success: true })
+      toast.success(`Restarting ${ss.name}`)
+      setRestartOpen(false)
+    } catch (e) {
+      recordHistory(target, { success: false, error: String(e) })
+      toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "StatefulSet: restart")
+      setRestartOpen(false)
+    } finally {
+      setRestarting(false)
+    }
+  }
 
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
@@ -127,6 +157,14 @@ function DetailPanel({
               },
             })}
           />
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={() => setRestartOpen(true)}
+          >
+            Restart
+          </Button>
           <Button
             size="sm"
             variant="destructive"
@@ -276,6 +314,33 @@ function DetailPanel({
         kind="StatefulSet"
         search={sl}
       />
+
+      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restart StatefulSet</AlertDialogTitle>
+            <AlertDialogDescription>
+              Trigger a rolling restart of{" "}
+              <strong>
+                {ss.namespace}/{ss.name}
+              </strong>
+              ? Pods will be recreated one at a time in order.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRestartOpen(false)}
+              disabled={restarting}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleRestart} disabled={restarting}>
+              {restarting ? "Restarting…" : "Restart"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <AlertDialogContent>

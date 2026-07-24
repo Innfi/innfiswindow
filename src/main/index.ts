@@ -48,7 +48,7 @@ const customObjectsApi = kc.makeApiClient(CustomObjectsApi)
 const policyV1Api = kc.makeApiClient(PolicyV1Api)
 const storageV1Api = kc.makeApiClient(StorageV1Api)
 
-const { getContextClients } = createContextClientsCache({
+const { getContextClients, invalidateContext } = createContextClientsCache({
   coreV1: coreV1Api,
   appsV1: appsV1Api,
   networkingV1: networkingV1Api,
@@ -120,7 +120,7 @@ app.whenReady().then(() => {
 
   ipcMain.on("ping", () => console.log("pong"))
 
-  registerClusterHandlers(ipcMain, kc, getContextClients)
+  registerClusterHandlers(ipcMain, kc, getContextClients, invalidateContext)
   registerWorkloadHandlers(ipcMain, appsV1Api, coreV1Api, getContextClients)
   registerConfigHandlers(ipcMain, coreV1Api, getContextClients)
   registerRbacHandlers(ipcMain, rbacV1Api, getContextClients)

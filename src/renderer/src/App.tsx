@@ -1,5 +1,5 @@
 import { Pencil, Settings } from "lucide-react"
-import { Suspense, useEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 
 import { ThemePicker } from "../components/ThemePicker"
 import { Button } from "../components/ui/Button"
@@ -49,17 +49,61 @@ function App(): JSX.Element {
     expiresAt?: string
     ssoSession?: string
   } | null>(null)
+  const [connection, setConnection] = useState<{
+    connected: boolean
+    reason?: "network" | "auth" | "unknown"
+    error?: string
+  } | null>(null)
+  const [reconnecting, setReconnecting] = useState(false)
 
-  const runAwsCredCheck = (): void => {
+  const runAwsCredCheck = useCallback((): void => {
     window.api
       .checkAwsCredentials()
       .then(setAwsCredResult)
       .catch(() => setAwsCredResult({ valid: false, type: "none" }))
-  }
+  }, [])
 
+  // Probe the cluster; if the connection dropped, auto-attempt a reconnect
+  // (which re-runs the exec credential plugin) before reporting it lost.
+  const runConnectionCheck = useCallback(async (): Promise<void> => {
+    const ctx = { contextName: selectedContext ?? undefined }
+    try {
+      let status = await window.api.k8s.checkConnection(ctx)
+      if (!status.connected) {
+        status = await window.api.k8s.reconnect(ctx)
+      }
+      setConnection(status)
+    } catch (e) {
+      setConnection({ connected: false, reason: "unknown", error: String(e) })
+    }
+  }, [selectedContext])
+
+  const handleReconnect = useCallback(async (): Promise<void> => {
+    setReconnecting(true)
+    try {
+      const status = await window.api.k8s.reconnect({
+        contextName: selectedContext ?? undefined,
+      })
+      setConnection(status)
+      runAwsCredCheck()
+    } catch (e) {
+      setConnection({ connected: false, reason: "unknown", error: String(e) })
+    } finally {
+      setReconnecting(false)
+    }
+  }, [selectedContext, runAwsCredCheck])
+
+  // Periodically re-check credentials (cheap, local) and the live connection.
+  // Re-runs whenever the selected context changes.
   useEffect(() => {
     runAwsCredCheck()
-  }, [])
+    runConnectionCheck()
+    const id = window.setInterval(() => {
+      runAwsCredCheck()
+      runConnectionCheck()
+    }, 30000)
+    return () => window.clearInterval(id)
+  }, [runAwsCredCheck, runConnectionCheck])
 
   // Apply theme on mount and whenever themeId or colorScheme changes
   useEffect(() => {
@@ -205,10 +249,13 @@ function App(): JSX.Element {
             })()}
         </div>
 
-        {/* AWS credential banner */}
+        {/* AWS credential / cluster connection banner */}
         <AwsCredentialBanner
           result={awsCredResult}
+          connection={connection}
+          reconnecting={reconnecting}
           onRecheck={runAwsCredCheck}
+          onReconnect={handleReconnect}
         />
 
         {/* Body */}

@@ -4,6 +4,7 @@
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
@@ -25,6 +26,15 @@
     "dep:html": "depcruise src --output-type err-html --output-to dependency-report.html",
     "dep:svg": "depcruise src --output-type dot --exclude \"node_modules|^(fs|path|http|net|child_process|os|url|crypto|util|stream|events)$\" | dot -T svg -o dependency-graph.svg",
     "dep:svg:archi": "depcruise src --output-type archi --exclude \"node_modules|^(fs|path|http|net|child_process|os|url|crypto|util|stream|events)$\" | dot -T svg -o dependency-graph-archi.svg"
+  },
+  "lint-staged": {
+    "*.{js,jsx,cjs,mjs,ts,tsx,cts,mts}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,html,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
@@ -69,6 +79,7 @@
     "eslint": "^8.57.0",
     "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-simple-import-sort": "^13.0.0",
+    "lint-staged": "^17.2.0",
     "prettier": "^3.3.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

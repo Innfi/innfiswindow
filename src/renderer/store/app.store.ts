@@ -46,7 +46,7 @@ export interface ErrorEntry {
 export interface HistoryEntry {
   id: string
   timestamp: string
-  action: "create" | "update" | "delete" | "apply"
+  action: "create" | "update" | "delete" | "apply" | "restart"
   resourceKind: string
   resourceName: string
   namespace: string | null

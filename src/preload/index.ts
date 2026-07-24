@@ -10,6 +10,10 @@ const api = {
       ipcRenderer.invoke("k8s:namespaces:list", args),
     listNodes: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:nodes:list", args),
+    checkConnection: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:connection:check", args),
+    reconnect: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:connection:reconnect", args),
     listDeployments: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:deployments:list", args),
     listReplicaSets: (args?: { contextName?: string }) =>
@@ -93,6 +97,16 @@ const api = {
       ipcRenderer.invoke("k8s:jobs:list", args),
     listCronJobs: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:cronjobs:list", args),
+    restartJob: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:job:restart", args),
+    restartCronJob: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:cronjob:trigger", args),
     getNodeMetrics: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:node:metrics", args),
     listPods: (args?: { contextName?: string }) =>
@@ -123,6 +137,11 @@ const api = {
       ipcRenderer.invoke("k8s:deployment:update", namespace, name, yaml),
     deleteDeployment: (namespace: string, name: string) =>
       ipcRenderer.invoke("k8s:deployment:delete", namespace, name),
+    restartDeployment: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:deployment:restart", args),
     getDeploymentHistory: (args: {
       contextName?: string
       namespace: string
@@ -154,12 +173,22 @@ const api = {
       ipcRenderer.invoke("k8s:statefulset:update", namespace, name, yaml),
     deleteStatefulSet: (namespace: string, name: string) =>
       ipcRenderer.invoke("k8s:statefulset:delete", namespace, name),
+    restartStatefulSet: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:statefulset:restart", args),
     createDaemonSet: (namespace: string, name: string, image: string) =>
       ipcRenderer.invoke("k8s:daemonset:create", namespace, name, image),
     updateDaemonSet: (namespace: string, name: string, yaml: string) =>
       ipcRenderer.invoke("k8s:daemonset:update", namespace, name, yaml),
     deleteDaemonSet: (namespace: string, name: string) =>
       ipcRenderer.invoke("k8s:daemonset:delete", namespace, name),
+    restartDaemonSet: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:daemonset:restart", args),
     createService: (
       namespace: string,
       name: string,

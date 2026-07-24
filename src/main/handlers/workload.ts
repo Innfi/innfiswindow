@@ -748,3 +748,58 @@ export async function rollbackDeployment(
   await api.patchNamespacedDeployment({ name: deploymentName, namespace, body })
   return { success: true }
 }
+
+/** Strategic-merge patch bumping the pod-template restart annotation, which
+ *  triggers a rolling restart exactly like `kubectl rollout restart`. */
+function restartPatchBody(): object {
+  return {
+    spec: {
+      template: {
+        metadata: {
+          annotations: {
+            "kubectl.kubernetes.io/restartedAt": new Date().toISOString(),
+          },
+        },
+      },
+    },
+  }
+}
+
+export async function restartDeployment(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+): Promise<MutationResult> {
+  await api.patchNamespacedDeployment({
+    name,
+    namespace,
+    body: restartPatchBody(),
+  })
+  return { success: true, name, namespace }
+}
+
+export async function restartStatefulSet(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+): Promise<MutationResult> {
+  await api.patchNamespacedStatefulSet({
+    name,
+    namespace,
+    body: restartPatchBody(),
+  })
+  return { success: true, name, namespace }
+}
+
+export async function restartDaemonSet(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+): Promise<MutationResult> {
+  await api.patchNamespacedDaemonSet({
+    name,
+    namespace,
+    body: restartPatchBody(),
+  })
+  return { success: true, name, namespace }
+}

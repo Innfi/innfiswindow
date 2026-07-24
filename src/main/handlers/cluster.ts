@@ -105,3 +105,55 @@ export function getClusterType(kc: KubeConfig) {
   if (server.includes("azmk8s.io") || execCommand === "az") return "AKS"
   return "Local"
 }
+
+export interface ConnectionStatus {
+  connected: boolean
+  /** Why the probe failed; omitted when connected. */
+  reason?: "network" | "auth" | "unknown"
+  error?: string
+}
+
+function classifyConnectionError(err: unknown): ConnectionStatus {
+  const code =
+    (err as { code?: unknown }).code ??
+    (err as { statusCode?: unknown }).statusCode
+  const message = String((err as { message?: unknown }).message ?? err)
+
+  // The server responded with an HTTP status, so the connection is alive and
+  // (for anything but 401) the credentials were accepted. 403 = authenticated
+  // but not authorized to list namespaces — still a healthy connection.
+  if (typeof code === "number") {
+    if (code === 401)
+      return { connected: false, reason: "auth", error: message }
+    if (code >= 200 && code < 500) return { connected: true }
+    return { connected: false, reason: "unknown", error: message }
+  }
+
+  if (
+    /ENOTFOUND|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENETUNREACH|ECONNRESET|fetch failed|network|socket hang up/i.test(
+      message,
+    )
+  ) {
+    return { connected: false, reason: "network", error: message }
+  }
+  // Exec credential plugin failures (e.g. `aws eks get-token` when the SSO
+  // session has expired) surface here — treat as an auth problem.
+  if (/exec|credential|token|unable to|denied|expired/i.test(message)) {
+    return { connected: false, reason: "auth", error: message }
+  }
+  return { connected: false, reason: "unknown", error: message }
+}
+
+/** Lightweight liveness/auth probe used by the renderer's periodic check.
+ *  Runs the exec credential plugin as a side effect, so a passing probe after
+ *  a failure means credentials were successfully refreshed. */
+export async function checkConnection(
+  api: CoreV1Api,
+): Promise<ConnectionStatus> {
+  try {
+    await api.listNamespace({ limit: 1 })
+    return { connected: true }
+  } catch (err) {
+    return classifyConnectionError(err)
+  }
+}

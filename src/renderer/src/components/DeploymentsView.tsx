@@ -56,6 +56,8 @@ function DetailPanel({
   const [historyLoading, setHistoryLoading] = useState(false)
   const [rollbackRevision, setRollbackRevision] = useState<number | null>(null)
   const [rolling, setRolling] = useState(false)
+  const [restartOpen, setRestartOpen] = useState(false)
+  const [restarting, setRestarting] = useState(false)
 
   const matches = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kvMatches = (k: string, v: string): boolean => matches(k) || matches(v)
@@ -129,6 +131,33 @@ function DetailPanel({
     }
   }
 
+  async function handleRestart(): Promise<void> {
+    const target = {
+      action: "restart",
+      resourceKind: "Deployment",
+      resourceName: deployment.name,
+      namespace: deployment.namespace,
+    } as const
+    setRestarting(true)
+    try {
+      await window.api.k8s.restartDeployment({
+        contextName: selectedContext ?? undefined,
+        namespace: deployment.namespace,
+        name: deployment.name,
+      })
+      recordHistory(target, { success: true })
+      toast.success(`Restarting ${deployment.name}`)
+      setRestartOpen(false)
+    } catch (e) {
+      recordHistory(target, { success: false, error: String(e) })
+      toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "Deployment: restart")
+      setRestartOpen(false)
+    } finally {
+      setRestarting(false)
+    }
+  }
+
   function setDeleteOpenNotify(open: boolean): void {
     setDeleteOpen(open)
     onDeleteDialogChange(open)
@@ -199,6 +228,14 @@ function DetailPanel({
               },
             })}
           />
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={() => setRestartOpen(true)}
+          >
+            Restart
+          </Button>
           <Button
             size="sm"
             variant="destructive"
@@ -437,6 +474,33 @@ function DetailPanel({
           </div>
         )}
       </div>
+
+      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restart Deployment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Trigger a rolling restart of{" "}
+              <strong>
+                {deployment.namespace}/{deployment.name}
+              </strong>
+              ? All pods will be recreated.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRestartOpen(false)}
+              disabled={restarting}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleRestart} disabled={restarting}>
+              {restarting ? "Restarting…" : "Restart"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
         <AlertDialogContent>

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Format and lint only the staged files. lint-staged runs the configured
+# commands against them and re-stages whatever the auto-fixers changed.
+npx lint-staged
