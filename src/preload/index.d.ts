@@ -687,6 +687,16 @@ export interface K8sAPI {
     namespace: string
     name: string
   }) => Promise<{ success: boolean; name: string; namespace: string }>
+  deleteJob: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
+  deleteCronJob: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
   getNodeMetrics: (args?: {
     contextName?: string
   }) => Promise<NodeMetric[] | { unavailable: true }>

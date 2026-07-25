@@ -107,6 +107,16 @@ const api = {
       namespace: string
       name: string
     }) => ipcRenderer.invoke("k8s:cronjob:trigger", args),
+    deleteJob: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:job:delete", args),
+    deleteCronJob: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:cronjob:delete", args),
     getNodeMetrics: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:node:metrics", args),
     listPods: (args?: { contextName?: string }) =>
