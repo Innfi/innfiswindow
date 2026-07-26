@@ -2,6 +2,7 @@ import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
@@ -25,9 +26,13 @@ function usagePercent(used: string, hard: string): number {
 function DetailPanel({
   quota,
   onClose,
+  onDeleted,
+  onDeleteDialogChange,
 }: {
   quota: K8sResourceQuota
   onClose: () => void
+  onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
@@ -67,6 +72,14 @@ function DetailPanel({
               metadata: { name: quota.name, namespace: quota.namespace },
               spec: { hard: quota.hard },
             })}
+          />
+          <DeleteButton
+            resourceKind="ResourceQuota"
+            resourceName={quota.name}
+            namespace={quota.namespace}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
           />
           <CopyResourceButton
             name={quota.name}
@@ -180,7 +193,12 @@ export function ResourceQuotasView(): JSX.Element {
         ageColumn<K8sResourceQuota>(),
       ]}
       renderDetail={(quota, ctl: DetailController) => (
-        <DetailPanel quota={quota} onClose={ctl.onClose} />
+        <DetailPanel
+          quota={quota}
+          onClose={ctl.onClose}
+          onDeleted={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
+        />
       )}
     />
   )

@@ -2,6 +2,7 @@
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
@@ -17,9 +18,13 @@ import { ResourceEventsSection } from "./ResourceEventsSection"
 function DetailPanel({
   pdb,
   onClose,
+  onDeleted,
+  onDeleteDialogChange,
 }: {
   pdb: K8sPDB
   onClose: () => void
+  onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
@@ -70,6 +75,14 @@ function DetailPanel({
                 selector: { matchLabels: pdb.selector },
               },
             })}
+          />
+          <DeleteButton
+            resourceKind="PodDisruptionBudget"
+            resourceName={pdb.name}
+            namespace={pdb.namespace}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
           />
           <CopyResourceButton
             name={pdb.name}
@@ -179,7 +192,12 @@ export function PDBsView(): JSX.Element {
         ageColumn<K8sPDB>(),
       ]}
       renderDetail={(pdb, ctl: DetailController) => (
-        <DetailPanel pdb={pdb} onClose={ctl.onClose} />
+        <DetailPanel
+          pdb={pdb}
+          onClose={ctl.onClose}
+          onDeleted={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
+        />
       )}
     />
   )

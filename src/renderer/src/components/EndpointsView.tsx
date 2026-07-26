@@ -1,7 +1,9 @@
 import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
+import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
@@ -14,9 +16,13 @@ import { K8sEndpoint } from "../types/k8s"
 function DetailPanel({
   endpoint,
   onClose,
+  onDeleted,
+  onDeleteDialogChange,
 }: {
   endpoint: K8sEndpoint
   onClose: () => void
+  onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
@@ -43,7 +49,45 @@ function DetailPanel({
             {endpoint.namespace}
           </span>
         </div>
-        <ClosePanelButton onClose={onClose} className="ml-1" />
+        <div className="flex items-center gap-1">
+          <EditButton
+            resourceKind="Endpoints"
+            resourceName={endpoint.name}
+            namespace={endpoint.namespace}
+            buildYaml={() => ({
+              apiVersion: "v1",
+              kind: "Endpoints",
+              metadata: {
+                name: endpoint.name,
+                namespace: endpoint.namespace,
+                ...(Object.keys(endpoint.labels).length > 0 && {
+                  labels: endpoint.labels,
+                }),
+              },
+              subsets: endpoint.subsets.map((subset) => ({
+                addresses: subset.readyAddresses.map((a) => ({ ip: a.ip })),
+                notReadyAddresses: subset.notReadyAddresses.map((a) => ({
+                  ip: a.ip,
+                })),
+                ports: subset.ports.map((p) => ({
+                  name: p.name,
+                  port: p.port,
+                  protocol: p.protocol,
+                })),
+              })),
+            })}
+          />
+          <DeleteButton
+            resourceKind="Endpoints"
+            resourceName={endpoint.name}
+            namespace={endpoint.namespace}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+            warning="The endpoints controller recreates this object while its Service exists."
+          />
+          <ClosePanelButton onClose={onClose} className="ml-1" />
+        </div>
       </div>
       <input
         type="text"
@@ -193,7 +237,12 @@ export function EndpointsView(): JSX.Element {
         ageColumn<K8sEndpoint>(),
       ]}
       renderDetail={(endpoint, ctl: DetailController) => (
-        <DetailPanel endpoint={endpoint} onClose={ctl.onClose} />
+        <DetailPanel
+          endpoint={endpoint}
+          onClose={ctl.onClose}
+          onDeleted={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
+        />
       )}
     />
   )

@@ -687,16 +687,6 @@ export interface K8sAPI {
     namespace: string
     name: string
   }) => Promise<{ success: boolean; name: string; namespace: string }>
-  deleteJob: (args: {
-    contextName?: string
-    namespace: string
-    name: string
-  }) => Promise<{ success: boolean; name: string; namespace: string }>
-  deleteCronJob: (args: {
-    contextName?: string
-    namespace: string
-    name: string
-  }) => Promise<{ success: boolean; name: string; namespace: string }>
   getNodeMetrics: (args?: {
     contextName?: string
   }) => Promise<NodeMetric[] | { unavailable: true }>
@@ -725,10 +715,6 @@ export interface K8sAPI {
     name: string,
     yaml: string,
   ) => Promise<{ name: string; namespace: string }>
-  deleteDeployment: (
-    namespace: string,
-    name: string,
-  ) => Promise<{ success: boolean; name: string; namespace: string }>
   restartDeployment: (args: {
     contextName?: string
     namespace: string
@@ -765,10 +751,6 @@ export interface K8sAPI {
     name: string,
     yaml: string,
   ) => Promise<{ name: string; namespace: string }>
-  deleteStatefulSet: (
-    namespace: string,
-    name: string,
-  ) => Promise<{ success: boolean; name: string; namespace: string }>
   restartStatefulSet: (args: {
     contextName?: string
     namespace: string
@@ -784,10 +766,6 @@ export interface K8sAPI {
     name: string,
     yaml: string,
   ) => Promise<{ name: string; namespace: string }>
-  deleteDaemonSet: (
-    namespace: string,
-    name: string,
-  ) => Promise<{ success: boolean; name: string; namespace: string }>
   restartDaemonSet: (args: {
     contextName?: string
     namespace: string
@@ -809,10 +787,6 @@ export interface K8sAPI {
     name: string,
     yaml: string,
   ) => Promise<{ name: string; namespace: string }>
-  deleteService: (
-    namespace: string,
-    name: string,
-  ) => Promise<{ success: boolean; name: string; namespace: string }>
   createIngress: (
     namespace: string,
     name: string,
@@ -831,11 +805,15 @@ export interface K8sAPI {
     name: string,
     yaml: string,
   ) => Promise<{ name: string; namespace: string }>
-  deleteIngress: (
-    namespace: string,
-    name: string,
-  ) => Promise<{ success: boolean; name: string; namespace: string }>
   applyResource: (yaml: string) => Promise<{ name: string; namespace: string }>
+  deleteResource: (args: {
+    apiVersion: string
+    kind: string
+    name: string
+    namespace?: string
+    contextName?: string
+    propagationPolicy?: string
+  }) => Promise<{ name: string; namespace: string }>
   replaceResource: (
     yaml: string,
   ) => Promise<{ name: string; namespace: string }>
@@ -850,41 +828,11 @@ export interface K8sAPI {
     name: string,
     yaml: string,
   ) => Promise<{ name: string; namespace: string }>
-  deleteConfigMap: (
-    namespace: string,
-    name: string,
-  ) => Promise<{ success: boolean; name: string; namespace: string }>
   updateSecret: (
     namespace: string,
     name: string,
     yaml: string,
   ) => Promise<{ name: string; namespace: string }>
-  deleteSecret: (
-    namespace: string,
-    name: string,
-  ) => Promise<{ success: boolean; name: string; namespace: string }>
-  deletePod: (
-    namespace: string,
-    name: string,
-  ) => Promise<{ success: boolean; name: string; namespace: string }>
-  deleteRole: (
-    namespace: string,
-    name: string,
-  ) => Promise<{ success: boolean; name: string; namespace: string }>
-  deleteClusterRole: (
-    name: string,
-  ) => Promise<{ success: boolean; name: string }>
-  deleteRoleBinding: (
-    namespace: string,
-    name: string,
-  ) => Promise<{ success: boolean; name: string; namespace: string }>
-  deleteClusterRoleBinding: (
-    name: string,
-  ) => Promise<{ success: boolean; name: string }>
-  deleteServiceAccount: (
-    namespace: string,
-    name: string,
-  ) => Promise<{ success: boolean; name: string; namespace: string }>
   updateRole: (
     namespace: string,
     name: string,

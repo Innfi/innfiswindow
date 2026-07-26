@@ -107,6 +107,34 @@ export async function replaceResource(
   return toApplyResult(res, name, namespace)
 }
 
+/**
+ * Deletes by GVK rather than a typed API, so one handler covers every kind the
+ * detail panels expose — including CRDs like VolumeSnapshot.
+ */
+export async function deleteResource(
+  kc: KubeConfig,
+  apiVersion: string,
+  kind: string,
+  name: string,
+  namespace?: string,
+  propagationPolicy?: string,
+): Promise<{ name: string; namespace: string }> {
+  const client = KubernetesObjectApi.makeApiClient(kc)
+  await client.delete(
+    {
+      apiVersion,
+      kind,
+      metadata: { name, ...(namespace ? { namespace } : {}) },
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    propagationPolicy,
+  )
+  return { name, namespace: namespace ?? "" }
+}
+
 export async function applyResource(
   kc: KubeConfig,
   yamlString: string,

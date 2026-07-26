@@ -2,6 +2,7 @@
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
@@ -18,9 +19,13 @@ import { ResourceEventsSection } from "./ResourceEventsSection"
 function DetailPanel({
   hpa,
   onClose,
+  onDeleted,
+  onDeleteDialogChange,
 }: {
   hpa: K8sHPA
   onClose: () => void
+  onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
@@ -68,6 +73,14 @@ function DetailPanel({
                 maxReplicas: hpa.maxReplicas,
               },
             })}
+          />
+          <DeleteButton
+            resourceKind="HPA"
+            resourceName={hpa.name}
+            namespace={hpa.namespace}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
           />
           <CopyResourceButton
             name={hpa.name}
@@ -222,7 +235,12 @@ export function HPAsView(): JSX.Element {
         ageColumn<K8sHPA>(),
       ]}
       renderDetail={(hpa, ctl: DetailController) => (
-        <DetailPanel hpa={hpa} onClose={ctl.onClose} />
+        <DetailPanel
+          hpa={hpa}
+          onClose={ctl.onClose}
+          onDeleted={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
+        />
       )}
     />
   )

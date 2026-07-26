@@ -2,6 +2,7 @@
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
@@ -107,9 +108,13 @@ function RuleSection({
 function DetailPanel({
   item,
   onClose,
+  onDeleted,
+  onDeleteDialogChange,
 }: {
   item: K8sNetworkPolicy
   onClose: () => void
+  onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
@@ -143,6 +148,14 @@ function DetailPanel({
               metadata: { name: item.name, namespace: item.namespace },
               spec: { podSelector: {}, policyTypes: item.policyTypes },
             })}
+          />
+          <DeleteButton
+            resourceKind="NetworkPolicy"
+            resourceName={item.name}
+            namespace={item.namespace}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
           />
           <CopyResourceButton
             name={item.name}
@@ -239,7 +252,12 @@ export function NetworkPoliciesView(): JSX.Element {
         ageColumn<K8sNetworkPolicy>(),
       ]}
       renderDetail={(np, ctl: DetailController) => (
-        <DetailPanel item={np} onClose={ctl.onClose} />
+        <DetailPanel
+          item={np}
+          onClose={ctl.onClose}
+          onDeleted={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
+        />
       )}
     />
   )

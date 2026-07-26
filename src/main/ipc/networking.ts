@@ -4,8 +4,6 @@ import { CoreV1Api, NetworkingV1Api } from "@kubernetes/client-node"
 import {
   createIngress,
   createService,
-  deleteIngress,
-  deleteService,
   listEndpoints,
   listIngresses,
   listNetworkPolicies,
@@ -56,9 +54,6 @@ export function registerNetworkingHandlers(
     (_e, namespace: string, name: string, yaml: string) =>
       replaceServiceFromYaml(coreV1Api, namespace, name, yaml),
   )
-  ipcMain.handle("k8s:service:delete", (_e, namespace: string, name: string) =>
-    deleteService(coreV1Api, namespace, name),
-  )
 
   ipcMain.handle(
     "k8s:ingress:create",
@@ -89,8 +84,5 @@ export function registerNetworkingHandlers(
     "k8s:ingress:update",
     (_e, namespace: string, name: string, yaml: string) =>
       replaceIngressFromYaml(networkingV1Api, namespace, name, yaml),
-  )
-  ipcMain.handle("k8s:ingress:delete", (_e, namespace: string, name: string) =>
-    deleteIngress(networkingV1Api, namespace, name),
   )
 }

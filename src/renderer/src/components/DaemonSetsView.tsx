@@ -12,6 +12,7 @@ import {
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
@@ -40,8 +41,6 @@ function DetailPanel({
 }): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
   const recordHistory = useRecordHistory()
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [restartOpen, setRestartOpen] = useState(false)
   const [restarting, setRestarting] = useState(false)
   const [search, setSearch] = useState("")
@@ -96,36 +95,6 @@ function DetailPanel({
     }
   }
 
-  function setDeleteOpenNotify(open: boolean): void {
-    setDeleteOpen(open)
-    onDeleteDialogChange(open)
-  }
-
-  async function handleDelete(): Promise<void> {
-    const target = {
-      action: "delete",
-      resourceKind: "DaemonSet",
-      resourceName: ds.name,
-      namespace: ds.namespace,
-    } as const
-    setDeleting(true)
-    try {
-      await window.api.k8s.deleteDaemonSet(ds.namespace, ds.name)
-      recordHistory(target, { success: true })
-      toast.success(`DaemonSet ${ds.name} deleted`)
-      setDeleteOpenNotify(false)
-      onDeleted()
-      onClose()
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      toast.error(String(e))
-      useAppStore.getState().addGlobalError(String(e), "DaemonSet: delete")
-      setDeleteOpenNotify(false)
-    } finally {
-      setDeleting(false)
-    }
-  }
-
   return (
     <DetailPanelLayout>
       {/* Header */}
@@ -172,14 +141,14 @@ function DetailPanel({
           >
             Restart
           </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="h-7 text-xs"
-            onClick={() => setDeleteOpenNotify(true)}
-          >
-            Delete
-          </Button>
+          <DeleteButton
+            resourceKind="DaemonSet"
+            resourceName={ds.name}
+            namespace={ds.namespace}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+          />
           <CopyResourceButton
             name={ds.name}
             namespace={ds.namespace}
@@ -362,37 +331,6 @@ function DetailPanel({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete DaemonSet</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete{" "}
-              <strong>
-                {ds.namespace}/{ds.name}
-              </strong>
-              ? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpenNotify(false)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting…" : "Delete"}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </DetailPanelLayout>
   )
 }
@@ -420,10 +358,7 @@ export function DaemonSetsView(): JSX.Element {
         <DetailPanel
           ds={ds}
           onClose={ctl.onClose}
-          onDeleted={() => {
-            ctl.onDeleted()
-            ctl.onClose()
-          }}
+          onDeleted={ctl.onDeleted}
           onDeleteDialogChange={ctl.onDeleteDialogChange}
         />
       )}

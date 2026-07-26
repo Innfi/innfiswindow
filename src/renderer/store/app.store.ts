@@ -111,6 +111,10 @@ export type DrawerTab =
         | "RoleBinding"
         | "ClusterRoleBinding"
         | "ServiceAccount"
+        | "Node"
+        | "Endpoints"
+        | "StorageClass"
+        | "VolumeSnapshot"
       resourceName: string
       namespace: string
       initialYaml: string
@@ -178,6 +182,10 @@ export type DrawerTabInput =
         | "RoleBinding"
         | "ClusterRoleBinding"
         | "ServiceAccount"
+        | "Node"
+        | "Endpoints"
+        | "StorageClass"
+        | "VolumeSnapshot"
       resourceName: string
       namespace: string
       initialYaml: string

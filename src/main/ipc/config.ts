@@ -2,9 +2,6 @@ import { IpcMain } from "electron"
 import { CoreV1Api } from "@kubernetes/client-node"
 
 import {
-  deleteConfigMap,
-  deleteSecret,
-  deleteServiceAccount,
   listConfigMaps,
   listSecrets,
   listServiceAccounts,
@@ -43,29 +40,16 @@ export function registerConfigHandlers(
       },
     ) => updateServiceAccount(coreV1Api, namespace, name, metadata),
   )
-  ipcMain.handle(
-    "k8s:serviceaccount:delete",
-    (_e, namespace: string, name: string) =>
-      deleteServiceAccount(coreV1Api, namespace, name),
-  )
 
   ipcMain.handle(
     "k8s:configmap:update",
     (_e, namespace: string, name: string, yaml: string) =>
       replaceConfigMapFromYaml(coreV1Api, namespace, name, yaml),
   )
-  ipcMain.handle(
-    "k8s:configmap:delete",
-    (_e, namespace: string, name: string) =>
-      deleteConfigMap(coreV1Api, namespace, name),
-  )
 
   ipcMain.handle(
     "k8s:secret:update",
     (_e, namespace: string, name: string, yaml: string) =>
       replaceSecretFromYaml(coreV1Api, namespace, name, yaml),
-  )
-  ipcMain.handle("k8s:secret:delete", (_e, namespace: string, name: string) =>
-    deleteSecret(coreV1Api, namespace, name),
   )
 }

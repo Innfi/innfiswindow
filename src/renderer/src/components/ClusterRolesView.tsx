@@ -1,19 +1,9 @@
-import { Trash2 } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
 
-import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../components/ui/Dialog"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
@@ -30,8 +20,6 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/Table"
-import { useAppStore } from "../../store/app.store"
-import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sClusterRole } from "../types/k8s"
 
 function DetailPanel({
@@ -45,46 +33,10 @@ function DetailPanel({
   onDeleteSuccess: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
-
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-
-  function setDeleteOpenNotify(open: boolean): void {
-    setDeleteOpen(open)
-    onDeleteDialogChange(open)
-  }
-
-  async function handleDelete(): Promise<void> {
-    const target = {
-      action: "delete",
-      resourceKind: "ClusterRole",
-      resourceName: role.name,
-      namespace: null,
-    } as const
-    setDeleting(true)
-    setDeleteError(null)
-    try {
-      await window.api.k8s.deleteClusterRole(role.name)
-      recordHistory(target, { success: true })
-      toast.success(`ClusterRole ${role.name} deleted`)
-      setDeleteOpenNotify(false)
-      setSelectedItem(null)
-      onDeleteSuccess()
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      setDeleteError(String(e))
-    } finally {
-      setDeleting(false)
-    }
-  }
 
   return (
     <DetailPanelLayout>
@@ -112,48 +64,17 @@ function DetailPanel({
               rules: role.rules,
             })}
           />
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-destructive hover:text-destructive"
-            onClick={() => setDeleteOpenNotify(true)}
-          >
-            <Trash2 className="h-3 w-3 mr-1" />
-            Delete
-          </Button>
+          <DeleteButton
+            resourceKind="ClusterRole"
+            resourceName={role.name}
+            onDeleted={onDeleteSuccess}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+          />
           <CopyResourceButton name={role.name} resourceKind="clusterrole" />
           <ClosePanelButton onClose={onClose} />
         </div>
       </div>
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete ClusterRole</DialogTitle>
-            <DialogDescription>
-              Delete cluster role <strong>{role.name}</strong>? This cannot be
-              undone.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpenNotify(false)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <input
         type="text"
         value={search}

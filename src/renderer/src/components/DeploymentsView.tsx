@@ -12,6 +12,7 @@ import {
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
@@ -50,8 +51,6 @@ function DetailPanel({
   const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [history, setHistory] = useState<DeploymentRevision[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [rollbackRevision, setRollbackRevision] = useState<number | null>(null)
@@ -158,39 +157,6 @@ function DetailPanel({
     }
   }
 
-  function setDeleteOpenNotify(open: boolean): void {
-    setDeleteOpen(open)
-    onDeleteDialogChange(open)
-  }
-
-  async function handleDelete(): Promise<void> {
-    const target = {
-      action: "delete",
-      resourceKind: "Deployment",
-      resourceName: deployment.name,
-      namespace: deployment.namespace,
-    } as const
-    setDeleting(true)
-    try {
-      await window.api.k8s.deleteDeployment(
-        deployment.namespace,
-        deployment.name,
-      )
-      recordHistory(target, { success: true })
-      toast.success(`Deployment ${deployment.name} deleted`)
-      setDeleteOpenNotify(false)
-      onDeleted()
-      onClose()
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      toast.error(String(e))
-      useAppStore.getState().addGlobalError(String(e), "Deployment: delete")
-      setDeleteOpenNotify(false)
-    } finally {
-      setDeleting(false)
-    }
-  }
-
   return (
     <DetailPanelLayout>
       {/* Header */}
@@ -236,14 +202,14 @@ function DetailPanel({
           >
             Restart
           </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="h-7 text-xs"
-            onClick={() => setDeleteOpenNotify(true)}
-          >
-            Delete
-          </Button>
+          <DeleteButton
+            resourceKind="Deployment"
+            resourceName={deployment.name}
+            namespace={deployment.namespace}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+          />
           <CopyResourceButton
             name={deployment.name}
             namespace={deployment.namespace}
@@ -497,37 +463,6 @@ function DetailPanel({
             </Button>
             <Button onClick={handleRestart} disabled={restarting}>
               {restarting ? "Restarting…" : "Restart"}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Deployment</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete{" "}
-              <strong>
-                {deployment.namespace}/{deployment.name}
-              </strong>
-              ? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpenNotify(false)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting…" : "Delete"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

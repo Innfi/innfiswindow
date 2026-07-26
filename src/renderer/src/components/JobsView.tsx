@@ -12,6 +12,7 @@ import {
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
@@ -46,42 +47,6 @@ function DetailPanel({
   const sl = search.toLowerCase()
   const [restartOpen, setRestartOpen] = useState(false)
   const [restarting, setRestarting] = useState(false)
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-
-  function setDeleteOpenNotify(open: boolean): void {
-    setDeleteOpen(open)
-    onDeleteDialogChange(open)
-  }
-
-  async function handleDelete(): Promise<void> {
-    const target = {
-      action: "delete",
-      resourceKind: "Job",
-      resourceName: job.name,
-      namespace: job.namespace,
-    } as const
-    setDeleting(true)
-    try {
-      await window.api.k8s.deleteJob({
-        contextName: selectedContext ?? undefined,
-        namespace: job.namespace,
-        name: job.name,
-      })
-      recordHistory(target, { success: true })
-      toast.success(`Job ${job.name} deleted`)
-      setDeleteOpenNotify(false)
-      onDeleted()
-      onClose()
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      toast.error(String(e))
-      useAppStore.getState().addGlobalError(String(e), "Job: delete")
-      setDeleteOpenNotify(false)
-    } finally {
-      setDeleting(false)
-    }
-  }
 
   async function handleRestart(): Promise<void> {
     const target = {
@@ -163,14 +128,15 @@ function DetailPanel({
           >
             Restart
           </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="h-7 text-xs"
-            onClick={() => setDeleteOpenNotify(true)}
-          >
-            Delete
-          </Button>
+          <DeleteButton
+            resourceKind="Job"
+            resourceName={job.name}
+            namespace={job.namespace}
+            propagationPolicy="Background"
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+          />
           <CopyResourceButton
             name={job.name}
             namespace={job.namespace}
@@ -338,37 +304,6 @@ function DetailPanel({
             </Button>
             <Button onClick={handleRestart} disabled={restarting}>
               {restarting ? "Restarting…" : "Restart"}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Job</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete{" "}
-              <strong>
-                {job.namespace}/{job.name}
-              </strong>
-              ? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpenNotify(false)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting…" : "Delete"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

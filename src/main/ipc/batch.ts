@@ -1,8 +1,6 @@
 import { IpcMain } from "electron"
 
 import {
-  deleteCronJob,
-  deleteJob,
   listCronJobs,
   listJobs,
   restartJob,
@@ -33,24 +31,6 @@ export function registerBatchHandlers(
     "k8s:cronjob:trigger",
     (_e, args: { contextName?: string; namespace: string; name: string }) =>
       triggerCronJob(
-        getContextClients(args.contextName).batchV1,
-        args.namespace,
-        args.name,
-      ),
-  )
-  ipcMain.handle(
-    "k8s:job:delete",
-    (_e, args: { contextName?: string; namespace: string; name: string }) =>
-      deleteJob(
-        getContextClients(args.contextName).batchV1,
-        args.namespace,
-        args.name,
-      ),
-  )
-  ipcMain.handle(
-    "k8s:cronjob:delete",
-    (_e, args: { contextName?: string; namespace: string; name: string }) =>
-      deleteCronJob(
         getContextClients(args.contextName).batchV1,
         args.namespace,
         args.name,

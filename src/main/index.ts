@@ -21,7 +21,10 @@ import { registerAwsHandlers } from "./ipc/aws"
 import { registerBatchHandlers } from "./ipc/batch"
 import { registerClusterHandlers } from "./ipc/cluster"
 import { registerConfigHandlers } from "./ipc/config"
-import { createContextClientsCache } from "./ipc/context-clients"
+import {
+  createContextClientsCache,
+  createKubeConfigCache,
+} from "./ipc/context-clients"
 import { registerEventsHandlers } from "./ipc/events"
 import { registerGovernanceHandlers } from "./ipc/governance"
 import { registerHelmHandlers } from "./ipc/helm"
@@ -59,6 +62,8 @@ const { getContextClients, invalidateContext } = createContextClientsCache({
   policyV1: policyV1Api,
   storageV1: storageV1Api,
 })
+
+const getKubeConfig = createKubeConfigCache(kc)
 
 // Export for use in other modules if needed
 export {
@@ -121,7 +126,7 @@ app.whenReady().then(() => {
   ipcMain.on("ping", () => console.log("pong"))
 
   registerClusterHandlers(ipcMain, kc, getContextClients, invalidateContext)
-  registerWorkloadHandlers(ipcMain, appsV1Api, coreV1Api, getContextClients)
+  registerWorkloadHandlers(ipcMain, appsV1Api, getContextClients)
   registerConfigHandlers(ipcMain, coreV1Api, getContextClients)
   registerRbacHandlers(ipcMain, rbacV1Api, getContextClients)
   registerNetworkingHandlers(
@@ -134,7 +139,7 @@ app.whenReady().then(() => {
   registerBatchHandlers(ipcMain, getContextClients)
   registerAutoscalingHandlers(ipcMain, getContextClients)
   registerStorageHandlers(ipcMain, getContextClients)
-  registerApplyHandlers(ipcMain, kc)
+  registerApplyHandlers(ipcMain, getKubeConfig)
   registerAwsHandlers(ipcMain)
   registerAlarmHandlers(ipcMain, getContextClients)
   registerHelmHandlers(ipcMain)

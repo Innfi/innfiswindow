@@ -1,7 +1,9 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
+import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
@@ -29,9 +31,13 @@ function ReadyBadge({ ready }: { ready: boolean | null }): JSX.Element {
 function DetailPanel({
   snap,
   onClose,
+  onDeleted,
+  onDeleteDialogChange,
 }: {
   snap: K8sVolumeSnapshot
   onClose: () => void
+  onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
@@ -56,7 +62,39 @@ function DetailPanel({
             {snap.namespace}
           </span>
         </div>
-        <ClosePanelButton onClose={onClose} />
+        <div className="flex items-center gap-1">
+          <EditButton
+            resourceKind="VolumeSnapshot"
+            resourceName={snap.name}
+            namespace={snap.namespace}
+            buildYaml={() => ({
+              apiVersion: "snapshot.storage.k8s.io/v1",
+              kind: "VolumeSnapshot",
+              metadata: {
+                name: snap.name,
+                namespace: snap.namespace,
+                ...(Object.keys(snap.labels).length > 0 && {
+                  labels: snap.labels,
+                }),
+              },
+              spec: {
+                ...(snap.volumeSnapshotClassName && {
+                  volumeSnapshotClassName: snap.volumeSnapshotClassName,
+                }),
+                source: { persistentVolumeClaimName: snap.sourcePVCName },
+              },
+            })}
+          />
+          <DeleteButton
+            resourceKind="VolumeSnapshot"
+            resourceName={snap.name}
+            namespace={snap.namespace}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+          />
+          <ClosePanelButton onClose={onClose} />
+        </div>
       </div>
 
       <input
@@ -141,7 +179,12 @@ export function VolumeSnapshotsView(): JSX.Element {
         ageColumn<K8sVolumeSnapshot>(),
       ]}
       renderDetail={(snap, ctl: DetailController) => (
-        <DetailPanel snap={snap} onClose={ctl.onClose} />
+        <DetailPanel
+          snap={snap}
+          onClose={ctl.onClose}
+          onDeleted={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
+        />
       )}
     />
   )

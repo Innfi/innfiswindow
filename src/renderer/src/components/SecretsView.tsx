@@ -1,19 +1,10 @@
 ﻿import { Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
 
-import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../components/ui/Dialog"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
@@ -22,7 +13,6 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
-import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sSecret } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -37,13 +27,9 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set())
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
@@ -59,11 +45,6 @@ function DetailPanel({
     )
     .filter(([k, v]) => kv(k, v))
 
-  function setDeleteOpenNotify(open: boolean): void {
-    setDeleteOpen(open)
-    onDeleteDialogChange(open)
-  }
-
   function toggleReveal(key: string): void {
     setRevealedKeys((prev) => {
       const next = new Set(prev)
@@ -71,30 +52,6 @@ function DetailPanel({
       else next.add(key)
       return next
     })
-  }
-
-  async function handleDelete(): Promise<void> {
-    const target = {
-      action: "delete",
-      resourceKind: "Secret",
-      resourceName: secret.name,
-      namespace: secret.namespace,
-    } as const
-    setDeleting(true)
-    setDeleteError(null)
-    try {
-      await window.api.k8s.deleteSecret(secret.namespace, secret.name)
-      recordHistory(target, { success: true })
-      toast.success(`Secret ${secret.name} deleted`)
-      setDeleteOpenNotify(false)
-      onDeleted()
-      onClose()
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      setDeleteError(String(e))
-    } finally {
-      setDeleting(false)
-    }
   }
 
   return (
@@ -131,14 +88,14 @@ function DetailPanel({
                 : {}),
             })}
           />
-          <Button
-            size="sm"
-            variant="destructive"
-            className="h-7 text-xs"
-            onClick={() => setDeleteOpenNotify(true)}
-          >
-            Delete
-          </Button>
+          <DeleteButton
+            resourceKind="Secret"
+            resourceName={secret.name}
+            namespace={secret.namespace}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+          />
           <CopyResourceButton
             name={secret.name}
             namespace={secret.namespace}
@@ -147,38 +104,6 @@ function DetailPanel({
           <ClosePanelButton onClose={onClose} className="ml-1" />
         </div>
       </div>
-
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Secret</DialogTitle>
-            <DialogDescription>
-              Delete <span className="font-mono">{secret.name}</span> from
-              namespace <span className="font-mono">{secret.namespace}</span>?
-              This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteError && (
-            <p className="text-sm text-destructive">{deleteError}</p>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpenNotify(false)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting…" : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <input
         type="text"

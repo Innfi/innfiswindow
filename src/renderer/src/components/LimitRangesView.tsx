@@ -2,6 +2,7 @@ import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
@@ -17,9 +18,13 @@ import { ResourceEventsSection } from "./ResourceEventsSection"
 function DetailPanel({
   limitRange,
   onClose,
+  onDeleted,
+  onDeleteDialogChange,
 }: {
   limitRange: K8sLimitRange
   onClose: () => void
+  onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
@@ -60,6 +65,14 @@ function DetailPanel({
               },
               spec: { limits: limitRange.limits },
             })}
+          />
+          <DeleteButton
+            resourceKind="LimitRange"
+            resourceName={limitRange.name}
+            namespace={limitRange.namespace}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
           />
           <CopyResourceButton
             name={limitRange.name}
@@ -198,7 +211,12 @@ export function LimitRangesView(): JSX.Element {
         ageColumn<K8sLimitRange>(),
       ]}
       renderDetail={(limitRange, ctl: DetailController) => (
-        <DetailPanel limitRange={limitRange} onClose={ctl.onClose} />
+        <DetailPanel
+          limitRange={limitRange}
+          onClose={ctl.onClose}
+          onDeleted={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
+        />
       )}
     />
   )

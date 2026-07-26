@@ -1,7 +1,9 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
+import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
@@ -15,9 +17,13 @@ import { ResourceEventsSection } from "./ResourceEventsSection"
 function DetailPanel({
   sc,
   onClose,
+  onDeleted,
+  onDeleteDialogChange,
 }: {
   sc: K8sStorageClass
   onClose: () => void
+  onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
@@ -43,7 +49,35 @@ function DetailPanel({
           <h2 className="font-semibold text-base mb-1">{sc.name}</h2>
           <span className="text-xs text-muted-foreground">cluster-scoped</span>
         </div>
-        <ClosePanelButton onClose={onClose} />
+        <div className="flex items-center gap-1">
+          <EditButton
+            resourceKind="StorageClass"
+            resourceName={sc.name}
+            buildYaml={() => ({
+              apiVersion: "storage.k8s.io/v1",
+              kind: "StorageClass",
+              metadata: {
+                name: sc.name,
+                ...(Object.keys(sc.labels).length > 0 && { labels: sc.labels }),
+              },
+              provisioner: sc.provisioner,
+              reclaimPolicy: sc.reclaimPolicy,
+              volumeBindingMode: sc.volumeBindingMode,
+              allowVolumeExpansion: sc.allowVolumeExpansion,
+              ...(Object.keys(sc.parameters).length > 0 && {
+                parameters: sc.parameters,
+              }),
+            })}
+          />
+          <DeleteButton
+            resourceKind="StorageClass"
+            resourceName={sc.name}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+          />
+          <ClosePanelButton onClose={onClose} />
+        </div>
       </div>
 
       <input
@@ -135,7 +169,12 @@ export function StorageClassesView(): JSX.Element {
         ageColumn<K8sStorageClass>(),
       ]}
       renderDetail={(sc, ctl: DetailController) => (
-        <DetailPanel sc={sc} onClose={ctl.onClose} />
+        <DetailPanel
+          sc={sc}
+          onClose={ctl.onClose}
+          onDeleted={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
+        />
       )}
     />
   )

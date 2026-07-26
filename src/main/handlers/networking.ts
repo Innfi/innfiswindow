@@ -4,7 +4,6 @@ import { CoreV1Api, NetworkingV1Api } from "@kubernetes/client-node"
 import {
   EndpointInfo,
   IngressInfo,
-  MutationResult,
   NetworkPolicyInfo,
   ResourceRef,
   ServiceInfo,
@@ -161,15 +160,6 @@ export async function updateService(
   }
 }
 
-export async function deleteService(
-  api: CoreV1Api,
-  namespace: string,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteNamespacedService({ name, namespace })
-  return { success: true, name, namespace }
-}
-
 export async function replaceServiceFromYaml(
   api: CoreV1Api,
   namespace: string,
@@ -266,15 +256,6 @@ export async function updateIngress(
     name: res.metadata?.name ?? "",
     namespace: res.metadata?.namespace ?? "",
   }
-}
-
-export async function deleteIngress(
-  api: NetworkingV1Api,
-  namespace: string,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteNamespacedIngress({ name, namespace })
-  return { success: true, name, namespace }
 }
 
 export async function replaceIngressFromYaml(

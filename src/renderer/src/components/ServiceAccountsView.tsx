@@ -1,19 +1,9 @@
-﻿import { Trash2 } from "lucide-react"
-import { useState } from "react"
-import { toast } from "sonner"
+﻿import { useState } from "react"
 
-import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../components/ui/Dialog"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
@@ -22,8 +12,6 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
-import { useAppStore } from "../../store/app.store"
-import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sServiceAccount } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -38,11 +26,8 @@ function DetailPanel({
   onDeleteSuccess: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
-  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
 
@@ -53,39 +38,6 @@ function DetailPanel({
         !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
     )
     .filter(([k, v]) => kv(k, v))
-
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-
-  function setDeleteOpenNotify(open: boolean): void {
-    setDeleteOpen(open)
-    onDeleteDialogChange(open)
-  }
-
-  async function handleDelete(): Promise<void> {
-    const target = {
-      action: "delete",
-      resourceKind: "ServiceAccount",
-      resourceName: sa.name,
-      namespace: sa.namespace,
-    } as const
-    setDeleting(true)
-    setDeleteError(null)
-    try {
-      await window.api.k8s.deleteServiceAccount(sa.namespace, sa.name)
-      recordHistory(target, { success: true })
-      toast.success(`ServiceAccount ${sa.name} deleted`)
-      setDeleteOpenNotify(false)
-      setSelectedItem(null)
-      onDeleteSuccess()
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      setDeleteError(String(e))
-    } finally {
-      setDeleting(false)
-    }
-  }
 
   return (
     <DetailPanelLayout>
@@ -112,15 +64,14 @@ function DetailPanel({
               },
             })}
           />
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-destructive hover:text-destructive"
-            onClick={() => setDeleteOpenNotify(true)}
-          >
-            <Trash2 className="h-3 w-3 mr-1" />
-            Delete
-          </Button>
+          <DeleteButton
+            resourceKind="ServiceAccount"
+            resourceName={sa.name}
+            namespace={sa.namespace}
+            onDeleted={onDeleteSuccess}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+          />
           <CopyResourceButton
             name={sa.name}
             namespace={sa.namespace}
@@ -129,35 +80,6 @@ function DetailPanel({
           <ClosePanelButton onClose={onClose} />
         </div>
       </div>
-
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete ServiceAccount</DialogTitle>
-            <DialogDescription>
-              Delete service account <strong>{sa.name}</strong> in namespace{" "}
-              <strong>{sa.namespace}</strong>? This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpenNotify(false)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <input
         type="text"

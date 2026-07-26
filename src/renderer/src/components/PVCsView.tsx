@@ -2,6 +2,7 @@
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
@@ -28,9 +29,13 @@ function pvcStatusClass(status: string): string {
 function DetailPanel({
   pvc,
   onClose,
+  onDeleted,
+  onDeleteDialogChange,
 }: {
   pvc: K8sPVC
   onClose: () => void
+  onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
@@ -74,6 +79,14 @@ function DetailPanel({
                 resources: { requests: { storage: pvc.capacity } },
               },
             })}
+          />
+          <DeleteButton
+            resourceKind="PersistentVolumeClaim"
+            resourceName={pvc.name}
+            namespace={pvc.namespace}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
           />
           <CopyResourceButton
             name={pvc.name}
@@ -188,7 +201,12 @@ export function PVCsView(): JSX.Element {
         ageColumn<K8sPVC>(),
       ]}
       renderDetail={(pvc, ctl: DetailController) => (
-        <DetailPanel pvc={pvc} onClose={ctl.onClose} />
+        <DetailPanel
+          pvc={pvc}
+          onClose={ctl.onClose}
+          onDeleted={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
+        />
       )}
     />
   )

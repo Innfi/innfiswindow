@@ -1,18 +1,10 @@
 ﻿import { ArrowLeftRight } from "lucide-react"
 import { useEffect, useState } from "react"
-import { toast } from "sonner"
 
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../../components/ui/AlertDialog"
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
@@ -24,7 +16,6 @@ import {
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sEndpoint, K8sService, K8sServicePort } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -47,11 +38,8 @@ function DetailPanel({
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
-  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [endpoints, setEndpoints] = useState<K8sEndpoint | null>(null)
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
@@ -69,11 +57,6 @@ function DetailPanel({
       .catch(() => setEndpoints(null))
   }, [svc.name, svc.namespace, selectedContext])
 
-  function setDeleteOpenNotify(open: boolean): void {
-    setDeleteOpen(open)
-    onDeleteDialogChange(open)
-  }
-
   const selectorEntries = Object.entries(svc.selector).filter(([k, v]) =>
     kv(k, v),
   )
@@ -84,31 +67,6 @@ function DetailPanel({
         !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
     )
     .filter(([k, v]) => kv(k, v))
-
-  async function handleDelete(): Promise<void> {
-    const target = {
-      action: "delete",
-      resourceKind: "Service",
-      resourceName: svc.name,
-      namespace: svc.namespace,
-    } as const
-    setDeleting(true)
-    try {
-      await window.api.k8s.deleteService(svc.namespace, svc.name)
-      recordHistory(target, { success: true })
-      toast.success(`Service ${svc.name} deleted`)
-      setDeleteOpenNotify(false)
-      onDeleted()
-      onClose()
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      toast.error(String(e))
-      useAppStore.getState().addGlobalError(String(e), "Service: delete")
-      setDeleteOpenNotify(false)
-    } finally {
-      setDeleting(false)
-    }
-  }
 
   const allEndpointIPs = endpoints
     ? endpoints.subsets.flatMap((s) =>
@@ -173,14 +131,14 @@ function DetailPanel({
               },
             })}
           />
-          <Button
-            size="sm"
-            variant="destructive"
-            className="h-7 text-xs"
-            onClick={() => setDeleteOpenNotify(true)}
-          >
-            Delete
-          </Button>
+          <DeleteButton
+            resourceKind="Service"
+            resourceName={svc.name}
+            namespace={svc.namespace}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+          />
           <CopyResourceButton
             name={svc.name}
             namespace={svc.namespace}
@@ -325,37 +283,6 @@ function DetailPanel({
         kind="Service"
         search={sl}
       />
-
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Service</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete{" "}
-              <strong>
-                {svc.namespace}/{svc.name}
-              </strong>
-              ? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpenNotify(false)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting…" : "Delete"}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </DetailPanelLayout>
   )
 }

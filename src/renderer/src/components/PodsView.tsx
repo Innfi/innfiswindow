@@ -1,19 +1,11 @@
 import { ArrowLeftRight, ScrollText, SquareTerminal } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
 
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../components/ui/Dialog"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
@@ -24,7 +16,6 @@ import {
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sPod } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { PodMetricsSection } from "./PodMetricsSection"
@@ -106,15 +97,11 @@ function DetailPanel({
   onDeleteSuccess: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   const [selectedContainer, setSelectedContainer] = useState(
     pod.containers[0]?.name ?? "",
   )
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
@@ -128,35 +115,6 @@ function DetailPanel({
         !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
     )
     .filter(([k, v]) => kv(k, v))
-
-  function setDeleteOpenNotify(open: boolean): void {
-    setDeleteOpen(open)
-    onDeleteDialogChange(open)
-  }
-
-  async function handleDelete(): Promise<void> {
-    const target = {
-      action: "delete",
-      resourceKind: "Pod",
-      resourceName: pod.name,
-      namespace: pod.namespace,
-    } as const
-    setDeleting(true)
-    setDeleteError(null)
-    try {
-      await window.api.k8s.deletePod(pod.namespace, pod.name)
-      recordHistory(target, { success: true })
-      toast.success(`Pod ${pod.name} deleted`)
-      setDeleteOpenNotify(false)
-      onDeleteSuccess()
-      onClose()
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      setDeleteError(String(e))
-    } finally {
-      setDeleting(false)
-    }
-  }
 
   return (
     <DetailPanelLayout>
@@ -202,14 +160,14 @@ function DetailPanel({
           >
             <ArrowLeftRight className="h-4 w-4" />
           </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="h-7 text-xs"
-            onClick={() => setDeleteOpenNotify(true)}
-          >
-            Delete
-          </Button>
+          <DeleteButton
+            resourceKind="Pod"
+            resourceName={pod.name}
+            namespace={pod.namespace}
+            onDeleted={onDeleteSuccess}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+          />
           <CopyResourceButton
             name={pod.name}
             namespace={pod.namespace}
@@ -377,38 +335,6 @@ function DetailPanel({
       />
 
       <PodMetricsSection namespace={pod.namespace} podName={pod.name} />
-
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
-        <DialogContent onClose={() => setDeleteOpenNotify(false)}>
-          <DialogHeader>
-            <DialogTitle>Delete Pod</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete{" "}
-              <strong>
-                {pod.namespace}/{pod.name}
-              </strong>
-              ? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpenNotify(false)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </DetailPanelLayout>
   )
 }
@@ -483,10 +409,7 @@ export function PodsView(): JSX.Element {
               targetPort: 8080,
             })
           }}
-          onDeleteSuccess={() => {
-            ctl.onClose()
-            ctl.onDeleted()
-          }}
+          onDeleteSuccess={ctl.onDeleted}
           onDeleteDialogChange={ctl.onDeleteDialogChange}
         />
       )}

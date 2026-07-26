@@ -3,7 +3,6 @@ import { CoreV1Api, RbacAuthorizationV1Api } from "@kubernetes/client-node"
 import {
   ClusterRoleBindingInfo,
   ClusterRoleInfo,
-  MutationResult,
   RoleBindingInfo,
   RoleInfo,
   UpdateClusterRoleBindingResult,
@@ -190,47 +189,4 @@ export async function updateServiceAccount(
     labels: res.metadata?.labels ?? {},
     annotations: res.metadata?.annotations ?? {},
   }
-}
-
-export async function deleteRole(
-  api: RbacAuthorizationV1Api,
-  namespace: string,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteNamespacedRole({ name, namespace })
-  return { success: true, name, namespace }
-}
-
-export async function deleteClusterRole(
-  api: RbacAuthorizationV1Api,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteClusterRole({ name })
-  return { success: true, name }
-}
-
-export async function deleteRoleBinding(
-  api: RbacAuthorizationV1Api,
-  namespace: string,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteNamespacedRoleBinding({ name, namespace })
-  return { success: true, name, namespace }
-}
-
-export async function deleteClusterRoleBinding(
-  api: RbacAuthorizationV1Api,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteClusterRoleBinding({ name })
-  return { success: true, name }
-}
-
-export async function deleteServiceAccount(
-  api: CoreV1Api,
-  namespace: string,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteNamespacedServiceAccount({ name, namespace })
-  return { success: true, name, namespace }
 }

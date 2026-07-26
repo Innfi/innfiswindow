@@ -1,18 +1,48 @@
 import { IpcMain } from "electron"
-import { KubeConfig } from "@kubernetes/client-node"
 
-import { applyResource, readResource, replaceResource } from "../k8s-handlers"
+import {
+  applyResource,
+  deleteResource,
+  readResource,
+  replaceResource,
+} from "../k8s-handlers"
+import { GetKubeConfig } from "./context-clients"
 
-export function registerApplyHandlers(ipcMain: IpcMain, kc: KubeConfig): void {
+export function registerApplyHandlers(
+  ipcMain: IpcMain,
+  getKubeConfig: GetKubeConfig,
+): void {
   ipcMain.handle("k8s:resource:apply", (_e, yaml: string) =>
-    applyResource(kc, yaml),
+    applyResource(getKubeConfig(), yaml),
   )
   ipcMain.handle("k8s:resource:replace", (_e, yaml: string) =>
-    replaceResource(kc, yaml),
+    replaceResource(getKubeConfig(), yaml),
   )
   ipcMain.handle(
     "k8s:resource:read",
     (_e, apiVersion: string, kind: string, name: string, namespace?: string) =>
-      readResource(kc, apiVersion, kind, name, namespace),
+      readResource(getKubeConfig(), apiVersion, kind, name, namespace),
+  )
+  ipcMain.handle(
+    "k8s:resource:delete",
+    (
+      _e,
+      args: {
+        apiVersion: string
+        kind: string
+        name: string
+        namespace?: string
+        contextName?: string
+        propagationPolicy?: string
+      },
+    ) =>
+      deleteResource(
+        getKubeConfig(args.contextName),
+        args.apiVersion,
+        args.kind,
+        args.name,
+        args.namespace,
+        args.propagationPolicy,
+      ),
   )
 }

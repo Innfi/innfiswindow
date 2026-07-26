@@ -2,6 +2,7 @@
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
@@ -18,9 +19,13 @@ import { ResourceEventsSection } from "./ResourceEventsSection"
 function DetailPanel({
   ns,
   onClose,
+  onDeleted,
+  onDeleteDialogChange,
 }: {
   ns: K8sNamespace
   onClose: () => void
+  onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
@@ -65,6 +70,14 @@ function DetailPanel({
                 annotations: ns.annotations,
               },
             })}
+          />
+          <DeleteButton
+            resourceKind="Namespace"
+            resourceName={ns.name}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+            warning="Every resource in this namespace is deleted with it."
           />
           <CopyResourceButton name={ns.name} resourceKind="namespace" />
           <ClosePanelButton onClose={onClose} />
@@ -129,7 +142,12 @@ export function NamespacesView(): JSX.Element {
         ageColumn<K8sNamespace>(),
       ]}
       renderDetail={(ns, ctl: DetailController) => (
-        <DetailPanel ns={ns} onClose={ctl.onClose} />
+        <DetailPanel
+          ns={ns}
+          onClose={ctl.onClose}
+          onDeleted={ctl.onDeleted}
+          onDeleteDialogChange={ctl.onDeleteDialogChange}
+        />
       )}
     />
   )

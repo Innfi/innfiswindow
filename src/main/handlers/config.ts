@@ -3,7 +3,6 @@ import { CoreV1Api } from "@kubernetes/client-node"
 
 import {
   ConfigMapInfo,
-  MutationResult,
   ResourceRef,
   SecretInfo,
   ServiceAccountInfo,
@@ -79,15 +78,6 @@ export async function replaceConfigMapFromYaml(
   }
 }
 
-export async function deleteConfigMap(
-  api: CoreV1Api,
-  namespace: string,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteNamespacedConfigMap({ name, namespace })
-  return { success: true, name, namespace }
-}
-
 export async function replaceSecretFromYaml(
   api: CoreV1Api,
   namespace: string,
@@ -100,13 +90,4 @@ export async function replaceSecretFromYaml(
     name: res.metadata?.name ?? "",
     namespace: res.metadata?.namespace ?? "",
   }
-}
-
-export async function deleteSecret(
-  api: CoreV1Api,
-  namespace: string,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteNamespacedSecret({ name, namespace })
-  return { success: true, name, namespace }
 }

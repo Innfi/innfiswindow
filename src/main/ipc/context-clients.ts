@@ -29,6 +29,24 @@ export type GetContextClients = (contextName?: string | null) => ApiClients
  *  fresh KubeConfig, re-running the exec credential plugin (e.g. for EKS). */
 export type InvalidateContext = (contextName?: string | null) => void
 
+/** Resolves the KubeConfig for a context, for APIs that need the config itself
+ *  (KubernetesObjectApi) rather than a typed client. */
+export type GetKubeConfig = (contextName?: string | null) => KubeConfig
+
+export function createKubeConfigCache(defaultKc: KubeConfig): GetKubeConfig {
+  const cache = new Map<string, KubeConfig>()
+  return (contextName?: string | null): KubeConfig => {
+    if (!contextName) return defaultKc
+    const cached = cache.get(contextName)
+    if (cached) return cached
+    const ctxKc = new KubeConfig()
+    ctxKc.loadFromDefault()
+    ctxKc.setCurrentContext(contextName)
+    cache.set(contextName, ctxKc)
+    return ctxKc
+  }
+}
+
 export function createContextClientsCache(defaultClients: ApiClients): {
   getContextClients: GetContextClients
   invalidateContext: InvalidateContext

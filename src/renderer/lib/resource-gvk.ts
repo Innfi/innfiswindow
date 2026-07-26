@@ -47,6 +47,13 @@ const GVK: Record<YamlEditKind, ResourceGvk> = {
     apiVersion: "rbac.authorization.k8s.io/v1",
     kind: "ClusterRoleBinding",
   },
+  Node: { apiVersion: "v1", kind: "Node" },
+  Endpoints: { apiVersion: "v1", kind: "Endpoints" },
+  StorageClass: { apiVersion: "storage.k8s.io/v1", kind: "StorageClass" },
+  VolumeSnapshot: {
+    apiVersion: "snapshot.storage.k8s.io/v1",
+    kind: "VolumeSnapshot",
+  },
 }
 
 export function resourceGvk(kind: YamlEditKind): ResourceGvk {

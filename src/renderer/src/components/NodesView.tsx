@@ -2,7 +2,9 @@
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
+import { EditButton } from "../../components/ui/EditButton"
 import { EmptyState } from "../../components/ui/EmptyState"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import { RefreshBar } from "../../components/ui/RefreshBar"
@@ -156,11 +158,15 @@ function DetailPanel({
   metric,
   metricsUnavailable,
   onClose,
+  onDeleted,
+  onDeleteDialogChange,
 }: {
   node: K8sNode
   metric: NodeMetric | undefined
   metricsUnavailable: boolean
   onClose: () => void
+  onDeleted: () => void
+  onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
@@ -199,6 +205,38 @@ function DetailPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
+          <EditButton
+            resourceKind="Node"
+            resourceName={node.name}
+            buildYaml={() => ({
+              apiVersion: "v1",
+              kind: "Node",
+              metadata: {
+                name: node.name,
+                labels: node.labels,
+                ...(Object.keys(node.annotations ?? {}).length > 0 && {
+                  annotations: node.annotations,
+                }),
+              },
+              spec: {
+                ...(node.taints.length > 0 && {
+                  taints: node.taints.map((t) => ({
+                    key: t.key,
+                    value: t.value,
+                    effect: t.effect,
+                  })),
+                }),
+              },
+            })}
+          />
+          <DeleteButton
+            resourceKind="Node"
+            resourceName={node.name}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+            warning="Removes the node from the cluster. Drain it first — running pods are not evicted gracefully."
+          />
           <CopyResourceButton name={node.name} resourceKind="node" />
           <ClosePanelButton onClose={onClose} />
         </div>
@@ -397,6 +435,8 @@ export function NodesView(): JSX.Element {
   const nameFilter = useAppStore((s) => s.nameFilter)
   const refreshInterval = useAppStore((s) => s.refreshInterval)
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
   const {
     data: nodes,
     loading,
@@ -406,6 +446,7 @@ export function NodesView(): JSX.Element {
   } = useK8sResource(
     (ctx) => window.api.k8s.listNodes({ contextName: ctx }),
     selectedContext,
+    { paused: deleteDialogOpen },
   )
 
   const [metricsMap, setMetricsMap] = useState<Map<string, NodeMetric>>(
@@ -536,6 +577,8 @@ export function NodesView(): JSX.Element {
           metric={metricsMap.get(selectedItem.name)}
           metricsUnavailable={metricsUnavailable}
           onClose={() => setSelectedItem(null)}
+          onDeleted={reload}
+          onDeleteDialogChange={setDeleteDialogOpen}
         />
       )}
     </div>

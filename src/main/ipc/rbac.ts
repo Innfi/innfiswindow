@@ -2,10 +2,6 @@ import { IpcMain } from "electron"
 import { RbacAuthorizationV1Api } from "@kubernetes/client-node"
 
 import {
-  deleteClusterRole,
-  deleteClusterRoleBinding,
-  deleteRole,
-  deleteRoleBinding,
   listClusterRoleBindings,
   listClusterRoles,
   listRoleBindings,
@@ -87,20 +83,5 @@ export function registerRbacHandlers(
       name: string,
       subjects: Array<{ kind: string; name: string; namespace?: string }>,
     ) => updateClusterRoleBinding(rbacV1Api, name, subjects),
-  )
-
-  ipcMain.handle("k8s:role:delete", (_e, namespace: string, name: string) =>
-    deleteRole(rbacV1Api, namespace, name),
-  )
-  ipcMain.handle("k8s:clusterrole:delete", (_e, name: string) =>
-    deleteClusterRole(rbacV1Api, name),
-  )
-  ipcMain.handle(
-    "k8s:rolebinding:delete",
-    (_e, namespace: string, name: string) =>
-      deleteRoleBinding(rbacV1Api, namespace, name),
-  )
-  ipcMain.handle("k8s:clusterrolebinding:delete", (_e, name: string) =>
-    deleteClusterRoleBinding(rbacV1Api, name),
   )
 }

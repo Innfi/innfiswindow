@@ -1,14 +1,10 @@
 import { IpcMain } from "electron"
-import { AppsV1Api, CoreV1Api } from "@kubernetes/client-node"
+import { AppsV1Api } from "@kubernetes/client-node"
 
 import {
   createDaemonSet,
   createDeployment,
   createStatefulSet,
-  deleteDaemonSet,
-  deleteDeployment,
-  deletePod,
-  deleteStatefulSet,
   listDaemonSets,
   listDeploymentHistory,
   listDeployments,
@@ -28,7 +24,6 @@ import { GetContextClients } from "./context-clients"
 export function registerWorkloadHandlers(
   ipcMain: IpcMain,
   appsV1Api: AppsV1Api,
-  coreV1Api: CoreV1Api,
   getContextClients: GetContextClients,
 ): void {
   ipcMain.handle(
@@ -62,11 +57,6 @@ export function registerWorkloadHandlers(
     "k8s:deployment:update",
     (_e, namespace: string, name: string, yaml: string) =>
       replaceDeploymentFromYaml(appsV1Api, namespace, name, yaml),
-  )
-  ipcMain.handle(
-    "k8s:deployment:delete",
-    (_e, namespace: string, name: string) =>
-      deleteDeployment(appsV1Api, namespace, name),
   )
   ipcMain.handle(
     "k8s:deployment:restart",
@@ -139,11 +129,6 @@ export function registerWorkloadHandlers(
       replaceStatefulSetFromYaml(appsV1Api, namespace, name, yaml),
   )
   ipcMain.handle(
-    "k8s:statefulset:delete",
-    (_e, namespace: string, name: string) =>
-      deleteStatefulSet(appsV1Api, namespace, name),
-  )
-  ipcMain.handle(
     "k8s:statefulset:restart",
     (_e, args: { contextName?: string; namespace: string; name: string }) =>
       restartStatefulSet(
@@ -164,11 +149,6 @@ export function registerWorkloadHandlers(
       replaceDaemonSetFromYaml(appsV1Api, namespace, name, yaml),
   )
   ipcMain.handle(
-    "k8s:daemonset:delete",
-    (_e, namespace: string, name: string) =>
-      deleteDaemonSet(appsV1Api, namespace, name),
-  )
-  ipcMain.handle(
     "k8s:daemonset:restart",
     (_e, args: { contextName?: string; namespace: string; name: string }) =>
       restartDaemonSet(
@@ -176,9 +156,5 @@ export function registerWorkloadHandlers(
         args.namespace,
         args.name,
       ),
-  )
-
-  ipcMain.handle("k8s:pod:delete", (_e, namespace: string, name: string) =>
-    deletePod(coreV1Api, namespace, name),
   )
 }

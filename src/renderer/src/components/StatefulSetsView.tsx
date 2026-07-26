@@ -12,6 +12,7 @@ import {
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
@@ -42,8 +43,6 @@ function DetailPanel({
   const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [restartOpen, setRestartOpen] = useState(false)
   const [restarting, setRestarting] = useState(false)
 
@@ -93,36 +92,6 @@ function DetailPanel({
     }
   }
 
-  function setDeleteOpenNotify(open: boolean): void {
-    setDeleteOpen(open)
-    onDeleteDialogChange(open)
-  }
-
-  async function handleDelete(): Promise<void> {
-    const target = {
-      action: "delete",
-      resourceKind: "StatefulSet",
-      resourceName: ss.name,
-      namespace: ss.namespace,
-    } as const
-    setDeleting(true)
-    try {
-      await window.api.k8s.deleteStatefulSet(ss.namespace, ss.name)
-      recordHistory(target, { success: true })
-      toast.success(`StatefulSet ${ss.name} deleted`)
-      setDeleteOpenNotify(false)
-      onDeleted()
-      onClose()
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      toast.error(String(e))
-      useAppStore.getState().addGlobalError(String(e), "StatefulSet: delete")
-      setDeleteOpenNotify(false)
-    } finally {
-      setDeleting(false)
-    }
-  }
-
   return (
     <DetailPanelLayout>
       {/* Header */}
@@ -165,14 +134,14 @@ function DetailPanel({
           >
             Restart
           </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="h-7 text-xs"
-            onClick={() => setDeleteOpenNotify(true)}
-          >
-            Delete
-          </Button>
+          <DeleteButton
+            resourceKind="StatefulSet"
+            resourceName={ss.name}
+            namespace={ss.namespace}
+            onDeleted={onDeleted}
+            onDeleteDialogChange={onDeleteDialogChange}
+            onClose={onClose}
+          />
           <CopyResourceButton
             name={ss.name}
             namespace={ss.namespace}
@@ -341,37 +310,6 @@ function DetailPanel({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpenNotify}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete StatefulSet</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete{" "}
-              <strong>
-                {ss.namespace}/{ss.name}
-              </strong>
-              ? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpenNotify(false)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting…" : "Delete"}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </DetailPanelLayout>
   )
 }
@@ -394,10 +332,7 @@ export function StatefulSetsView(): JSX.Element {
         <DetailPanel
           ss={ss}
           onClose={ctl.onClose}
-          onDeleted={() => {
-            ctl.onDeleted()
-            ctl.onClose()
-          }}
+          onDeleted={ctl.onDeleted}
           onDeleteDialogChange={ctl.onDeleteDialogChange}
         />
       )}

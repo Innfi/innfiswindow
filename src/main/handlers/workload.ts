@@ -498,15 +498,6 @@ export async function updateDeployment(
   }
 }
 
-export async function deleteDeployment(
-  api: AppsV1Api,
-  namespace: string,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteNamespacedDeployment({ name, namespace })
-  return { success: true, name, namespace }
-}
-
 export async function replaceDeploymentFromYaml(
   api: AppsV1Api,
   namespace: string,
@@ -574,15 +565,6 @@ export async function updateStatefulSet(
   }
 }
 
-export async function deleteStatefulSet(
-  api: AppsV1Api,
-  namespace: string,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteNamespacedStatefulSet({ name, namespace })
-  return { success: true, name, namespace }
-}
-
 export async function replaceStatefulSetFromYaml(
   api: AppsV1Api,
   namespace: string,
@@ -644,15 +626,6 @@ export async function updateDaemonSet(
   }
 }
 
-export async function deleteDaemonSet(
-  api: AppsV1Api,
-  namespace: string,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteNamespacedDaemonSet({ name, namespace })
-  return { success: true, name, namespace }
-}
-
 export async function replaceDaemonSetFromYaml(
   api: AppsV1Api,
   namespace: string,
@@ -665,15 +638,6 @@ export async function replaceDaemonSetFromYaml(
     name: res.metadata?.name ?? "",
     namespace: res.metadata?.namespace ?? "",
   }
-}
-
-export async function deletePod(
-  api: CoreV1Api,
-  namespace: string,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteNamespacedPod({ name, namespace })
-  return { success: true, name, namespace }
 }
 
 export async function listDeploymentHistory(

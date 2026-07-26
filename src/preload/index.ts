@@ -107,16 +107,6 @@ const api = {
       namespace: string
       name: string
     }) => ipcRenderer.invoke("k8s:cronjob:trigger", args),
-    deleteJob: (args: {
-      contextName?: string
-      namespace: string
-      name: string
-    }) => ipcRenderer.invoke("k8s:job:delete", args),
-    deleteCronJob: (args: {
-      contextName?: string
-      namespace: string
-      name: string
-    }) => ipcRenderer.invoke("k8s:cronjob:delete", args),
     getNodeMetrics: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:node:metrics", args),
     listPods: (args?: { contextName?: string }) =>
@@ -145,8 +135,6 @@ const api = {
       ),
     updateDeployment: (namespace: string, name: string, yaml: string) =>
       ipcRenderer.invoke("k8s:deployment:update", namespace, name, yaml),
-    deleteDeployment: (namespace: string, name: string) =>
-      ipcRenderer.invoke("k8s:deployment:delete", namespace, name),
     restartDeployment: (args: {
       contextName?: string
       namespace: string
@@ -181,8 +169,6 @@ const api = {
       ),
     updateStatefulSet: (namespace: string, name: string, yaml: string) =>
       ipcRenderer.invoke("k8s:statefulset:update", namespace, name, yaml),
-    deleteStatefulSet: (namespace: string, name: string) =>
-      ipcRenderer.invoke("k8s:statefulset:delete", namespace, name),
     restartStatefulSet: (args: {
       contextName?: string
       namespace: string
@@ -192,8 +178,6 @@ const api = {
       ipcRenderer.invoke("k8s:daemonset:create", namespace, name, image),
     updateDaemonSet: (namespace: string, name: string, yaml: string) =>
       ipcRenderer.invoke("k8s:daemonset:update", namespace, name, yaml),
-    deleteDaemonSet: (namespace: string, name: string) =>
-      ipcRenderer.invoke("k8s:daemonset:delete", namespace, name),
     restartDaemonSet: (args: {
       contextName?: string
       namespace: string
@@ -220,8 +204,6 @@ const api = {
       ),
     updateService: (namespace: string, name: string, yaml: string) =>
       ipcRenderer.invoke("k8s:service:update", namespace, name, yaml),
-    deleteService: (namespace: string, name: string) =>
-      ipcRenderer.invoke("k8s:service:delete", namespace, name),
     createIngress: (
       namespace: string,
       name: string,
@@ -245,10 +227,16 @@ const api = {
       ),
     updateIngress: (namespace: string, name: string, yaml: string) =>
       ipcRenderer.invoke("k8s:ingress:update", namespace, name, yaml),
-    deleteIngress: (namespace: string, name: string) =>
-      ipcRenderer.invoke("k8s:ingress:delete", namespace, name),
     applyResource: (yaml: string) =>
       ipcRenderer.invoke("k8s:resource:apply", yaml),
+    deleteResource: (args: {
+      apiVersion: string
+      kind: string
+      name: string
+      namespace?: string
+      contextName?: string
+      propagationPolicy?: string
+    }) => ipcRenderer.invoke("k8s:resource:delete", args),
     replaceResource: (yaml: string) =>
       ipcRenderer.invoke("k8s:resource:replace", yaml),
     readResource: (
@@ -266,24 +254,8 @@ const api = {
       ),
     updateConfigMap: (namespace: string, name: string, yaml: string) =>
       ipcRenderer.invoke("k8s:configmap:update", namespace, name, yaml),
-    deleteConfigMap: (namespace: string, name: string) =>
-      ipcRenderer.invoke("k8s:configmap:delete", namespace, name),
     updateSecret: (namespace: string, name: string, yaml: string) =>
       ipcRenderer.invoke("k8s:secret:update", namespace, name, yaml),
-    deleteSecret: (namespace: string, name: string) =>
-      ipcRenderer.invoke("k8s:secret:delete", namespace, name),
-    deletePod: (namespace: string, name: string) =>
-      ipcRenderer.invoke("k8s:pod:delete", namespace, name),
-    deleteRole: (namespace: string, name: string) =>
-      ipcRenderer.invoke("k8s:role:delete", namespace, name),
-    deleteClusterRole: (name: string) =>
-      ipcRenderer.invoke("k8s:clusterrole:delete", name),
-    deleteRoleBinding: (namespace: string, name: string) =>
-      ipcRenderer.invoke("k8s:rolebinding:delete", namespace, name),
-    deleteClusterRoleBinding: (name: string) =>
-      ipcRenderer.invoke("k8s:clusterrolebinding:delete", name),
-    deleteServiceAccount: (namespace: string, name: string) =>
-      ipcRenderer.invoke("k8s:serviceaccount:delete", namespace, name),
   },
   startPodLog: (
     namespace: string,

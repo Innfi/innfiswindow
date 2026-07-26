@@ -160,28 +160,6 @@ export async function restartJob(
   return { success: true, name, namespace }
 }
 
-export async function deleteJob(
-  api: BatchV1Api,
-  namespace: string,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteNamespacedJob({
-    name,
-    namespace,
-    propagationPolicy: "Background",
-  })
-  return { success: true, name, namespace }
-}
-
-export async function deleteCronJob(
-  api: BatchV1Api,
-  namespace: string,
-  name: string,
-): Promise<MutationResult> {
-  await api.deleteNamespacedCronJob({ name, namespace })
-  return { success: true, name, namespace }
-}
-
 /** CronJobs have no restart; the equivalent is manually instantiating a Job
  *  from the jobTemplate now — same as `kubectl create job --from=cronjob/x`. */
 export async function triggerCronJob(
