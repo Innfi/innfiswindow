@@ -42,56 +42,59 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <DetailPanelLayout>
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{ns.name}</h2>
-          <span
-            className={cn(
-              "inline-block rounded px-2 py-0.5 text-xs font-medium",
-              ns.status === "Active"
-                ? "bg-green-100 text-green-800"
-                : "bg-yellow-100 text-yellow-800",
-            )}
-          >
-            {ns.status}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="Namespace"
-            resourceName={ns.name}
-            buildYaml={() => ({
-              apiVersion: "v1",
-              kind: "Namespace",
-              metadata: {
-                name: ns.name,
-                labels: ns.labels,
-                annotations: ns.annotations,
-              },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{ns.name}</h2>
+              <span
+                className={cn(
+                  "inline-block rounded px-2 py-0.5 text-xs font-medium",
+                  ns.status === "Active"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-yellow-100 text-yellow-800",
+                )}
+              >
+                {ns.status}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="Namespace"
+                resourceName={ns.name}
+                buildYaml={() => ({
+                  apiVersion: "v1",
+                  kind: "Namespace",
+                  metadata: {
+                    name: ns.name,
+                    labels: ns.labels,
+                    annotations: ns.annotations,
+                  },
+                })}
+              />
+              <DeleteButton
+                resourceKind="Namespace"
+                resourceName={ns.name}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+                warning="Every resource in this namespace is deleted with it."
+              />
+              <CopyResourceButton name={ns.name} resourceKind="namespace" />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="Namespace"
-            resourceName={ns.name}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-            warning="Every resource in this namespace is deleted with it."
-          />
-          <CopyResourceButton name={ns.name} resourceKind="namespace" />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       <div className="space-y-1">
         <SectionHeader title="Metadata" />
         <MetaEntry

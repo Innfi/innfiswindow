@@ -44,63 +44,67 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <DetailPanelLayout>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{pdb.name}</h2>
-          <span className="text-xs text-muted-foreground">{pdb.namespace}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="PodDisruptionBudget"
-            resourceName={pdb.name}
-            namespace={pdb.namespace}
-            buildYaml={() => ({
-              apiVersion: "policy/v1",
-              kind: "PodDisruptionBudget",
-              metadata: {
-                name: pdb.name,
-                namespace: pdb.namespace,
-                labels: pdb.labels,
-                annotations: pdb.annotations,
-              },
-              spec: {
-                ...(pdb.minAvailable != null
-                  ? { minAvailable: pdb.minAvailable }
-                  : {}),
-                ...(pdb.maxUnavailable != null
-                  ? { maxUnavailable: pdb.maxUnavailable }
-                  : {}),
-                selector: { matchLabels: pdb.selector },
-              },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{pdb.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {pdb.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="PodDisruptionBudget"
+                resourceName={pdb.name}
+                namespace={pdb.namespace}
+                buildYaml={() => ({
+                  apiVersion: "policy/v1",
+                  kind: "PodDisruptionBudget",
+                  metadata: {
+                    name: pdb.name,
+                    namespace: pdb.namespace,
+                    labels: pdb.labels,
+                    annotations: pdb.annotations,
+                  },
+                  spec: {
+                    ...(pdb.minAvailable != null
+                      ? { minAvailable: pdb.minAvailable }
+                      : {}),
+                    ...(pdb.maxUnavailable != null
+                      ? { maxUnavailable: pdb.maxUnavailable }
+                      : {}),
+                    selector: { matchLabels: pdb.selector },
+                  },
+                })}
+              />
+              <DeleteButton
+                resourceKind="PodDisruptionBudget"
+                resourceName={pdb.name}
+                namespace={pdb.namespace}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={pdb.name}
+                namespace={pdb.namespace}
+                resourceKind="poddisruptionbudget"
+              />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="PodDisruptionBudget"
-            resourceName={pdb.name}
-            namespace={pdb.namespace}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={pdb.name}
-            namespace={pdb.namespace}
-            resourceKind="poddisruptionbudget"
-          />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       {/* Spec */}
       <div className="space-y-1">
         <SectionHeader title="Spec" />

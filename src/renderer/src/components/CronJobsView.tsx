@@ -91,72 +91,74 @@ function DetailPanel({
   const activeNames = cronJob.activeJobNames.filter((n) => m(n))
 
   return (
-    <DetailPanelLayout>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{cronJob.name}</h2>
-          <span className="text-xs text-muted-foreground">
-            {cronJob.namespace}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="CronJob"
-            resourceName={cronJob.name}
-            namespace={cronJob.namespace}
-            buildYaml={() => ({
-              apiVersion: "batch/v1",
-              kind: "CronJob",
-              metadata: {
-                name: cronJob.name,
-                namespace: cronJob.namespace,
-                labels: cronJob.labels,
-                annotations: cronJob.annotations,
-              },
-              spec: {
-                schedule: cronJob.schedule,
-                concurrencyPolicy: cronJob.concurrencyPolicy || "Allow",
-                suspend: cronJob.suspend,
-                jobTemplate: {
-                  spec: { template: { spec: { containers: [] } } },
-                },
-              },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{cronJob.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {cronJob.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="CronJob"
+                resourceName={cronJob.name}
+                namespace={cronJob.namespace}
+                buildYaml={() => ({
+                  apiVersion: "batch/v1",
+                  kind: "CronJob",
+                  metadata: {
+                    name: cronJob.name,
+                    namespace: cronJob.namespace,
+                    labels: cronJob.labels,
+                    annotations: cronJob.annotations,
+                  },
+                  spec: {
+                    schedule: cronJob.schedule,
+                    concurrencyPolicy: cronJob.concurrencyPolicy || "Allow",
+                    suspend: cronJob.suspend,
+                    jobTemplate: {
+                      spec: { template: { spec: { containers: [] } } },
+                    },
+                  },
+                })}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setRestartOpen(true)}
+              >
+                Restart
+              </Button>
+              <DeleteButton
+                resourceKind="CronJob"
+                resourceName={cronJob.name}
+                namespace={cronJob.namespace}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={cronJob.name}
+                namespace={cronJob.namespace}
+                resourceKind="cronjob"
+              />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={() => setRestartOpen(true)}
-          >
-            Restart
-          </Button>
-          <DeleteButton
-            resourceKind="CronJob"
-            resourceName={cronJob.name}
-            namespace={cronJob.namespace}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={cronJob.name}
-            namespace={cronJob.namespace}
-            resourceKind="cronjob"
-          />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       {/* Spec */}
       <div className="space-y-1">
         <SectionHeader title="Spec" />

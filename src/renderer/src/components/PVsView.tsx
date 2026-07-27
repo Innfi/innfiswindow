@@ -52,53 +52,58 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <DetailPanelLayout>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <h2 className="font-semibold text-base mb-1 flex-1 truncate pr-2">
-          {pv.name}
-        </h2>
-        <div className="flex items-center gap-1 shrink-0">
-          <EditButton
-            resourceKind="PersistentVolume"
-            resourceName={pv.name}
-            buildYaml={() => ({
-              apiVersion: "v1",
-              kind: "PersistentVolume",
-              metadata: {
-                name: pv.name,
-                labels: pv.labels,
-                annotations: pv.annotations,
-              },
-              spec: {
-                capacity: { storage: pv.capacity },
-                accessModes: pv.accessModes,
-                persistentVolumeReclaimPolicy: pv.reclaimPolicy,
-                volumeMode: pv.volumeMode,
-                storageClassName: pv.storageClass,
-              },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <h2 className="font-semibold text-base mb-1 flex-1 truncate pr-2">
+              {pv.name}
+            </h2>
+            <div className="flex items-center gap-1 shrink-0">
+              <EditButton
+                resourceKind="PersistentVolume"
+                resourceName={pv.name}
+                buildYaml={() => ({
+                  apiVersion: "v1",
+                  kind: "PersistentVolume",
+                  metadata: {
+                    name: pv.name,
+                    labels: pv.labels,
+                    annotations: pv.annotations,
+                  },
+                  spec: {
+                    capacity: { storage: pv.capacity },
+                    accessModes: pv.accessModes,
+                    persistentVolumeReclaimPolicy: pv.reclaimPolicy,
+                    volumeMode: pv.volumeMode,
+                    storageClassName: pv.storageClass,
+                  },
+                })}
+              />
+              <DeleteButton
+                resourceKind="PersistentVolume"
+                resourceName={pv.name}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={pv.name}
+                resourceKind="persistentvolume"
+              />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="PersistentVolume"
-            resourceName={pv.name}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton name={pv.name} resourceKind="persistentvolume" />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       {/* Spec */}
       <div className="space-y-1">
         <SectionHeader title="Spec" />

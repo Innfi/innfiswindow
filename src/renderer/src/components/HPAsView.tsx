@@ -42,63 +42,67 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <DetailPanelLayout>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{hpa.name}</h2>
-          <span className="text-xs text-muted-foreground">{hpa.namespace}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="HPA"
-            resourceName={hpa.name}
-            namespace={hpa.namespace}
-            buildYaml={() => ({
-              apiVersion: "autoscaling/v2",
-              kind: "HorizontalPodAutoscaler",
-              metadata: {
-                name: hpa.name,
-                namespace: hpa.namespace,
-                labels: hpa.labels,
-                annotations: hpa.annotations,
-              },
-              spec: {
-                scaleTargetRef: {
-                  apiVersion: "apps/v1",
-                  kind: hpa.targetRef.kind,
-                  name: hpa.targetRef.name,
-                },
-                minReplicas: hpa.minReplicas,
-                maxReplicas: hpa.maxReplicas,
-              },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{hpa.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {hpa.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="HPA"
+                resourceName={hpa.name}
+                namespace={hpa.namespace}
+                buildYaml={() => ({
+                  apiVersion: "autoscaling/v2",
+                  kind: "HorizontalPodAutoscaler",
+                  metadata: {
+                    name: hpa.name,
+                    namespace: hpa.namespace,
+                    labels: hpa.labels,
+                    annotations: hpa.annotations,
+                  },
+                  spec: {
+                    scaleTargetRef: {
+                      apiVersion: "apps/v1",
+                      kind: hpa.targetRef.kind,
+                      name: hpa.targetRef.name,
+                    },
+                    minReplicas: hpa.minReplicas,
+                    maxReplicas: hpa.maxReplicas,
+                  },
+                })}
+              />
+              <DeleteButton
+                resourceKind="HPA"
+                resourceName={hpa.name}
+                namespace={hpa.namespace}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={hpa.name}
+                namespace={hpa.namespace}
+                resourceKind="horizontalpodautoscaler"
+              />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="HPA"
-            resourceName={hpa.name}
-            namespace={hpa.namespace}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={hpa.name}
-            namespace={hpa.namespace}
-            resourceKind="horizontalpodautoscaler"
-          />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       {/* Scale Target */}
       <div className="space-y-1">
         <SectionHeader title="Scale Target" />

@@ -189,67 +189,70 @@ function DetailPanel({
   )
 
   return (
-    <DetailPanelLayout>
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{node.name}</h2>
-          <span
-            className={cn(
-              "inline-block rounded px-2 py-0.5 text-xs font-medium",
-              node.status === "Ready"
-                ? "bg-green-100 text-green-800"
-                : "bg-red-100 text-red-800",
-            )}
-          >
-            {node.status}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="Node"
-            resourceName={node.name}
-            buildYaml={() => ({
-              apiVersion: "v1",
-              kind: "Node",
-              metadata: {
-                name: node.name,
-                labels: node.labels,
-                ...(Object.keys(node.annotations ?? {}).length > 0 && {
-                  annotations: node.annotations,
-                }),
-              },
-              spec: {
-                ...(node.taints.length > 0 && {
-                  taints: node.taints.map((t) => ({
-                    key: t.key,
-                    value: t.value,
-                    effect: t.effect,
-                  })),
-                }),
-              },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{node.name}</h2>
+              <span
+                className={cn(
+                  "inline-block rounded px-2 py-0.5 text-xs font-medium",
+                  node.status === "Ready"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800",
+                )}
+              >
+                {node.status}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="Node"
+                resourceName={node.name}
+                buildYaml={() => ({
+                  apiVersion: "v1",
+                  kind: "Node",
+                  metadata: {
+                    name: node.name,
+                    labels: node.labels,
+                    ...(Object.keys(node.annotations ?? {}).length > 0 && {
+                      annotations: node.annotations,
+                    }),
+                  },
+                  spec: {
+                    ...(node.taints.length > 0 && {
+                      taints: node.taints.map((t) => ({
+                        key: t.key,
+                        value: t.value,
+                        effect: t.effect,
+                      })),
+                    }),
+                  },
+                })}
+              />
+              <DeleteButton
+                resourceKind="Node"
+                resourceName={node.name}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+                warning="Removes the node from the cluster. Drain it first — running pods are not evicted gracefully."
+              />
+              <CopyResourceButton name={node.name} resourceKind="node" />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="Node"
-            resourceName={node.name}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-            warning="Removes the node from the cluster. Drain it first — running pods are not evicted gracefully."
-          />
-          <CopyResourceButton name={node.name} resourceKind="node" />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       <ResourceUsageSection
         node={node}
         metric={metric}

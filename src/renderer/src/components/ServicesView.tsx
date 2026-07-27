@@ -83,79 +83,83 @@ function DetailPanel({
     : []
 
   return (
-    <DetailPanelLayout>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{svc.name}</h2>
-          <span className="text-xs text-muted-foreground">{svc.namespace}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 px-1.5"
-            title="Port Forward"
-            onClick={onPortForward}
-          >
-            <ArrowLeftRight className="h-4 w-4" />
-          </Button>
-          <EditButton
-            resourceKind="Service"
-            resourceName={svc.name}
-            namespace={svc.namespace}
-            buildYaml={() => ({
-              apiVersion: "v1",
-              kind: "Service",
-              metadata: {
-                name: svc.name,
-                namespace: svc.namespace,
-                ...(Object.keys(svc.labels).length > 0
-                  ? { labels: svc.labels }
-                  : {}),
-              },
-              spec: {
-                type: svc.type,
-                ...(Object.keys(svc.selector).length > 0
-                  ? { selector: svc.selector }
-                  : {}),
-                ports: svc.ports.map((p) => ({
-                  name: p.name || undefined,
-                  protocol: p.protocol,
-                  port: p.port,
-                  targetPort: isNaN(Number(p.targetPort))
-                    ? p.targetPort
-                    : Number(p.targetPort),
-                  ...(p.nodePort ? { nodePort: p.nodePort } : {}),
-                })),
-              },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{svc.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {svc.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-1.5"
+                title="Port Forward"
+                onClick={onPortForward}
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+              </Button>
+              <EditButton
+                resourceKind="Service"
+                resourceName={svc.name}
+                namespace={svc.namespace}
+                buildYaml={() => ({
+                  apiVersion: "v1",
+                  kind: "Service",
+                  metadata: {
+                    name: svc.name,
+                    namespace: svc.namespace,
+                    ...(Object.keys(svc.labels).length > 0
+                      ? { labels: svc.labels }
+                      : {}),
+                  },
+                  spec: {
+                    type: svc.type,
+                    ...(Object.keys(svc.selector).length > 0
+                      ? { selector: svc.selector }
+                      : {}),
+                    ports: svc.ports.map((p) => ({
+                      name: p.name || undefined,
+                      protocol: p.protocol,
+                      port: p.port,
+                      targetPort: isNaN(Number(p.targetPort))
+                        ? p.targetPort
+                        : Number(p.targetPort),
+                      ...(p.nodePort ? { nodePort: p.nodePort } : {}),
+                    })),
+                  },
+                })}
+              />
+              <DeleteButton
+                resourceKind="Service"
+                resourceName={svc.name}
+                namespace={svc.namespace}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={svc.name}
+                namespace={svc.namespace}
+                resourceKind="service"
+              />
+              <ClosePanelButton onClose={onClose} className="ml-1" />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="Service"
-            resourceName={svc.name}
-            namespace={svc.namespace}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={svc.name}
-            namespace={svc.namespace}
-            resourceKind="service"
-          />
-          <ClosePanelButton onClose={onClose} className="ml-1" />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       {/* Network */}
       <div className="space-y-1">
         <SectionHeader title="Network" />

@@ -55,64 +55,66 @@ function DetailPanel({
   }
 
   return (
-    <DetailPanelLayout>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{secret.name}</h2>
-          <span className="text-xs text-muted-foreground">
-            {secret.namespace}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="Secret"
-            resourceName={secret.name}
-            namespace={secret.namespace}
-            buildYaml={() => ({
-              apiVersion: "v1",
-              kind: "Secret",
-              metadata: {
-                name: secret.name,
-                namespace: secret.namespace,
-                ...(Object.keys(secret.labels).length > 0
-                  ? { labels: secret.labels }
-                  : {}),
-                ...(Object.keys(secret.annotations).length > 0
-                  ? { annotations: secret.annotations }
-                  : {}),
-              },
-              type: secret.type,
-              ...(Object.keys(secret.data).length > 0
-                ? { data: secret.data }
-                : {}),
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{secret.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {secret.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="Secret"
+                resourceName={secret.name}
+                namespace={secret.namespace}
+                buildYaml={() => ({
+                  apiVersion: "v1",
+                  kind: "Secret",
+                  metadata: {
+                    name: secret.name,
+                    namespace: secret.namespace,
+                    ...(Object.keys(secret.labels).length > 0
+                      ? { labels: secret.labels }
+                      : {}),
+                    ...(Object.keys(secret.annotations).length > 0
+                      ? { annotations: secret.annotations }
+                      : {}),
+                  },
+                  type: secret.type,
+                  ...(Object.keys(secret.data).length > 0
+                    ? { data: secret.data }
+                    : {}),
+                })}
+              />
+              <DeleteButton
+                resourceKind="Secret"
+                resourceName={secret.name}
+                namespace={secret.namespace}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={secret.name}
+                namespace={secret.namespace}
+                resourceKind="secret"
+              />
+              <ClosePanelButton onClose={onClose} className="ml-1" />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="Secret"
-            resourceName={secret.name}
-            namespace={secret.namespace}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={secret.name}
-            namespace={secret.namespace}
-            resourceKind="secret"
-          />
-          <ClosePanelButton onClose={onClose} className="ml-1" />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       {/* Info */}
       <div className="space-y-1">
         <SectionHeader title="Info" />

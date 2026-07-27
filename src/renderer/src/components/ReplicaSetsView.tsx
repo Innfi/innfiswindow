@@ -50,62 +50,66 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <DetailPanelLayout>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{rs.name}</h2>
-          <span className="text-xs text-muted-foreground">{rs.namespace}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="ReplicaSet"
-            resourceName={rs.name}
-            namespace={rs.namespace}
-            buildYaml={() => ({
-              apiVersion: "apps/v1",
-              kind: "ReplicaSet",
-              metadata: { name: rs.name, namespace: rs.namespace },
-              spec: {
-                replicas: rs.desiredReplicas,
-                selector: { matchLabels: rs.selector },
-                template: {
-                  metadata: { labels: rs.podTemplateLabels },
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{rs.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {rs.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="ReplicaSet"
+                resourceName={rs.name}
+                namespace={rs.namespace}
+                buildYaml={() => ({
+                  apiVersion: "apps/v1",
+                  kind: "ReplicaSet",
+                  metadata: { name: rs.name, namespace: rs.namespace },
                   spec: {
-                    containers: rs.containers.map((c) => ({
-                      name: c.name,
-                      image: c.image,
-                    })),
+                    replicas: rs.desiredReplicas,
+                    selector: { matchLabels: rs.selector },
+                    template: {
+                      metadata: { labels: rs.podTemplateLabels },
+                      spec: {
+                        containers: rs.containers.map((c) => ({
+                          name: c.name,
+                          image: c.image,
+                        })),
+                      },
+                    },
                   },
-                },
-              },
-            })}
+                })}
+              />
+              <DeleteButton
+                resourceKind="ReplicaSet"
+                resourceName={rs.name}
+                namespace={rs.namespace}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={rs.name}
+                namespace={rs.namespace}
+                resourceKind="replicaset"
+              />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="ReplicaSet"
-            resourceName={rs.name}
-            namespace={rs.namespace}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={rs.name}
-            namespace={rs.namespace}
-            resourceKind="replicaset"
-          />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       {/* Replicas */}
       <div className="space-y-1">
         <SectionHeader title="Replicas" />

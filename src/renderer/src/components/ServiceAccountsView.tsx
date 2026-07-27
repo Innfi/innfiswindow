@@ -40,55 +40,62 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <DetailPanelLayout>
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{sa.name}</h2>
-          <span className="text-xs text-muted-foreground">{sa.namespace}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <EditButton
-            resourceKind="ServiceAccount"
-            resourceName={sa.name}
-            namespace={sa.namespace}
-            buildYaml={() => ({
-              apiVersion: "v1",
-              kind: "ServiceAccount",
-              metadata: {
-                name: sa.name,
-                namespace: sa.namespace,
-                ...(Object.keys(sa.labels).length > 0 && { labels: sa.labels }),
-                ...(Object.keys(sa.annotations).length > 0 && {
-                  annotations: sa.annotations,
-                }),
-              },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{sa.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {sa.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <EditButton
+                resourceKind="ServiceAccount"
+                resourceName={sa.name}
+                namespace={sa.namespace}
+                buildYaml={() => ({
+                  apiVersion: "v1",
+                  kind: "ServiceAccount",
+                  metadata: {
+                    name: sa.name,
+                    namespace: sa.namespace,
+                    ...(Object.keys(sa.labels).length > 0 && {
+                      labels: sa.labels,
+                    }),
+                    ...(Object.keys(sa.annotations).length > 0 && {
+                      annotations: sa.annotations,
+                    }),
+                  },
+                })}
+              />
+              <DeleteButton
+                resourceKind="ServiceAccount"
+                resourceName={sa.name}
+                namespace={sa.namespace}
+                onDeleted={onDeleteSuccess}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={sa.name}
+                namespace={sa.namespace}
+                resourceKind="serviceaccount"
+              />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="ServiceAccount"
-            resourceName={sa.name}
-            namespace={sa.namespace}
-            onDeleted={onDeleteSuccess}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={sa.name}
-            namespace={sa.namespace}
-            resourceKind="serviceaccount"
-          />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       {/* Metadata */}
       <div className="space-y-1">
         <SectionHeader title="Metadata" />

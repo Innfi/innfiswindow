@@ -43,51 +43,58 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <DetailPanelLayout>
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{sc.name}</h2>
-          <span className="text-xs text-muted-foreground">cluster-scoped</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="StorageClass"
-            resourceName={sc.name}
-            buildYaml={() => ({
-              apiVersion: "storage.k8s.io/v1",
-              kind: "StorageClass",
-              metadata: {
-                name: sc.name,
-                ...(Object.keys(sc.labels).length > 0 && { labels: sc.labels }),
-              },
-              provisioner: sc.provisioner,
-              reclaimPolicy: sc.reclaimPolicy,
-              volumeBindingMode: sc.volumeBindingMode,
-              allowVolumeExpansion: sc.allowVolumeExpansion,
-              ...(Object.keys(sc.parameters).length > 0 && {
-                parameters: sc.parameters,
-              }),
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{sc.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                cluster-scoped
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="StorageClass"
+                resourceName={sc.name}
+                buildYaml={() => ({
+                  apiVersion: "storage.k8s.io/v1",
+                  kind: "StorageClass",
+                  metadata: {
+                    name: sc.name,
+                    ...(Object.keys(sc.labels).length > 0 && {
+                      labels: sc.labels,
+                    }),
+                  },
+                  provisioner: sc.provisioner,
+                  reclaimPolicy: sc.reclaimPolicy,
+                  volumeBindingMode: sc.volumeBindingMode,
+                  allowVolumeExpansion: sc.allowVolumeExpansion,
+                  ...(Object.keys(sc.parameters).length > 0 && {
+                    parameters: sc.parameters,
+                  }),
+                })}
+              />
+              <DeleteButton
+                resourceKind="StorageClass"
+                resourceName={sc.name}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="StorageClass"
-            resourceName={sc.name}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       <div className="space-y-1">
         <SectionHeader title="Spec" />
         <MetaEntry label="Provisioner" value={sc.provisioner} mono />

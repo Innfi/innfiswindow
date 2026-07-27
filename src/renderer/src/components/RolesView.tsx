@@ -39,59 +39,63 @@ function DetailPanel({
   const kv = (k: string, v: string): boolean => m(k) || m(v)
 
   return (
-    <DetailPanelLayout>
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{role.name}</h2>
-          <span className="text-xs text-muted-foreground">
-            {role.namespace}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <EditButton
-            resourceKind="Role"
-            resourceName={role.name}
-            namespace={role.namespace}
-            buildYaml={() => ({
-              apiVersion: "rbac.authorization.k8s.io/v1",
-              kind: "Role",
-              metadata: {
-                name: role.name,
-                namespace: role.namespace,
-                ...(Object.keys(role.labels).length > 0 && {
-                  labels: role.labels,
-                }),
-                ...(Object.keys(role.annotations).length > 0 && {
-                  annotations: role.annotations,
-                }),
-              },
-              rules: role.rules,
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{role.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {role.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <EditButton
+                resourceKind="Role"
+                resourceName={role.name}
+                namespace={role.namespace}
+                buildYaml={() => ({
+                  apiVersion: "rbac.authorization.k8s.io/v1",
+                  kind: "Role",
+                  metadata: {
+                    name: role.name,
+                    namespace: role.namespace,
+                    ...(Object.keys(role.labels).length > 0 && {
+                      labels: role.labels,
+                    }),
+                    ...(Object.keys(role.annotations).length > 0 && {
+                      annotations: role.annotations,
+                    }),
+                  },
+                  rules: role.rules,
+                })}
+              />
+              <DeleteButton
+                resourceKind="Role"
+                resourceName={role.name}
+                namespace={role.namespace}
+                onDeleted={onDeleteSuccess}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={role.name}
+                namespace={role.namespace}
+                resourceKind="role"
+              />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="Role"
-            resourceName={role.name}
-            namespace={role.namespace}
-            onDeleted={onDeleteSuccess}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={role.name}
-            namespace={role.namespace}
-            resourceKind="role"
-          />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       <div className="space-y-1">
         <SectionHeader title="Metadata" />
         <MetaEntry

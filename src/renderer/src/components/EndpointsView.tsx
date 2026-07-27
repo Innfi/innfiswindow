@@ -41,62 +41,66 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <DetailPanelLayout>
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{endpoint.name}</h2>
-          <span className="text-xs text-muted-foreground">
-            {endpoint.namespace}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="Endpoints"
-            resourceName={endpoint.name}
-            namespace={endpoint.namespace}
-            buildYaml={() => ({
-              apiVersion: "v1",
-              kind: "Endpoints",
-              metadata: {
-                name: endpoint.name,
-                namespace: endpoint.namespace,
-                ...(Object.keys(endpoint.labels).length > 0 && {
-                  labels: endpoint.labels,
-                }),
-              },
-              subsets: endpoint.subsets.map((subset) => ({
-                addresses: subset.readyAddresses.map((a) => ({ ip: a.ip })),
-                notReadyAddresses: subset.notReadyAddresses.map((a) => ({
-                  ip: a.ip,
-                })),
-                ports: subset.ports.map((p) => ({
-                  name: p.name,
-                  port: p.port,
-                  protocol: p.protocol,
-                })),
-              })),
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{endpoint.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {endpoint.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="Endpoints"
+                resourceName={endpoint.name}
+                namespace={endpoint.namespace}
+                buildYaml={() => ({
+                  apiVersion: "v1",
+                  kind: "Endpoints",
+                  metadata: {
+                    name: endpoint.name,
+                    namespace: endpoint.namespace,
+                    ...(Object.keys(endpoint.labels).length > 0 && {
+                      labels: endpoint.labels,
+                    }),
+                  },
+                  subsets: endpoint.subsets.map((subset) => ({
+                    addresses: subset.readyAddresses.map((a) => ({ ip: a.ip })),
+                    notReadyAddresses: subset.notReadyAddresses.map((a) => ({
+                      ip: a.ip,
+                    })),
+                    ports: subset.ports.map((p) => ({
+                      name: p.name,
+                      port: p.port,
+                      protocol: p.protocol,
+                    })),
+                  })),
+                })}
+              />
+              <DeleteButton
+                resourceKind="Endpoints"
+                resourceName={endpoint.name}
+                namespace={endpoint.namespace}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+                warning="The endpoints controller recreates this object while its Service exists."
+              />
+              <ClosePanelButton onClose={onClose} className="ml-1" />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="Endpoints"
-            resourceName={endpoint.name}
-            namespace={endpoint.namespace}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-            warning="The endpoints controller recreates this object while its Service exists."
-          />
-          <ClosePanelButton onClose={onClose} className="ml-1" />
-        </div>
-      </div>
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       <div className="space-y-1">
         <MetaEntry
           label="Created"

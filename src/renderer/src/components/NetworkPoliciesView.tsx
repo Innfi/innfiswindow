@@ -131,49 +131,52 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <DetailPanelLayout>
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
-          <p className="text-xs text-muted-foreground">{item.namespace}</p>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="NetworkPolicy"
-            resourceName={item.name}
-            namespace={item.namespace}
-            buildYaml={() => ({
-              apiVersion: "networking.k8s.io/v1",
-              kind: "NetworkPolicy",
-              metadata: { name: item.name, namespace: item.namespace },
-              spec: { podSelector: {}, policyTypes: item.policyTypes },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
+              <p className="text-xs text-muted-foreground">{item.namespace}</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="NetworkPolicy"
+                resourceName={item.name}
+                namespace={item.namespace}
+                buildYaml={() => ({
+                  apiVersion: "networking.k8s.io/v1",
+                  kind: "NetworkPolicy",
+                  metadata: { name: item.name, namespace: item.namespace },
+                  spec: { podSelector: {}, policyTypes: item.policyTypes },
+                })}
+              />
+              <DeleteButton
+                resourceKind="NetworkPolicy"
+                resourceName={item.name}
+                namespace={item.namespace}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={item.name}
+                namespace={item.namespace}
+                resourceKind="networkpolicy"
+              />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="NetworkPolicy"
-            resourceName={item.name}
-            namespace={item.namespace}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={item.name}
-            namespace={item.namespace}
-            resourceKind="networkpolicy"
-          />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       {/* Spec */}
       <div className="space-y-1">
         <SectionHeader title="Spec" />

@@ -91,69 +91,75 @@ function DetailPanel({
   )
 
   return (
-    <DetailPanelLayout>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{job.name}</h2>
-          <span className="text-xs text-muted-foreground">{job.namespace}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="Job"
-            resourceName={job.name}
-            namespace={job.namespace}
-            buildYaml={() => ({
-              apiVersion: "batch/v1",
-              kind: "Job",
-              metadata: {
-                name: job.name,
-                namespace: job.namespace,
-                labels: job.labels,
-                annotations: job.annotations,
-              },
-              spec: {
-                ...(job.completions !== null
-                  ? { completions: job.completions }
-                  : {}),
-                template: { spec: { containers: [], restartPolicy: "Never" } },
-              },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{job.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {job.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="Job"
+                resourceName={job.name}
+                namespace={job.namespace}
+                buildYaml={() => ({
+                  apiVersion: "batch/v1",
+                  kind: "Job",
+                  metadata: {
+                    name: job.name,
+                    namespace: job.namespace,
+                    labels: job.labels,
+                    annotations: job.annotations,
+                  },
+                  spec: {
+                    ...(job.completions !== null
+                      ? { completions: job.completions }
+                      : {}),
+                    template: {
+                      spec: { containers: [], restartPolicy: "Never" },
+                    },
+                  },
+                })}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setRestartOpen(true)}
+              >
+                Restart
+              </Button>
+              <DeleteButton
+                resourceKind="Job"
+                resourceName={job.name}
+                namespace={job.namespace}
+                propagationPolicy="Background"
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={job.name}
+                namespace={job.namespace}
+                resourceKind="job"
+              />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={() => setRestartOpen(true)}
-          >
-            Restart
-          </Button>
-          <DeleteButton
-            resourceKind="Job"
-            resourceName={job.name}
-            namespace={job.namespace}
-            propagationPolicy="Background"
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={job.name}
-            namespace={job.namespace}
-            resourceKind="job"
-          />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       {/* Spec */}
       <div className="space-y-1">
         <SectionHeader title="Spec" />

@@ -96,76 +96,80 @@ function DetailPanel({
   }
 
   return (
-    <DetailPanelLayout>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{ds.name}</h2>
-          <span className="text-xs text-muted-foreground">{ds.namespace}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="DaemonSet"
-            resourceName={ds.name}
-            namespace={ds.namespace}
-            buildYaml={() => ({
-              apiVersion: "apps/v1",
-              kind: "DaemonSet",
-              metadata: { name: ds.name, namespace: ds.namespace },
-              spec: {
-                selector: { matchLabels: ds.selector },
-                updateStrategy: { type: ds.updateStrategy },
-                template: {
-                  metadata: { labels: ds.selector },
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{ds.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {ds.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="DaemonSet"
+                resourceName={ds.name}
+                namespace={ds.namespace}
+                buildYaml={() => ({
+                  apiVersion: "apps/v1",
+                  kind: "DaemonSet",
+                  metadata: { name: ds.name, namespace: ds.namespace },
                   spec: {
-                    containers: ds.containers.map((c) => ({
-                      name: c.name,
-                      image: c.image,
-                    })),
-                    ...(Object.keys(ds.nodeSelector).length
-                      ? { nodeSelector: ds.nodeSelector }
-                      : {}),
-                    ...(ds.tolerations.length
-                      ? { tolerations: ds.tolerations }
-                      : {}),
+                    selector: { matchLabels: ds.selector },
+                    updateStrategy: { type: ds.updateStrategy },
+                    template: {
+                      metadata: { labels: ds.selector },
+                      spec: {
+                        containers: ds.containers.map((c) => ({
+                          name: c.name,
+                          image: c.image,
+                        })),
+                        ...(Object.keys(ds.nodeSelector).length
+                          ? { nodeSelector: ds.nodeSelector }
+                          : {}),
+                        ...(ds.tolerations.length
+                          ? { tolerations: ds.tolerations }
+                          : {}),
+                      },
+                    },
                   },
-                },
-              },
-            })}
+                })}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setRestartOpen(true)}
+              >
+                Restart
+              </Button>
+              <DeleteButton
+                resourceKind="DaemonSet"
+                resourceName={ds.name}
+                namespace={ds.namespace}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={ds.name}
+                namespace={ds.namespace}
+                resourceKind="daemonset"
+              />
+              <ClosePanelButton onClose={onClose} className="ml-1" />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            onClick={() => setRestartOpen(true)}
-          >
-            Restart
-          </Button>
-          <DeleteButton
-            resourceKind="DaemonSet"
-            resourceName={ds.name}
-            namespace={ds.namespace}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={ds.name}
-            namespace={ds.namespace}
-            resourceKind="daemonset"
-          />
-          <ClosePanelButton onClose={onClose} className="ml-1" />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       {/* Scheduling */}
       <div className="space-y-1">
         <SectionHeader title="Scheduling" />

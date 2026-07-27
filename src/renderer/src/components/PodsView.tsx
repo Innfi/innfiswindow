@@ -117,72 +117,84 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <DetailPanelLayout>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{pod.name}</h2>
-          <span className="text-xs text-muted-foreground">{pod.namespace}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="Pod"
-            resourceName={pod.name}
-            namespace={pod.namespace}
-            buildYaml={() => ({
-              apiVersion: "v1",
-              kind: "Pod",
-              metadata: { name: pod.name, namespace: pod.namespace },
-              spec: {
-                containers: pod.containers.map((c) => ({
-                  name: c.name,
-                  image: c.image,
-                })),
-              },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{pod.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {pod.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="Pod"
+                resourceName={pod.name}
+                namespace={pod.namespace}
+                buildYaml={() => ({
+                  apiVersion: "v1",
+                  kind: "Pod",
+                  metadata: { name: pod.name, namespace: pod.namespace },
+                  spec: {
+                    containers: pod.containers.map((c) => ({
+                      name: c.name,
+                      image: c.image,
+                    })),
+                  },
+                })}
+              />
+              <Button variant="ghost" size="icon" title="Logs" onClick={onLogs}>
+                <ScrollText className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                title="Shell"
+                onClick={() => onShell(selectedContainer)}
+              >
+                <SquareTerminal className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                title="Port Forward"
+                onClick={onPortForward}
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+              </Button>
+              <DeleteButton
+                resourceKind="Pod"
+                resourceName={pod.name}
+                namespace={pod.namespace}
+                onDeleted={onDeleteSuccess}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={pod.name}
+                namespace={pod.namespace}
+                resourceKind="pod"
+              />
+              <ClosePanelButton onClose={onClose} className="ml-1" />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <Button variant="ghost" size="icon" title="Logs" onClick={onLogs}>
-            <ScrollText className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Shell"
-            onClick={() => onShell(selectedContainer)}
-          >
-            <SquareTerminal className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Port Forward"
-            onClick={onPortForward}
-          >
-            <ArrowLeftRight className="h-4 w-4" />
-          </Button>
-          <DeleteButton
-            resourceKind="Pod"
-            resourceName={pod.name}
-            namespace={pod.namespace}
-            onDeleted={onDeleteSuccess}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={pod.name}
-            namespace={pod.namespace}
-            resourceKind="pod"
-          />
-          <ClosePanelButton onClose={onClose} className="ml-1" />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
+        </>
+      }
+    >
+      {/* Events */}
+      <ResourceEventsSection
+        namespace={pod.namespace}
+        name={pod.name}
+        kind="Pod"
+        search={sl}
       />
 
       {/* Shell container selector */}
@@ -325,14 +337,6 @@ function DetailPanel({
             ))}
         </div>
       )}
-
-      {/* Events */}
-      <ResourceEventsSection
-        namespace={pod.namespace}
-        name={pod.name}
-        kind="Pod"
-        search={sl}
-      />
 
       <PodMetricsSection namespace={pod.namespace} podName={pod.name} />
     </DetailPanelLayout>

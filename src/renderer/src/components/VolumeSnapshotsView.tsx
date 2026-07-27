@@ -54,57 +54,60 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <DetailPanelLayout>
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{snap.name}</h2>
-          <span className="text-xs text-muted-foreground">
-            {snap.namespace}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="VolumeSnapshot"
-            resourceName={snap.name}
-            namespace={snap.namespace}
-            buildYaml={() => ({
-              apiVersion: "snapshot.storage.k8s.io/v1",
-              kind: "VolumeSnapshot",
-              metadata: {
-                name: snap.name,
-                namespace: snap.namespace,
-                ...(Object.keys(snap.labels).length > 0 && {
-                  labels: snap.labels,
-                }),
-              },
-              spec: {
-                ...(snap.volumeSnapshotClassName && {
-                  volumeSnapshotClassName: snap.volumeSnapshotClassName,
-                }),
-                source: { persistentVolumeClaimName: snap.sourcePVCName },
-              },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{snap.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {snap.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="VolumeSnapshot"
+                resourceName={snap.name}
+                namespace={snap.namespace}
+                buildYaml={() => ({
+                  apiVersion: "snapshot.storage.k8s.io/v1",
+                  kind: "VolumeSnapshot",
+                  metadata: {
+                    name: snap.name,
+                    namespace: snap.namespace,
+                    ...(Object.keys(snap.labels).length > 0 && {
+                      labels: snap.labels,
+                    }),
+                  },
+                  spec: {
+                    ...(snap.volumeSnapshotClassName && {
+                      volumeSnapshotClassName: snap.volumeSnapshotClassName,
+                    }),
+                    source: { persistentVolumeClaimName: snap.sourcePVCName },
+                  },
+                })}
+              />
+              <DeleteButton
+                resourceKind="VolumeSnapshot"
+                resourceName={snap.name}
+                namespace={snap.namespace}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="VolumeSnapshot"
-            resourceName={snap.name}
-            namespace={snap.namespace}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       <div className="space-y-1">
         <SectionHeader title="Spec" />
         <MetaEntry label="Source PVC" value={snap.sourcePVCName || "—"} mono />

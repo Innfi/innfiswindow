@@ -53,50 +53,54 @@ function DetailPanel({
   )
 
   return (
-    <DetailPanelLayout>
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{quota.name}</h2>
-          <span className="text-xs text-muted-foreground">
-            {quota.namespace}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="ResourceQuota"
-            resourceName={quota.name}
-            namespace={quota.namespace}
-            buildYaml={() => ({
-              apiVersion: "v1",
-              kind: "ResourceQuota",
-              metadata: { name: quota.name, namespace: quota.namespace },
-              spec: { hard: quota.hard },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{quota.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {quota.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="ResourceQuota"
+                resourceName={quota.name}
+                namespace={quota.namespace}
+                buildYaml={() => ({
+                  apiVersion: "v1",
+                  kind: "ResourceQuota",
+                  metadata: { name: quota.name, namespace: quota.namespace },
+                  spec: { hard: quota.hard },
+                })}
+              />
+              <DeleteButton
+                resourceKind="ResourceQuota"
+                resourceName={quota.name}
+                namespace={quota.namespace}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={quota.name}
+                namespace={quota.namespace}
+                resourceKind="resourcequota"
+              />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="ResourceQuota"
-            resourceName={quota.name}
-            namespace={quota.namespace}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={quota.name}
-            namespace={quota.namespace}
-            resourceKind="resourcequota"
-          />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       <div className="space-y-1">
         <MetaEntry
           label="Created"

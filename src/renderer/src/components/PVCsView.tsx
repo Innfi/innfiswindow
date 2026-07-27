@@ -52,59 +52,63 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <DetailPanelLayout>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{pvc.name}</h2>
-          <span className="text-xs text-muted-foreground">{pvc.namespace}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="PersistentVolumeClaim"
-            resourceName={pvc.name}
-            namespace={pvc.namespace}
-            buildYaml={() => ({
-              apiVersion: "v1",
-              kind: "PersistentVolumeClaim",
-              metadata: {
-                name: pvc.name,
-                namespace: pvc.namespace,
-                labels: pvc.labels,
-                annotations: pvc.annotations,
-              },
-              spec: {
-                accessModes: pvc.accessModes,
-                storageClassName: pvc.storageClass,
-                resources: { requests: { storage: pvc.capacity } },
-              },
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{pvc.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {pvc.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="PersistentVolumeClaim"
+                resourceName={pvc.name}
+                namespace={pvc.namespace}
+                buildYaml={() => ({
+                  apiVersion: "v1",
+                  kind: "PersistentVolumeClaim",
+                  metadata: {
+                    name: pvc.name,
+                    namespace: pvc.namespace,
+                    labels: pvc.labels,
+                    annotations: pvc.annotations,
+                  },
+                  spec: {
+                    accessModes: pvc.accessModes,
+                    storageClassName: pvc.storageClass,
+                    resources: { requests: { storage: pvc.capacity } },
+                  },
+                })}
+              />
+              <DeleteButton
+                resourceKind="PersistentVolumeClaim"
+                resourceName={pvc.name}
+                namespace={pvc.namespace}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={pvc.name}
+                namespace={pvc.namespace}
+                resourceKind="persistentvolumeclaim"
+              />
+              <ClosePanelButton onClose={onClose} />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="PersistentVolumeClaim"
-            resourceName={pvc.name}
-            namespace={pvc.namespace}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={pvc.name}
-            namespace={pvc.namespace}
-            resourceKind="persistentvolumeclaim"
-          />
-          <ClosePanelButton onClose={onClose} />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       {/* Status */}
       <div className="space-y-1">
         <SectionHeader title="Status" />

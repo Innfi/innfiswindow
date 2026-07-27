@@ -43,62 +43,66 @@ function DetailPanel({
     .filter(([k, v]) => kv(k, v))
 
   return (
-    <DetailPanelLayout>
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-base mb-1">{cm.name}</h2>
-          <span className="text-xs text-muted-foreground">{cm.namespace}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <EditButton
-            resourceKind="ConfigMap"
-            resourceName={cm.name}
-            namespace={cm.namespace}
-            buildYaml={() => ({
-              apiVersion: "v1",
-              kind: "ConfigMap",
-              metadata: {
-                name: cm.name,
-                namespace: cm.namespace,
-                ...(Object.keys(cm.labels).length > 0
-                  ? { labels: cm.labels }
-                  : {}),
-                ...(Object.keys(cm.annotations).length > 0
-                  ? { annotations: cm.annotations }
-                  : {}),
-              },
-              ...(Object.keys(cm.data).length > 0 ? { data: cm.data } : {}),
-              ...(Object.keys(cm.binaryData).length > 0
-                ? { binaryData: cm.binaryData }
-                : {}),
-            })}
+    <DetailPanelLayout
+      header={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-semibold text-base mb-1">{cm.name}</h2>
+              <span className="text-xs text-muted-foreground">
+                {cm.namespace}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <EditButton
+                resourceKind="ConfigMap"
+                resourceName={cm.name}
+                namespace={cm.namespace}
+                buildYaml={() => ({
+                  apiVersion: "v1",
+                  kind: "ConfigMap",
+                  metadata: {
+                    name: cm.name,
+                    namespace: cm.namespace,
+                    ...(Object.keys(cm.labels).length > 0
+                      ? { labels: cm.labels }
+                      : {}),
+                    ...(Object.keys(cm.annotations).length > 0
+                      ? { annotations: cm.annotations }
+                      : {}),
+                  },
+                  ...(Object.keys(cm.data).length > 0 ? { data: cm.data } : {}),
+                  ...(Object.keys(cm.binaryData).length > 0
+                    ? { binaryData: cm.binaryData }
+                    : {}),
+                })}
+              />
+              <DeleteButton
+                resourceKind="ConfigMap"
+                resourceName={cm.name}
+                namespace={cm.namespace}
+                onDeleted={onDeleted}
+                onDeleteDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
+              <CopyResourceButton
+                name={cm.name}
+                namespace={cm.namespace}
+                resourceKind="configmap"
+              />
+              <ClosePanelButton onClose={onClose} className="ml-1" />
+            </div>
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
           />
-          <DeleteButton
-            resourceKind="ConfigMap"
-            resourceName={cm.name}
-            namespace={cm.namespace}
-            onDeleted={onDeleted}
-            onDeleteDialogChange={onDeleteDialogChange}
-            onClose={onClose}
-          />
-          <CopyResourceButton
-            name={cm.name}
-            namespace={cm.namespace}
-            resourceKind="configmap"
-          />
-          <ClosePanelButton onClose={onClose} className="ml-1" />
-        </div>
-      </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search…"
-        className="w-full rounded border px-2 py-1 text-xs bg-background text-foreground"
-      />
-
+        </>
+      }
+    >
       {/* Info */}
       <div className="space-y-1">
         <SectionHeader title="Info" />
