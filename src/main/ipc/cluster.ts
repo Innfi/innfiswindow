@@ -3,12 +3,14 @@ import { KubeConfig } from "@kubernetes/client-node"
 
 import {
   checkConnection,
+  drainNode,
   getClusterType,
   getCurrentContext,
   getNodeMetrics,
   listContexts,
   listNamespaces,
   listNodes,
+  setNodeSchedulable,
 } from "../k8s-handlers"
 import { GetContextClients, InvalidateContext } from "./context-clients"
 
@@ -29,6 +31,20 @@ export function registerClusterHandlers(
   )
   ipcMain.handle("k8s:node:metrics", (_e, args?: { contextName?: string }) =>
     getNodeMetrics(getContextClients(args?.contextName).customObjects),
+  )
+  ipcMain.handle(
+    "k8s:node:cordon",
+    (_e, args: { contextName?: string; name: string; schedulable: boolean }) =>
+      setNodeSchedulable(
+        getContextClients(args.contextName).coreV1,
+        args.name,
+        args.schedulable,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:node:drain",
+    (_e, args: { contextName?: string; name: string }) =>
+      drainNode(getContextClients(args.contextName).coreV1, args.name),
   )
   ipcMain.handle(
     "k8s:connection:check",

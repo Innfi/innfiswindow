@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from "electron"
+import { app, BrowserWindow, ipcMain, session, shell } from "electron"
 import { join } from "path"
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
 import {
@@ -79,6 +79,49 @@ export {
 let mainWindow: BrowserWindow | null = null
 const getMainWindow = (): BrowserWindow | null => mainWindow
 
+function isSafeExternalUrl(url: string): boolean {
+  try {
+    const { protocol } = new URL(url)
+    return protocol === "https:" || protocol === "http:"
+  } catch {
+    return false
+  }
+}
+
+/** Content-Security-Policy applied to every renderer response. In dev, Vite's
+ *  HMR client and React Fast Refresh need inline/eval scripts plus a websocket
+ *  back to the dev server, so the policy is loosened. Production is tight:
+ *  scripts only from the bundle, no eval, and no remote connections (all k8s /
+ *  Prometheus traffic goes through the main process over IPC, not the renderer).
+ *  `worker-src blob:` is required by Monaco's bundled editor worker, and
+ *  `style-src 'unsafe-inline'` by Tailwind v4's injected <style>. */
+function contentSecurityPolicy(): string {
+  const devServer = process.env["ELECTRON_RENDERER_URL"] ?? ""
+  if (is.dev && devServer) {
+    return [
+      `default-src 'self' ${devServer}`,
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${devServer}`,
+      `style-src 'self' 'unsafe-inline' ${devServer}`,
+      "img-src 'self' data:",
+      "font-src 'self' data:",
+      "worker-src 'self' blob:",
+      `connect-src 'self' ${devServer} ws: wss:`,
+    ].join("; ")
+  }
+  return [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "font-src 'self' data:",
+    "worker-src 'self' blob:",
+    "connect-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "frame-src 'none'",
+  ].join("; ")
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -104,9 +147,22 @@ function createWindow(): void {
     mainWindow = null
   })
 
+  // Only ever hand http(s) URLs to the OS browser. A compromised renderer
+  // could otherwise pass file://, smb://, or a custom-scheme URL to launch
+  // local programs or leak files via shell.openExternal.
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    if (isSafeExternalUrl(details.url)) shell.openExternal(details.url)
     return { action: "deny" }
+  })
+
+  // The app is a single-page renderer; it never legitimately navigates the
+  // top-level frame elsewhere. Block any attempt (e.g. an injected link or
+  // redirect) from replacing the app with remote content.
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    const devUrl = process.env["ELECTRON_RENDERER_URL"]
+    if (is.dev && devUrl && url.startsWith(devUrl)) return
+    event.preventDefault()
+    if (isSafeExternalUrl(url)) shell.openExternal(url)
   })
 
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
@@ -121,6 +177,15 @@ app.whenReady().then(() => {
 
   app.on("browser-window-created", (_, window) => {
     optimizer.watchWindowShortcuts(window)
+  })
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [contentSecurityPolicy()],
+      },
+    })
   })
 
   ipcMain.on("ping", () => console.log("pong"))

@@ -38,6 +38,12 @@ async function findHelm(): Promise<string | null> {
   })
 }
 
+/** Appends `--kube-context <ctx>` so helm targets the context the user picked
+ *  in the app, not whatever the kubeconfig current-context happens to be. */
+function withContext(args: string[], contextName?: string | null): string[] {
+  return contextName ? [...args, "--kube-context", contextName] : args
+}
+
 async function runHelm(
   args: string[],
   stdinData?: string,
@@ -90,12 +96,13 @@ export async function helmRepoList(): Promise<HelmRepo[]> {
 
 export async function helmReleaseList(
   namespace?: string,
+  contextName?: string | null,
 ): Promise<HelmRelease[]> {
   try {
     const args = namespace
       ? ["list", "-o", "json", "-n", namespace]
       : ["list", "-o", "json", "-A"]
-    const { stdout } = await runHelm(args)
+    const { stdout } = await runHelm(withContext(args, contextName))
     if (!stdout.trim()) return []
     const parsed = JSON.parse(stdout) as Array<{
       name: string
@@ -130,11 +137,12 @@ export async function helmReleaseInstall(
   chart: string,
   namespace: string,
   values?: string,
+  contextName?: string | null,
 ): Promise<MutationResult> {
   try {
     const args = ["install", releaseName, chart, "-n", namespace]
     if (values) args.push("--values", "-")
-    await runHelm(args, values)
+    await runHelm(withContext(args, contextName), values)
     return { success: true }
   } catch (e: unknown) {
     return { success: false, error: (e as Error).message }
@@ -146,11 +154,12 @@ export async function helmReleaseUpgrade(
   chart: string,
   namespace: string,
   values?: string,
+  contextName?: string | null,
 ): Promise<MutationResult> {
   try {
     const args = ["upgrade", releaseName, chart, "-n", namespace, "--install"]
     if (values) args.push("--values", "-")
-    await runHelm(args, values)
+    await runHelm(withContext(args, contextName), values)
     return { success: true }
   } catch (e: unknown) {
     return { success: false, error: (e as Error).message }
@@ -160,9 +169,12 @@ export async function helmReleaseUpgrade(
 export async function helmReleaseUninstall(
   releaseName: string,
   namespace: string,
+  contextName?: string | null,
 ): Promise<MutationResult> {
   try {
-    await runHelm(["uninstall", releaseName, "-n", namespace])
+    await runHelm(
+      withContext(["uninstall", releaseName, "-n", namespace], contextName),
+    )
     return { success: true }
   } catch (e: unknown) {
     return { success: false, error: (e as Error).message }

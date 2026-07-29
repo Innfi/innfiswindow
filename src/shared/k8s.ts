@@ -166,6 +166,20 @@ export interface NodeInfo {
   addresses: NodeAddress[]
   taints: NodeTaint[]
   systemInfo: NodeSystemInfo
+  /** spec.unschedulable — true once the node is cordoned. */
+  unschedulable: boolean
+}
+
+/** Outcome of draining a node: how many pods were evicted, which were skipped
+ *  (DaemonSet/mirror pods that drain leaves in place), and which evictions the
+ *  API rejected (e.g. a PodDisruptionBudget blocking one). */
+export interface DrainResult {
+  success: boolean
+  cordoned: boolean
+  evicted: number
+  skipped: string[]
+  failed: { pod: string; error: string }[]
+  error?: string
 }
 
 // ---------------------------------------------------------------------------

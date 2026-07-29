@@ -2,6 +2,8 @@ import { CoreV1Api, KubeConfig } from "@kubernetes/client-node"
 
 import {
   ContextInfo,
+  DrainResult,
+  MutationResult,
   NamespaceInfo,
   NodeAddress,
   NodeInfo,
@@ -70,8 +72,83 @@ export async function listNodes(api: CoreV1Api): Promise<NodeInfo[]> {
       addresses,
       taints,
       systemInfo,
+      unschedulable: node.spec?.unschedulable ?? false,
     }
   })
+}
+
+/** Cordon (unschedulable=true) or uncordon (false) a node via a merge patch,
+ *  mirroring `kubectl cordon` / `kubectl uncordon`. */
+export async function setNodeSchedulable(
+  api: CoreV1Api,
+  name: string,
+  schedulable: boolean,
+): Promise<MutationResult> {
+  await api.patchNode({ name, body: { spec: { unschedulable: !schedulable } } })
+  return { success: true, name }
+}
+
+/** Drain a node like `kubectl drain --ignore-daemonsets --delete-emptydir-data`:
+ *  cordon it, then evict every eligible pod through the Eviction API so
+ *  PodDisruptionBudgets are honoured. DaemonSet-managed and static/mirror pods
+ *  are left in place (kubectl skips them too). Already-terminal pods are
+ *  ignored. This issues the evictions and reports per-pod results; it does not
+ *  block until every pod has fully terminated. */
+export async function drainNode(
+  api: CoreV1Api,
+  name: string,
+): Promise<DrainResult> {
+  const result: DrainResult = {
+    success: false,
+    cordoned: false,
+    evicted: 0,
+    skipped: [],
+    failed: [],
+  }
+
+  await api.patchNode({ name, body: { spec: { unschedulable: true } } })
+  result.cordoned = true
+
+  const pods = await api.listPodForAllNamespaces({
+    fieldSelector: `spec.nodeName=${name}`,
+  })
+
+  for (const pod of pods.items) {
+    const podName = pod.metadata?.name ?? ""
+    const namespace = pod.metadata?.namespace ?? ""
+    const ref = `${namespace}/${podName}`
+
+    const phase = pod.status?.phase
+    if (phase === "Succeeded" || phase === "Failed") continue
+
+    const ownedByDaemonSet = (pod.metadata?.ownerReferences ?? []).some(
+      (o) => o.kind === "DaemonSet",
+    )
+    const isMirrorPod =
+      pod.metadata?.annotations?.["kubernetes.io/config.mirror"] !== undefined
+    if (ownedByDaemonSet || isMirrorPod) {
+      result.skipped.push(ref)
+      continue
+    }
+
+    try {
+      await api.createNamespacedPodEviction({
+        name: podName,
+        namespace,
+        body: {
+          apiVersion: "policy/v1",
+          kind: "Eviction",
+          metadata: { name: podName, namespace },
+        },
+      })
+      result.evicted += 1
+    } catch (e: unknown) {
+      result.failed.push({ pod: ref, error: (e as Error).message })
+    }
+  }
+
+  result.success = result.failed.length === 0
+  return result
 }
 
 export function listContexts(kc: KubeConfig): ContextInfo[] {

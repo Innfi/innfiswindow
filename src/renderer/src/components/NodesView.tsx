@@ -1,5 +1,15 @@
 ﻿import { useCallback, useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
 
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../components/ui/AlertDialog"
+import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
@@ -20,6 +30,7 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
+import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sNode } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -158,6 +169,7 @@ function DetailPanel({
   metric,
   metricsUnavailable,
   onClose,
+  onChanged,
   onDeleted,
   onDeleteDialogChange,
 }: {
@@ -165,11 +177,96 @@ function DetailPanel({
   metric: NodeMetric | undefined
   metricsUnavailable: boolean
   onClose: () => void
+  onChanged: () => void
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
+
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const recordHistory = useRecordHistory()
+  const [cordonOpen, setCordonOpen] = useState(false)
+  const [cordoning, setCordoning] = useState(false)
+  const [drainOpen, setDrainOpen] = useState(false)
+  const [draining, setDraining] = useState(false)
+
+  async function handleCordon(): Promise<void> {
+    const schedulable = node.unschedulable // toggling back to schedulable
+    const target = {
+      action: schedulable ? "uncordon" : "cordon",
+      resourceKind: "Node",
+      resourceName: node.name,
+      namespace: "",
+    } as const
+    setCordoning(true)
+    try {
+      await window.api.k8s.cordonNode({
+        contextName: selectedContext ?? undefined,
+        name: node.name,
+        schedulable,
+      })
+      recordHistory(target, { success: true })
+      toast.success(
+        schedulable ? `Uncordoned ${node.name}` : `Cordoned ${node.name}`,
+      )
+      setCordonOpen(false)
+      onChanged()
+    } catch (e) {
+      recordHistory(target, { success: false, error: String(e) })
+      toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "Node: cordon")
+      setCordonOpen(false)
+    } finally {
+      setCordoning(false)
+    }
+  }
+
+  async function handleDrain(): Promise<void> {
+    const target = {
+      action: "drain",
+      resourceKind: "Node",
+      resourceName: node.name,
+      namespace: "",
+    } as const
+    setDraining(true)
+    try {
+      const result = await window.api.k8s.drainNode({
+        contextName: selectedContext ?? undefined,
+        name: node.name,
+      })
+      recordHistory(target, {
+        success: result.success,
+        error: result.success
+          ? undefined
+          : result.failed.map((f) => `${f.pod}: ${f.error}`).join("; "),
+      })
+      if (result.success) {
+        toast.success(
+          `Drained ${node.name}: evicted ${result.evicted}, skipped ${result.skipped.length}`,
+        )
+      } else {
+        toast.error(
+          `Drain incomplete: ${result.failed.length} pod(s) could not be evicted (see errors)`,
+        )
+        useAppStore
+          .getState()
+          .addGlobalError(
+            result.failed.map((f) => `${f.pod}: ${f.error}`).join("; "),
+            "Node: drain",
+          )
+      }
+      setDrainOpen(false)
+      onChanged()
+    } catch (e) {
+      recordHistory(target, { success: false, error: String(e) })
+      toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "Node: drain")
+      setDrainOpen(false)
+    } finally {
+      setDraining(false)
+    }
+  }
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
@@ -205,8 +302,29 @@ function DetailPanel({
               >
                 {node.status}
               </span>
+              {node.unschedulable && (
+                <span className="ml-1 inline-block rounded px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800">
+                  SchedulingDisabled
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setCordonOpen(true)}
+              >
+                {node.unschedulable ? "Uncordon" : "Cordon"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setDrainOpen(true)}
+              >
+                Drain
+              </Button>
               <EditButton
                 resourceKind="Node"
                 resourceName={node.name}
@@ -427,6 +545,72 @@ function DetailPanel({
         kind="Node"
         search={sl}
       />
+
+      <AlertDialog open={cordonOpen} onOpenChange={setCordonOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {node.unschedulable ? "Uncordon Node" : "Cordon Node"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {node.unschedulable ? (
+                <>
+                  Mark <span className="font-medium">{node.name}</span>{" "}
+                  schedulable again so new pods can land on it.
+                </>
+              ) : (
+                <>
+                  Mark <span className="font-medium">{node.name}</span>{" "}
+                  unschedulable. Existing pods keep running; no new pods will be
+                  scheduled here.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCordonOpen(false)}
+              disabled={cordoning}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCordon} disabled={cordoning}>
+              {cordoning
+                ? "Working…"
+                : node.unschedulable
+                  ? "Uncordon"
+                  : "Cordon"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={drainOpen} onOpenChange={setDrainOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Drain Node</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cordon <span className="font-medium">{node.name}</span> and evict
+              its pods (honouring PodDisruptionBudgets). DaemonSet and static
+              pods are left in place. Evictions are issued but this does not
+              wait for every pod to terminate.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDrainOpen(false)}
+              disabled={draining}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleDrain} disabled={draining}>
+              {draining ? "Draining…" : "Drain"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DetailPanelLayout>
   )
 }
@@ -580,6 +764,7 @@ export function NodesView(): JSX.Element {
           metric={metricsMap.get(selectedItem.name)}
           metricsUnavailable={metricsUnavailable}
           onClose={() => setSelectedItem(null)}
+          onChanged={reload}
           onDeleted={reload}
           onDeleteDialogChange={setDeleteDialogOpen}
         />

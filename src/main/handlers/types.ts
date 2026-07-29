@@ -16,6 +16,7 @@ export type {
   DeploymentInfo,
   DeploymentRevision,
   DetailedContainerInfo,
+  DrainResult,
   EndpointAddress,
   EndpointInfo,
   EndpointPortInfo,

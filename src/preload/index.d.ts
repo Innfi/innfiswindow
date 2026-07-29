@@ -106,6 +106,16 @@ export interface K8sNode {
   addresses: K8sNodeAddress[]
   taints: K8sNodeTaint[]
   systemInfo: K8sNodeSystemInfo
+  unschedulable: boolean
+}
+
+export interface DrainResult {
+  success: boolean
+  cordoned: boolean
+  evicted: number
+  skipped: string[]
+  failed: { pod: string; error: string }[]
+  error?: string
 }
 
 export interface K8sDeploymentCondition {
@@ -638,6 +648,15 @@ export interface K8sAPI {
   getCurrentContext: () => Promise<string>
   listNamespaces: (args?: { contextName?: string }) => Promise<K8sNamespace[]>
   listNodes: (args?: { contextName?: string }) => Promise<K8sNode[]>
+  cordonNode: (args: {
+    contextName?: string
+    name: string
+    schedulable: boolean
+  }) => Promise<{ success: boolean; name: string }>
+  drainNode: (args: {
+    contextName?: string
+    name: string
+  }) => Promise<DrainResult>
   checkConnection: (args?: {
     contextName?: string
   }) => Promise<ConnectionStatus>
@@ -972,22 +991,28 @@ export interface HelmAPI {
     url: string,
   ) => Promise<{ success: boolean; error?: string }>
   repoList: () => Promise<HelmRepo[]>
-  releaseList: (args?: { namespace?: string }) => Promise<HelmRelease[]>
+  releaseList: (args?: {
+    namespace?: string
+    contextName?: string
+  }) => Promise<HelmRelease[]>
   releaseInstall: (args: {
     releaseName: string
     chart: string
     namespace: string
     values?: string
+    contextName?: string
   }) => Promise<{ success: boolean; error?: string }>
   releaseUpgrade: (args: {
     releaseName: string
     chart: string
     namespace: string
     values?: string
+    contextName?: string
   }) => Promise<{ success: boolean; error?: string }>
   releaseUninstall: (args: {
     releaseName: string
     namespace: string
+    contextName?: string
   }) => Promise<{ success: boolean; error?: string }>
 }
 

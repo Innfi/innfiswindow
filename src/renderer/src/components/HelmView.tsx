@@ -232,6 +232,7 @@ export function HelmReleasesView(): JSX.Element {
   const [namespaces, setNamespaces] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const recordHistory = useRecordHistory()
+  const selectedContext = useAppStore((s) => s.selectedContext)
 
   // Install dialog
   const [installOpen, setInstallOpen] = useState(false)
@@ -253,10 +254,12 @@ export function HelmReleasesView(): JSX.Element {
   )
   const [uninstalling, setUninstalling] = useState(false)
 
+  const ctx = selectedContext ?? undefined
+
   async function load(): Promise<void> {
     setLoading(true)
     try {
-      const data = await window.api.helm.releaseList()
+      const data = await window.api.helm.releaseList({ contextName: ctx })
       setReleases(data)
     } catch (e) {
       toast.error(`Failed to load helm releases: ${String(e)}`)
@@ -269,10 +272,10 @@ export function HelmReleasesView(): JSX.Element {
   useEffect(() => {
     void load()
     window.api.k8s
-      .listNamespaces()
+      .listNamespaces({ contextName: ctx })
       .then((ns) => setNamespaces(ns.map((n) => n.name)))
       .catch(() => {})
-  }, [])
+  }, [selectedContext])
 
   function openUpgrade(release: HelmRelease): void {
     setUpgradeTarget(release)
@@ -289,6 +292,7 @@ export function HelmReleasesView(): JSX.Element {
         chart: installChart.trim(),
         namespace: installNs.trim(),
         values: installValues.trim() || undefined,
+        contextName: ctx,
       })
       recordHistory(
         {
@@ -331,6 +335,7 @@ export function HelmReleasesView(): JSX.Element {
         chart: upgradeChart.trim() || upgradeTarget.chart,
         namespace: upgradeTarget.namespace,
         values: upgradeValues.trim() || undefined,
+        contextName: ctx,
       })
       recordHistory(
         {
@@ -367,6 +372,7 @@ export function HelmReleasesView(): JSX.Element {
       const result = await window.api.helm.releaseUninstall({
         releaseName: uninstallTarget.name,
         namespace: uninstallTarget.namespace,
+        contextName: ctx,
       })
       recordHistory(
         {

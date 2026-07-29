@@ -10,6 +10,13 @@ const api = {
       ipcRenderer.invoke("k8s:namespaces:list", args),
     listNodes: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:nodes:list", args),
+    cordonNode: (args: {
+      contextName?: string
+      name: string
+      schedulable: boolean
+    }) => ipcRenderer.invoke("k8s:node:cordon", args),
+    drainNode: (args: { contextName?: string; name: string }) =>
+      ipcRenderer.invoke("k8s:node:drain", args),
     checkConnection: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:connection:check", args),
     reconnect: (args?: { contextName?: string }) =>
@@ -390,22 +397,27 @@ const api = {
     repoAdd: (name: string, url: string) =>
       ipcRenderer.invoke("helm:repo:add", { name, url }),
     repoList: () => ipcRenderer.invoke("helm:repo:list"),
-    releaseList: (args?: { namespace?: string }) =>
+    releaseList: (args?: { namespace?: string; contextName?: string }) =>
       ipcRenderer.invoke("helm:release:list", args),
     releaseInstall: (args: {
       releaseName: string
       chart: string
       namespace: string
       values?: string
+      contextName?: string
     }) => ipcRenderer.invoke("helm:release:install", args),
     releaseUpgrade: (args: {
       releaseName: string
       chart: string
       namespace: string
       values?: string
+      contextName?: string
     }) => ipcRenderer.invoke("helm:release:upgrade", args),
-    releaseUninstall: (args: { releaseName: string; namespace: string }) =>
-      ipcRenderer.invoke("helm:release:uninstall", args),
+    releaseUninstall: (args: {
+      releaseName: string
+      namespace: string
+      contextName?: string
+    }) => ipcRenderer.invoke("helm:release:uninstall", args),
   },
 }
 
