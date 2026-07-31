@@ -21,20 +21,22 @@ const api = {
       ipcRenderer.invoke("k8s:connection:check", args),
     reconnect: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:connection:reconnect", args),
-    listDeployments: (args?: { contextName?: string }) =>
+    listDeployments: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:deployments:list", args),
-    listReplicaSets: (args?: { contextName?: string }) =>
+    listReplicaSets: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:replicasets:list", args),
-    listStatefulSets: (args?: { contextName?: string }) =>
+    listStatefulSets: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:statefulsets:list", args),
-    listDaemonSets: (args?: { contextName?: string }) =>
+    listDaemonSets: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:daemonsets:list", args),
-    listConfigMaps: (args?: { contextName?: string }) =>
+    listConfigMaps: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:configmaps:list", args),
-    listSecrets: (args?: { contextName?: string }) =>
+    listSecrets: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:secrets:list", args),
-    listServiceAccounts: (args?: { contextName?: string }) =>
-      ipcRenderer.invoke("k8s:serviceaccounts:list", args),
+    listServiceAccounts: (args?: {
+      contextName?: string
+      namespace?: string
+    }) => ipcRenderer.invoke("k8s:serviceaccounts:list", args),
     listRoles: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:roles:list", args),
     listClusterRoles: (args?: { contextName?: string }) =>
@@ -84,25 +86,27 @@ const api = {
         name,
         metadata,
       ),
-    listHPAs: (args?: { contextName?: string }) =>
+    listHPAs: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:hpas:list", args),
     listPVs: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:pvs:list", args),
-    listPVCs: (args?: { contextName?: string }) =>
+    listPVCs: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:pvcs:list", args),
     listStorageClasses: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:storageclasses:list", args),
-    listVolumeSnapshots: (args?: { contextName?: string }) =>
-      ipcRenderer.invoke("k8s:volumesnapshots:list", args),
-    listResourceQuotas: (args?: { contextName?: string }) =>
+    listVolumeSnapshots: (args?: {
+      contextName?: string
+      namespace?: string
+    }) => ipcRenderer.invoke("k8s:volumesnapshots:list", args),
+    listResourceQuotas: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:resourcequotas:list", args),
-    listLimitRanges: (args?: { contextName?: string }) =>
+    listLimitRanges: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:limitranges:list", args),
-    listPDBs: (args?: { contextName?: string }) =>
+    listPDBs: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:pdbs:list", args),
-    listJobs: (args?: { contextName?: string }) =>
+    listJobs: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:jobs:list", args),
-    listCronJobs: (args?: { contextName?: string }) =>
+    listCronJobs: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:cronjobs:list", args),
     restartJob: (args: {
       contextName?: string
@@ -116,15 +120,17 @@ const api = {
     }) => ipcRenderer.invoke("k8s:cronjob:trigger", args),
     getNodeMetrics: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:node:metrics", args),
-    listPods: (args?: { contextName?: string }) =>
+    listPods: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:pods:list", args),
-    listServices: (args?: { contextName?: string }) =>
+    listServices: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:services:list", args),
-    listIngresses: (args?: { contextName?: string }) =>
+    listIngresses: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:ingresses:list", args),
-    listNetworkPolicies: (args?: { contextName?: string }) =>
-      ipcRenderer.invoke("k8s:networkpolicies:list", args),
-    listEndpoints: (args?: { contextName?: string }) =>
+    listNetworkPolicies: (args?: {
+      contextName?: string
+      namespace?: string
+    }) => ipcRenderer.invoke("k8s:networkpolicies:list", args),
+    listEndpoints: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:endpoints:list", args),
     getClusterType: () => ipcRenderer.invoke("k8s:cluster:type"),
     createDeployment: (
@@ -303,7 +309,7 @@ const api = {
     rangeMinutes?: number
   }) => ipcRenderer.invoke("prometheus:pod:metrics", args),
   checkAwsCredentials: () => ipcRenderer.invoke("aws:credentials:check"),
-  listEvents: (args?: { contextName?: string }) =>
+  listEvents: (args?: { contextName?: string; namespace?: string }) =>
     ipcRenderer.invoke("k8s:events:list", args),
   listEventsForResource: (args: {
     contextName?: string

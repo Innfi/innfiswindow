@@ -297,7 +297,9 @@ export function ServicesView(): JSX.Element {
   return (
     <ResourceListView<K8sService>
       title="Services"
-      list={(ctx) => window.api.k8s.listServices({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listServices({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sService).type !== undefined}
       columns={[
         { head: "Name", cell: (svc) => svc.name },

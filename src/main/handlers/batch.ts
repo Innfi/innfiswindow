@@ -47,8 +47,13 @@ async function waitForGone(
   }
 }
 
-export async function listJobs(api: BatchV1Api): Promise<JobInfo[]> {
-  const res = await api.listJobForAllNamespaces()
+export async function listJobs(
+  api: BatchV1Api,
+  namespace?: string,
+): Promise<JobInfo[]> {
+  const res = namespace
+    ? await api.listNamespacedJob({ namespace })
+    : await api.listJobForAllNamespaces()
   return res.items.map((job) => {
     const startTime = job.status?.startTime?.toISOString() ?? ""
     const completionTime = job.status?.completionTime?.toISOString() ?? ""
@@ -87,8 +92,13 @@ export async function listJobs(api: BatchV1Api): Promise<JobInfo[]> {
   })
 }
 
-export async function listCronJobs(api: BatchV1Api): Promise<CronJobInfo[]> {
-  const res = await api.listCronJobForAllNamespaces()
+export async function listCronJobs(
+  api: BatchV1Api,
+  namespace?: string,
+): Promise<CronJobInfo[]> {
+  const res = namespace
+    ? await api.listNamespacedCronJob({ namespace })
+    : await api.listCronJobForAllNamespaces()
   return res.items.map((cj) => {
     const activeJobs = cj.status?.active ?? []
     return {

@@ -25,6 +25,7 @@ export function EventsView(): JSX.Element {
   const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null)
   const unsubRef = useRef<(() => void) | null>(null)
   const selectedContext = useAppStore((s) => s.selectedContext)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const refreshInterval = useAppStore((s) => s.refreshInterval)
 
   const fetchEvents = useCallback(
@@ -33,6 +34,7 @@ export function EventsView(): JSX.Element {
       try {
         const data = await window.api.listEvents({
           contextName: selectedContext ?? undefined,
+          namespace: selectedNamespace ?? undefined,
         })
         setEvents(data)
         setLastRefreshedAt(Date.now())
@@ -42,7 +44,7 @@ export function EventsView(): JSX.Element {
         setLoading(false)
       }
     },
-    [selectedContext],
+    [selectedContext, selectedNamespace],
   )
 
   useEffect(() => {

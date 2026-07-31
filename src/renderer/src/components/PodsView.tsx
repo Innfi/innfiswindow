@@ -349,7 +349,9 @@ export function PodsView(): JSX.Element {
   return (
     <ResourceListView<K8sPod>
       title="Pods"
-      list={(ctx) => window.api.k8s.listPods({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listPods({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sPod).containers !== undefined}
       rowClassName={(p) => (isPodHealthy(p.status) ? undefined : UNHEALTHY_ROW)}
       sortOptions={[

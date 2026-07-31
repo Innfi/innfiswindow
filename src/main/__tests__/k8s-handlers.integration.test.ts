@@ -151,7 +151,7 @@ describe.skipIf(!kindAvailable)("k8s IPC handlers against kind cluster", () => {
   })
 
   test("k8s:pods:list returns array with pods in test-ns-1", async () => {
-    const pods = await listPods(coreApi)
+    const pods = await listPods(coreApi, undefined, appsApi)
     expect(Array.isArray(pods)).toBe(true)
     const testPods = pods.filter((p) => p.namespace === "test-ns-1")
     expect(testPods.length).toBeGreaterThan(0)

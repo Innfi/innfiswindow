@@ -4,8 +4,11 @@ import { LimitRangeInfo, PDBInfo, ResourceQuotaInfo } from "./types"
 
 export async function listResourceQuotas(
   api: CoreV1Api,
+  namespace?: string,
 ): Promise<ResourceQuotaInfo[]> {
-  const res = await api.listResourceQuotaForAllNamespaces()
+  const res = namespace
+    ? await api.listNamespacedResourceQuota({ namespace })
+    : await api.listResourceQuotaForAllNamespaces()
   return res.items.map((rq) => ({
     name: rq.metadata?.name ?? "",
     namespace: rq.metadata?.namespace ?? "",
@@ -23,8 +26,11 @@ export async function listResourceQuotas(
 
 export async function listLimitRanges(
   api: CoreV1Api,
+  namespace?: string,
 ): Promise<LimitRangeInfo[]> {
-  const res = await api.listLimitRangeForAllNamespaces()
+  const res = namespace
+    ? await api.listNamespacedLimitRange({ namespace })
+    : await api.listLimitRangeForAllNamespaces()
   return res.items.map((lr) => ({
     name: lr.metadata?.name ?? "",
     namespace: lr.metadata?.namespace ?? "",
@@ -49,9 +55,14 @@ export async function listLimitRanges(
   }))
 }
 
-export async function listPDBs(api: PolicyV1Api): Promise<PDBInfo[]> {
+export async function listPDBs(
+  api: PolicyV1Api,
+  namespace?: string,
+): Promise<PDBInfo[]> {
   try {
-    const res = await api.listPodDisruptionBudgetForAllNamespaces()
+    const res = namespace
+      ? await api.listNamespacedPodDisruptionBudget({ namespace })
+      : await api.listPodDisruptionBudgetForAllNamespaces()
     return res.items.map((pdb) => ({
       name: pdb.metadata?.name ?? "",
       namespace: pdb.metadata?.namespace ?? "",

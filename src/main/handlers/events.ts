@@ -52,8 +52,13 @@ export async function listEventsForResource(
   }))
 }
 
-export async function listEvents(api: CoreV1Api): Promise<EventInfo[]> {
-  const res = await api.listEventForAllNamespaces()
+export async function listEvents(
+  api: CoreV1Api,
+  namespace?: string,
+): Promise<EventInfo[]> {
+  const res = namespace
+    ? await api.listNamespacedEvent({ namespace })
+    : await api.listEventForAllNamespaces()
   return res.items.map((ev) => ({
     name: ev.metadata?.name ?? "",
     namespace: ev.metadata?.namespace ?? "",

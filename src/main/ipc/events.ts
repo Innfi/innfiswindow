@@ -12,8 +12,10 @@ export function registerEventsHandlers(
 ): void {
   let activeEventsWatch: { abort: () => void } | null = null
 
-  ipcMain.handle("k8s:events:list", (_e, args?: { contextName?: string }) =>
-    listEvents(getContextClients(args?.contextName).coreV1),
+  ipcMain.handle(
+    "k8s:events:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listEvents(getContextClients(args?.contextName).coreV1, args?.namespace),
   )
 
   ipcMain.handle(

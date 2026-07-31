@@ -195,7 +195,9 @@ export function RoleBindingsView(): JSX.Element {
     <ResourceListView<K8sRoleBinding>
       title="Role Bindings"
       emptyMessage="No Role Bindings found"
-      list={(ctx) => window.api.k8s.listRoleBindings({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listRoleBindings({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => {
         const b = item as K8sRoleBinding
         return b.namespace !== undefined && b.roleRef !== undefined

@@ -511,7 +511,9 @@ export function DeploymentsView(): JSX.Element {
   return (
     <ResourceListView<K8sDeployment>
       title="Deployments"
-      list={(ctx) => window.api.k8s.listDeployments({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listDeployments({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sDeployment).namespace !== undefined}
       rowClassName={(d) =>
         d.readyReplicas < d.replicas

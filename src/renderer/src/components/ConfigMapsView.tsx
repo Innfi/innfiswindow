@@ -176,7 +176,9 @@ export function ConfigMapsView(): JSX.Element {
   return (
     <ResourceListView<K8sConfigMap>
       title="ConfigMaps"
-      list={(ctx) => window.api.k8s.listConfigMaps({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listConfigMaps({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sConfigMap).keys !== undefined}
       columns={[
         { head: "Name", cell: (cm) => cm.name },

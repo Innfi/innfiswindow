@@ -46,7 +46,7 @@ interface ResourceListViewProps<T extends Namespaced> {
   title: string
   /** Defaults to `No {title} found`. */
   emptyMessage?: string
-  list: (ctx?: string) => Promise<T[]>
+  list: (ctx?: string, ns?: string) => Promise<T[]>
   columns: ResourceColumn<T>[]
   /**
    * Discriminates whether the shared store `selectedItem` belongs to this
@@ -99,10 +99,18 @@ export function ResourceListView<T extends Namespaced>({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [sortIndex, setSortIndex] = useState(0)
 
+  // The active namespace is pushed down to the handler so the API server does
+  // the filtering — a cluster-wide list of every pod is a large IPC payload to
+  // ship on every poll just to throw most of it away here. `filterResources`
+  // below still applies it, which keeps the view correct if a handler ever
+  // ignores the hint.
   const { data, loading, error, reload, lastRefreshedAt } = useK8sResource(
     list,
     selectedContext,
-    { paused: deleteDialogOpen },
+    {
+      paused: deleteDialogOpen,
+      namespace: namespaced ? selectedNamespace : null,
+    },
   )
 
   // Re-sync the selected item with fresh data after a reload. Every poll hands

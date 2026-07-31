@@ -16,16 +16,26 @@ export function registerConfigHandlers(
   coreV1Api: CoreV1Api,
   getContextClients: GetContextClients,
 ): void {
-  ipcMain.handle("k8s:configmaps:list", (_e, args?: { contextName?: string }) =>
-    listConfigMaps(getContextClients(args?.contextName).coreV1),
+  ipcMain.handle(
+    "k8s:configmaps:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listConfigMaps(
+        getContextClients(args?.contextName).coreV1,
+        args?.namespace,
+      ),
   )
-  ipcMain.handle("k8s:secrets:list", (_e, args?: { contextName?: string }) =>
-    listSecrets(getContextClients(args?.contextName).coreV1),
+  ipcMain.handle(
+    "k8s:secrets:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listSecrets(getContextClients(args?.contextName).coreV1, args?.namespace),
   )
   ipcMain.handle(
     "k8s:serviceaccounts:list",
-    (_e, args?: { contextName?: string }) =>
-      listServiceAccounts(getContextClients(args?.contextName).coreV1),
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listServiceAccounts(
+        getContextClients(args?.contextName).coreV1,
+        args?.namespace,
+      ),
   )
 
   ipcMain.handle(

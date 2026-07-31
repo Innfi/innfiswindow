@@ -8,8 +8,13 @@ import {
   ServiceAccountInfo,
 } from "./types"
 
-export async function listConfigMaps(api: CoreV1Api): Promise<ConfigMapInfo[]> {
-  const res = await api.listConfigMapForAllNamespaces()
+export async function listConfigMaps(
+  api: CoreV1Api,
+  namespace?: string,
+): Promise<ConfigMapInfo[]> {
+  const res = namespace
+    ? await api.listNamespacedConfigMap({ namespace })
+    : await api.listConfigMapForAllNamespaces()
   return res.items.map((cm) => {
     const dataKeys = Object.keys(cm.data ?? {})
     const binaryDataKeys = Object.keys(cm.binaryData ?? {})
@@ -31,8 +36,13 @@ export async function listConfigMaps(api: CoreV1Api): Promise<ConfigMapInfo[]> {
   })
 }
 
-export async function listSecrets(api: CoreV1Api): Promise<SecretInfo[]> {
-  const res = await api.listSecretForAllNamespaces()
+export async function listSecrets(
+  api: CoreV1Api,
+  namespace?: string,
+): Promise<SecretInfo[]> {
+  const res = namespace
+    ? await api.listNamespacedSecret({ namespace })
+    : await api.listSecretForAllNamespaces()
   return res.items.map((secret) => {
     const dataKeys = Object.keys(secret.data ?? {})
     return {
@@ -51,8 +61,11 @@ export async function listSecrets(api: CoreV1Api): Promise<SecretInfo[]> {
 
 export async function listServiceAccounts(
   api: CoreV1Api,
+  namespace?: string,
 ): Promise<ServiceAccountInfo[]> {
-  const res = await api.listServiceAccountForAllNamespaces()
+  const res = namespace
+    ? await api.listNamespacedServiceAccount({ namespace })
+    : await api.listServiceAccountForAllNamespaces()
   return res.items.map((sa) => ({
     name: sa.metadata?.name ?? "",
     namespace: sa.metadata?.namespace ?? "",

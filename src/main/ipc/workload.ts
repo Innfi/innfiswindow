@@ -28,24 +28,42 @@ export function registerWorkloadHandlers(
 ): void {
   ipcMain.handle(
     "k8s:deployments:list",
-    (_e, args?: { contextName?: string }) =>
-      listDeployments(getContextClients(args?.contextName).appsV1),
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listDeployments(
+        getContextClients(args?.contextName).appsV1,
+        args?.namespace,
+      ),
   )
   ipcMain.handle(
     "k8s:replicasets:list",
-    (_e, args?: { contextName?: string }) =>
-      listReplicaSets(getContextClients(args?.contextName).appsV1),
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listReplicaSets(
+        getContextClients(args?.contextName).appsV1,
+        args?.namespace,
+      ),
   )
-  ipcMain.handle("k8s:pods:list", (_e, args?: { contextName?: string }) =>
-    listPods(getContextClients(args?.contextName).coreV1),
+  ipcMain.handle(
+    "k8s:pods:list",
+    (_e, args?: { contextName?: string; namespace?: string }) => {
+      const clients = getContextClients(args?.contextName)
+      return listPods(clients.coreV1, args?.namespace, clients.appsV1)
+    },
   )
-  ipcMain.handle("k8s:daemonsets:list", (_e, args?: { contextName?: string }) =>
-    listDaemonSets(getContextClients(args?.contextName).appsV1),
+  ipcMain.handle(
+    "k8s:daemonsets:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listDaemonSets(
+        getContextClients(args?.contextName).appsV1,
+        args?.namespace,
+      ),
   )
   ipcMain.handle(
     "k8s:statefulsets:list",
-    (_e, args?: { contextName?: string }) =>
-      listStatefulSets(getContextClients(args?.contextName).appsV1),
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listStatefulSets(
+        getContextClients(args?.contextName).appsV1,
+        args?.namespace,
+      ),
   )
 
   ipcMain.handle(

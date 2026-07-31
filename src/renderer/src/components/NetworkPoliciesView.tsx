@@ -234,7 +234,9 @@ export function NetworkPoliciesView(): JSX.Element {
     <ResourceListView<K8sNetworkPolicy>
       title="Network Policies"
       emptyMessage="No NetworkPolicies found"
-      list={(ctx) => window.api.k8s.listNetworkPolicies({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listNetworkPolicies({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) =>
         (item as K8sNetworkPolicy).policyTypes !== undefined
       }

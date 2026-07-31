@@ -177,7 +177,9 @@ export function PDBsView(): JSX.Element {
   return (
     <ResourceListView<K8sPDB>
       title="PodDisruptionBudgets"
-      list={(ctx) => window.api.k8s.listPDBs({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listPDBs({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sPDB).selector !== undefined}
       columns={[
         { head: "Name", cell: (p) => p.name },

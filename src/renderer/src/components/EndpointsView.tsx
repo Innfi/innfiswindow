@@ -223,7 +223,9 @@ export function EndpointsView(): JSX.Element {
   return (
     <ResourceListView<K8sEndpoint>
       title="Endpoints"
-      list={(ctx) => window.api.k8s.listEndpoints({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listEndpoints({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sEndpoint).subsets !== undefined}
       columns={[
         { head: "Name", cell: (ep) => ep.name },

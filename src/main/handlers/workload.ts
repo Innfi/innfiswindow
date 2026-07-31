@@ -162,8 +162,11 @@ function mapDetailedContainer(c: V1Container): DetailedContainerInfo {
 
 export async function listDeployments(
   api: AppsV1Api,
+  namespace?: string,
 ): Promise<DeploymentInfo[]> {
-  const res = await api.listDeploymentForAllNamespaces()
+  const res = namespace
+    ? await api.listNamespacedDeployment({ namespace })
+    : await api.listDeploymentForAllNamespaces()
   return res.items.map((d) => {
     const ru = d.spec?.strategy?.rollingUpdate
     return {
@@ -207,8 +210,11 @@ export async function listDeployments(
 
 export async function listReplicaSets(
   api: AppsV1Api,
+  namespace?: string,
 ): Promise<ReplicaSetInfo[]> {
-  const res = await api.listReplicaSetForAllNamespaces()
+  const res = namespace
+    ? await api.listNamespacedReplicaSet({ namespace })
+    : await api.listReplicaSetForAllNamespaces()
   return res.items.map((rs) => ({
     name: rs.metadata?.name ?? "",
     namespace: rs.metadata?.namespace ?? "",
@@ -238,8 +244,11 @@ export async function listReplicaSets(
 
 export async function listStatefulSets(
   api: AppsV1Api,
+  namespace?: string,
 ): Promise<StatefulSetInfo[]> {
-  const res = await api.listStatefulSetForAllNamespaces()
+  const res = namespace
+    ? await api.listNamespacedStatefulSet({ namespace })
+    : await api.listStatefulSetForAllNamespaces()
   return res.items.map((ss) => ({
     name: ss.metadata?.name ?? "",
     namespace: ss.metadata?.namespace ?? "",
@@ -268,8 +277,13 @@ export async function listStatefulSets(
   }))
 }
 
-export async function listDaemonSets(api: AppsV1Api): Promise<DaemonSetInfo[]> {
-  const res = await api.listDaemonSetForAllNamespaces()
+export async function listDaemonSets(
+  api: AppsV1Api,
+  namespace?: string,
+): Promise<DaemonSetInfo[]> {
+  const res = namespace
+    ? await api.listNamespacedDaemonSet({ namespace })
+    : await api.listDaemonSetForAllNamespaces()
   return res.items.map((ds) => ({
     name: ds.metadata?.name ?? "",
     namespace: ds.metadata?.namespace ?? "",
@@ -387,8 +401,51 @@ function computePodStatus(pod: V1Pod): string {
   return reason
 }
 
-export async function listPods(api: CoreV1Api): Promise<PodInfo[]> {
-  const res = await api.listPodForAllNamespaces()
+/** `namespace/replicaSetName` → the workload that owns the ReplicaSet, normally
+ *  a Deployment. Resolving a pod's Deployment by stripping the pod-template
+ *  hash off the RS name is wrong for any Deployment whose own name ends in
+ *  `-<alnum>`, so ask the ReplicaSet who owns it instead. Returns null when the
+ *  caller can't list ReplicaSets (a pods-only RBAC role), leaving the caller on
+ *  the name-stripping fallback rather than failing the whole pod list. */
+async function buildReplicaSetOwnerMap(
+  appsV1: AppsV1Api,
+  namespace?: string,
+): Promise<Map<string, { kind: string; name: string }> | null> {
+  try {
+    const res = namespace
+      ? await appsV1.listNamespacedReplicaSet({ namespace })
+      : await appsV1.listReplicaSetForAllNamespaces()
+    const owners = new Map<string, { kind: string; name: string }>()
+    for (const rs of res.items) {
+      const owner = (rs.metadata?.ownerReferences ?? [])[0]
+      if (!owner) continue
+      const key = `${rs.metadata?.namespace ?? ""}/${rs.metadata?.name ?? ""}`
+      owners.set(key, { kind: owner.kind, name: owner.name })
+    }
+    return owners
+  } catch {
+    return null
+  }
+}
+
+export async function listPods(
+  api: CoreV1Api,
+  namespace?: string,
+  appsV1?: AppsV1Api,
+): Promise<PodInfo[]> {
+  const res = namespace
+    ? await api.listNamespacedPod({ namespace })
+    : await api.listPodForAllNamespaces()
+
+  // Only pay for the extra list call when some pod is actually RS-owned.
+  const anyReplicaSetOwned = res.items.some((p) =>
+    (p.metadata?.ownerReferences ?? []).some((o) => o.kind === "ReplicaSet"),
+  )
+  const rsOwners =
+    appsV1 && anyReplicaSetOwned
+      ? await buildReplicaSetOwnerMap(appsV1, namespace)
+      : null
+
   return res.items.map((pod) => {
     const owners = pod.metadata?.ownerReferences ?? []
     const firstOwner = owners[0]
@@ -397,9 +454,11 @@ export async function listPods(api: CoreV1Api): Promise<PodInfo[]> {
     let ownerName = ""
     if (firstOwner) {
       if (firstOwner.kind === "ReplicaSet") {
-        ownerKind = "Deployment"
-        ownerName = firstOwner.name.replace(/-[a-z0-9]+$/, "")
-        deploymentName = ownerName
+        const podNamespace = pod.metadata?.namespace ?? ""
+        const rsOwner = rsOwners?.get(`${podNamespace}/${firstOwner.name}`)
+        ownerKind = rsOwner?.kind ?? "Deployment"
+        ownerName = rsOwner?.name ?? firstOwner.name.replace(/-[a-z0-9]+$/, "")
+        deploymentName = ownerKind === "Deployment" ? ownerName : ""
       } else {
         ownerKind = firstOwner.kind
         ownerName = firstOwner.name

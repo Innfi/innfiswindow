@@ -661,16 +661,33 @@ export interface K8sAPI {
     contextName?: string
   }) => Promise<ConnectionStatus>
   reconnect: (args?: { contextName?: string }) => Promise<ConnectionStatus>
-  listDeployments: (args?: { contextName?: string }) => Promise<K8sDeployment[]>
-  listReplicaSets: (args?: { contextName?: string }) => Promise<K8sReplicaSet[]>
+  listDeployments: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sDeployment[]>
+  listReplicaSets: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sReplicaSet[]>
   listStatefulSets: (args?: {
     contextName?: string
+    namespace?: string
   }) => Promise<K8sStatefulSet[]>
-  listDaemonSets: (args?: { contextName?: string }) => Promise<K8sDaemonSet[]>
-  listConfigMaps: (args?: { contextName?: string }) => Promise<K8sConfigMap[]>
-  listSecrets: (args?: { contextName?: string }) => Promise<K8sSecret[]>
+  listDaemonSets: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sDaemonSet[]>
+  listConfigMaps: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sConfigMap[]>
+  listSecrets: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sSecret[]>
   listServiceAccounts: (args?: {
     contextName?: string
+    namespace?: string
   }) => Promise<K8sServiceAccount[]>
   listRoles: (args?: {
     contextName?: string
@@ -686,16 +703,26 @@ export interface K8sAPI {
   listClusterRoleBindings: (args?: {
     contextName?: string
   }) => Promise<K8sClusterRoleBinding[]>
-  listHPAs: (args?: { contextName?: string }) => Promise<K8sHPA[]>
+  listHPAs: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sHPA[]>
   listPVs: (args?: { contextName?: string }) => Promise<K8sPV[]>
   listStorageClasses: (args?: {
     contextName?: string
   }) => Promise<K8sStorageClass[]>
   listVolumeSnapshots: (args?: {
     contextName?: string
+    namespace?: string
   }) => Promise<K8sVolumeSnapshot[]>
-  listJobs: (args?: { contextName?: string }) => Promise<K8sJob[]>
-  listCronJobs: (args?: { contextName?: string }) => Promise<K8sCronJob[]>
+  listJobs: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sJob[]>
+  listCronJobs: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sCronJob[]>
   restartJob: (args: {
     contextName?: string
     namespace: string
@@ -709,19 +736,42 @@ export interface K8sAPI {
   getNodeMetrics: (args?: {
     contextName?: string
   }) => Promise<NodeMetric[] | { unavailable: true }>
-  listPVCs: (args?: { contextName?: string }) => Promise<K8sPVC[]>
+  listPVCs: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sPVC[]>
   listResourceQuotas: (args?: {
     contextName?: string
+    namespace?: string
   }) => Promise<K8sResourceQuota[]>
-  listLimitRanges: (args?: { contextName?: string }) => Promise<K8sLimitRange[]>
-  listPDBs: (args?: { contextName?: string }) => Promise<K8sPDB[]>
-  listPods: (args?: { contextName?: string }) => Promise<K8sPod[]>
-  listServices: (args?: { contextName?: string }) => Promise<K8sService[]>
-  listIngresses: (args?: { contextName?: string }) => Promise<K8sIngress[]>
+  listLimitRanges: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sLimitRange[]>
+  listPDBs: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sPDB[]>
+  listPods: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sPod[]>
+  listServices: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sService[]>
+  listIngresses: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sIngress[]>
   listNetworkPolicies: (args?: {
     contextName?: string
+    namespace?: string
   }) => Promise<K8sNetworkPolicy[]>
-  listEndpoints: (args?: { contextName?: string }) => Promise<K8sEndpoint[]>
+  listEndpoints: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sEndpoint[]>
   getClusterType: () => Promise<"EKS" | "AKS" | "Local">
   createDeployment: (
     namespace: string,
@@ -1049,7 +1099,10 @@ export interface API {
     step?: number
     rangeMinutes?: number
   }) => Promise<PodMetricsResult | { error: string }>
-  listEvents: (args?: { contextName?: string }) => Promise<K8sEvent[]>
+  listEvents: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sEvent[]>
   listEventsForResource: (args: {
     contextName?: string
     namespace: string

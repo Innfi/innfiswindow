@@ -28,8 +28,13 @@ export interface IngressTLSEntry {
   secretName: string
 }
 
-export async function listServices(api: CoreV1Api): Promise<ServiceInfo[]> {
-  const res = await api.listServiceForAllNamespaces()
+export async function listServices(
+  api: CoreV1Api,
+  namespace?: string,
+): Promise<ServiceInfo[]> {
+  const res = namespace
+    ? await api.listNamespacedService({ namespace })
+    : await api.listServiceForAllNamespaces()
   return res.items.map((svc) => {
     const lbIngress = svc.status?.loadBalancer?.ingress ?? []
     const externalIP =
@@ -63,8 +68,11 @@ export async function listServices(api: CoreV1Api): Promise<ServiceInfo[]> {
 
 export async function listIngresses(
   api: NetworkingV1Api,
+  namespace?: string,
 ): Promise<IngressInfo[]> {
-  const res = await api.listIngressForAllNamespaces()
+  const res = namespace
+    ? await api.listNamespacedIngress({ namespace })
+    : await api.listIngressForAllNamespaces()
   return res.items.map((ing) => {
     const lbIngress = ing.status?.loadBalancer?.ingress ?? []
     const address = lbIngress[0]?.ip ?? lbIngress[0]?.hostname ?? ""
@@ -272,8 +280,13 @@ export async function replaceIngressFromYaml(
   }
 }
 
-export async function listEndpoints(api: CoreV1Api): Promise<EndpointInfo[]> {
-  const res = await api.listEndpointsForAllNamespaces()
+export async function listEndpoints(
+  api: CoreV1Api,
+  namespace?: string,
+): Promise<EndpointInfo[]> {
+  const res = namespace
+    ? await api.listNamespacedEndpoints({ namespace })
+    : await api.listEndpointsForAllNamespaces()
   return res.items.map((ep) => {
     const subsets = ep.subsets ?? []
     let readyAddressCount = 0
@@ -329,8 +342,11 @@ function labelsToString(labels: Record<string, string> | undefined): string {
 
 export async function listNetworkPolicies(
   api: NetworkingV1Api,
+  namespace?: string,
 ): Promise<NetworkPolicyInfo[]> {
-  const res = await api.listNetworkPolicyForAllNamespaces()
+  const res = namespace
+    ? await api.listNamespacedNetworkPolicy({ namespace })
+    : await api.listNetworkPolicyForAllNamespaces()
   return res.items.map((np) => {
     const ingress = np.spec?.ingress ?? []
     const egress = np.spec?.egress ?? []

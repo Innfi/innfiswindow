@@ -19,19 +19,37 @@ export function registerNetworkingHandlers(
   networkingV1Api: NetworkingV1Api,
   getContextClients: GetContextClients,
 ): void {
-  ipcMain.handle("k8s:services:list", (_e, args?: { contextName?: string }) =>
-    listServices(getContextClients(args?.contextName).coreV1),
+  ipcMain.handle(
+    "k8s:services:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listServices(
+        getContextClients(args?.contextName).coreV1,
+        args?.namespace,
+      ),
   )
-  ipcMain.handle("k8s:ingresses:list", (_e, args?: { contextName?: string }) =>
-    listIngresses(getContextClients(args?.contextName).networkingV1),
+  ipcMain.handle(
+    "k8s:ingresses:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listIngresses(
+        getContextClients(args?.contextName).networkingV1,
+        args?.namespace,
+      ),
   )
   ipcMain.handle(
     "k8s:networkpolicies:list",
-    (_e, args?: { contextName?: string }) =>
-      listNetworkPolicies(getContextClients(args?.contextName).networkingV1),
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listNetworkPolicies(
+        getContextClients(args?.contextName).networkingV1,
+        args?.namespace,
+      ),
   )
-  ipcMain.handle("k8s:endpoints:list", (_e, args?: { contextName?: string }) =>
-    listEndpoints(getContextClients(args?.contextName).coreV1),
+  ipcMain.handle(
+    "k8s:endpoints:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listEndpoints(
+        getContextClients(args?.contextName).coreV1,
+        args?.namespace,
+      ),
   )
 
   ipcMain.handle(

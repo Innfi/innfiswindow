@@ -199,7 +199,9 @@ export function SecretsView(): JSX.Element {
   return (
     <ResourceListView<K8sSecret>
       title="Secrets"
-      list={(ctx) => window.api.k8s.listSecrets({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listSecrets({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sSecret).type !== undefined}
       columns={[
         { head: "Name", cell: (s) => s.name },

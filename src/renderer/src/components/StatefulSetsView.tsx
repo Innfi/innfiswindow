@@ -323,7 +323,9 @@ export function StatefulSetsView(): JSX.Element {
     <ResourceListView<K8sStatefulSet>
       title="StatefulSets"
       emptyMessage="No Stateful Sets found"
-      list={(ctx) => window.api.k8s.listStatefulSets({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listStatefulSets({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sStatefulSet).serviceName !== undefined}
       columns={[
         { head: "Name", cell: (ss) => ss.name },

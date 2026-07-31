@@ -254,7 +254,9 @@ export function IngressesView(): JSX.Element {
   return (
     <ResourceListView<K8sIngress>
       title="Ingresses"
-      list={(ctx) => window.api.k8s.listIngresses({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listIngresses({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sIngress).rules !== undefined}
       columns={[
         { head: "Name", cell: (ing) => ing.name, className: "font-medium" },

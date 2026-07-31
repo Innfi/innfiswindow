@@ -344,7 +344,9 @@ export function DaemonSetsView(): JSX.Element {
     <ResourceListView<K8sDaemonSet>
       title="DaemonSets"
       emptyMessage="No Daemon Sets found"
-      list={(ctx) => window.api.k8s.listDaemonSets({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listDaemonSets({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) =>
         (item as K8sDaemonSet).desiredNumberScheduled !== undefined
       }

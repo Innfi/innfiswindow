@@ -27,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/Table"
+import { handleIpcError } from "../../lib/ipc-error"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
 
@@ -62,8 +63,7 @@ export function HelmRepositoriesView(): JSX.Element {
       const data = await window.api.helm.repoList()
       setRepos(data)
     } catch (e) {
-      toast.error(`Failed to load helm repos: ${String(e)}`)
-      useAppStore.getState().addGlobalError(String(e), "Helm: repo list")
+      handleIpcError(e, "Helm: repo list")
     } finally {
       setLoading(false)
     }
@@ -262,8 +262,7 @@ export function HelmReleasesView(): JSX.Element {
       const data = await window.api.helm.releaseList({ contextName: ctx })
       setReleases(data)
     } catch (e) {
-      toast.error(`Failed to load helm releases: ${String(e)}`)
-      useAppStore.getState().addGlobalError(String(e), "Helm: release list")
+      handleIpcError(e, "Helm: release list")
     } finally {
       setLoading(false)
     }

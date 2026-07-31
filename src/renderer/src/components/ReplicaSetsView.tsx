@@ -239,7 +239,9 @@ export function ReplicaSetsView(): JSX.Element {
     <ResourceListView<K8sReplicaSet>
       title="ReplicaSets"
       emptyMessage="No Replica Sets found"
-      list={(ctx) => window.api.k8s.listReplicaSets({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listReplicaSets({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => {
         const rs = item as K8sReplicaSet
         return rs.namespace !== undefined && rs.desiredReplicas !== undefined

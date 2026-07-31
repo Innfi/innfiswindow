@@ -185,7 +185,9 @@ export function RolesView(): JSX.Element {
   return (
     <ResourceListView<K8sRole>
       title="Roles"
-      list={(ctx) => window.api.k8s.listRoles({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listRoles({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sRole).namespace !== undefined}
       columns={[
         { head: "Name", cell: (role) => role.name },

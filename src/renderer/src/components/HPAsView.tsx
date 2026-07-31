@@ -221,7 +221,9 @@ export function HPAsView(): JSX.Element {
   return (
     <ResourceListView<K8sHPA>
       title="HorizontalPodAutoscalers"
-      list={(ctx) => window.api.k8s.listHPAs({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listHPAs({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sHPA).namespace !== undefined}
       columns={[
         { head: "Name", cell: (h) => h.name },
