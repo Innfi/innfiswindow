@@ -15,8 +15,17 @@ const api = {
       name: string
       schedulable: boolean
     }) => ipcRenderer.invoke("k8s:node:cordon", args),
-    drainNode: (args: { contextName?: string; name: string }) =>
-      ipcRenderer.invoke("k8s:node:drain", args),
+    drainNode: (args: {
+      contextName?: string
+      name: string
+      options?: {
+        force?: boolean
+        gracePeriodSeconds?: number
+        ignoreDaemonSets?: boolean
+        deleteEmptyDirData?: boolean
+        timeoutSeconds?: number
+      }
+    }) => ipcRenderer.invoke("k8s:node:drain", args),
     checkConnection: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:connection:check", args),
     reconnect: (args?: { contextName?: string }) =>
@@ -242,6 +251,8 @@ const api = {
       ipcRenderer.invoke("k8s:ingress:update", namespace, name, yaml),
     applyResource: (yaml: string) =>
       ipcRenderer.invoke("k8s:resource:apply", yaml),
+    dryRunResource: (yaml: string) =>
+      ipcRenderer.invoke("k8s:resource:dryRun", yaml),
     deleteResource: (args: {
       apiVersion: string
       kind: string

@@ -16,6 +16,8 @@ import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { EmptyState } from "../../components/ui/EmptyState"
+import { Input } from "../../components/ui/Input"
+import { Label } from "../../components/ui/Label"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import { RefreshBar } from "../../components/ui/RefreshBar"
 import { SectionHeader } from "../../components/ui/SectionHeader"
@@ -38,6 +40,14 @@ interface NodeMetric {
   nodeName: string
   cpuUsage: string
   memoryUsage: string
+}
+
+/** Drain's seconds-valued inputs. Blank or nonsense becomes undefined so the
+ *  handler falls back to its own default rather than receiving a NaN. */
+function positiveSeconds(value: string): number | undefined {
+  if (value.trim() === "") return undefined
+  const n = Number(value)
+  return Number.isFinite(n) && n >= 0 ? n : undefined
 }
 
 function parseCpuNanocores(cpu: string): number {
@@ -190,6 +200,12 @@ function DetailPanel({
   const [cordoning, setCordoning] = useState(false)
   const [drainOpen, setDrainOpen] = useState(false)
   const [draining, setDraining] = useState(false)
+  const [drainForce, setDrainForce] = useState(false)
+  const [drainIgnoreDaemonSets, setDrainIgnoreDaemonSets] = useState(true)
+  const [drainEmptyDirData, setDrainEmptyDirData] = useState(false)
+  // Blank grace period means "use each pod's own terminationGracePeriodSeconds".
+  const [drainGracePeriod, setDrainGracePeriod] = useState("")
+  const [drainTimeout, setDrainTimeout] = useState("300")
 
   async function handleCordon(): Promise<void> {
     const schedulable = node.unschedulable // toggling back to schedulable
@@ -234,27 +250,36 @@ function DetailPanel({
       const result = await window.api.k8s.drainNode({
         contextName: selectedContext ?? undefined,
         name: node.name,
+        options: {
+          force: drainForce,
+          ignoreDaemonSets: drainIgnoreDaemonSets,
+          deleteEmptyDirData: drainEmptyDirData,
+          gracePeriodSeconds: positiveSeconds(drainGracePeriod),
+          timeoutSeconds: positiveSeconds(drainTimeout),
+        },
       })
-      recordHistory(target, {
-        success: result.success,
-        error: result.success
-          ? undefined
-          : result.failed.map((f) => `${f.pod}: ${f.error}`).join("; "),
-      })
+      // A drain fails three different ways — refused up front, an eviction
+      // rejected, or pods that never terminated — and each needs its own
+      // message, since "drain failed" alone doesn't tell you what to change.
+      const problem =
+        result.error ??
+        (result.failed.length > 0
+          ? `${result.failed.length} pod(s) could not be evicted — ${result.failed
+              .map((f) => `${f.pod}: ${f.error}`)
+              .join("; ")}`
+          : result.timedOut
+            ? `evictions issued, but ${result.pending.length} pod(s) were still running at the timeout: ${result.pending.join(", ")}`
+            : undefined)
+
+      recordHistory(target, { success: result.success, error: problem })
       if (result.success) {
         toast.success(
           `Drained ${node.name}: evicted ${result.evicted}, skipped ${result.skipped.length}`,
         )
       } else {
-        toast.error(
-          `Drain incomplete: ${result.failed.length} pod(s) could not be evicted (see errors)`,
-        )
-        useAppStore
-          .getState()
-          .addGlobalError(
-            result.failed.map((f) => `${f.pod}: ${f.error}`).join("; "),
-            "Node: drain",
-          )
+        const message = problem ?? "Drain did not complete"
+        toast.error(`Drain ${node.name}: ${message}`)
+        useAppStore.getState().addGlobalError(message, "Node: drain")
       }
       setDrainOpen(false)
       onChanged()
@@ -592,11 +617,95 @@ function DetailPanel({
             <AlertDialogTitle>Drain Node</AlertDialogTitle>
             <AlertDialogDescription>
               Cordon <span className="font-medium">{node.name}</span> and evict
-              its pods (honouring PodDisruptionBudgets). DaemonSet and static
-              pods are left in place. Evictions are issued but this does not
-              wait for every pod to terminate.
+              its pods (honouring PodDisruptionBudgets), then wait for them to
+              terminate. Static pods are always left in place. The drain is
+              refused up front if it finds a pod the options below don&apos;t
+              cover.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          <div className="space-y-3 py-2 text-sm">
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                className="mt-0.5 accent-primary"
+                checked={drainIgnoreDaemonSets}
+                onChange={(e) => setDrainIgnoreDaemonSets(e.target.checked)}
+                disabled={draining}
+              />
+              <span>
+                Ignore DaemonSets
+                <span className="block text-xs text-muted-foreground">
+                  Leave DaemonSet pods running instead of refusing the drain.
+                </span>
+              </span>
+            </label>
+
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                className="mt-0.5 accent-primary"
+                checked={drainForce}
+                onChange={(e) => setDrainForce(e.target.checked)}
+                disabled={draining}
+              />
+              <span>
+                Force
+                <span className="block text-xs text-muted-foreground">
+                  Evict pods no controller owns. Nothing will recreate them.
+                </span>
+              </span>
+            </label>
+
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                className="mt-0.5 accent-primary"
+                checked={drainEmptyDirData}
+                onChange={(e) => setDrainEmptyDirData(e.target.checked)}
+                disabled={draining}
+              />
+              <span>
+                Delete emptyDir data
+                <span className="block text-xs text-muted-foreground">
+                  Evict pods with emptyDir volumes, discarding their contents.
+                </span>
+              </span>
+            </label>
+
+            <div className="flex gap-3">
+              <div className="flex-1 space-y-1">
+                <Label htmlFor="drain-grace-period" className="text-xs">
+                  Grace period (s)
+                </Label>
+                <Input
+                  id="drain-grace-period"
+                  type="number"
+                  min={0}
+                  placeholder="pod default"
+                  value={drainGracePeriod}
+                  onChange={(e) => setDrainGracePeriod(e.target.value)}
+                  disabled={draining}
+                  className="h-8"
+                />
+              </div>
+              <div className="flex-1 space-y-1">
+                <Label htmlFor="drain-timeout" className="text-xs">
+                  Timeout (s)
+                </Label>
+                <Input
+                  id="drain-timeout"
+                  type="number"
+                  min={0}
+                  value={drainTimeout}
+                  onChange={(e) => setDrainTimeout(e.target.value)}
+                  disabled={draining}
+                  className="h-8"
+                />
+              </div>
+            </div>
+          </div>
+
           <AlertDialogFooter>
             <Button
               variant="outline"

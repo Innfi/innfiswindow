@@ -109,12 +109,31 @@ export interface K8sNode {
   unschedulable: boolean
 }
 
+export interface DryRunResult {
+  name: string
+  namespace: string
+  kind: string
+  action: "create" | "update"
+  diff: string
+  rendered: string
+}
+
+export interface DrainOptions {
+  force?: boolean
+  gracePeriodSeconds?: number
+  ignoreDaemonSets?: boolean
+  deleteEmptyDirData?: boolean
+  timeoutSeconds?: number
+}
+
 export interface DrainResult {
   success: boolean
   cordoned: boolean
   evicted: number
   skipped: string[]
   failed: { pod: string; error: string }[]
+  pending: string[]
+  timedOut: boolean
   error?: string
 }
 
@@ -656,6 +675,7 @@ export interface K8sAPI {
   drainNode: (args: {
     contextName?: string
     name: string
+    options?: DrainOptions
   }) => Promise<DrainResult>
   checkConnection: (args?: {
     contextName?: string
@@ -875,6 +895,7 @@ export interface K8sAPI {
     yaml: string,
   ) => Promise<{ name: string; namespace: string }>
   applyResource: (yaml: string) => Promise<{ name: string; namespace: string }>
+  dryRunResource: (yaml: string) => Promise<DryRunResult>
   deleteResource: (args: {
     apiVersion: string
     kind: string

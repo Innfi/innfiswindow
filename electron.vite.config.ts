@@ -7,8 +7,11 @@ export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin({ exclude: ["@kubernetes/client-node"] })],
   },
+  // A sandboxed preload can only `require` electron and a few polyfilled
+  // builtins, so every npm dependency it uses has to be bundled in rather than
+  // left as an external require.
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: ["@electron-toolkit/preload"] })],
   },
   renderer: {
     root: resolve("src/renderer"),

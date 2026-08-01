@@ -133,9 +133,14 @@ function createWindow(): void {
           icon: join(__dirname, "../../build/icon.png"),
         }
       : {}),
+    // The preload only ever touches contextBridge/ipcRenderer, both of which
+    // are available inside the sandbox, so the renderer gets no Node access at
+    // all — defence in depth on top of contextIsolation. Keeping this true
+    // requires the preload bundle to stay dependency-free at runtime; see the
+    // externalizeDepsPlugin exclusion in electron.vite.config.ts.
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
-      sandbox: false,
+      sandbox: true,
     },
   })
 

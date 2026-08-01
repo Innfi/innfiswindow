@@ -120,6 +120,22 @@ export interface ApplyResult {
   namespace: string
 }
 
+export interface DryRunResult {
+  name: string
+  namespace: string
+  kind: string
+  /** What the real apply would do: create the object, or patch the one that's
+   *  already there. */
+  action: "create" | "update"
+  /** Unified diff from the live object to what the server said it would
+   *  become. Empty when the apply is a no-op (or on a create, where there is
+   *  no "before" — read `rendered` instead). */
+  diff: string
+  /** The server's own rendering of the result as YAML, after defaulting,
+   *  admission webhooks and validation have run. */
+  rendered: string
+}
+
 // ---------------------------------------------------------------------------
 // cluster.ts
 // ---------------------------------------------------------------------------
@@ -173,12 +189,38 @@ export interface NodeInfo {
 /** Outcome of draining a node: how many pods were evicted, which were skipped
  *  (DaemonSet/mirror pods that drain leaves in place), and which evictions the
  *  API rejected (e.g. a PodDisruptionBudget blocking one). */
+/** Mirrors the `kubectl drain` flags. Every one of these guards a case where
+ *  evicting a pod loses something the cluster can't recreate, so they are all
+ *  opt-in. */
+export interface DrainOptions {
+  /** Evict pods no controller owns. Without it the drain refuses, because
+   *  nothing would recreate such a pod elsewhere. (`--force`) */
+  force?: boolean
+  /** Override each pod's own terminationGracePeriodSeconds.
+   *  (`--grace-period`) */
+  gracePeriodSeconds?: number
+  /** Leave DaemonSet pods where they are instead of refusing. Defaults to
+   *  true, since a DaemonSet pod is expected on every node.
+   *  (`--ignore-daemonsets`) */
+  ignoreDaemonSets?: boolean
+  /** Evict pods with emptyDir volumes, discarding that data.
+   *  (`--delete-emptydir-data`) */
+  deleteEmptyDirData?: boolean
+  /** How long to wait for evicted pods to actually terminate. 0 issues the
+   *  evictions and returns immediately. (`--timeout`) */
+  timeoutSeconds?: number
+}
+
 export interface DrainResult {
   success: boolean
   cordoned: boolean
   evicted: number
   skipped: string[]
   failed: { pod: string; error: string }[]
+  /** Evicted pods still running when the wait deadline passed. Non-empty
+   *  exactly when `timedOut` is true. */
+  pending: string[]
+  timedOut: boolean
   error?: string
 }
 

@@ -1,6 +1,7 @@
 import { IpcMain } from "electron"
 import { KubeConfig } from "@kubernetes/client-node"
 
+import { DrainOptions } from "../handlers/types"
 import {
   checkConnection,
   drainNode,
@@ -43,8 +44,15 @@ export function registerClusterHandlers(
   )
   ipcMain.handle(
     "k8s:node:drain",
-    (_e, args: { contextName?: string; name: string }) =>
-      drainNode(getContextClients(args.contextName).coreV1, args.name),
+    (
+      _e,
+      args: { contextName?: string; name: string; options?: DrainOptions },
+    ) =>
+      drainNode(
+        getContextClients(args.contextName).coreV1,
+        args.name,
+        args.options,
+      ),
   )
   ipcMain.handle(
     "k8s:connection:check",

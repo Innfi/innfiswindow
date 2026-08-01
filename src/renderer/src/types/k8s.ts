@@ -75,3 +75,4 @@ export type K8sEndpoint = Shared.EndpointInfo
 export type K8sPDB = Shared.PDBInfo
 export type K8sStorageClass = Shared.StorageClassInfo
 export type K8sVolumeSnapshot = Shared.VolumeSnapshotInfo
+export type DryRunResult = Shared.DryRunResult

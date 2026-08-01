@@ -1,7 +1,8 @@
-import { CoreV1Api, KubeConfig } from "@kubernetes/client-node"
+import { CoreV1Api, KubeConfig, V1Pod } from "@kubernetes/client-node"
 
 import {
   ContextInfo,
+  DrainOptions,
   DrainResult,
   MutationResult,
   NamespaceInfo,
@@ -88,22 +89,74 @@ export async function setNodeSchedulable(
   return { success: true, name }
 }
 
-/** Drain a node like `kubectl drain --ignore-daemonsets --delete-emptydir-data`:
- *  cordon it, then evict every eligible pod through the Eviction API so
- *  PodDisruptionBudgets are honoured. DaemonSet-managed and static/mirror pods
- *  are left in place (kubectl skips them too). Already-terminal pods are
- *  ignored. This issues the evictions and reports per-pod results; it does not
- *  block until every pod has fully terminated. */
+const DRAIN_POLL_INTERVAL_MS = 2000
+const DEFAULT_DRAIN_TIMEOUT_SECONDS = 300
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** Poll the node's pod list until every evicted pod has actually gone. Matches
+ *  on UID rather than name: a StatefulSet replacement reuses its pod name, and
+ *  treating that as "still terminating" would hang the drain for the full
+ *  timeout. Returns the refs still present at the deadline — empty means the
+ *  node really is drained. */
+async function waitForEvictedPods(
+  api: CoreV1Api,
+  nodeName: string,
+  evicted: Array<{ ref: string; uid: string }>,
+  timeoutSeconds: number,
+): Promise<string[]> {
+  const deadline = Date.now() + timeoutSeconds * 1000
+  const outstanding = new Map(evicted.map((p) => [p.uid, p.ref]))
+
+  for (;;) {
+    const res = await api.listPodForAllNamespaces({
+      fieldSelector: `spec.nodeName=${nodeName}`,
+    })
+    const liveUids = new Set(res.items.map((p) => p.metadata?.uid ?? ""))
+    for (const uid of [...outstanding.keys()]) {
+      if (!liveUids.has(uid)) outstanding.delete(uid)
+    }
+    if (outstanding.size === 0) return []
+
+    const remainingMs = deadline - Date.now()
+    if (remainingMs <= 0) return [...outstanding.values()]
+    await sleep(Math.min(DRAIN_POLL_INTERVAL_MS, remainingMs))
+  }
+}
+
+/** Drain a node like `kubectl drain`: cordon it, then evict every eligible pod
+ *  through the Eviction API so PodDisruptionBudgets are honoured, then wait for
+ *  those pods to terminate.
+ *
+ *  Pods the drain can't safely move — unmanaged pods, DaemonSet pods, pods
+ *  holding emptyDir data — are classified *before* anything is evicted, and any
+ *  of them aborts the whole drain unless the matching `DrainOptions` flag says
+ *  otherwise. kubectl does the same: a node left half-drained is worse than one
+ *  not drained at all. Static/mirror pods are always skipped instead, since the
+ *  kubelet recreates them from local manifests no matter what we do. */
 export async function drainNode(
   api: CoreV1Api,
   name: string,
+  options: DrainOptions = {},
 ): Promise<DrainResult> {
+  const {
+    force = false,
+    gracePeriodSeconds,
+    ignoreDaemonSets = true,
+    deleteEmptyDirData = false,
+    timeoutSeconds = DEFAULT_DRAIN_TIMEOUT_SECONDS,
+  } = options
+
   const result: DrainResult = {
     success: false,
     cordoned: false,
     evicted: 0,
     skipped: [],
     failed: [],
+    pending: [],
+    timedOut: false,
   }
 
   await api.patchNode({ name, body: { spec: { unschedulable: true } } })
@@ -113,23 +166,56 @@ export async function drainNode(
     fieldSelector: `spec.nodeName=${name}`,
   })
 
+  const evictable: V1Pod[] = []
+  const blockers: string[] = []
+
   for (const pod of pods.items) {
-    const podName = pod.metadata?.name ?? ""
-    const namespace = pod.metadata?.namespace ?? ""
-    const ref = `${namespace}/${podName}`
+    const ref = `${pod.metadata?.namespace ?? ""}/${pod.metadata?.name ?? ""}`
 
     const phase = pod.status?.phase
     if (phase === "Succeeded" || phase === "Failed") continue
 
-    const ownedByDaemonSet = (pod.metadata?.ownerReferences ?? []).some(
-      (o) => o.kind === "DaemonSet",
-    )
-    const isMirrorPod =
+    if (
       pod.metadata?.annotations?.["kubernetes.io/config.mirror"] !== undefined
-    if (ownedByDaemonSet || isMirrorPod) {
+    ) {
       result.skipped.push(ref)
       continue
     }
+
+    const owners = pod.metadata?.ownerReferences ?? []
+    if (owners.some((o) => o.kind === "DaemonSet")) {
+      if (ignoreDaemonSets) result.skipped.push(ref)
+      else blockers.push(`${ref} is managed by a DaemonSet`)
+      continue
+    }
+
+    if (owners.length === 0 && !force) {
+      blockers.push(`${ref} is not managed by a controller`)
+      continue
+    }
+
+    if (
+      !deleteEmptyDirData &&
+      (pod.spec?.volumes ?? []).some((v) => v.emptyDir !== undefined)
+    ) {
+      blockers.push(`${ref} has emptyDir data that would be lost`)
+      continue
+    }
+
+    evictable.push(pod)
+  }
+
+  if (blockers.length > 0) {
+    result.error = `Refusing to drain ${name}: ${blockers.join("; ")}`
+    return result
+  }
+
+  const evicted: Array<{ ref: string; uid: string }> = []
+
+  for (const pod of evictable) {
+    const podName = pod.metadata?.name ?? ""
+    const namespace = pod.metadata?.namespace ?? ""
+    const ref = `${namespace}/${podName}`
 
     try {
       await api.createNamespacedPodEviction({
@@ -139,15 +225,29 @@ export async function drainNode(
           apiVersion: "policy/v1",
           kind: "Eviction",
           metadata: { name: podName, namespace },
+          ...(gracePeriodSeconds !== undefined && {
+            deleteOptions: { gracePeriodSeconds },
+          }),
         },
       })
       result.evicted += 1
+      evicted.push({ ref, uid: pod.metadata?.uid ?? "" })
     } catch (e: unknown) {
       result.failed.push({ pod: ref, error: (e as Error).message })
     }
   }
 
-  result.success = result.failed.length === 0
+  if (timeoutSeconds > 0 && evicted.length > 0) {
+    result.pending = await waitForEvictedPods(
+      api,
+      name,
+      evicted,
+      timeoutSeconds,
+    )
+    result.timedOut = result.pending.length > 0
+  }
+
+  result.success = result.failed.length === 0 && !result.timedOut
   return result
 }
 
