@@ -1,10 +1,17 @@
-import { CoreV1Api, RbacAuthorizationV1Api } from "@kubernetes/client-node"
+import {
+  CoreV1Api,
+  RbacAuthorizationV1Api,
+  V1PolicyRule,
+} from "@kubernetes/client-node"
 
 import {
   ClusterRoleBindingInfo,
   ClusterRoleInfo,
+  ClusterRoleSummary,
+  RbacRule,
   RoleBindingInfo,
   RoleInfo,
+  RoleSummary,
   UpdateClusterRoleBindingResult,
   UpdateClusterRoleResult,
   UpdateRoleBindingResult,
@@ -12,10 +19,18 @@ import {
   UpdateServiceAccountResult,
 } from "./types"
 
+function mapRules(rules: V1PolicyRule[] | undefined): RbacRule[] {
+  return (rules ?? []).map((rule) => ({
+    apiGroups: rule.apiGroups ?? [],
+    resources: rule.resources ?? [],
+    verbs: rule.verbs ?? [],
+  }))
+}
+
 export async function listRoles(
   api: RbacAuthorizationV1Api,
   namespace?: string,
-): Promise<RoleInfo[]> {
+): Promise<RoleSummary[]> {
   const res = namespace
     ? await api.listNamespacedRole({ namespace })
     : await api.listRoleForAllNamespaces()
@@ -24,32 +39,50 @@ export async function listRoles(
     namespace: r.metadata?.namespace ?? "",
     rulesCount: (r.rules ?? []).length,
     creationTimestamp: r.metadata?.creationTimestamp?.toISOString() ?? "",
+  }))
+}
+
+export async function getRole(
+  api: RbacAuthorizationV1Api,
+  namespace: string,
+  name: string,
+): Promise<RoleInfo> {
+  const r = await api.readNamespacedRole({ name, namespace })
+  return {
+    name: r.metadata?.name ?? "",
+    namespace: r.metadata?.namespace ?? "",
+    rulesCount: (r.rules ?? []).length,
+    creationTimestamp: r.metadata?.creationTimestamp?.toISOString() ?? "",
     labels: r.metadata?.labels ?? {},
     annotations: r.metadata?.annotations ?? {},
-    rules: (r.rules ?? []).map((rule) => ({
-      apiGroups: rule.apiGroups ?? [],
-      resources: rule.resources ?? [],
-      verbs: rule.verbs ?? [],
-    })),
-  }))
+    rules: mapRules(r.rules),
+  }
 }
 
 export async function listClusterRoles(
   api: RbacAuthorizationV1Api,
-): Promise<ClusterRoleInfo[]> {
+): Promise<ClusterRoleSummary[]> {
   const res = await api.listClusterRole()
   return res.items.map((r) => ({
     name: r.metadata?.name ?? "",
     rulesCount: (r.rules ?? []).length,
     creationTimestamp: r.metadata?.creationTimestamp?.toISOString() ?? "",
+  }))
+}
+
+export async function getClusterRole(
+  api: RbacAuthorizationV1Api,
+  name: string,
+): Promise<ClusterRoleInfo> {
+  const r = await api.readClusterRole({ name })
+  return {
+    name: r.metadata?.name ?? "",
+    rulesCount: (r.rules ?? []).length,
+    creationTimestamp: r.metadata?.creationTimestamp?.toISOString() ?? "",
     labels: r.metadata?.labels ?? {},
     annotations: r.metadata?.annotations ?? {},
-    rules: (r.rules ?? []).map((rule) => ({
-      apiGroups: rule.apiGroups ?? [],
-      resources: rule.resources ?? [],
-      verbs: rule.verbs ?? [],
-    })),
-  }))
+    rules: mapRules(r.rules),
+  }
 }
 
 export async function listRoleBindings(
@@ -111,11 +144,7 @@ export async function updateRole(
   return {
     name: res.metadata?.name ?? "",
     namespace: res.metadata?.namespace ?? "",
-    rules: (res.rules ?? []).map((rule) => ({
-      apiGroups: rule.apiGroups ?? [],
-      resources: rule.resources ?? [],
-      verbs: rule.verbs ?? [],
-    })),
+    rules: mapRules(res.rules),
   }
 }
 
@@ -128,11 +157,7 @@ export async function updateClusterRole(
   const res = await api.patchClusterRole({ name, body })
   return {
     name: res.metadata?.name ?? "",
-    rules: (res.rules ?? []).map((rule) => ({
-      apiGroups: rule.apiGroups ?? [],
-      resources: rule.resources ?? [],
-      verbs: rule.verbs ?? [],
-    })),
+    rules: mapRules(res.rules),
   }
 }
 

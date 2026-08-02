@@ -4,6 +4,9 @@ import { CoreV1Api, NetworkingV1Api } from "@kubernetes/client-node"
 import {
   createIngress,
   createService,
+  getEndpoint,
+  getIngress,
+  getNetworkPolicy,
   listEndpoints,
   listIngresses,
   listNetworkPolicies,
@@ -49,6 +52,36 @@ export function registerNetworkingHandlers(
       listEndpoints(
         getContextClients(args?.contextName).coreV1,
         args?.namespace,
+      ),
+  )
+
+  // The list handlers above return counts and summaries; these fetch the rules
+  // and addresses behind them.
+  ipcMain.handle(
+    "k8s:ingress:get",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      getIngress(
+        getContextClients(args.contextName).networkingV1,
+        args.namespace,
+        args.name,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:networkpolicy:get",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      getNetworkPolicy(
+        getContextClients(args.contextName).networkingV1,
+        args.namespace,
+        args.name,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:endpoint:get",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      getEndpoint(
+        getContextClients(args.contextName).coreV1,
+        args.namespace,
+        args.name,
       ),
   )
 

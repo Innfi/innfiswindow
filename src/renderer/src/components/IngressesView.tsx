@@ -12,7 +12,12 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
-import { K8sIngress, K8sIngressRule, K8sIngressTLS } from "../types/k8s"
+import {
+  K8sIngress,
+  K8sIngressRule,
+  K8sIngressSummary,
+  K8sIngressTLS,
+} from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -252,12 +257,17 @@ function DetailPanel({
 
 export function IngressesView(): JSX.Element {
   return (
-    <ResourceListView<K8sIngress>
+    <ResourceListView<K8sIngressSummary, K8sIngress>
       title="Ingresses"
       list={(ctx, ns) =>
         window.api.k8s.listIngresses({ contextName: ctx, namespace: ns })
       }
-      detailGuard={(item) => (item as K8sIngress).rules !== undefined}
+      getDetail={(ctx, namespace, name) =>
+        window.api.k8s.getIngress({ contextName: ctx, namespace, name })
+      }
+      detailGuard={(item) =>
+        (item as K8sIngressSummary).ingressClassName !== undefined
+      }
       columns={[
         { head: "Name", cell: (ing) => ing.name, className: "font-medium" },
         { head: "Namespace", cell: (ing) => ing.namespace },
@@ -265,7 +275,7 @@ export function IngressesView(): JSX.Element {
         { head: "Hosts", cell: (ing) => ing.hosts },
         { head: "Address", cell: (ing) => ing.address || "-" },
         { head: "Ports", cell: (ing) => ing.ports },
-        ageColumn<K8sIngress>(),
+        ageColumn<K8sIngressSummary>(),
       ]}
       renderDetail={(ing, ctl: DetailController) => (
         <DetailPanel

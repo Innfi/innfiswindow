@@ -11,7 +11,7 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
-import { K8sEndpoint } from "../types/k8s"
+import { K8sEndpoint, K8sEndpointSummary } from "../types/k8s"
 
 function DetailPanel({
   endpoint,
@@ -221,12 +221,17 @@ function DetailPanel({
 
 export function EndpointsView(): JSX.Element {
   return (
-    <ResourceListView<K8sEndpoint>
+    <ResourceListView<K8sEndpointSummary, K8sEndpoint>
       title="Endpoints"
       list={(ctx, ns) =>
         window.api.k8s.listEndpoints({ contextName: ctx, namespace: ns })
       }
-      detailGuard={(item) => (item as K8sEndpoint).subsets !== undefined}
+      getDetail={(ctx, namespace, name) =>
+        window.api.k8s.getEndpoint({ contextName: ctx, namespace, name })
+      }
+      detailGuard={(item) =>
+        (item as K8sEndpointSummary).readyAddressCount !== undefined
+      }
       columns={[
         { head: "Name", cell: (ep) => ep.name },
         { head: "Namespace", cell: (ep) => ep.namespace },
@@ -240,7 +245,7 @@ export function EndpointsView(): JSX.Element {
               : undefined,
         },
         { head: "Ports", cell: (ep) => ep.ports || "—" },
-        ageColumn<K8sEndpoint>(),
+        ageColumn<K8sEndpointSummary>(),
       ]}
       renderDetail={(endpoint, ctl: DetailController) => (
         <DetailPanel

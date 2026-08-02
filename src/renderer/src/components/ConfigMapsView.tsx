@@ -12,7 +12,7 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
-import { K8sConfigMap } from "../types/k8s"
+import { K8sConfigMap, K8sConfigMapSummary } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -174,12 +174,15 @@ function DetailPanel({
 
 export function ConfigMapsView(): JSX.Element {
   return (
-    <ResourceListView<K8sConfigMap>
+    <ResourceListView<K8sConfigMapSummary, K8sConfigMap>
       title="ConfigMaps"
       list={(ctx, ns) =>
         window.api.k8s.listConfigMaps({ contextName: ctx, namespace: ns })
       }
-      detailGuard={(item) => (item as K8sConfigMap).keys !== undefined}
+      getDetail={(ctx, namespace, name) =>
+        window.api.k8s.getConfigMap({ contextName: ctx, namespace, name })
+      }
+      detailGuard={(item) => (item as K8sConfigMapSummary).keys !== undefined}
       columns={[
         { head: "Name", cell: (cm) => cm.name },
         { head: "Namespace", cell: (cm) => cm.namespace },
@@ -188,7 +191,7 @@ export function ConfigMapsView(): JSX.Element {
           cell: (cm) => cm.keys.join(", ") || "-",
           className: "max-w-xs truncate",
         },
-        ageColumn<K8sConfigMap>(),
+        ageColumn<K8sConfigMapSummary>(),
       ]}
       renderDetail={(cm, ctl: DetailController) => (
         <DetailPanel cm={cm} {...ctl} />

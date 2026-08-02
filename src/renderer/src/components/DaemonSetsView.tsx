@@ -24,7 +24,7 @@ import {
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
-import { K8sDaemonSet } from "../types/k8s"
+import { K8sDaemonSet, K8sDaemonSetSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -341,14 +341,17 @@ function DetailPanel({
 
 export function DaemonSetsView(): JSX.Element {
   return (
-    <ResourceListView<K8sDaemonSet>
+    <ResourceListView<K8sDaemonSetSummary, K8sDaemonSet>
       title="DaemonSets"
       emptyMessage="No Daemon Sets found"
       list={(ctx, ns) =>
         window.api.k8s.listDaemonSets({ contextName: ctx, namespace: ns })
       }
+      getDetail={(ctx, namespace, name) =>
+        window.api.k8s.getDaemonSet({ contextName: ctx, namespace, name })
+      }
       detailGuard={(item) =>
-        (item as K8sDaemonSet).desiredNumberScheduled !== undefined
+        (item as K8sDaemonSetSummary).desiredNumberScheduled !== undefined
       }
       columns={[
         { head: "Name", cell: (ds) => ds.name },
@@ -358,7 +361,7 @@ export function DaemonSetsView(): JSX.Element {
         { head: "Ready", cell: (ds) => ds.numberReady },
         { head: "Up-to-date", cell: (ds) => ds.updatedNumberScheduled },
         { head: "Available", cell: (ds) => ds.numberAvailable },
-        ageColumn<K8sDaemonSet>(),
+        ageColumn<K8sDaemonSetSummary>(),
       ]}
       renderDetail={(ds, ctl: DetailController) => (
         <DetailPanel

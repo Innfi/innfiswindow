@@ -12,17 +12,22 @@ import {
 import { handleIpcError } from "../../lib/ipc-error"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { K8sDeployment, K8sEvent, K8sNode, K8sPod } from "../types/k8s"
+import {
+  K8sDeploymentSummary,
+  K8sEvent,
+  K8sNode,
+  K8sPodSummary,
+} from "../types/k8s"
 import type { ResourceType } from "../types/resource"
 
 interface OverviewData {
-  pods: K8sPod[]
+  pods: K8sPodSummary[]
   nodes: K8sNode[]
-  deployments: K8sDeployment[]
+  deployments: K8sDeploymentSummary[]
   events: K8sEvent[]
 }
 
-function isUnhealthyPod(pod: K8sPod): boolean {
+function isUnhealthyPod(pod: K8sPodSummary): boolean {
   const phase = pod.status
   if (phase !== "Running" && phase !== "Succeeded") return true
   if (pod.restarts > 5) return true
@@ -36,7 +41,7 @@ function isNodeUnderPressure(node: K8sNode): boolean {
   )
 }
 
-function isFailedDeployment(dep: K8sDeployment): boolean {
+function isFailedDeployment(dep: K8sDeploymentSummary): boolean {
   return dep.availableReplicas < dep.replicas
 }
 

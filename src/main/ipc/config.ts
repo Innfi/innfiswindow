@@ -2,6 +2,8 @@ import { IpcMain } from "electron"
 import { CoreV1Api } from "@kubernetes/client-node"
 
 import {
+  getConfigMap,
+  getSecret,
   listConfigMaps,
   listSecrets,
   listServiceAccounts,
@@ -35,6 +37,26 @@ export function registerConfigHandlers(
       listServiceAccounts(
         getContextClients(args?.contextName).coreV1,
         args?.namespace,
+      ),
+  )
+
+  // Only these fetch `data`; the list handlers above return key names alone.
+  ipcMain.handle(
+    "k8s:configmap:get",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      getConfigMap(
+        getContextClients(args.contextName).coreV1,
+        args.namespace,
+        args.name,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:secret:get",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      getSecret(
+        getContextClients(args.contextName).coreV1,
+        args.namespace,
+        args.name,
       ),
   )
 

@@ -3,25 +3,34 @@ import {
   AppsV1Api,
   CoreV1Api,
   V1Container,
+  V1DaemonSet,
+  V1Deployment,
   V1EnvVar,
   V1Pod,
   V1Probe,
+  V1ReplicaSet,
+  V1StatefulSet,
   V1Volume,
 } from "@kubernetes/client-node"
 
 import {
   DaemonSetInfo,
+  DaemonSetSummary,
   DeploymentInfo,
   DeploymentRevision,
+  DeploymentSummary,
   DetailedContainerInfo,
   EnvVar,
   MutationResult,
   PodContainerInfo,
   PodInfo,
+  PodSummary,
   ProbeInfo,
   ReplicaSetInfo,
+  ReplicaSetSummary,
   ResourceRef,
   StatefulSetInfo,
+  StatefulSetSummary,
   VolumeInfo,
 } from "./types"
 
@@ -160,68 +169,86 @@ function mapDetailedContainer(c: V1Container): DetailedContainerInfo {
   }
 }
 
+function mapDeploymentSummary(d: V1Deployment): DeploymentSummary {
+  return {
+    name: d.metadata?.name ?? "",
+    namespace: d.metadata?.namespace ?? "",
+    replicas: d.spec?.replicas ?? 0,
+    readyReplicas: d.status?.readyReplicas ?? 0,
+    updatedReplicas: d.status?.updatedReplicas ?? 0,
+    availableReplicas: d.status?.availableReplicas ?? 0,
+    creationTimestamp: d.metadata?.creationTimestamp?.toISOString() ?? "",
+  }
+}
+
+function mapDeploymentInfo(d: V1Deployment): DeploymentInfo {
+  const ru = d.spec?.strategy?.rollingUpdate
+  return {
+    ...mapDeploymentSummary(d),
+    strategy: d.spec?.strategy?.type ?? "",
+    rollingUpdate: ru
+      ? {
+          maxUnavailable: String(ru.maxUnavailable ?? "25%"),
+          maxSurge: String(ru.maxSurge ?? "25%"),
+        }
+      : null,
+    minReadySeconds: d.spec?.minReadySeconds ?? 0,
+    labels: d.metadata?.labels ?? {},
+    annotations: d.metadata?.annotations ?? {},
+    selector: d.spec?.selector?.matchLabels ?? {},
+    podTemplateLabels: d.spec?.template?.metadata?.labels ?? {},
+    podTemplateAnnotations: d.spec?.template?.metadata?.annotations ?? {},
+    serviceAccountName: d.spec?.template?.spec?.serviceAccountName ?? "",
+    containers: (d.spec?.template?.spec?.containers ?? []).map(
+      mapDetailedContainer,
+    ),
+    initContainers: (d.spec?.template?.spec?.initContainers ?? []).map(
+      mapDetailedContainer,
+    ),
+    volumes: (d.spec?.template?.spec?.volumes ?? []).map(formatVolume),
+    conditions: (d.status?.conditions ?? []).map((c) => ({
+      type: c.type,
+      status: c.status,
+      reason: c.reason ?? "",
+      message: c.message ?? "",
+    })),
+  }
+}
+
 export async function listDeployments(
   api: AppsV1Api,
   namespace?: string,
-): Promise<DeploymentInfo[]> {
+): Promise<DeploymentSummary[]> {
   const res = namespace
     ? await api.listNamespacedDeployment({ namespace })
     : await api.listDeploymentForAllNamespaces()
-  return res.items.map((d) => {
-    const ru = d.spec?.strategy?.rollingUpdate
-    return {
-      name: d.metadata?.name ?? "",
-      namespace: d.metadata?.namespace ?? "",
-      replicas: d.spec?.replicas ?? 0,
-      readyReplicas: d.status?.readyReplicas ?? 0,
-      updatedReplicas: d.status?.updatedReplicas ?? 0,
-      availableReplicas: d.status?.availableReplicas ?? 0,
-      strategy: d.spec?.strategy?.type ?? "",
-      rollingUpdate: ru
-        ? {
-            maxUnavailable: String(ru.maxUnavailable ?? "25%"),
-            maxSurge: String(ru.maxSurge ?? "25%"),
-          }
-        : null,
-      minReadySeconds: d.spec?.minReadySeconds ?? 0,
-      creationTimestamp: d.metadata?.creationTimestamp?.toISOString() ?? "",
-      labels: d.metadata?.labels ?? {},
-      annotations: d.metadata?.annotations ?? {},
-      selector: d.spec?.selector?.matchLabels ?? {},
-      podTemplateLabels: d.spec?.template?.metadata?.labels ?? {},
-      podTemplateAnnotations: d.spec?.template?.metadata?.annotations ?? {},
-      serviceAccountName: d.spec?.template?.spec?.serviceAccountName ?? "",
-      containers: (d.spec?.template?.spec?.containers ?? []).map(
-        mapDetailedContainer,
-      ),
-      initContainers: (d.spec?.template?.spec?.initContainers ?? []).map(
-        mapDetailedContainer,
-      ),
-      volumes: (d.spec?.template?.spec?.volumes ?? []).map(formatVolume),
-      conditions: (d.status?.conditions ?? []).map((c) => ({
-        type: c.type,
-        status: c.status,
-        reason: c.reason ?? "",
-        message: c.message ?? "",
-      })),
-    }
-  })
+  return res.items.map(mapDeploymentSummary)
 }
 
-export async function listReplicaSets(
+export async function getDeployment(
   api: AppsV1Api,
-  namespace?: string,
-): Promise<ReplicaSetInfo[]> {
-  const res = namespace
-    ? await api.listNamespacedReplicaSet({ namespace })
-    : await api.listReplicaSetForAllNamespaces()
-  return res.items.map((rs) => ({
+  namespace: string,
+  name: string,
+): Promise<DeploymentInfo> {
+  return mapDeploymentInfo(
+    await api.readNamespacedDeployment({ name, namespace }),
+  )
+}
+
+function mapReplicaSetSummary(rs: V1ReplicaSet): ReplicaSetSummary {
+  return {
     name: rs.metadata?.name ?? "",
     namespace: rs.metadata?.namespace ?? "",
     desiredReplicas: rs.spec?.replicas ?? 0,
     currentReplicas: rs.status?.replicas ?? 0,
     readyReplicas: rs.status?.readyReplicas ?? 0,
     creationTimestamp: rs.metadata?.creationTimestamp?.toISOString() ?? "",
+  }
+}
+
+function mapReplicaSetInfo(rs: V1ReplicaSet): ReplicaSetInfo {
+  return {
+    ...mapReplicaSetSummary(rs),
     labels: rs.metadata?.labels ?? {},
     annotations: rs.metadata?.annotations ?? {},
     selector: rs.spec?.selector?.matchLabels ?? {},
@@ -239,25 +266,45 @@ export async function listReplicaSets(
       kind: o.kind,
       name: o.name,
     })),
-  }))
+  }
 }
 
-export async function listStatefulSets(
+export async function listReplicaSets(
   api: AppsV1Api,
   namespace?: string,
-): Promise<StatefulSetInfo[]> {
+): Promise<ReplicaSetSummary[]> {
   const res = namespace
-    ? await api.listNamespacedStatefulSet({ namespace })
-    : await api.listStatefulSetForAllNamespaces()
-  return res.items.map((ss) => ({
+    ? await api.listNamespacedReplicaSet({ namespace })
+    : await api.listReplicaSetForAllNamespaces()
+  return res.items.map(mapReplicaSetSummary)
+}
+
+export async function getReplicaSet(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+): Promise<ReplicaSetInfo> {
+  return mapReplicaSetInfo(
+    await api.readNamespacedReplicaSet({ name, namespace }),
+  )
+}
+
+function mapStatefulSetSummary(ss: V1StatefulSet): StatefulSetSummary {
+  return {
     name: ss.metadata?.name ?? "",
     namespace: ss.metadata?.namespace ?? "",
     replicas: ss.spec?.replicas ?? 0,
     readyReplicas: ss.status?.readyReplicas ?? 0,
     creationTimestamp: ss.metadata?.creationTimestamp?.toISOString() ?? "",
+    serviceName: ss.spec?.serviceName ?? "",
+  }
+}
+
+function mapStatefulSetInfo(ss: V1StatefulSet): StatefulSetInfo {
+  return {
+    ...mapStatefulSetSummary(ss),
     labels: ss.metadata?.labels ?? {},
     annotations: ss.metadata?.annotations ?? {},
-    serviceName: ss.spec?.serviceName ?? "",
     updateStrategy: ss.spec?.updateStrategy?.type ?? "",
     selector: ss.spec?.selector?.matchLabels ?? {},
     podTemplateLabels: ss.spec?.template?.metadata?.labels ?? {},
@@ -274,17 +321,31 @@ export async function listStatefulSets(
       name: vct.metadata?.name ?? "",
       storage: vct.spec?.resources?.requests?.["storage"] ?? "",
     })),
-  }))
+  }
 }
 
-export async function listDaemonSets(
+export async function listStatefulSets(
   api: AppsV1Api,
   namespace?: string,
-): Promise<DaemonSetInfo[]> {
+): Promise<StatefulSetSummary[]> {
   const res = namespace
-    ? await api.listNamespacedDaemonSet({ namespace })
-    : await api.listDaemonSetForAllNamespaces()
-  return res.items.map((ds) => ({
+    ? await api.listNamespacedStatefulSet({ namespace })
+    : await api.listStatefulSetForAllNamespaces()
+  return res.items.map(mapStatefulSetSummary)
+}
+
+export async function getStatefulSet(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+): Promise<StatefulSetInfo> {
+  return mapStatefulSetInfo(
+    await api.readNamespacedStatefulSet({ name, namespace }),
+  )
+}
+
+function mapDaemonSetSummary(ds: V1DaemonSet): DaemonSetSummary {
+  return {
     name: ds.metadata?.name ?? "",
     namespace: ds.metadata?.namespace ?? "",
     desiredNumberScheduled: ds.status?.desiredNumberScheduled ?? 0,
@@ -293,6 +354,12 @@ export async function listDaemonSets(
     updatedNumberScheduled: ds.status?.updatedNumberScheduled ?? 0,
     numberAvailable: ds.status?.numberAvailable ?? 0,
     creationTimestamp: ds.metadata?.creationTimestamp?.toISOString() ?? "",
+  }
+}
+
+function mapDaemonSetInfo(ds: V1DaemonSet): DaemonSetInfo {
+  return {
+    ...mapDaemonSetSummary(ds),
     labels: ds.metadata?.labels ?? {},
     annotations: ds.metadata?.annotations ?? {},
     updateStrategy: ds.spec?.updateStrategy?.type ?? "",
@@ -314,7 +381,27 @@ export async function listDaemonSets(
       value: t.value ?? "",
       effect: t.effect ?? "",
     })),
-  }))
+  }
+}
+
+export async function listDaemonSets(
+  api: AppsV1Api,
+  namespace?: string,
+): Promise<DaemonSetSummary[]> {
+  const res = namespace
+    ? await api.listNamespacedDaemonSet({ namespace })
+    : await api.listDaemonSetForAllNamespaces()
+  return res.items.map(mapDaemonSetSummary)
+}
+
+export async function getDaemonSet(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+): Promise<DaemonSetInfo> {
+  return mapDaemonSetInfo(
+    await api.readNamespacedDaemonSet({ name, namespace }),
+  )
 }
 
 function mapPodContainer(
@@ -428,11 +515,81 @@ async function buildReplicaSetOwnerMap(
   }
 }
 
+/** `rsOwners` maps `namespace/replicaSetName` to whatever owns that ReplicaSet;
+ *  null when the caller couldn't build one, which drops back to stripping the
+ *  pod-template hash off the RS name. */
+function mapPodSummary(
+  pod: V1Pod,
+  rsOwners: Map<string, { kind: string; name: string }> | null,
+): PodSummary {
+  const owners = pod.metadata?.ownerReferences ?? []
+  const firstOwner = owners[0]
+  let deploymentName = ""
+  let ownerKind = ""
+  let ownerName = ""
+  if (firstOwner) {
+    if (firstOwner.kind === "ReplicaSet") {
+      const podNamespace = pod.metadata?.namespace ?? ""
+      const rsOwner = rsOwners?.get(`${podNamespace}/${firstOwner.name}`)
+      ownerKind = rsOwner?.kind ?? "Deployment"
+      ownerName = rsOwner?.name ?? firstOwner.name.replace(/-[a-z0-9]+$/, "")
+      deploymentName = ownerKind === "Deployment" ? ownerName : ""
+    } else {
+      ownerKind = firstOwner.kind
+      ownerName = firstOwner.name
+    }
+  }
+  const restarts = (pod.status?.containerStatuses ?? []).reduce(
+    (sum, cs) => sum + (cs.restartCount ?? 0),
+    0,
+  )
+  return {
+    name: pod.metadata?.name ?? "",
+    namespace: pod.metadata?.namespace ?? "",
+    deployment: deploymentName,
+    ownerKind,
+    ownerName,
+    app: pod.metadata?.labels?.["app"] ?? "",
+    status: computePodStatus(pod),
+    restarts,
+    creationTimestamp: pod.metadata?.creationTimestamp?.toISOString() ?? "",
+    nodeName: pod.spec?.nodeName ?? "",
+  }
+}
+
+function mapPodInfo(
+  pod: V1Pod,
+  rsOwners: Map<string, { kind: string; name: string }> | null,
+): PodInfo {
+  const containerStatuses = pod.status?.containerStatuses ?? []
+  const initContainerStatuses = pod.status?.initContainerStatuses ?? []
+  return {
+    ...mapPodSummary(pod, rsOwners),
+    labels: pod.metadata?.labels ?? {},
+    annotations: pod.metadata?.annotations ?? {},
+    serviceAccountName: pod.spec?.serviceAccountName ?? "",
+    qosClass: pod.status?.qosClass ?? "",
+    initContainers: (pod.spec?.initContainers ?? []).map((c) =>
+      mapPodContainer(c, initContainerStatuses),
+    ),
+    containers: (pod.spec?.containers ?? []).map((c) =>
+      mapPodContainer(c, containerStatuses),
+    ),
+    volumes: (pod.spec?.volumes ?? []).map(formatVolume),
+    conditions: (pod.status?.conditions ?? []).map((c) => ({
+      type: c.type,
+      status: c.status,
+      reason: c.reason ?? "",
+      message: c.message ?? "",
+    })),
+  }
+}
+
 export async function listPods(
   api: CoreV1Api,
   namespace?: string,
   appsV1?: AppsV1Api,
-): Promise<PodInfo[]> {
+): Promise<PodSummary[]> {
   const res = namespace
     ? await api.listNamespacedPod({ namespace })
     : await api.listPodForAllNamespaces()
@@ -446,60 +603,40 @@ export async function listPods(
       ? await buildReplicaSetOwnerMap(appsV1, namespace)
       : null
 
-  return res.items.map((pod) => {
-    const owners = pod.metadata?.ownerReferences ?? []
-    const firstOwner = owners[0]
-    let deploymentName = ""
-    let ownerKind = ""
-    let ownerName = ""
-    if (firstOwner) {
-      if (firstOwner.kind === "ReplicaSet") {
-        const podNamespace = pod.metadata?.namespace ?? ""
-        const rsOwner = rsOwners?.get(`${podNamespace}/${firstOwner.name}`)
-        ownerKind = rsOwner?.kind ?? "Deployment"
-        ownerName = rsOwner?.name ?? firstOwner.name.replace(/-[a-z0-9]+$/, "")
-        deploymentName = ownerKind === "Deployment" ? ownerName : ""
-      } else {
-        ownerKind = firstOwner.kind
-        ownerName = firstOwner.name
+  return res.items.map((pod) => mapPodSummary(pod, rsOwners))
+}
+
+export async function getPod(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+  appsV1?: AppsV1Api,
+): Promise<PodInfo> {
+  const pod = await api.readNamespacedPod({ name, namespace })
+  // One pod needs at most one ReplicaSet resolved, so read that one rather
+  // than listing every ReplicaSet the way the list handler has to.
+  const owner = (pod.metadata?.ownerReferences ?? [])[0]
+  let rsOwners: Map<string, { kind: string; name: string }> | null = null
+  if (appsV1 && owner?.kind === "ReplicaSet") {
+    try {
+      const rs = await appsV1.readNamespacedReplicaSet({
+        name: owner.name,
+        namespace,
+      })
+      const rsOwner = (rs.metadata?.ownerReferences ?? [])[0]
+      if (rsOwner) {
+        rsOwners = new Map([
+          [
+            `${namespace}/${owner.name}`,
+            { kind: rsOwner.kind, name: rsOwner.name },
+          ],
+        ])
       }
+    } catch {
+      // Same fallback as the list path: leave rsOwners null and strip the hash.
     }
-    const containerStatuses = pod.status?.containerStatuses ?? []
-    const initContainerStatuses = pod.status?.initContainerStatuses ?? []
-    const restarts = containerStatuses.reduce(
-      (sum, cs) => sum + (cs.restartCount ?? 0),
-      0,
-    )
-    return {
-      name: pod.metadata?.name ?? "",
-      namespace: pod.metadata?.namespace ?? "",
-      deployment: deploymentName,
-      ownerKind,
-      ownerName,
-      app: pod.metadata?.labels?.["app"] ?? "",
-      status: computePodStatus(pod),
-      restarts,
-      creationTimestamp: pod.metadata?.creationTimestamp?.toISOString() ?? "",
-      nodeName: pod.spec?.nodeName ?? "",
-      labels: pod.metadata?.labels ?? {},
-      annotations: pod.metadata?.annotations ?? {},
-      serviceAccountName: pod.spec?.serviceAccountName ?? "",
-      qosClass: pod.status?.qosClass ?? "",
-      initContainers: (pod.spec?.initContainers ?? []).map((c) =>
-        mapPodContainer(c, initContainerStatuses),
-      ),
-      containers: (pod.spec?.containers ?? []).map((c) =>
-        mapPodContainer(c, containerStatuses),
-      ),
-      volumes: (pod.spec?.volumes ?? []).map(formatVolume),
-      conditions: (pod.status?.conditions ?? []).map((c) => ({
-        type: c.type,
-        status: c.status,
-        reason: c.reason ?? "",
-        message: c.message ?? "",
-      })),
-    }
-  })
+  }
+  return mapPodInfo(pod, rsOwners)
 }
 
 export async function createDeployment(

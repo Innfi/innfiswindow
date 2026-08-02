@@ -2,6 +2,8 @@ import { IpcMain } from "electron"
 import { RbacAuthorizationV1Api } from "@kubernetes/client-node"
 
 import {
+  getClusterRole,
+  getRole,
   listClusterRoleBindings,
   listClusterRoles,
   listRoleBindings,
@@ -40,6 +42,22 @@ export function registerRbacHandlers(
     "k8s:clusterrolebindings:list",
     (_e, args?: { contextName?: string }) =>
       listClusterRoleBindings(getContextClients(args?.contextName).rbacV1),
+  )
+
+  // The list handlers above return rule counts; these fetch the rules.
+  ipcMain.handle(
+    "k8s:role:get",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      getRole(
+        getContextClients(args.contextName).rbacV1,
+        args.namespace,
+        args.name,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:clusterrole:get",
+    (_e, args: { contextName?: string; name: string }) =>
+      getClusterRole(getContextClients(args.contextName).rbacV1, args.name),
   )
 
   ipcMain.handle(

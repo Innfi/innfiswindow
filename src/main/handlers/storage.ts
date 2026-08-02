@@ -119,9 +119,11 @@ export async function listVolumeSnapshots(
     plural: "volumesnapshots",
   }
   try {
-    const res = (namespace
-      ? await api.listNamespacedCustomObject({ ...gvr, namespace })
-      : await api.listClusterCustomObject(gvr)) as { items?: unknown[] }
+    const res = (
+      namespace
+        ? await api.listNamespacedCustomObject({ ...gvr, namespace })
+        : await api.listClusterCustomObject(gvr)
+    ) as { items?: unknown[] }
     const items = res.items ?? []
     return items.map((item: unknown) => {
       const snap = item as Record<string, unknown>

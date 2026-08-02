@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/Table"
-import { K8sRole } from "../types/k8s"
+import { K8sRole, K8sRoleSummary } from "../types/k8s"
 
 function DetailPanel({
   role,
@@ -183,17 +183,23 @@ function DetailPanel({
 
 export function RolesView(): JSX.Element {
   return (
-    <ResourceListView<K8sRole>
+    <ResourceListView<K8sRoleSummary, K8sRole>
       title="Roles"
       list={(ctx, ns) =>
         window.api.k8s.listRoles({ contextName: ctx, namespace: ns })
       }
-      detailGuard={(item) => (item as K8sRole).namespace !== undefined}
+      getDetail={(ctx, namespace, name) =>
+        window.api.k8s.getRole({ contextName: ctx, namespace, name })
+      }
+      detailGuard={(item) =>
+        (item as K8sRoleSummary).namespace !== undefined &&
+        (item as K8sRoleSummary).rulesCount !== undefined
+      }
       columns={[
         { head: "Name", cell: (role) => role.name },
         { head: "Namespace", cell: (role) => role.namespace },
         { head: "Rules", cell: (role) => role.rulesCount },
-        ageColumn<K8sRole>(),
+        ageColumn<K8sRoleSummary>(),
       ]}
       renderDetail={(role, ctl: DetailController) => (
         <DetailPanel

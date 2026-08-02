@@ -11,7 +11,9 @@ export default defineConfig({
   // builtins, so every npm dependency it uses has to be bundled in rather than
   // left as an external require.
   preload: {
-    plugins: [externalizeDepsPlugin({ exclude: ["@electron-toolkit/preload"] })],
+    plugins: [
+      externalizeDepsPlugin({ exclude: ["@electron-toolkit/preload"] }),
+    ],
   },
   renderer: {
     root: resolve("src/renderer"),

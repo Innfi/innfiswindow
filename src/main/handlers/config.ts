@@ -1,62 +1,88 @@
 import { load as yamlLoad } from "js-yaml"
-import { CoreV1Api } from "@kubernetes/client-node"
+import { CoreV1Api, V1ConfigMap, V1Secret } from "@kubernetes/client-node"
 
 import {
   ConfigMapInfo,
+  ConfigMapSummary,
   ResourceRef,
   SecretInfo,
+  SecretSummary,
   ServiceAccountInfo,
 } from "./types"
+
+function mapConfigMapSummary(cm: V1ConfigMap): ConfigMapSummary {
+  return {
+    name: cm.metadata?.name ?? "",
+    namespace: cm.metadata?.namespace ?? "",
+    creationTimestamp: cm.metadata?.creationTimestamp?.toISOString() ?? "",
+    keys: [...Object.keys(cm.data ?? {}), ...Object.keys(cm.binaryData ?? {})],
+  }
+}
 
 export async function listConfigMaps(
   api: CoreV1Api,
   namespace?: string,
-): Promise<ConfigMapInfo[]> {
+): Promise<ConfigMapSummary[]> {
   const res = namespace
     ? await api.listNamespacedConfigMap({ namespace })
     : await api.listConfigMapForAllNamespaces()
-  return res.items.map((cm) => {
-    const dataKeys = Object.keys(cm.data ?? {})
-    const binaryDataKeys = Object.keys(cm.binaryData ?? {})
-    return {
-      name: cm.metadata?.name ?? "",
-      namespace: cm.metadata?.namespace ?? "",
-      creationTimestamp: cm.metadata?.creationTimestamp?.toISOString() ?? "",
-      labels: cm.metadata?.labels ?? {},
-      annotations: cm.metadata?.annotations ?? {},
-      data: cm.data ?? {},
-      binaryData: Object.fromEntries(
-        Object.entries(cm.binaryData ?? {}).map(([k, v]) => [
-          k,
-          v ? v.length : 0,
-        ]),
-      ),
-      keys: [...dataKeys, ...binaryDataKeys],
-    }
-  })
+  return res.items.map(mapConfigMapSummary)
 }
 
+export async function getConfigMap(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+): Promise<ConfigMapInfo> {
+  const cm = await api.readNamespacedConfigMap({ name, namespace })
+  return {
+    ...mapConfigMapSummary(cm),
+    labels: cm.metadata?.labels ?? {},
+    annotations: cm.metadata?.annotations ?? {},
+    data: cm.data ?? {},
+    binaryData: Object.fromEntries(
+      Object.entries(cm.binaryData ?? {}).map(([k, v]) => [
+        k,
+        v ? v.length : 0,
+      ]),
+    ),
+  }
+}
+
+function mapSecretSummary(secret: V1Secret): SecretSummary {
+  return {
+    name: secret.metadata?.name ?? "",
+    namespace: secret.metadata?.namespace ?? "",
+    type: secret.type ?? "Opaque",
+    creationTimestamp: secret.metadata?.creationTimestamp?.toISOString() ?? "",
+    keys: Object.keys(secret.data ?? {}),
+  }
+}
+
+/** Lists key names only. The values stay in the main process until the detail
+ *  panel asks for one Secret through `getSecret`. */
 export async function listSecrets(
   api: CoreV1Api,
   namespace?: string,
-): Promise<SecretInfo[]> {
+): Promise<SecretSummary[]> {
   const res = namespace
     ? await api.listNamespacedSecret({ namespace })
     : await api.listSecretForAllNamespaces()
-  return res.items.map((secret) => {
-    const dataKeys = Object.keys(secret.data ?? {})
-    return {
-      name: secret.metadata?.name ?? "",
-      namespace: secret.metadata?.namespace ?? "",
-      type: secret.type ?? "Opaque",
-      creationTimestamp:
-        secret.metadata?.creationTimestamp?.toISOString() ?? "",
-      labels: secret.metadata?.labels ?? {},
-      annotations: secret.metadata?.annotations ?? {},
-      data: secret.data ?? {},
-      keys: dataKeys,
-    }
-  })
+  return res.items.map(mapSecretSummary)
+}
+
+export async function getSecret(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+): Promise<SecretInfo> {
+  const secret = await api.readNamespacedSecret({ name, namespace })
+  return {
+    ...mapSecretSummary(secret),
+    labels: secret.metadata?.labels ?? {},
+    annotations: secret.metadata?.annotations ?? {},
+    data: secret.data ?? {},
+  }
 }
 
 export async function listServiceAccounts(

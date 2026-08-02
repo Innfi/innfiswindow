@@ -18,22 +18,46 @@ every interval.
      `useK8sResource` passes the active namespace through.
   2. Add server-side `limit` + `continue` paging to the list handlers. Needs a
      paging cursor in `useK8sResource` and a "load more" affordance in
-     `ResourceListView`.
+     `ResourceListView`. Weigh this against option 3 rather than doing both:
+     name filtering and sorting run client-side over the loaded rows
+     (`ResourceListView`), so a partial list makes both silently wrong.
   3. Longer term: move hot lists (pods, events) to the **watch API** for
      incremental updates instead of full-list polling. Main-process informers
      pushing over `webContents.send`, with a store holding the cache.
 
-## 2. List handlers serialize full detail (perf, medium)
+## 2. List handlers serialize full detail (perf, medium) — **done**
 
-`listDeployments` / `listPods` (etc.) map every container, env var, volume, and
-probe for every row — but list views only render a summary. That full detail
-crosses IPC on every poll.
+Twelve resources are now split into `XxxSummary` (what a list row renders) and
+`XxxInfo extends XxxSummary` (what the detail panel adds), in
+`src/shared/k8s.ts`. `list*` returns summaries; a new `get<Xxx>` handler fetches
+one object's detail when a row is selected. Resources whose every field is
+already list-sized (Services, PVCs, Jobs, …) keep a single `XxxInfo` and are
+untouched.
 
-- Files: `src/main/handlers/workload.ts` and siblings.
-- Fix: split a lightweight list shape (name, ns, status, counts, age) from the
-  detail shape; fetch full detail only when a row is selected (a per-item
-  `get<Resource>` handler). Coordinate with the `K8s*` types in
-  `src/renderer/src/types/k8s.ts` / `src/shared/k8s.ts`.
+Split: pods, deployments, replicasets, statefulsets, daemonsets (pod templates),
+configmaps + secrets (`data`), ingresses (rules), networkpolicies (rules),
+endpoints (subsets), roles + clusterroles (`rules`).
+
+`listSecrets` in particular no longer ships every Secret's base64 `data`
+cluster-wide on every poll tick — values now leave the main process only for the
+one Secret whose panel is open.
+
+- IPC: `k8s:<resource>:get` per resource.
+- Renderer: `ResourceListView<S, D>` takes an optional `getDetail`; when set,
+  `useResourceDetail` (`src/renderer/src/hooks/`) fetches the selected row's
+  detail and refreshes it on the list's own poll interval, matching on
+  name+namespace so the per-tick `selectedItem` re-sync doesn't refetch. A
+  request in flight for a row the user has moved off is discarded rather than
+  overwriting the current one, and detail already on screen survives a failed
+  background refresh.
+- `getPod` resolves its owner by reading the one ReplicaSet, where `listPods`
+  has to list them all.
+- `ServicesView` used to list every Endpoints object cluster-wide to find the
+  one matching the open Service; it calls `getEndpoint` now.
+
+Note for whoever does item 1: `detailGuard` discriminates the shared
+`selectedItem` by probing for a field, so the guards on split views must name a
+summary field, not a detail one.
 
 ## 3. Renderer `sandbox: false` (security, medium) — **done**
 

@@ -25,7 +25,7 @@ import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
-import { K8sDeployment } from "../types/k8s"
+import { K8sDeployment, K8sDeploymentSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -509,12 +509,17 @@ function DetailPanel({
 
 export function DeploymentsView(): JSX.Element {
   return (
-    <ResourceListView<K8sDeployment>
+    <ResourceListView<K8sDeploymentSummary, K8sDeployment>
       title="Deployments"
       list={(ctx, ns) =>
         window.api.k8s.listDeployments({ contextName: ctx, namespace: ns })
       }
-      detailGuard={(item) => (item as K8sDeployment).namespace !== undefined}
+      getDetail={(ctx, namespace, name) =>
+        window.api.k8s.getDeployment({ contextName: ctx, namespace, name })
+      }
+      detailGuard={(item) =>
+        (item as K8sDeploymentSummary).updatedReplicas !== undefined
+      }
       rowClassName={(d) =>
         d.readyReplicas < d.replicas
           ? "bg-red-50 dark:bg-red-950/30"
@@ -526,7 +531,7 @@ export function DeploymentsView(): JSX.Element {
         { head: "Ready", cell: (d) => `${d.readyReplicas}/${d.replicas}` },
         { head: "Up-to-date", cell: (d) => d.updatedReplicas },
         { head: "Available", cell: (d) => d.availableReplicas },
-        ageColumn<K8sDeployment>(),
+        ageColumn<K8sDeploymentSummary>(),
       ]}
       renderDetail={(deployment, ctl: DetailController) => (
         <DetailPanel

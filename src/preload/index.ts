@@ -32,24 +32,61 @@ const api = {
       ipcRenderer.invoke("k8s:connection:reconnect", args),
     listDeployments: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:deployments:list", args),
+    getDeployment: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:deployment:get", args),
     listReplicaSets: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:replicasets:list", args),
+    getReplicaSet: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:replicaset:get", args),
     listStatefulSets: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:statefulsets:list", args),
+    getStatefulSet: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:statefulset:get", args),
     listDaemonSets: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:daemonsets:list", args),
+    getDaemonSet: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:daemonset:get", args),
     listConfigMaps: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:configmaps:list", args),
+    getConfigMap: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:configmap:get", args),
     listSecrets: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:secrets:list", args),
+    getSecret: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:secret:get", args),
     listServiceAccounts: (args?: {
       contextName?: string
       namespace?: string
     }) => ipcRenderer.invoke("k8s:serviceaccounts:list", args),
     listRoles: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:roles:list", args),
+    getRole: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:role:get", args),
     listClusterRoles: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:clusterroles:list", args),
+    getClusterRole: (args: { contextName?: string; name: string }) =>
+      ipcRenderer.invoke("k8s:clusterrole:get", args),
     listRoleBindings: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:rolebindings:list", args),
     listClusterRoleBindings: (args?: { contextName?: string }) =>
@@ -131,16 +168,33 @@ const api = {
       ipcRenderer.invoke("k8s:node:metrics", args),
     listPods: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:pods:list", args),
+    getPod: (args: { contextName?: string; namespace: string; name: string }) =>
+      ipcRenderer.invoke("k8s:pod:get", args),
     listServices: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:services:list", args),
     listIngresses: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:ingresses:list", args),
+    getIngress: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:ingress:get", args),
     listNetworkPolicies: (args?: {
       contextName?: string
       namespace?: string
     }) => ipcRenderer.invoke("k8s:networkpolicies:list", args),
+    getNetworkPolicy: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:networkpolicy:get", args),
     listEndpoints: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:endpoints:list", args),
+    getEndpoint: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:endpoint:get", args),
     getClusterType: () => ipcRenderer.invoke("k8s:cluster:type"),
     createDeployment: (
       namespace: string,
