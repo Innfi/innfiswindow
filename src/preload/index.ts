@@ -382,12 +382,27 @@ const api = {
     name: string
     kind: string
   }) => ipcRenderer.invoke("k8s:events:for-resource", args),
-  startEventsWatch: () => ipcRenderer.invoke("k8s:events:watch:start"),
-  stopEventsWatch: () => ipcRenderer.invoke("k8s:events:watch:stop"),
-  onEventsData: (callback: (event: unknown) => void) => {
-    const handler = (_e: IpcRendererEvent, event: unknown) => callback(event)
-    ipcRenderer.on("k8s:events:data", handler)
-    return () => ipcRenderer.removeListener("k8s:events:data", handler)
+  // Watch-backed lists: `startWatch` returns the informer's synced cache plus a
+  // subscription id, and every later change arrives on the shared event
+  // channel tagged with that id.
+  startWatch: (args: {
+    resource: "pods" | "events"
+    contextName?: string
+    namespace?: string
+  }) => ipcRenderer.invoke("k8s:watch:start", args),
+  stopWatch: (args: { subId: string }) =>
+    ipcRenderer.invoke("k8s:watch:stop", args),
+  onWatchEvent: (callback: (message: unknown) => void) => {
+    const handler = (_e: IpcRendererEvent, message: unknown) =>
+      callback(message)
+    ipcRenderer.on("k8s:watch:event", handler)
+    return () => ipcRenderer.removeListener("k8s:watch:event", handler)
+  },
+  onWatchClosed: (callback: (message: unknown) => void) => {
+    const handler = (_e: IpcRendererEvent, message: unknown) =>
+      callback(message)
+    ipcRenderer.on("k8s:watch:closed", handler)
+    return () => ipcRenderer.removeListener("k8s:watch:closed", handler)
   },
   startPodExec: (
     sessionId: string,

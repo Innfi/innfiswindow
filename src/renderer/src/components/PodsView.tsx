@@ -349,6 +349,7 @@ export function PodsView(): JSX.Element {
   return (
     <ResourceListView<K8sPodSummary, K8sPod>
       title="Pods"
+      watch="pods"
       list={(ctx, ns) =>
         window.api.k8s.listPods({ contextName: ctx, namespace: ns })
       }

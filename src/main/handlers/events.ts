@@ -1,6 +1,29 @@
-import { CoreV1Api } from "@kubernetes/client-node"
+import { CoreV1Api, CoreV1Event } from "@kubernetes/client-node"
 
+import { toIso } from "./time"
 import { EventInfo } from "./types"
+
+/**
+ * Exported for the events informer (`src/main/informers.ts`), which maps one
+ * object at a time off the watch stream rather than a whole list.
+ */
+export function mapEvent(ev: CoreV1Event): EventInfo {
+  return {
+    name: ev.metadata?.name ?? "",
+    namespace: ev.metadata?.namespace ?? "",
+    type: ev.type ?? "Normal",
+    reason: ev.reason ?? "",
+    involvedObjectKind: ev.involvedObject?.kind ?? "",
+    involvedObjectName: ev.involvedObject?.name ?? "",
+    message: ev.message ?? "",
+    count: ev.count ?? 1,
+    firstTimestamp: toIso(ev.firstTimestamp),
+    // Events written through the newer events.k8s.io path carry `eventTime`
+    // and leave `lastTimestamp` unset.
+    lastTimestamp: toIso(ev.lastTimestamp) || toIso(ev.eventTime),
+    creationTimestamp: toIso(ev.metadata?.creationTimestamp),
+  }
+}
 
 export async function listEventsForResource(
   api: CoreV1Api,
@@ -11,45 +34,11 @@ export async function listEventsForResource(
   if (!namespace) {
     const fieldSelector = `involvedObject.name=${name},involvedObject.kind=${kind}`
     const res = await api.listEventForAllNamespaces({ fieldSelector })
-    return res.items.map((ev) => ({
-      name: ev.metadata?.name ?? "",
-      namespace: ev.metadata?.namespace ?? "",
-      type: ev.type ?? "Normal",
-      reason: ev.reason ?? "",
-      involvedObjectKind: ev.involvedObject?.kind ?? "",
-      involvedObjectName: ev.involvedObject?.name ?? "",
-      message: ev.message ?? "",
-      count: ev.count ?? 1,
-      firstTimestamp: ev.firstTimestamp?.toISOString() ?? "",
-      lastTimestamp:
-        ev.lastTimestamp?.toISOString() ??
-        (ev.eventTime
-          ? new Date(ev.eventTime as unknown as string).toISOString()
-          : "") ??
-        "",
-      creationTimestamp: ev.metadata?.creationTimestamp?.toISOString() ?? "",
-    }))
+    return res.items.map(mapEvent)
   }
   const fieldSelector = `involvedObject.name=${name},involvedObject.namespace=${namespace},involvedObject.kind=${kind}`
   const res = await api.listNamespacedEvent({ namespace, fieldSelector })
-  return res.items.map((ev) => ({
-    name: ev.metadata?.name ?? "",
-    namespace: ev.metadata?.namespace ?? "",
-    type: ev.type ?? "Normal",
-    reason: ev.reason ?? "",
-    involvedObjectKind: ev.involvedObject?.kind ?? "",
-    involvedObjectName: ev.involvedObject?.name ?? "",
-    message: ev.message ?? "",
-    count: ev.count ?? 1,
-    firstTimestamp: ev.firstTimestamp?.toISOString() ?? "",
-    lastTimestamp:
-      ev.lastTimestamp?.toISOString() ??
-      (ev.eventTime
-        ? new Date(ev.eventTime as unknown as string).toISOString()
-        : "") ??
-      "",
-    creationTimestamp: ev.metadata?.creationTimestamp?.toISOString() ?? "",
-  }))
+  return res.items.map(mapEvent)
 }
 
 export async function listEvents(
@@ -59,22 +48,5 @@ export async function listEvents(
   const res = namespace
     ? await api.listNamespacedEvent({ namespace })
     : await api.listEventForAllNamespaces()
-  return res.items.map((ev) => ({
-    name: ev.metadata?.name ?? "",
-    namespace: ev.metadata?.namespace ?? "",
-    type: ev.type ?? "Normal",
-    reason: ev.reason ?? "",
-    involvedObjectKind: ev.involvedObject?.kind ?? "",
-    involvedObjectName: ev.involvedObject?.name ?? "",
-    message: ev.message ?? "",
-    count: ev.count ?? 1,
-    firstTimestamp: ev.firstTimestamp?.toISOString() ?? "",
-    lastTimestamp:
-      ev.lastTimestamp?.toISOString() ??
-      (ev.eventTime
-        ? new Date(ev.eventTime as unknown as string).toISOString()
-        : "") ??
-      "",
-    creationTimestamp: ev.metadata?.creationTimestamp?.toISOString() ?? "",
-  }))
+  return res.items.map(mapEvent)
 }

@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 
+import { WatchResource } from "../../../shared/watch"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useK8sResource } from "../../src/hooks/useK8sResource"
 import {
@@ -84,6 +85,13 @@ interface ResourceListViewProps<T extends Namespaced, D> {
    * resources). Defaults to true.
    */
   namespaced?: boolean
+  /**
+   * Serve the rows from a main-process informer instead of re-listing on every
+   * poll tick, for lists big enough that the full payload hurts. `list` is
+   * still required: it is what the view falls back to when the watch can't be
+   * established or drops.
+   */
+  watch?: WatchResource
 }
 
 const sameItem = (a: Namespaced | null, b: Namespaced): boolean =>
@@ -103,6 +111,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
   namespaced = true,
   sortOptions,
   rowClassName,
+  watch,
 }: ResourceListViewProps<T, D>): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as T | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
@@ -123,6 +132,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
     {
       paused: deleteDialogOpen,
       namespace: namespaced ? selectedNamespace : null,
+      watch,
     },
   )
 

@@ -1,6 +1,13 @@
 import { ElectronAPI } from "@electron-toolkit/preload"
 import { K8sEndpoint, K8sEndpointSummary } from "@renderer/types/k8s"
 
+import type {
+  WatchClosedMessage,
+  WatchEventMessage,
+  WatchSnapshot,
+  WatchStartArgs,
+} from "../shared/watch"
+
 export interface K8sContext {
   name: string
   cluster: string
@@ -1222,9 +1229,16 @@ export interface API {
     name: string
     kind: string
   }) => Promise<K8sEvent[]>
-  startEventsWatch: () => Promise<{ success: boolean }>
-  stopEventsWatch: () => Promise<{ success: boolean }>
-  onEventsData: (callback: (event: K8sEvent) => void) => () => void
+  /**
+   * Subscribes to a main-process informer. The resolved `items` are the same
+   * summaries the matching `list*` call returns, so the item type follows from
+   * `args.resource` and the caller narrows it. Rejects when the watch can't be
+   * established, which means "poll instead".
+   */
+  startWatch: (args: WatchStartArgs) => Promise<WatchSnapshot<unknown>>
+  stopWatch: (args: { subId: string }) => Promise<{ success: boolean }>
+  onWatchEvent: (callback: (message: WatchEventMessage) => void) => () => void
+  onWatchClosed: (callback: (message: WatchClosedMessage) => void) => () => void
   startPodExec: (
     sessionId: string,
     namespace: string,

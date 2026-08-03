@@ -13,6 +13,7 @@ import {
   V1Volume,
 } from "@kubernetes/client-node"
 
+import { toIso } from "./time"
 import {
   DaemonSetInfo,
   DaemonSetSummary,
@@ -504,10 +505,8 @@ async function buildReplicaSetOwnerMap(
       : await appsV1.listReplicaSetForAllNamespaces()
     const owners = new Map<string, { kind: string; name: string }>()
     for (const rs of res.items) {
-      const owner = (rs.metadata?.ownerReferences ?? [])[0]
-      if (!owner) continue
-      const key = `${rs.metadata?.namespace ?? ""}/${rs.metadata?.name ?? ""}`
-      owners.set(key, { kind: owner.kind, name: owner.name })
+      const entry = replicaSetOwnerEntry(rs)
+      if (entry?.owner) owners.set(entry.key, entry.owner)
     }
     return owners
   } catch {
@@ -515,10 +514,28 @@ async function buildReplicaSetOwnerMap(
   }
 }
 
+/** One ReplicaSet's contribution to the owner map above, in the key format
+ *  `mapPodSummary` looks up. `owner` is null for a standalone ReplicaSet, which
+ *  still has a key so a watch can evict it. Exported for the pods informer,
+ *  which keeps its map current from a ReplicaSet watch instead of rebuilding it
+ *  per list. */
+export function replicaSetOwnerEntry(
+  rs: V1ReplicaSet,
+): { key: string; owner: { kind: string; name: string } | null } | null {
+  const name = rs.metadata?.name ?? ""
+  if (!name) return null
+  const key = `${rs.metadata?.namespace ?? ""}/${name}`
+  const owner = (rs.metadata?.ownerReferences ?? [])[0]
+  return { key, owner: owner ? { kind: owner.kind, name: owner.name } : null }
+}
+
 /** `rsOwners` maps `namespace/replicaSetName` to whatever owns that ReplicaSet;
  *  null when the caller couldn't build one, which drops back to stripping the
- *  pod-template hash off the RS name. */
-function mapPodSummary(
+ *  pod-template hash off the RS name.
+ *
+ *  Exported for the pods informer, which maps one pod at a time off the watch
+ *  stream rather than a whole list. */
+export function mapPodSummary(
   pod: V1Pod,
   rsOwners: Map<string, { kind: string; name: string }> | null,
 ): PodSummary {
@@ -552,7 +569,7 @@ function mapPodSummary(
     app: pod.metadata?.labels?.["app"] ?? "",
     status: computePodStatus(pod),
     restarts,
-    creationTimestamp: pod.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(pod.metadata?.creationTimestamp),
     nodeName: pod.spec?.nodeName ?? "",
   }
 }

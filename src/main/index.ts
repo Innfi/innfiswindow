@@ -14,6 +14,7 @@ import {
   StorageV1Api,
 } from "@kubernetes/client-node"
 
+import { stopAllWatches } from "./informers"
 import { registerAlarmHandlers } from "./ipc/alarm"
 import { registerApplyHandlers } from "./ipc/apply"
 import { registerAutoscalingHandlers } from "./ipc/autoscaling"
@@ -35,6 +36,7 @@ import { registerPrometheusHandlers } from "./ipc/prometheus"
 import { registerRbacHandlers } from "./ipc/rbac"
 import { registerSocketStreamHandlers } from "./ipc/socket-stream"
 import { registerStorageHandlers } from "./ipc/storage"
+import { registerWatchHandlers } from "./ipc/watch"
 import { registerWorkloadHandlers } from "./ipc/workload"
 import { checkPrometheusConnectivity } from "./prometheus-handlers"
 
@@ -214,7 +216,8 @@ app.whenReady().then(() => {
   registerAlarmHandlers(ipcMain, getContextClients)
   registerHelmHandlers(ipcMain)
   registerPrometheusHandlers(ipcMain)
-  registerEventsHandlers(ipcMain, kc, getContextClients, getMainWindow)
+  registerEventsHandlers(ipcMain, getContextClients)
+  registerWatchHandlers(ipcMain, { getKubeConfig, getContextClients })
   registerPodStreamHandlers(ipcMain, kc, getMainWindow)
   registerSocketStreamHandlers(ipcMain, getMainWindow)
   registerPortForwardHandlers(ipcMain, kc, coreV1Api)
@@ -234,4 +237,10 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit()
   }
+})
+
+// Informers hold open watch streams; leaving them running keeps the process
+// alive after the last window is gone.
+app.on("before-quit", () => {
+  stopAllWatches()
 })

@@ -18,12 +18,54 @@ every interval.
      `useK8sResource` passes the active namespace through.
   2. Add server-side `limit` + `continue` paging to the list handlers. Needs a
      paging cursor in `useK8sResource` and a "load more" affordance in
-     `ResourceListView`. Weigh this against option 3 rather than doing both:
-     name filtering and sorting run client-side over the loaded rows
-     (`ResourceListView`), so a partial list makes both silently wrong.
-  3. Longer term: move hot lists (pods, events) to the **watch API** for
-     incremental updates instead of full-list polling. Main-process informers
-     pushing over `webContents.send`, with a store holding the cache.
+     `ResourceListView`. **Not planned** — option 3 covers the same cost for the
+     lists that hurt, and paging would make name filtering and sorting silently
+     wrong, since both run client-side over the loaded rows
+     (`ResourceListView`).
+  3. ~~Move hot lists (pods, events) to the **watch API**.~~ **Done for pods and
+     events** — see below. Extending it to another list is now a matter of
+     adding a case to `createEntry` and passing `watch` to that view.
+
+### Watch-backed lists
+
+`src/main/informers.ts` keeps one `makeInformer` per context + resource +
+namespace, shared by every subscriber that asked for the same thing, and maps
+each watched object through the *same* mapper the list handler uses
+(`mapPodSummary`, `mapEvent`) so a row is identical whether it arrived by watch
+or by list.
+
+- IPC: `k8s:watch:start` returns `{ subId, items }` — the informer's synced
+  cache — and `k8s:watch:stop` unsubscribes. Changes are pushed on
+  `k8s:watch:event`, tagged with the `subId`; `k8s:watch:closed` announces a
+  watch that died after it was established.
+- Renderer: `useK8sResource` takes `watch?: WatchResource`. It uses the snapshot
+  as its initial data, applies add/update/delete **in place** (dropping and
+  re-appending would make a changing row jump to the bottom of the table), and
+  falls back to polling the existing `list` fetcher whenever the watch can't
+  start (a role without the `watch` verb) or later drops. `ResourceListView`
+  passes the option through; `PodsView` sets `watch="pods"`.
+- Timestamps: the typed list client deserializes them into `Date`, the watch
+  stream leaves them as strings. `toIso` (`src/main/handlers/time.ts`) is what
+  makes a mapper safe to feed from both.
+- Pod owner resolution runs off a second informer over ReplicaSets, which keeps
+  the owner map current instead of re-listing every ReplicaSet per poll. If that
+  watch fails, pod mapping drops to the same name-stripping fallback the list
+  path uses.
+- `refreshInterval: "off"` disables the watch too — it is a background refresh.
+  Pausing (a delete dialog) tears the subscription down rather than buffering,
+  so resuming re-lists instead of leaving the view on a cache that stopped
+  being updated.
+- `EventsView` lost its **Tail** toggle: tailing is what the view now does. The
+  old hand-rolled `k8s:events:watch:*` channels are gone — they ignored the
+  selected context and namespace, and prepended every update as a new row
+  instead of updating the one whose `count` had climbed.
+- Informers hold open HTTP streams, so they are stopped on `before-quit`, when a
+  renderer navigates (a reload never gets to call `stopWatch`), and when the
+  last subscriber leaves.
+
+Covered by `src/main/__tests__/informers.integration.test.ts` against the kind
+cluster: snapshot/list equivalence, owner resolution parity, a created pod
+arriving as `add` then `delete`, and two subscribers sharing one informer.
 
 ## 2. List handlers serialize full detail (perf, medium) — **done**
 
