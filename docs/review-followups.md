@@ -112,19 +112,39 @@ a few polyfilled builtins, and the preload build was leaving
 now excludes it from `externalizeDepsPlugin` so it gets bundled in. Any future
 preload dependency needs the same treatment.
 
-Still unverified against a running app (see item 4): confirm Monaco workers,
-xterm, and IPC all work with the sandbox on.
+Verified with item 4: in a packaged build (`webPreferences.sandbox: true`), the
+Monaco editor and its worker, an xterm pod shell, pod logs, and every list view's
+IPC all work. One caveat — the machine that ran this had `chrome-sandbox` without
+its setuid bit, so Electron had to be started with `--no-sandbox`. That disables
+Chromium's *OS-level* sandbox, not `webPreferences.sandbox`, so the preload and
+IPC path above is what was exercised. Worth one more run on a host where
+`chrome-sandbox` is `root:root 4755`.
 
-## 4. CSP needs runtime verification (security, follow-through)
+## 4. CSP needs runtime verification (security, follow-through) — **done**
 
-A dev-aware CSP was added via `onHeadersReceived` in `src/main/index.ts`. It was
-**not** verified against a running app (no GUI/cluster in the review env).
+The `onHeadersReceived` policy in `src/main/index.ts` holds up. Nothing had to
+change: no `app://` protocol, no `script-src` loosening. Monaco's lazily-imported
+6 MB chunk and its `blob:` worker, xterm, and the IPC-only data path all run
+clean under the production policy from a `file://` origin.
 
-- Run `npm run dev`: open the YAML Monaco editor and a pod shell/log panel, watch
-  devtools console for CSP violations.
-- Run a packaged build (`npm run package:unpack`): the `file://` origin can trip
-  `script-src 'self'`. If it does, switch the renderer to a custom `app://`
-  protocol (`protocol.handle`) and set `script-src 'self' app://…`.
+Verified three ways, each driving the YAML Monaco editor, a pod log panel, and an
+xterm pod shell while collecting both `securitypolicyviolation` events and
+Chromium's console refusals:
+
+1. `e2e/csp.test.ts` — the built app (`out/main/index.js`), production policy,
+   `file://` origin. Part of `npm run test:e2e`, so a policy change that breaks
+   Monaco or xterm now fails a test instead of being noticed by hand.
+2. Dev mode — `npm run dev -- --remoteDebuggingPort=9222`, driven over CDP. The
+   loosened dev branch (Vite HMR, `unsafe-eval`, the websocket back to the dev
+   server) reports no violations.
+3. The packaged build — `npm run package:unpack`, then the binary from
+   `dist/linux-unpacked/` over CDP. This is the case the item flagged as most
+   likely to trip `script-src 'self'`, since the renderer loads from
+   `file://…/app.asar/out/renderer/index.html`. Zero violations.
+
+Only (1) is automated; (2) and (3) are manual because neither the dev launcher
+nor a packaged binary can be started by `_electron.launch`, and both need
+`--remote-debugging-port` plus a CDP connection.
 
 ## 5. Apply: no dry-run / diff preview (feature, medium) — **done**
 
@@ -171,3 +191,23 @@ rendering instead of a diff. Editing the YAML invalidates the preview.
 `DrainResult` gained `pending` (evicted pods still running at the deadline) and
 `timedOut`; the dialog reports refusal, per-pod eviction failure, and timeout as
 three distinct messages.
+
+## 8. ShellPanel throws on open (bug, low)
+
+Found while running item 4, unrelated to CSP — opening a pod shell puts one
+uncaught exception in the renderer console:
+
+```
+Cannot read properties of undefined (reading 'dimensions')
+```
+
+`ShellPanel` (`src/renderer/src/components/ShellPanel.tsx`) calls
+`fitAddon.fit()` immediately after `term.open(containerRef.current)`, and then
+again from a `ResizeObserver` that fires as soon as it observes. `fit()` reads
+the render service's `dimensions`, which doesn't exist yet while the drawer is
+still laying out and the container measures zero. The terminal recovers on the
+next resize, so the panel works — it just throws once on the way there.
+
+Reproduced in both dev and the packaged build. Guard the `fit()` calls on a
+non-zero container size (or wrap them), rather than leaving an exception the
+next real error has to be told apart from.
