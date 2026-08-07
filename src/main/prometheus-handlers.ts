@@ -171,6 +171,8 @@ async function buildDriver(
   if (!cluster) throw new Error("No active k8s cluster")
 
   const fetchOpts = await kc.applyToFetchOptions({})
+  // `RequestInit` here is node-fetch's, whose `headers` widens to a union with
+  // an index signature; at runtime kubeconfig always sets a real Headers.
   const authHeader =
     (fetchOpts.headers as unknown as Headers).get("Authorization") ?? undefined
   const httpsAgent = fetchOpts.agent
