@@ -1,10 +1,13 @@
 import { CoreV1Api, CoreV1Event } from "@kubernetes/client-node"
 
+import { toIso } from "./time"
 import { EventInfo } from "./types"
 
-// `eventTime` is typed V1MicroTime (extends Date) but the client's
-// ObjectSerializer has no typeMap entry for it, so it arrives as a raw string.
-function mapEvent(ev: CoreV1Event): EventInfo {
+/**
+ * Exported for the events informer (`src/main/informers.ts`), which maps one
+ * object at a time off the watch stream rather than a whole list.
+ */
+export function mapEvent(ev: CoreV1Event): EventInfo {
   return {
     name: ev.metadata?.name ?? "",
     namespace: ev.metadata?.namespace ?? "",
@@ -14,13 +17,11 @@ function mapEvent(ev: CoreV1Event): EventInfo {
     involvedObjectName: ev.involvedObject?.name ?? "",
     message: ev.message ?? "",
     count: ev.count ?? 1,
-    firstTimestamp: ev.firstTimestamp?.toISOString() ?? "",
-    lastTimestamp:
-      ev.lastTimestamp?.toISOString() ??
-      (ev.eventTime
-        ? new Date(ev.eventTime as unknown as string).toISOString()
-        : ""),
-    creationTimestamp: ev.metadata?.creationTimestamp?.toISOString() ?? "",
+    firstTimestamp: toIso(ev.firstTimestamp),
+    // Events written through the newer events.k8s.io path carry `eventTime`
+    // and leave `lastTimestamp` unset.
+    lastTimestamp: toIso(ev.lastTimestamp) || toIso(ev.eventTime),
+    creationTimestamp: toIso(ev.metadata?.creationTimestamp),
   }
 }
 
@@ -40,7 +41,12 @@ export async function listEventsForResource(
   return res.items.map(mapEvent)
 }
 
-export async function listEvents(api: CoreV1Api): Promise<EventInfo[]> {
-  const res = await api.listEventForAllNamespaces()
+export async function listEvents(
+  api: CoreV1Api,
+  namespace?: string,
+): Promise<EventInfo[]> {
+  const res = namespace
+    ? await api.listNamespacedEvent({ namespace })
+    : await api.listEventForAllNamespaces()
   return res.items.map(mapEvent)
 }

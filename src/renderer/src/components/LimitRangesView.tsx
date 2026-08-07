@@ -202,7 +202,9 @@ export function LimitRangesView(): JSX.Element {
   return (
     <ResourceListView<K8sLimitRange>
       title="LimitRanges"
-      list={(ctx) => window.api.k8s.listLimitRanges({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listLimitRanges({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sLimitRange).limits !== undefined}
       columns={[
         { head: "Name", cell: (lr) => lr.name },

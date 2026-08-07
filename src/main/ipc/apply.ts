@@ -3,6 +3,7 @@ import { IpcMain } from "electron"
 import {
   applyResource,
   deleteResource,
+  dryRunResource,
   readResource,
   replaceResource,
 } from "../k8s-handlers"
@@ -14,6 +15,9 @@ export function registerApplyHandlers(
 ): void {
   ipcMain.handle("k8s:resource:apply", (_e, yaml: string) =>
     applyResource(getKubeConfig(), yaml),
+  )
+  ipcMain.handle("k8s:resource:dryRun", (_e, yaml: string) =>
+    dryRunResource(getKubeConfig(), yaml),
   )
   ipcMain.handle("k8s:resource:replace", (_e, yaml: string) =>
     replaceResource(getKubeConfig(), yaml),

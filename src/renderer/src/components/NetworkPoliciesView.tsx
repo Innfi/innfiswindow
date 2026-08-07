@@ -16,6 +16,7 @@ import {
   K8sNetworkPolicy,
   K8sNetworkPolicyPeer,
   K8sNetworkPolicyRule,
+  K8sNetworkPolicySummary,
 } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -231,12 +232,17 @@ function DetailPanel({
 
 export function NetworkPoliciesView(): JSX.Element {
   return (
-    <ResourceListView<K8sNetworkPolicy>
+    <ResourceListView<K8sNetworkPolicySummary, K8sNetworkPolicy>
       title="Network Policies"
       emptyMessage="No NetworkPolicies found"
-      list={(ctx) => window.api.k8s.listNetworkPolicies({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listNetworkPolicies({ contextName: ctx, namespace: ns })
+      }
+      getDetail={(ctx, namespace, name) =>
+        window.api.k8s.getNetworkPolicy({ contextName: ctx, namespace, name })
+      }
       detailGuard={(item) =>
-        (item as K8sNetworkPolicy).policyTypes !== undefined
+        (item as K8sNetworkPolicySummary).policyTypes !== undefined
       }
       columns={[
         { head: "Name", cell: (np) => np.name, className: "font-medium" },
@@ -252,7 +258,7 @@ export function NetworkPoliciesView(): JSX.Element {
         },
         { head: "Ingress Rules", cell: (np) => np.ingressRuleCount },
         { head: "Egress Rules", cell: (np) => np.egressRuleCount },
-        ageColumn<K8sNetworkPolicy>(),
+        ageColumn<K8sNetworkPolicySummary>(),
       ]}
       renderDetail={(np, ctl: DetailController) => (
         <DetailPanel

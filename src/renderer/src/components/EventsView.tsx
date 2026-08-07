@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useMemo } from "react"
 
-import { Button } from "../../components/ui/Button"
 import { EmptyState } from "../../components/ui/EmptyState"
 import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
@@ -11,107 +10,50 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/Table"
-import { handleIpcError } from "../../lib/ipc-error"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
+import { useK8sResource } from "../hooks/useK8sResource"
 import { K8sEvent } from "../types/k8s"
 
+/** The API server keeps an hour of events for a busy cluster; the table only
+ *  needs the newest of them. */
 const MAX_EVENTS = 500
 
+const lastSeen = (ev: K8sEvent): string =>
+  ev.lastTimestamp || ev.creationTimestamp
+
 export function EventsView(): JSX.Element {
-  const [events, setEvents] = useState<K8sEvent[]>([])
-  const [isTailing, setIsTailing] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null)
-  const unsubRef = useRef<(() => void) | null>(null)
   const selectedContext = useAppStore((s) => s.selectedContext)
-  const refreshInterval = useAppStore((s) => s.refreshInterval)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
 
-  const fetchEvents = useCallback(
-    async (silent = false) => {
-      if (!silent) setLoading(true)
-      try {
-        const data = await window.api.listEvents({
-          contextName: selectedContext ?? undefined,
-        })
-        setEvents(data)
-        setLastRefreshedAt(Date.now())
-      } catch (err) {
-        handleIpcError(err, "events")
-      } finally {
-        setLoading(false)
-      }
-    },
-    [selectedContext],
+  // Watch-backed: an event's `count` climbs as it repeats, so the watch reports
+  // it as an update to the same row rather than as another row.
+  const { data, loading, error, reload, lastRefreshedAt } =
+    useK8sResource<K8sEvent>(
+      (ctx, ns) => window.api.listEvents({ contextName: ctx, namespace: ns }),
+      selectedContext,
+      { namespace: selectedNamespace, watch: "events" },
+    )
+
+  // Watch updates land in place, so the order has to come from the rows
+  // themselves rather than from the order the API server sent them in.
+  const events = useMemo(
+    () =>
+      [...data]
+        .sort((a, b) => lastSeen(b).localeCompare(lastSeen(a)))
+        .slice(0, MAX_EVENTS),
+    [data],
   )
-
-  useEffect(() => {
-    fetchEvents()
-    return () => {
-      window.api.stopEventsWatch().catch(() => {})
-      unsubRef.current?.()
-    }
-  }, [fetchEvents])
-
-  useEffect(() => {
-    if (refreshInterval === "off" || isTailing) return
-    const ms = (refreshInterval as number) * 1000
-    const id = setInterval(() => fetchEvents(true), ms)
-    return () => clearInterval(id)
-  }, [refreshInterval, isTailing, fetchEvents])
-
-  const startTail = async () => {
-    try {
-      unsubRef.current = window.api.onEventsData((event: K8sEvent) => {
-        setEvents((prev) => {
-          const next = [event, ...prev]
-          return next.slice(0, MAX_EVENTS)
-        })
-      })
-      await window.api.startEventsWatch()
-      setIsTailing(true)
-    } catch (err) {
-      handleIpcError(err, "events watch")
-    }
-  }
-
-  const stopTail = async () => {
-    try {
-      await window.api.stopEventsWatch()
-      unsubRef.current?.()
-      unsubRef.current = null
-      setIsTailing(false)
-    } catch (err) {
-      handleIpcError(err, "events watch stop")
-    }
-  }
-
-  const toggleTail = () => {
-    if (isTailing) {
-      stopTail()
-    } else {
-      startTail()
-    }
-  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex items-center gap-2 border-b px-4 py-2 shrink-0">
         <h2 className="font-semibold flex-1">Events</h2>
-        <Button
-          variant={isTailing ? "destructive" : "outline"}
-          size="sm"
-          onClick={toggleTail}
-        >
-          {isTailing ? "Stop Tail" : "Tail"}
-        </Button>
-        <RefreshBar
-          lastRefreshedAt={lastRefreshedAt}
-          onRefresh={() => fetchEvents(false)}
-        />
+        <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
       </div>
       <div className="flex-1 overflow-auto">
-        {!loading && events.length === 0 && (
+        {error && <p className="p-4 text-sm text-red-500">{error}</p>}
+        {!loading && !error && events.length === 0 && (
           <EmptyState message="No Events found" />
         )}
         {events.length > 0 && (

@@ -30,6 +30,20 @@ const ACTION_BADGE: Record<
     className:
       "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300",
   },
+  cordon: {
+    label: "cordon",
+    className:
+      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+  },
+  uncordon: {
+    label: "uncordon",
+    className: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300",
+  },
+  drain: {
+    label: "drain",
+    className:
+      "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+  },
 }
 
 export function HistoryView(): JSX.Element {

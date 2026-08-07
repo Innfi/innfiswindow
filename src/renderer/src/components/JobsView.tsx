@@ -322,7 +322,9 @@ export function JobsView(): JSX.Element {
   return (
     <ResourceListView<K8sJob>
       title="Jobs"
-      list={(ctx) => window.api.k8s.listJobs({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listJobs({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => "active" in item}
       columns={[
         { head: "Name", cell: (job) => job.name },

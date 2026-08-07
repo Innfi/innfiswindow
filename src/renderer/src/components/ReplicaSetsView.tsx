@@ -12,7 +12,7 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
-import { K8sReplicaSet } from "../types/k8s"
+import { K8sReplicaSet, K8sReplicaSetSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -236,12 +236,17 @@ function DetailPanel({
 
 export function ReplicaSetsView(): JSX.Element {
   return (
-    <ResourceListView<K8sReplicaSet>
+    <ResourceListView<K8sReplicaSetSummary, K8sReplicaSet>
       title="ReplicaSets"
       emptyMessage="No Replica Sets found"
-      list={(ctx) => window.api.k8s.listReplicaSets({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listReplicaSets({ contextName: ctx, namespace: ns })
+      }
+      getDetail={(ctx, namespace, name) =>
+        window.api.k8s.getReplicaSet({ contextName: ctx, namespace, name })
+      }
       detailGuard={(item) => {
-        const rs = item as K8sReplicaSet
+        const rs = item as K8sReplicaSetSummary
         return rs.namespace !== undefined && rs.desiredReplicas !== undefined
       }}
       rowClassName={(rs) =>
@@ -255,7 +260,7 @@ export function ReplicaSetsView(): JSX.Element {
         { head: "Desired", cell: (rs) => rs.desiredReplicas },
         { head: "Current", cell: (rs) => rs.currentReplicas },
         { head: "Ready", cell: (rs) => rs.readyReplicas },
-        ageColumn<K8sReplicaSet>(),
+        ageColumn<K8sReplicaSetSummary>(),
       ]}
       renderDetail={(rs, ctl: DetailController) => (
         <DetailPanel

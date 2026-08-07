@@ -45,15 +45,15 @@ function DetailPanel({
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
 
+  // A Service's Endpoints object shares its name and namespace.
   useEffect(() => {
     window.api.k8s
-      .listEndpoints({ contextName: selectedContext ?? undefined })
-      .then((all) => {
-        const ep = all.find(
-          (e) => e.name === svc.name && e.namespace === svc.namespace,
-        )
-        setEndpoints(ep ?? null)
+      .getEndpoint({
+        contextName: selectedContext ?? undefined,
+        namespace: svc.namespace,
+        name: svc.name,
       })
+      .then(setEndpoints)
       .catch(() => setEndpoints(null))
   }, [svc.name, svc.namespace, selectedContext])
 
@@ -297,7 +297,9 @@ export function ServicesView(): JSX.Element {
   return (
     <ResourceListView<K8sService>
       title="Services"
-      list={(ctx) => window.api.k8s.listServices({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listServices({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sService).type !== undefined}
       columns={[
         { head: "Name", cell: (svc) => svc.name },

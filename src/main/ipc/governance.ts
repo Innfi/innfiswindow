@@ -9,15 +9,23 @@ export function registerGovernanceHandlers(
 ): void {
   ipcMain.handle(
     "k8s:resourcequotas:list",
-    (_e, args?: { contextName?: string }) =>
-      listResourceQuotas(getContextClients(args?.contextName).coreV1),
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listResourceQuotas(
+        getContextClients(args?.contextName).coreV1,
+        args?.namespace,
+      ),
   )
   ipcMain.handle(
     "k8s:limitranges:list",
-    (_e, args?: { contextName?: string }) =>
-      listLimitRanges(getContextClients(args?.contextName).coreV1),
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listLimitRanges(
+        getContextClients(args?.contextName).coreV1,
+        args?.namespace,
+      ),
   )
-  ipcMain.handle("k8s:pdbs:list", (_e, args?: { contextName?: string }) =>
-    listPDBs(getContextClients(args?.contextName).policyV1),
+  ipcMain.handle(
+    "k8s:pdbs:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listPDBs(getContextClients(args?.contextName).policyV1, args?.namespace),
   )
 }

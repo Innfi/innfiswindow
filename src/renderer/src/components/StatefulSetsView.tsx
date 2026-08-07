@@ -24,7 +24,7 @@ import {
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
-import { K8sStatefulSet } from "../types/k8s"
+import { K8sStatefulSet, K8sStatefulSetSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -320,16 +320,23 @@ function DetailPanel({
 
 export function StatefulSetsView(): JSX.Element {
   return (
-    <ResourceListView<K8sStatefulSet>
+    <ResourceListView<K8sStatefulSetSummary, K8sStatefulSet>
       title="StatefulSets"
       emptyMessage="No Stateful Sets found"
-      list={(ctx) => window.api.k8s.listStatefulSets({ contextName: ctx })}
-      detailGuard={(item) => (item as K8sStatefulSet).serviceName !== undefined}
+      list={(ctx, ns) =>
+        window.api.k8s.listStatefulSets({ contextName: ctx, namespace: ns })
+      }
+      getDetail={(ctx, namespace, name) =>
+        window.api.k8s.getStatefulSet({ contextName: ctx, namespace, name })
+      }
+      detailGuard={(item) =>
+        (item as K8sStatefulSetSummary).serviceName !== undefined
+      }
       columns={[
         { head: "Name", cell: (ss) => ss.name },
         { head: "Namespace", cell: (ss) => ss.namespace },
         { head: "Ready", cell: (ss) => `${ss.readyReplicas}/${ss.replicas}` },
-        ageColumn<K8sStatefulSet>(),
+        ageColumn<K8sStatefulSetSummary>(),
         { head: "Service", cell: (ss) => ss.serviceName },
       ]}
       renderDetail={(ss, ctl: DetailController) => (

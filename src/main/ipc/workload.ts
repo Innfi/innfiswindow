@@ -5,6 +5,11 @@ import {
   createDaemonSet,
   createDeployment,
   createStatefulSet,
+  getDaemonSet,
+  getDeployment,
+  getPod,
+  getReplicaSet,
+  getStatefulSet,
   listDaemonSets,
   listDeploymentHistory,
   listDeployments,
@@ -28,24 +33,88 @@ export function registerWorkloadHandlers(
 ): void {
   ipcMain.handle(
     "k8s:deployments:list",
-    (_e, args?: { contextName?: string }) =>
-      listDeployments(getContextClients(args?.contextName).appsV1),
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listDeployments(
+        getContextClients(args?.contextName).appsV1,
+        args?.namespace,
+      ),
   )
   ipcMain.handle(
     "k8s:replicasets:list",
-    (_e, args?: { contextName?: string }) =>
-      listReplicaSets(getContextClients(args?.contextName).appsV1),
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listReplicaSets(
+        getContextClients(args?.contextName).appsV1,
+        args?.namespace,
+      ),
   )
-  ipcMain.handle("k8s:pods:list", (_e, args?: { contextName?: string }) =>
-    listPods(getContextClients(args?.contextName).coreV1),
+  ipcMain.handle(
+    "k8s:pods:list",
+    (_e, args?: { contextName?: string; namespace?: string }) => {
+      const clients = getContextClients(args?.contextName)
+      return listPods(clients.coreV1, args?.namespace, clients.appsV1)
+    },
   )
-  ipcMain.handle("k8s:daemonsets:list", (_e, args?: { contextName?: string }) =>
-    listDaemonSets(getContextClients(args?.contextName).appsV1),
+  ipcMain.handle(
+    "k8s:daemonsets:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listDaemonSets(
+        getContextClients(args?.contextName).appsV1,
+        args?.namespace,
+      ),
   )
   ipcMain.handle(
     "k8s:statefulsets:list",
-    (_e, args?: { contextName?: string }) =>
-      listStatefulSets(getContextClients(args?.contextName).appsV1),
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listStatefulSets(
+        getContextClients(args?.contextName).appsV1,
+        args?.namespace,
+      ),
+  )
+
+  // The list handlers above return summaries; these fetch the one object whose
+  // detail panel is open.
+  ipcMain.handle(
+    "k8s:deployment:get",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      getDeployment(
+        getContextClients(args.contextName).appsV1,
+        args.namespace,
+        args.name,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:replicaset:get",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      getReplicaSet(
+        getContextClients(args.contextName).appsV1,
+        args.namespace,
+        args.name,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:pod:get",
+    (_e, args: { contextName?: string; namespace: string; name: string }) => {
+      const clients = getContextClients(args.contextName)
+      return getPod(clients.coreV1, args.namespace, args.name, clients.appsV1)
+    },
+  )
+  ipcMain.handle(
+    "k8s:daemonset:get",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      getDaemonSet(
+        getContextClients(args.contextName).appsV1,
+        args.namespace,
+        args.name,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:statefulset:get",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      getStatefulSet(
+        getContextClients(args.contextName).appsV1,
+        args.namespace,
+        args.name,
+      ),
   )
 
   ipcMain.handle(

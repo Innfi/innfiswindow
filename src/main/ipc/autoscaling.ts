@@ -7,7 +7,12 @@ export function registerAutoscalingHandlers(
   ipcMain: IpcMain,
   getContextClients: GetContextClients,
 ): void {
-  ipcMain.handle("k8s:hpas:list", (_e, args?: { contextName?: string }) =>
-    listHPAs(getContextClients(args?.contextName).autoscalingV2),
+  ipcMain.handle(
+    "k8s:hpas:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listHPAs(
+        getContextClients(args?.contextName).autoscalingV2,
+        args?.namespace,
+      ),
   )
 }

@@ -14,8 +14,10 @@ export function registerHelmHandlers(ipcMain: IpcMain): void {
     helmRepoAdd(args.name, args.url),
   )
   ipcMain.handle("helm:repo:list", () => helmRepoList())
-  ipcMain.handle("helm:release:list", (_e, args?: { namespace?: string }) =>
-    helmReleaseList(args?.namespace),
+  ipcMain.handle(
+    "helm:release:list",
+    (_e, args?: { namespace?: string; contextName?: string }) =>
+      helmReleaseList(args?.namespace, args?.contextName),
   )
   ipcMain.handle(
     "helm:release:install",
@@ -26,6 +28,7 @@ export function registerHelmHandlers(ipcMain: IpcMain): void {
         chart: string
         namespace: string
         values?: string
+        contextName?: string
       },
     ) =>
       helmReleaseInstall(
@@ -33,6 +36,7 @@ export function registerHelmHandlers(ipcMain: IpcMain): void {
         args.chart,
         args.namespace,
         args.values,
+        args.contextName,
       ),
   )
   ipcMain.handle(
@@ -44,6 +48,7 @@ export function registerHelmHandlers(ipcMain: IpcMain): void {
         chart: string
         namespace: string
         values?: string
+        contextName?: string
       },
     ) =>
       helmReleaseUpgrade(
@@ -51,11 +56,15 @@ export function registerHelmHandlers(ipcMain: IpcMain): void {
         args.chart,
         args.namespace,
         args.values,
+        args.contextName,
       ),
   )
   ipcMain.handle(
     "helm:release:uninstall",
-    (_e, args: { releaseName: string; namespace: string }) =>
-      helmReleaseUninstall(args.releaseName, args.namespace),
+    (
+      _e,
+      args: { releaseName: string; namespace: string; contextName?: string },
+    ) =>
+      helmReleaseUninstall(args.releaseName, args.namespace, args.contextName),
   )
 }

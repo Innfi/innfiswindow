@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/Table"
-import { K8sClusterRole } from "../types/k8s"
+import { K8sClusterRole, K8sClusterRoleSummary } from "../types/k8s"
 
 function DetailPanel({
   role,
@@ -174,19 +174,22 @@ function DetailPanel({
 
 export function ClusterRolesView(): JSX.Element {
   return (
-    <ResourceListView<K8sClusterRole>
+    <ResourceListView<K8sClusterRoleSummary, K8sClusterRole>
       title="Cluster Roles"
       emptyMessage="No Cluster Roles found"
       namespaced={false}
       list={(ctx) => window.api.k8s.listClusterRoles({ contextName: ctx })}
+      getDetail={(ctx, _namespace, name) =>
+        window.api.k8s.getClusterRole({ contextName: ctx, name })
+      }
       detailGuard={(item) =>
-        (item as K8sClusterRole).rulesCount !== undefined &&
+        (item as K8sClusterRoleSummary).rulesCount !== undefined &&
         !("namespace" in item)
       }
       columns={[
         { head: "Name", cell: (role) => role.name },
         { head: "Rules", cell: (role) => role.rulesCount },
-        ageColumn<K8sClusterRole>(),
+        ageColumn<K8sClusterRoleSummary>(),
       ]}
       renderDetail={(role, ctl: DetailController) => (
         <DetailPanel

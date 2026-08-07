@@ -13,7 +13,7 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
-import { K8sSecret } from "../types/k8s"
+import { K8sSecret, K8sSecretSummary } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -197,10 +197,15 @@ function DetailPanel({
 
 export function SecretsView(): JSX.Element {
   return (
-    <ResourceListView<K8sSecret>
+    <ResourceListView<K8sSecretSummary, K8sSecret>
       title="Secrets"
-      list={(ctx) => window.api.k8s.listSecrets({ contextName: ctx })}
-      detailGuard={(item) => (item as K8sSecret).type !== undefined}
+      list={(ctx, ns) =>
+        window.api.k8s.listSecrets({ contextName: ctx, namespace: ns })
+      }
+      getDetail={(ctx, namespace, name) =>
+        window.api.k8s.getSecret({ contextName: ctx, namespace, name })
+      }
+      detailGuard={(item) => (item as K8sSecretSummary).type !== undefined}
       columns={[
         { head: "Name", cell: (s) => s.name },
         { head: "Namespace", cell: (s) => s.namespace },
@@ -210,7 +215,7 @@ export function SecretsView(): JSX.Element {
           cell: (s) => s.keys.join(", ") || "-",
           className: "max-w-xs truncate",
         },
-        ageColumn<K8sSecret>(),
+        ageColumn<K8sSecretSummary>(),
       ]}
       renderDetail={(secret, ctl: DetailController) => (
         <DetailPanel secret={secret} {...ctl} />

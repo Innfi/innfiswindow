@@ -15,8 +15,10 @@ export function registerStorageHandlers(
   ipcMain.handle("k8s:pvs:list", (_e, args?: { contextName?: string }) =>
     listPVs(getContextClients(args?.contextName).coreV1),
   )
-  ipcMain.handle("k8s:pvcs:list", (_e, args?: { contextName?: string }) =>
-    listPVCs(getContextClients(args?.contextName).coreV1),
+  ipcMain.handle(
+    "k8s:pvcs:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listPVCs(getContextClients(args?.contextName).coreV1, args?.namespace),
   )
   ipcMain.handle(
     "k8s:storageclasses:list",
@@ -25,7 +27,10 @@ export function registerStorageHandlers(
   )
   ipcMain.handle(
     "k8s:volumesnapshots:list",
-    (_e, args?: { contextName?: string }) =>
-      listVolumeSnapshots(getContextClients(args?.contextName).customObjects),
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listVolumeSnapshots(
+        getContextClients(args?.contextName).customObjects,
+        args?.namespace,
+      ),
   )
 }

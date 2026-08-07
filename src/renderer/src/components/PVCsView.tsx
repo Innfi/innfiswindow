@@ -180,7 +180,9 @@ export function PVCsView(): JSX.Element {
   return (
     <ResourceListView<K8sPVC>
       title="PersistentVolumeClaims"
-      list={(ctx) => window.api.k8s.listPVCs({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listPVCs({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sPVC).namespace !== undefined}
       columns={[
         { head: "Name", cell: (pvc) => pvc.name },

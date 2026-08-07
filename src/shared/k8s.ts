@@ -2,6 +2,14 @@
 // see src/main/handlers/types.ts) and the renderer (IPC consumers, see
 // src/preload/renderer/src/types/k8s.ts). Defined once here so the two sides
 // can't drift out of sync.
+//
+// Resources with expensive detail (pod templates, rule sets, ConfigMap and
+// Secret payloads) are split in two: `XxxSummary` is what a list row needs, and
+// `XxxInfo extends XxxSummary` adds what only the detail panel shows. `list*`
+// handlers return summaries — the full shape used to cross IPC for every row on
+// every poll tick — and a `get<Xxx>` handler fetches one object's detail when a
+// row is selected. Resources whose every field is already list-sized have no
+// Summary and keep a single `XxxInfo`.
 
 // ---------------------------------------------------------------------------
 // Shared / primitive
@@ -120,6 +128,22 @@ export interface ApplyResult {
   namespace: string
 }
 
+export interface DryRunResult {
+  name: string
+  namespace: string
+  kind: string
+  /** What the real apply would do: create the object, or patch the one that's
+   *  already there. */
+  action: "create" | "update"
+  /** Unified diff from the live object to what the server said it would
+   *  become. Empty when the apply is a no-op (or on a create, where there is
+   *  no "before" — read `rendered` instead). */
+  diff: string
+  /** The server's own rendering of the result as YAML, after defaulting,
+   *  admission webhooks and validation have run. */
+  rendered: string
+}
+
 // ---------------------------------------------------------------------------
 // cluster.ts
 // ---------------------------------------------------------------------------
@@ -166,23 +190,66 @@ export interface NodeInfo {
   addresses: NodeAddress[]
   taints: NodeTaint[]
   systemInfo: NodeSystemInfo
+  /** spec.unschedulable — true once the node is cordoned. */
+  unschedulable: boolean
+}
+
+/** Outcome of draining a node: how many pods were evicted, which were skipped
+ *  (DaemonSet/mirror pods that drain leaves in place), and which evictions the
+ *  API rejected (e.g. a PodDisruptionBudget blocking one). */
+/** Mirrors the `kubectl drain` flags. Every one of these guards a case where
+ *  evicting a pod loses something the cluster can't recreate, so they are all
+ *  opt-in. */
+export interface DrainOptions {
+  /** Evict pods no controller owns. Without it the drain refuses, because
+   *  nothing would recreate such a pod elsewhere. (`--force`) */
+  force?: boolean
+  /** Override each pod's own terminationGracePeriodSeconds.
+   *  (`--grace-period`) */
+  gracePeriodSeconds?: number
+  /** Leave DaemonSet pods where they are instead of refusing. Defaults to
+   *  true, since a DaemonSet pod is expected on every node.
+   *  (`--ignore-daemonsets`) */
+  ignoreDaemonSets?: boolean
+  /** Evict pods with emptyDir volumes, discarding that data.
+   *  (`--delete-emptydir-data`) */
+  deleteEmptyDirData?: boolean
+  /** How long to wait for evicted pods to actually terminate. 0 issues the
+   *  evictions and returns immediately. (`--timeout`) */
+  timeoutSeconds?: number
+}
+
+export interface DrainResult {
+  success: boolean
+  cordoned: boolean
+  evicted: number
+  skipped: string[]
+  failed: { pod: string; error: string }[]
+  /** Evicted pods still running when the wait deadline passed. Non-empty
+   *  exactly when `timedOut` is true. */
+  pending: string[]
+  timedOut: boolean
+  error?: string
 }
 
 // ---------------------------------------------------------------------------
 // workload.ts
 // ---------------------------------------------------------------------------
 
-export interface DeploymentInfo {
+export interface DeploymentSummary {
   name: string
   namespace: string
   replicas: number
   readyReplicas: number
   updatedReplicas: number
   availableReplicas: number
+  creationTimestamp: string
+}
+
+export interface DeploymentInfo extends DeploymentSummary {
   strategy: string
   rollingUpdate: RollingUpdateStrategy | null
   minReadySeconds: number
-  creationTimestamp: string
   labels: Record<string, string>
   annotations: Record<string, string>
   selector: Record<string, string>
@@ -200,13 +267,16 @@ export interface OwnerRef {
   name: string
 }
 
-export interface ReplicaSetInfo {
+export interface ReplicaSetSummary {
   name: string
   namespace: string
   desiredReplicas: number
   currentReplicas: number
   readyReplicas: number
   creationTimestamp: string
+}
+
+export interface ReplicaSetInfo extends ReplicaSetSummary {
   labels: Record<string, string>
   annotations: Record<string, string>
   selector: Record<string, string>
@@ -224,15 +294,18 @@ export interface VolumeClaimTemplateInfo {
   storage: string
 }
 
-export interface StatefulSetInfo {
+export interface StatefulSetSummary {
   name: string
   namespace: string
   replicas: number
   readyReplicas: number
   creationTimestamp: string
+  serviceName: string
+}
+
+export interface StatefulSetInfo extends StatefulSetSummary {
   labels: Record<string, string>
   annotations: Record<string, string>
-  serviceName: string
   updateStrategy: string
   selector: Record<string, string>
   podTemplateLabels: Record<string, string>
@@ -251,7 +324,7 @@ export interface TolerationInfo {
   effect: string
 }
 
-export interface DaemonSetInfo {
+export interface DaemonSetSummary {
   name: string
   namespace: string
   desiredNumberScheduled: number
@@ -260,6 +333,9 @@ export interface DaemonSetInfo {
   updatedNumberScheduled: number
   numberAvailable: number
   creationTimestamp: string
+}
+
+export interface DaemonSetInfo extends DaemonSetSummary {
   labels: Record<string, string>
   annotations: Record<string, string>
   updateStrategy: string
@@ -287,7 +363,7 @@ export interface PodContainerInfo {
   startupProbe: ProbeInfo | null
 }
 
-export interface PodInfo {
+export interface PodSummary {
   name: string
   namespace: string
   deployment: string
@@ -298,6 +374,9 @@ export interface PodInfo {
   restarts: number
   creationTimestamp: string
   nodeName: string
+}
+
+export interface PodInfo extends PodSummary {
   labels: Record<string, string>
   annotations: Record<string, string>
   serviceAccountName: string
@@ -359,7 +438,7 @@ export interface IngressRuleInfo {
   paths: IngressPathInfo[]
 }
 
-export interface IngressInfo {
+export interface IngressSummary {
   name: string
   namespace: string
   ingressClassName: string
@@ -367,6 +446,9 @@ export interface IngressInfo {
   address: string
   ports: string
   creationTimestamp: string
+}
+
+export interface IngressInfo extends IngressSummary {
   tls: IngressTLSInfo[]
   rules: IngressRuleInfo[]
   labels: Record<string, string>
@@ -391,13 +473,16 @@ export interface EndpointSubset {
   ports: EndpointPortInfo[]
 }
 
-export interface EndpointInfo {
+export interface EndpointSummary {
   name: string
   namespace: string
   readyAddressCount: number
   notReadyAddressCount: number
   ports: string
   creationTimestamp: string
+}
+
+export interface EndpointInfo extends EndpointSummary {
   labels: Record<string, string>
   annotations: Record<string, string>
   subsets: EndpointSubset[]
@@ -419,7 +504,7 @@ export interface NetworkPolicyRule {
   ports: NetworkPolicyPortInfo[]
 }
 
-export interface NetworkPolicyInfo {
+export interface NetworkPolicySummary {
   name: string
   namespace: string
   podSelector: string
@@ -427,6 +512,9 @@ export interface NetworkPolicyInfo {
   ingressRuleCount: number
   egressRuleCount: number
   creationTimestamp: string
+}
+
+export interface NetworkPolicyInfo extends NetworkPolicySummary {
   labels: Record<string, string>
   annotations: Record<string, string>
   ingressRules: NetworkPolicyRule[]
@@ -504,26 +592,35 @@ export interface VolumeSnapshotInfo {
 // config.ts
 // ---------------------------------------------------------------------------
 
-export interface ConfigMapInfo {
+export interface ConfigMapSummary {
   name: string
   namespace: string
   creationTimestamp: string
-  labels: Record<string, string>
-  annotations: Record<string, string>
-  data: Record<string, string>
-  binaryData: Record<string, number>
   keys: string[]
 }
 
-export interface SecretInfo {
+export interface ConfigMapInfo extends ConfigMapSummary {
+  labels: Record<string, string>
+  annotations: Record<string, string>
+  data: Record<string, string>
+  /** Key to byte length — binary values are never sent over IPC. */
+  binaryData: Record<string, number>
+}
+
+export interface SecretSummary {
   name: string
   namespace: string
   type: string
   creationTimestamp: string
+  keys: string[]
+}
+
+/** `data` holds the base64 values verbatim, so this shape only ever leaves the
+ *  main process for the one Secret whose detail panel is open. */
+export interface SecretInfo extends SecretSummary {
   labels: Record<string, string>
   annotations: Record<string, string>
   data: Record<string, string>
-  keys: string[]
 }
 
 export interface ServiceAccountInfo {
@@ -558,20 +655,26 @@ export interface EventInfo {
 // rbac.ts
 // ---------------------------------------------------------------------------
 
-export interface RoleInfo {
+export interface RoleSummary {
   name: string
   namespace: string
   rulesCount: number
   creationTimestamp: string
+}
+
+export interface RoleInfo extends RoleSummary {
   labels: Record<string, string>
   annotations: Record<string, string>
   rules: RbacRule[]
 }
 
-export interface ClusterRoleInfo {
+export interface ClusterRoleSummary {
   name: string
   rulesCount: number
   creationTimestamp: string
+}
+
+export interface ClusterRoleInfo extends ClusterRoleSummary {
   labels: Record<string, string>
   annotations: Record<string, string>
   rules: RbacRule[]

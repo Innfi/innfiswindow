@@ -5,9 +5,12 @@ import { toast } from "sonner"
 
 import { Button } from "../../components/ui/Button"
 import { CustomStreamPanel } from "../../components/ui/CustomStreamPanel"
+import { normalizeIpcError } from "../../lib/ipc-error"
+import { cn } from "../../lib/utils"
 import type { DrawerTab } from "../../store/app.store"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
+import type { DryRunResult } from "../types/k8s"
 import { PodLogPanel } from "./PodLogPanel"
 import { PortForwardPanel } from "./PortForwardPanel"
 import { ShellPanel } from "./ShellPanel"
@@ -25,11 +28,79 @@ metadata:
 spec: {}
 `
 
+const PREVIEW_MAX_HEIGHT = 200
+
+/** On an update, the diff is the answer. On a create there is nothing to diff
+ *  against, so show the server's rendering instead — that's still worth seeing,
+ *  since defaulting and mutating webhooks have already run on it. */
+function DryRunPreview({ preview }: { preview: DryRunResult }): JSX.Element {
+  const isDiff = preview.action === "update" && preview.diff !== ""
+  const body = isDiff ? preview.diff : preview.rendered
+
+  return (
+    <div
+      className="overflow-auto border-t bg-muted/50 px-3 py-2 font-mono text-xs shrink-0"
+      style={{ maxHeight: PREVIEW_MAX_HEIGHT }}
+    >
+      {preview.action === "update" && preview.diff === "" ? (
+        <p className="italic text-muted-foreground">
+          No changes — the live object already matches this manifest.
+        </p>
+      ) : (
+        body.split("\n").map((line, idx) => (
+          <div
+            key={idx}
+            className={cn(
+              "whitespace-pre",
+              isDiff && line.startsWith("+") && "text-emerald-600",
+              isDiff && line.startsWith("-") && "text-destructive",
+              isDiff && line.startsWith("@@") && "text-muted-foreground",
+            )}
+          >
+            {line || " "}
+          </div>
+        ))
+      )}
+    </div>
+  )
+}
+
 function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
   const [yaml, setYaml] = useState(YAML_SKELETON)
   const [error, setError] = useState<string | null>(null)
   const [applying, setApplying] = useState(false)
+  const [previewing, setPreviewing] = useState(false)
+  const [preview, setPreview] = useState<DryRunResult | null>(null)
   const recordHistory = useRecordHistory()
+
+  // The preview describes the YAML as it was at dry-run time, so editing after
+  // previewing has to invalidate it — otherwise Apply would write something the
+  // user never saw a preview of.
+  function editYaml(next: string): void {
+    setYaml(next)
+    setPreview(null)
+  }
+
+  async function handlePreview(): Promise<void> {
+    try {
+      yamlLoad(yaml)
+    } catch (e) {
+      setError(`YAML syntax error: ${String(e)}`)
+      return
+    }
+    setPreviewing(true)
+    setError(null)
+    try {
+      setPreview(await window.api.k8s.dryRunResource(yaml))
+    } catch (e) {
+      const msg = normalizeIpcError(e)
+      setPreview(null)
+      setError(msg)
+      toast.error(`Preview failed: ${msg}`)
+    } finally {
+      setPreviewing(false)
+    }
+  }
 
   async function handleApply(): Promise<void> {
     let parsed: unknown
@@ -72,10 +143,11 @@ function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
     <div className="flex flex-col w-full h-full overflow-hidden">
       <textarea
         value={yaml}
-        onChange={(e) => setYaml(e.target.value)}
+        onChange={(e) => editYaml(e.target.value)}
         className="flex-1 resize-none p-3 font-mono text-sm bg-muted text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         spellCheck={false}
       />
+      {preview && <DryRunPreview preview={preview} />}
       {error && (
         <p className="text-xs text-destructive font-mono whitespace-pre-wrap px-3 py-1.5 border-t border-border bg-destructive/5">
           {error}
@@ -87,10 +159,25 @@ function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
           variant="ghost"
           className="h-6 gap-1 text-xs px-2"
           onClick={handleApply}
-          disabled={applying}
+          disabled={applying || previewing}
         >
           {applying ? "Applying…" : "Apply"}
         </Button>
+        <Button
+          size="sm"
+          variant={preview ? "secondary" : "outline"}
+          className="h-6 gap-1 text-xs px-2"
+          onClick={handlePreview}
+          disabled={applying || previewing}
+        >
+          {previewing ? "Checking…" : "Preview"}
+        </Button>
+        {preview && (
+          <span className="text-xs text-muted-foreground">
+            Dry run: would {preview.action} {preview.kind}/{preview.name}
+            {preview.namespace ? ` in ${preview.namespace}` : ""}
+          </span>
+        )}
       </div>
     </div>
   )

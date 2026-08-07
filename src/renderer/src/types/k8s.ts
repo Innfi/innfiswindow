@@ -16,15 +16,18 @@ export type K8sDeploymentContainerPort = Shared.ContainerPort
 export type K8sEnvVar = Shared.EnvVar
 export type K8sProbeInfo = Shared.ProbeInfo
 export type K8sVolumeInfo = Shared.VolumeInfo
+export type K8sDeploymentSummary = Shared.DeploymentSummary
 export type K8sDeployment = Shared.DeploymentInfo
 export type K8sReplicaSetContainer = Shared.ContainerInfo
 export type K8sOwnerRef = { kind: string; name: string }
+export type K8sReplicaSetSummary = Shared.ReplicaSetSummary
 export type K8sReplicaSet = Shared.ReplicaSetInfo
 export type K8sStatefulSetContainer = Shared.ContainerInfo
 export type K8sStatefulSetVolumeClaimTemplate = {
   name: string
   storage: string
 }
+export type K8sStatefulSetSummary = Shared.StatefulSetSummary
 export type K8sStatefulSet = Shared.StatefulSetInfo
 export type K8sDaemonSetContainer = Shared.ContainerInfo
 export type K8sDaemonSetToleration = {
@@ -33,9 +36,11 @@ export type K8sDaemonSetToleration = {
   value: string
   effect: string
 }
+export type K8sDaemonSetSummary = Shared.DaemonSetSummary
 export type K8sDaemonSet = Shared.DaemonSetInfo
 export type K8sPodContainer = Shared.PodContainerInfo
 export type K8sPodCondition = Shared.Condition
+export type K8sPodSummary = Shared.PodSummary
 export type K8sPod = Shared.PodInfo
 export type K8sServicePort = Shared.ServicePortInfo
 export type K8sService = Shared.ServiceInfo
@@ -45,13 +50,19 @@ export type K8sIngressRule = Shared.IngressRuleInfo
 export type K8sNetworkPolicyPeer = Shared.NetworkPolicyPeer
 export type K8sNetworkPolicyPort = Shared.NetworkPolicyPortInfo
 export type K8sNetworkPolicyRule = Shared.NetworkPolicyRule
+export type K8sNetworkPolicySummary = Shared.NetworkPolicySummary
 export type K8sNetworkPolicy = Shared.NetworkPolicyInfo
+export type K8sIngressSummary = Shared.IngressSummary
 export type K8sIngress = Shared.IngressInfo
+export type K8sConfigMapSummary = Shared.ConfigMapSummary
 export type K8sConfigMap = Shared.ConfigMapInfo
+export type K8sSecretSummary = Shared.SecretSummary
 export type K8sSecret = Shared.SecretInfo
 export type K8sServiceAccount = Shared.ServiceAccountInfo
 export type K8sRoleRule = Shared.RbacRule
+export type K8sRoleSummary = Shared.RoleSummary
 export type K8sRole = Shared.RoleInfo
+export type K8sClusterRoleSummary = Shared.ClusterRoleSummary
 export type K8sClusterRole = Shared.ClusterRoleInfo
 export type BindingSubject = Shared.RbacSubject
 export type RoleRef = Shared.RoleRef
@@ -71,7 +82,9 @@ export type K8sLimitRangeItem = Shared.LimitRangeLimit
 export type K8sLimitRange = Shared.LimitRangeInfo
 export type K8sEndpointAddress = Shared.EndpointAddress
 export type K8sEndpointSubset = Shared.EndpointSubset
+export type K8sEndpointSummary = Shared.EndpointSummary
 export type K8sEndpoint = Shared.EndpointInfo
 export type K8sPDB = Shared.PDBInfo
 export type K8sStorageClass = Shared.StorageClassInfo
 export type K8sVolumeSnapshot = Shared.VolumeSnapshotInfo
+export type DryRunResult = Shared.DryRunResult

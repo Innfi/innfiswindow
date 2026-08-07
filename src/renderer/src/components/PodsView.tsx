@@ -16,7 +16,7 @@ import {
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { K8sPod } from "../types/k8s"
+import { K8sPod, K8sPodSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { PodMetricsSection } from "./PodMetricsSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -347,10 +347,16 @@ export function PodsView(): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
 
   return (
-    <ResourceListView<K8sPod>
+    <ResourceListView<K8sPodSummary, K8sPod>
       title="Pods"
-      list={(ctx) => window.api.k8s.listPods({ contextName: ctx })}
-      detailGuard={(item) => (item as K8sPod).containers !== undefined}
+      watch="pods"
+      list={(ctx, ns) =>
+        window.api.k8s.listPods({ contextName: ctx, namespace: ns })
+      }
+      getDetail={(ctx, namespace, name) =>
+        window.api.k8s.getPod({ contextName: ctx, namespace, name })
+      }
+      detailGuard={(item) => (item as K8sPodSummary).ownerKind !== undefined}
       rowClassName={(p) => (isPodHealthy(p.status) ? undefined : UNHEALTHY_ROW)}
       sortOptions={[
         { label: "Name", compare: (a, b) => a.name.localeCompare(b.name) },
@@ -376,7 +382,7 @@ export function PodsView(): JSX.Element {
         { head: "App", cell: (p) => p.app || "-" },
         { head: "Status", cell: (p) => p.status },
         { head: "Restarts", cell: (p) => p.restarts },
-        ageColumn<K8sPod>(),
+        ageColumn<K8sPodSummary>(),
       ]}
       renderDetail={(pod, ctl: DetailController) => (
         <DetailPanel

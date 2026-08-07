@@ -1,8 +1,13 @@
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 
+import { WatchResource } from "../../../shared/watch"
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useK8sResource } from "../../src/hooks/useK8sResource"
+import {
+  ResourceDetailFetcher,
+  useResourceDetail,
+} from "../../src/hooks/useResourceDetail"
 import { useAppStore } from "../../store/app.store"
 import { EmptyState } from "./EmptyState"
 import { RefreshBar } from "./RefreshBar"
@@ -42,19 +47,27 @@ export interface DetailController {
   onDeleteDialogChange: (open: boolean) => void
 }
 
-interface ResourceListViewProps<T extends Namespaced> {
+interface ResourceListViewProps<T extends Namespaced, D> {
   title: string
   /** Defaults to `No {title} found`. */
   emptyMessage?: string
-  list: (ctx?: string) => Promise<T[]>
+  list: (ctx?: string, ns?: string) => Promise<T[]>
   columns: ResourceColumn<T>[]
+  /**
+   * Fetches the full object for the selected row. List handlers return only
+   * what the table renders, so resources with expensive detail (pod templates,
+   * rule sets, ConfigMap and Secret payloads) pass this and type `D` as the
+   * detail shape. Omit it when the list shape is already the whole object, and
+   * the row itself is handed to `renderDetail`.
+   */
+  getDetail?: ResourceDetailFetcher<D>
   /**
    * Discriminates whether the shared store `selectedItem` belongs to this
    * view's resource type, so the detail panel isn't rendered with a
    * mismatched item after switching views.
    */
   detailGuard: (item: Namespaced) => boolean
-  renderDetail: (item: T, ctl: DetailController) => ReactNode
+  renderDetail: (item: D, ctl: DetailController) => ReactNode
   /**
    * When provided, a sort dropdown is rendered in the header. The first option
    * is the default; picking one sorts the visible rows by its comparator.
@@ -72,6 +85,13 @@ interface ResourceListViewProps<T extends Namespaced> {
    * resources). Defaults to true.
    */
   namespaced?: boolean
+  /**
+   * Serve the rows from a main-process informer instead of re-listing on every
+   * poll tick, for lists big enough that the full payload hurts. `list` is
+   * still required: it is what the view falls back to when the watch can't be
+   * established or drops.
+   */
+  watch?: WatchResource
 }
 
 const sameItem = (a: Namespaced | null, b: Namespaced): boolean =>
@@ -79,18 +99,20 @@ const sameItem = (a: Namespaced | null, b: Namespaced): boolean =>
 
 const ESTIMATED_ROW_HEIGHT = 37
 
-export function ResourceListView<T extends Namespaced>({
+export function ResourceListView<T extends Namespaced, D = T>({
   title,
   emptyMessage,
   list,
   columns,
+  getDetail,
   detailGuard,
   renderDetail,
   rowKey,
   namespaced = true,
   sortOptions,
   rowClassName,
-}: ResourceListViewProps<T>): JSX.Element {
+  watch,
+}: ResourceListViewProps<T, D>): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as T | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
@@ -99,10 +121,19 @@ export function ResourceListView<T extends Namespaced>({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [sortIndex, setSortIndex] = useState(0)
 
+  // The active namespace is pushed down to the handler so the API server does
+  // the filtering — a cluster-wide list of every pod is a large IPC payload to
+  // ship on every poll just to throw most of it away here. `filterResources`
+  // below still applies it, which keeps the view correct if a handler ever
+  // ignores the hint.
   const { data, loading, error, reload, lastRefreshedAt } = useK8sResource(
     list,
     selectedContext,
-    { paused: deleteDialogOpen },
+    {
+      paused: deleteDialogOpen,
+      namespace: namespaced ? selectedNamespace : null,
+      watch,
+    },
   )
 
   // Re-sync the selected item with fresh data after a reload. Every poll hands
@@ -133,6 +164,17 @@ export function ResourceListView<T extends Namespaced>({
       item.namespace ? `${item.namespace}/${item.name}` : item.name)
 
   const showDetail = selectedItem !== null && detailGuard(selectedItem)
+
+  const {
+    detail,
+    loading: detailLoading,
+    error: detailError,
+  } = useResourceDetail<D>(
+    getDetail,
+    showDetail ? selectedItem : null,
+    selectedContext,
+    { paused: deleteDialogOpen },
+  )
 
   // Only the rows in view are mounted; a large cluster otherwise puts thousands
   // of cells in the DOM. Spacer rows above/below preserve auto table layout,
@@ -259,13 +301,49 @@ export function ResourceListView<T extends Namespaced>({
       </div>
 
       {showDetail && (
-        <>
-          {renderDetail(selectedItem as T, {
-            onClose: () => setSelectedItem(null),
-            onDeleted: reload,
-            onDeleteDialogChange: setDeleteDialogOpen,
-          })}
-        </>
+        <DetailPane
+          // Without `getDetail` the list shape is the detail shape, and the row
+          // stands in for it.
+          item={getDetail ? detail : (selectedItem as unknown as D)}
+          loading={detailLoading}
+          error={detailError}
+          render={(item) =>
+            renderDetail(item, {
+              onClose: () => setSelectedItem(null),
+              onDeleted: reload,
+              onDeleteDialogChange: setDeleteDialogOpen,
+            })
+          }
+        />
+      )}
+    </div>
+  )
+}
+
+/** Stands in for the detail panel while `getDetail` is in flight, or when it
+ *  failed. */
+function DetailPane<D>({
+  item,
+  loading,
+  error,
+  render,
+}: {
+  item: D | null
+  loading: boolean
+  error: string | null
+  render: (item: D) => ReactNode
+}): JSX.Element {
+  // Detail already in hand wins over a failed background refresh: a transient
+  // poll error shouldn't blank a panel the user is reading.
+  if (item !== null && !loading) return <>{render(item)}</>
+  // Matches DetailPanelLayout's own width so the table doesn't shift when the
+  // real panel replaces this one.
+  return (
+    <div className="w-1/2 shrink-0 bg-card text-card-foreground border border-border shadow-md h-full p-4">
+      {error !== null ? (
+        <p className="text-sm text-red-500">{error}</p>
+      ) : (
+        <p className="text-sm text-muted-foreground">Loading...</p>
       )}
     </div>
   )

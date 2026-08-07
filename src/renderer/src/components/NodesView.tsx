@@ -1,11 +1,23 @@
 ﻿import { useCallback, useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
 
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../components/ui/AlertDialog"
+import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { EmptyState } from "../../components/ui/EmptyState"
+import { Input } from "../../components/ui/Input"
+import { Label } from "../../components/ui/Label"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import { RefreshBar } from "../../components/ui/RefreshBar"
 import { SectionHeader } from "../../components/ui/SectionHeader"
@@ -20,6 +32,7 @@ import {
 import { cn, filterResources, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
+import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sNode } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -27,6 +40,14 @@ interface NodeMetric {
   nodeName: string
   cpuUsage: string
   memoryUsage: string
+}
+
+/** Drain's seconds-valued inputs. Blank or nonsense becomes undefined so the
+ *  handler falls back to its own default rather than receiving a NaN. */
+function positiveSeconds(value: string): number | undefined {
+  if (value.trim() === "") return undefined
+  const n = Number(value)
+  return Number.isFinite(n) && n >= 0 ? n : undefined
 }
 
 function parseCpuNanocores(cpu: string): number {
@@ -158,6 +179,7 @@ function DetailPanel({
   metric,
   metricsUnavailable,
   onClose,
+  onChanged,
   onDeleted,
   onDeleteDialogChange,
 }: {
@@ -165,11 +187,111 @@ function DetailPanel({
   metric: NodeMetric | undefined
   metricsUnavailable: boolean
   onClose: () => void
+  onChanged: () => void
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
+
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const recordHistory = useRecordHistory()
+  const [cordonOpen, setCordonOpen] = useState(false)
+  const [cordoning, setCordoning] = useState(false)
+  const [drainOpen, setDrainOpen] = useState(false)
+  const [draining, setDraining] = useState(false)
+  const [drainForce, setDrainForce] = useState(false)
+  const [drainIgnoreDaemonSets, setDrainIgnoreDaemonSets] = useState(true)
+  const [drainEmptyDirData, setDrainEmptyDirData] = useState(false)
+  // Blank grace period means "use each pod's own terminationGracePeriodSeconds".
+  const [drainGracePeriod, setDrainGracePeriod] = useState("")
+  const [drainTimeout, setDrainTimeout] = useState("300")
+
+  async function handleCordon(): Promise<void> {
+    const schedulable = node.unschedulable // toggling back to schedulable
+    const target = {
+      action: schedulable ? "uncordon" : "cordon",
+      resourceKind: "Node",
+      resourceName: node.name,
+      namespace: "",
+    } as const
+    setCordoning(true)
+    try {
+      await window.api.k8s.cordonNode({
+        contextName: selectedContext ?? undefined,
+        name: node.name,
+        schedulable,
+      })
+      recordHistory(target, { success: true })
+      toast.success(
+        schedulable ? `Uncordoned ${node.name}` : `Cordoned ${node.name}`,
+      )
+      setCordonOpen(false)
+      onChanged()
+    } catch (e) {
+      recordHistory(target, { success: false, error: String(e) })
+      toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "Node: cordon")
+      setCordonOpen(false)
+    } finally {
+      setCordoning(false)
+    }
+  }
+
+  async function handleDrain(): Promise<void> {
+    const target = {
+      action: "drain",
+      resourceKind: "Node",
+      resourceName: node.name,
+      namespace: "",
+    } as const
+    setDraining(true)
+    try {
+      const result = await window.api.k8s.drainNode({
+        contextName: selectedContext ?? undefined,
+        name: node.name,
+        options: {
+          force: drainForce,
+          ignoreDaemonSets: drainIgnoreDaemonSets,
+          deleteEmptyDirData: drainEmptyDirData,
+          gracePeriodSeconds: positiveSeconds(drainGracePeriod),
+          timeoutSeconds: positiveSeconds(drainTimeout),
+        },
+      })
+      // A drain fails three different ways — refused up front, an eviction
+      // rejected, or pods that never terminated — and each needs its own
+      // message, since "drain failed" alone doesn't tell you what to change.
+      const problem =
+        result.error ??
+        (result.failed.length > 0
+          ? `${result.failed.length} pod(s) could not be evicted — ${result.failed
+              .map((f) => `${f.pod}: ${f.error}`)
+              .join("; ")}`
+          : result.timedOut
+            ? `evictions issued, but ${result.pending.length} pod(s) were still running at the timeout: ${result.pending.join(", ")}`
+            : undefined)
+
+      recordHistory(target, { success: result.success, error: problem })
+      if (result.success) {
+        toast.success(
+          `Drained ${node.name}: evicted ${result.evicted}, skipped ${result.skipped.length}`,
+        )
+      } else {
+        const message = problem ?? "Drain did not complete"
+        toast.error(`Drain ${node.name}: ${message}`)
+        useAppStore.getState().addGlobalError(message, "Node: drain")
+      }
+      setDrainOpen(false)
+      onChanged()
+    } catch (e) {
+      recordHistory(target, { success: false, error: String(e) })
+      toast.error(String(e))
+      useAppStore.getState().addGlobalError(String(e), "Node: drain")
+      setDrainOpen(false)
+    } finally {
+      setDraining(false)
+    }
+  }
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
   const kv = (k: string, v: string): boolean => m(k) || m(v)
@@ -205,8 +327,29 @@ function DetailPanel({
               >
                 {node.status}
               </span>
+              {node.unschedulable && (
+                <span className="ml-1 inline-block rounded px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800">
+                  SchedulingDisabled
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setCordonOpen(true)}
+              >
+                {node.unschedulable ? "Uncordon" : "Cordon"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setDrainOpen(true)}
+              >
+                Drain
+              </Button>
               <EditButton
                 resourceKind="Node"
                 resourceName={node.name}
@@ -427,6 +570,156 @@ function DetailPanel({
         kind="Node"
         search={sl}
       />
+
+      <AlertDialog open={cordonOpen} onOpenChange={setCordonOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {node.unschedulable ? "Uncordon Node" : "Cordon Node"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {node.unschedulable ? (
+                <>
+                  Mark <span className="font-medium">{node.name}</span>{" "}
+                  schedulable again so new pods can land on it.
+                </>
+              ) : (
+                <>
+                  Mark <span className="font-medium">{node.name}</span>{" "}
+                  unschedulable. Existing pods keep running; no new pods will be
+                  scheduled here.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCordonOpen(false)}
+              disabled={cordoning}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCordon} disabled={cordoning}>
+              {cordoning
+                ? "Working…"
+                : node.unschedulable
+                  ? "Uncordon"
+                  : "Cordon"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={drainOpen} onOpenChange={setDrainOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Drain Node</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cordon <span className="font-medium">{node.name}</span> and evict
+              its pods (honouring PodDisruptionBudgets), then wait for them to
+              terminate. Static pods are always left in place. The drain is
+              refused up front if it finds a pod the options below don&apos;t
+              cover.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-3 py-2 text-sm">
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                className="mt-0.5 accent-primary"
+                checked={drainIgnoreDaemonSets}
+                onChange={(e) => setDrainIgnoreDaemonSets(e.target.checked)}
+                disabled={draining}
+              />
+              <span>
+                Ignore DaemonSets
+                <span className="block text-xs text-muted-foreground">
+                  Leave DaemonSet pods running instead of refusing the drain.
+                </span>
+              </span>
+            </label>
+
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                className="mt-0.5 accent-primary"
+                checked={drainForce}
+                onChange={(e) => setDrainForce(e.target.checked)}
+                disabled={draining}
+              />
+              <span>
+                Force
+                <span className="block text-xs text-muted-foreground">
+                  Evict pods no controller owns. Nothing will recreate them.
+                </span>
+              </span>
+            </label>
+
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                className="mt-0.5 accent-primary"
+                checked={drainEmptyDirData}
+                onChange={(e) => setDrainEmptyDirData(e.target.checked)}
+                disabled={draining}
+              />
+              <span>
+                Delete emptyDir data
+                <span className="block text-xs text-muted-foreground">
+                  Evict pods with emptyDir volumes, discarding their contents.
+                </span>
+              </span>
+            </label>
+
+            <div className="flex gap-3">
+              <div className="flex-1 space-y-1">
+                <Label htmlFor="drain-grace-period" className="text-xs">
+                  Grace period (s)
+                </Label>
+                <Input
+                  id="drain-grace-period"
+                  type="number"
+                  min={0}
+                  placeholder="pod default"
+                  value={drainGracePeriod}
+                  onChange={(e) => setDrainGracePeriod(e.target.value)}
+                  disabled={draining}
+                  className="h-8"
+                />
+              </div>
+              <div className="flex-1 space-y-1">
+                <Label htmlFor="drain-timeout" className="text-xs">
+                  Timeout (s)
+                </Label>
+                <Input
+                  id="drain-timeout"
+                  type="number"
+                  min={0}
+                  value={drainTimeout}
+                  onChange={(e) => setDrainTimeout(e.target.value)}
+                  disabled={draining}
+                  className="h-8"
+                />
+              </div>
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDrainOpen(false)}
+              disabled={draining}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleDrain} disabled={draining}>
+              {draining ? "Draining…" : "Drain"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DetailPanelLayout>
   )
 }
@@ -580,6 +873,7 @@ export function NodesView(): JSX.Element {
           metric={metricsMap.get(selectedItem.name)}
           metricsUnavailable={metricsUnavailable}
           onClose={() => setSelectedItem(null)}
+          onChanged={reload}
           onDeleted={reload}
           onDeleteDialogChange={setDeleteDialogOpen}
         />

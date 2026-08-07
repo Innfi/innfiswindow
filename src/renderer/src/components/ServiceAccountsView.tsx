@@ -175,7 +175,9 @@ export function ServiceAccountsView(): JSX.Element {
     <ResourceListView<K8sServiceAccount>
       title="Service Accounts"
       emptyMessage="No Service Accounts found"
-      list={(ctx) => window.api.k8s.listServiceAccounts({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listServiceAccounts({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => (item as K8sServiceAccount).secrets !== undefined}
       columns={[
         { head: "Name", cell: (sa) => sa.name },

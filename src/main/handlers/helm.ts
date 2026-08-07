@@ -38,6 +38,12 @@ async function findHelm(): Promise<string | null> {
   })
 }
 
+/** Appends `--kube-context <ctx>` so helm targets the context the user picked
+ *  in the app, not whatever the kubeconfig current-context happens to be. */
+function withContext(args: string[], contextName?: string | null): string[] {
+  return contextName ? [...args, "--kube-context", contextName] : args
+}
+
 async function runHelm(
   args: string[],
   stdinData?: string,
@@ -78,51 +84,54 @@ export async function helmRepoAdd(
   }
 }
 
+/** `helm repo list` exits non-zero when no repositories are configured, which
+ *  is a normal empty state rather than a failure. Anything else — a missing
+ *  helm binary, a broken config — is a real error and must reach the view;
+ *  swallowing it makes a broken helm look identical to "nothing installed". */
 export async function helmRepoList(): Promise<HelmRepo[]> {
   try {
     const { stdout } = await runHelm(["repo", "list", "-o", "json"])
+    if (!stdout.trim()) return []
     const parsed = JSON.parse(stdout) as Array<{ name: string; url: string }>
     return parsed.map((r) => ({ name: r.name, url: r.url }))
-  } catch {
-    return []
+  } catch (e: unknown) {
+    if (/no repositories/i.test((e as Error).message)) return []
+    throw e
   }
 }
 
 export async function helmReleaseList(
   namespace?: string,
+  contextName?: string | null,
 ): Promise<HelmRelease[]> {
-  try {
-    const args = namespace
-      ? ["list", "-o", "json", "-n", namespace]
-      : ["list", "-o", "json", "-A"]
-    const { stdout } = await runHelm(args)
-    if (!stdout.trim()) return []
-    const parsed = JSON.parse(stdout) as Array<{
-      name: string
-      namespace: string
-      chart: string
-      app_version: string
-      status: string
-      updated: string
-    }>
-    return parsed.map((r) => {
-      const chartFull = r.chart ?? ""
-      const lastDash = chartFull.lastIndexOf("-")
-      const chartName = lastDash > 0 ? chartFull.slice(0, lastDash) : chartFull
-      const chartVersion = lastDash > 0 ? chartFull.slice(lastDash + 1) : ""
-      return {
-        name: r.name,
-        namespace: r.namespace,
-        chart: chartName,
-        chartVersion,
-        appVersion: r.app_version ?? "",
-        status: r.status,
-        updated: r.updated,
-      }
-    })
-  } catch {
-    return []
-  }
+  const args = namespace
+    ? ["list", "-o", "json", "-n", namespace]
+    : ["list", "-o", "json", "-A"]
+  const { stdout } = await runHelm(withContext(args, contextName))
+  if (!stdout.trim()) return []
+  const parsed = JSON.parse(stdout) as Array<{
+    name: string
+    namespace: string
+    chart: string
+    app_version: string
+    status: string
+    updated: string
+  }>
+  return parsed.map((r) => {
+    const chartFull = r.chart ?? ""
+    const lastDash = chartFull.lastIndexOf("-")
+    const chartName = lastDash > 0 ? chartFull.slice(0, lastDash) : chartFull
+    const chartVersion = lastDash > 0 ? chartFull.slice(lastDash + 1) : ""
+    return {
+      name: r.name,
+      namespace: r.namespace,
+      chart: chartName,
+      chartVersion,
+      appVersion: r.app_version ?? "",
+      status: r.status,
+      updated: r.updated,
+    }
+  })
 }
 
 export async function helmReleaseInstall(
@@ -130,11 +139,12 @@ export async function helmReleaseInstall(
   chart: string,
   namespace: string,
   values?: string,
+  contextName?: string | null,
 ): Promise<MutationResult> {
   try {
     const args = ["install", releaseName, chart, "-n", namespace]
     if (values) args.push("--values", "-")
-    await runHelm(args, values)
+    await runHelm(withContext(args, contextName), values)
     return { success: true }
   } catch (e: unknown) {
     return { success: false, error: (e as Error).message }
@@ -146,11 +156,12 @@ export async function helmReleaseUpgrade(
   chart: string,
   namespace: string,
   values?: string,
+  contextName?: string | null,
 ): Promise<MutationResult> {
   try {
     const args = ["upgrade", releaseName, chart, "-n", namespace, "--install"]
     if (values) args.push("--values", "-")
-    await runHelm(args, values)
+    await runHelm(withContext(args, contextName), values)
     return { success: true }
   } catch (e: unknown) {
     return { success: false, error: (e as Error).message }
@@ -160,9 +171,12 @@ export async function helmReleaseUpgrade(
 export async function helmReleaseUninstall(
   releaseName: string,
   namespace: string,
+  contextName?: string | null,
 ): Promise<MutationResult> {
   try {
-    await runHelm(["uninstall", releaseName, "-n", namespace])
+    await runHelm(
+      withContext(["uninstall", releaseName, "-n", namespace], contextName),
+    )
     return { success: true }
   } catch (e: unknown) {
     return { success: false, error: (e as Error).message }

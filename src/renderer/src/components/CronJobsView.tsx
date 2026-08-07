@@ -279,7 +279,9 @@ export function CronJobsView(): JSX.Element {
   return (
     <ResourceListView<K8sCronJob>
       title="CronJobs"
-      list={(ctx) => window.api.k8s.listCronJobs({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listCronJobs({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) => "schedule" in item}
       columns={[
         { head: "Name", cell: (cj) => cj.name },

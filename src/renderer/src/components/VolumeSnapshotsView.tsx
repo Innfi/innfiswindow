@@ -158,7 +158,9 @@ export function VolumeSnapshotsView(): JSX.Element {
     <ResourceListView<K8sVolumeSnapshot>
       title="Volume Snapshots"
       emptyMessage="No VolumeSnapshots found"
-      list={(ctx) => window.api.k8s.listVolumeSnapshots({ contextName: ctx })}
+      list={(ctx, ns) =>
+        window.api.k8s.listVolumeSnapshots({ contextName: ctx, namespace: ns })
+      }
       detailGuard={(item) =>
         (item as K8sVolumeSnapshot).sourcePVCName !== undefined
       }

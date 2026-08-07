@@ -70,8 +70,13 @@ export async function listPVs(api: CoreV1Api): Promise<PVInfo[]> {
   })
 }
 
-export async function listPVCs(api: CoreV1Api): Promise<PVCInfo[]> {
-  const res = await api.listPersistentVolumeClaimForAllNamespaces()
+export async function listPVCs(
+  api: CoreV1Api,
+  namespace?: string,
+): Promise<PVCInfo[]> {
+  const res = namespace
+    ? await api.listNamespacedPersistentVolumeClaim({ namespace })
+    : await api.listPersistentVolumeClaimForAllNamespaces()
   return res.items.map((pvc) => ({
     name: pvc.metadata?.name ?? "",
     namespace: pvc.metadata?.namespace ?? "",
@@ -106,13 +111,19 @@ export async function listStorageClasses(
 
 export async function listVolumeSnapshots(
   api: CustomObjectsApi,
+  namespace?: string,
 ): Promise<VolumeSnapshotInfo[]> {
+  const gvr = {
+    group: "snapshot.storage.k8s.io",
+    version: "v1",
+    plural: "volumesnapshots",
+  }
   try {
-    const res = (await api.listClusterCustomObject({
-      group: "snapshot.storage.k8s.io",
-      version: "v1",
-      plural: "volumesnapshots",
-    })) as { items?: unknown[] }
+    const res = (
+      namespace
+        ? await api.listNamespacedCustomObject({ ...gvr, namespace })
+        : await api.listClusterCustomObject(gvr)
+    ) as { items?: unknown[] }
     const items = res.items ?? []
     return items.map((item: unknown) => {
       const snap = item as Record<string, unknown>
