@@ -36,6 +36,22 @@ export interface NodeMetric {
   memoryUsage: string
 }
 
+export interface ContainerMetric {
+  name: string
+  cpuNanocores: number
+  memoryBytes: number
+}
+
+export interface PodMetric {
+  podName: string
+  namespace: string
+  window: string
+  timestamp: string
+  cpuNanocores: number
+  memoryBytes: number
+  containers: ContainerMetric[]
+}
+
 export interface K8sJobCondition {
   type: string
   status: string
@@ -835,6 +851,15 @@ export interface K8sAPI {
   getNodeMetrics: (args?: {
     contextName?: string
   }) => Promise<NodeMetric[] | { unavailable: true }>
+  getPodMetrics: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<PodMetric[] | { unavailable: true }>
+  getPodMetric: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+  }) => Promise<PodMetric | { unavailable: true }>
   listPVCs: (args?: {
     contextName?: string
     namespace?: string

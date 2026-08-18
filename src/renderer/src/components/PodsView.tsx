@@ -1,6 +1,7 @@
 import { ArrowLeftRight, ScrollText, SquareTerminal } from "lucide-react"
 import { useState } from "react"
 
+import { formatMemory, formatMillicores } from "../../../shared/quantity"
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
@@ -11,12 +12,15 @@ import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
   DetailController,
+  ResourceColumn,
   ResourceListView,
+  SortOption,
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { K8sPod, K8sPodSummary } from "../types/k8s"
+import { usePodMetrics } from "../hooks/usePodMetrics"
+import { K8sPod, K8sPodMetric, K8sPodSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { PodMetricsSection } from "./PodMetricsSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -345,6 +349,49 @@ function DetailPanel({
 
 export function PodsView(): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const { metrics, unavailable: metricsUnavailable } = usePodMetrics()
+
+  // Readings arrive keyed by identity rather than joined into the rows: the
+  // pod list is watch-backed and refreshes on its own clock, so a row can
+  // exist a poll before metrics-server has sampled it (and vice versa).
+  const metricFor = (p: K8sPodSummary): K8sPodMetric | undefined =>
+    metrics.get(`${p.namespace}/${p.name}`)
+
+  const metricColumns: ResourceColumn<K8sPodSummary>[] = metricsUnavailable
+    ? []
+    : [
+        {
+          head: "CPU",
+          cell: (p) => {
+            const m = metricFor(p)
+            return m ? formatMillicores(m.cpuNanocores) : "-"
+          },
+        },
+        {
+          head: "Memory",
+          cell: (p) => {
+            const m = metricFor(p)
+            return m ? formatMemory(m.memoryBytes) : "-"
+          },
+        },
+      ]
+
+  const metricSorts: SortOption<K8sPodSummary>[] = metricsUnavailable
+    ? []
+    : [
+        {
+          label: "CPU usage",
+          compare: (a, b) =>
+            (metricFor(b)?.cpuNanocores ?? -1) -
+            (metricFor(a)?.cpuNanocores ?? -1),
+        },
+        {
+          label: "Memory usage",
+          compare: (a, b) =>
+            (metricFor(b)?.memoryBytes ?? -1) -
+            (metricFor(a)?.memoryBytes ?? -1),
+        },
+      ]
 
   return (
     <ResourceListView<K8sPodSummary, K8sPod>
@@ -371,6 +418,7 @@ export function PodsView(): JSX.Element {
           label: "Status",
           compare: (a, b) => a.status.localeCompare(b.status),
         },
+        ...metricSorts,
       ]}
       columns={[
         { head: "Name", cell: (p) => p.name },
@@ -382,6 +430,7 @@ export function PodsView(): JSX.Element {
         { head: "App", cell: (p) => p.app || "-" },
         { head: "Status", cell: (p) => p.status },
         { head: "Restarts", cell: (p) => p.restarts },
+        ...metricColumns,
         ageColumn<K8sPodSummary>(),
       ]}
       renderDetail={(pod, ctl: DetailController) => (

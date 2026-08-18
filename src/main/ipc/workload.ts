@@ -8,6 +8,8 @@ import {
   getDaemonSet,
   getDeployment,
   getPod,
+  getPodMetric,
+  getPodMetrics,
   getReplicaSet,
   getStatefulSet,
   listDaemonSets,
@@ -45,6 +47,23 @@ export function registerWorkloadHandlers(
       listReplicaSets(
         getContextClients(args?.contextName).appsV1,
         args?.namespace,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:pods:metrics",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      getPodMetrics(
+        getContextClients(args?.contextName).customObjects,
+        args?.namespace,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:pod:metrics",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      getPodMetric(
+        getContextClients(args.contextName).customObjects,
+        args.namespace,
+        args.name,
       ),
   )
   ipcMain.handle(

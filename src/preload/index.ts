@@ -166,6 +166,13 @@ const api = {
     }) => ipcRenderer.invoke("k8s:cronjob:trigger", args),
     getNodeMetrics: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:node:metrics", args),
+    getPodMetrics: (args?: { contextName?: string; namespace?: string }) =>
+      ipcRenderer.invoke("k8s:pods:metrics", args),
+    getPodMetric: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:pod:metrics", args),
     listPods: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:pods:list", args),
     getPod: (args: { contextName?: string; namespace: string; name: string }) =>

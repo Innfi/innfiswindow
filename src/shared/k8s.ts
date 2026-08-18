@@ -855,6 +855,27 @@ export interface MetricsUnavailable {
   unavailable: true
 }
 
+/** metrics-server usage for one container. Numeric so the renderer formats
+ *  without re-parsing quantity strings over IPC. */
+export interface ContainerMetric {
+  name: string
+  cpuNanocores: number
+  memoryBytes: number
+}
+
+/** metrics-server usage for one pod: the container readings plus their sum,
+ *  which is what `kubectl top pod` prints. */
+export interface PodMetric {
+  podName: string
+  namespace: string
+  /** Sampling window the reading covers, e.g. `30s`. */
+  window: string
+  timestamp: string
+  cpuNanocores: number
+  memoryBytes: number
+  containers: ContainerMetric[]
+}
+
 // ---------------------------------------------------------------------------
 // helm.ts
 // ---------------------------------------------------------------------------

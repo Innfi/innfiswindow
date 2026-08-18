@@ -2,6 +2,11 @@
 import { toast } from "sonner"
 
 import {
+  formatMemory,
+  parseCpuToNanocores,
+  parseMemoryToBytes,
+} from "../../../shared/quantity"
+import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogDescription,
@@ -50,40 +55,12 @@ function positiveSeconds(value: string): number | undefined {
   return Number.isFinite(n) && n >= 0 ? n : undefined
 }
 
-function parseCpuNanocores(cpu: string): number {
-  if (cpu.endsWith("n")) return parseInt(cpu.slice(0, -1), 10)
-  if (cpu.endsWith("m")) return Math.round(parseInt(cpu) * 1e6)
-  return Math.round(parseFloat(cpu) * 1e9)
-}
-
-function parseAllocatableCpuToNanocores(cpu: string): number {
-  if (cpu.endsWith("m")) return Math.round(parseInt(cpu) * 1e6)
-  return Math.round(parseFloat(cpu) * 1e9)
-}
-
-function parseMemoryToBytes(mem: string): number {
-  if (mem.endsWith("Ki")) return parseInt(mem) * 1024
-  if (mem.endsWith("Mi")) return parseInt(mem) * 1024 * 1024
-  if (mem.endsWith("Gi")) return parseInt(mem) * 1024 * 1024 * 1024
-  if (mem.endsWith("Ti")) return parseInt(mem) * 1024 * 1024 * 1024 * 1024
-  if (mem.endsWith("k")) return parseInt(mem) * 1000
-  if (mem.endsWith("M")) return parseInt(mem) * 1000 * 1000
-  if (mem.endsWith("G")) return parseInt(mem) * 1000 * 1000 * 1000
-  return parseInt(mem) || 0
-}
-
-function formatMemory(bytes: number): string {
-  if (bytes >= 1024 * 1024 * 1024)
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} Gi`
-  return `${(bytes / (1024 * 1024)).toFixed(0)} Mi`
-}
-
 function computeMetricPcts(
   metric: NodeMetric,
   allocatable: Record<string, string>,
 ): { cpuPct: number; memPct: number; cpuLabel: string; memLabel: string } {
-  const cpuNano = parseCpuNanocores(metric.cpuUsage)
-  const cpuAllocNano = parseAllocatableCpuToNanocores(allocatable.cpu ?? "0")
+  const cpuNano = parseCpuToNanocores(metric.cpuUsage)
+  const cpuAllocNano = parseCpuToNanocores(allocatable.cpu ?? "0")
   const cpuPct = cpuAllocNano > 0 ? (cpuNano / cpuAllocNano) * 100 : 0
 
   const memBytes = parseMemoryToBytes(metric.memoryUsage)

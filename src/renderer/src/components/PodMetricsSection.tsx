@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   Legend,
   Line,
@@ -9,7 +9,14 @@ import {
   YAxis,
 } from "recharts"
 
+import {
+  formatCores,
+  formatMemory,
+  formatMillicores,
+} from "../../../shared/quantity"
 import { Button } from "../../components/ui/Button"
+import { useAppStore } from "../../store/app.store"
+import { K8sPodMetric } from "../types/k8s"
 
 interface DataPoint {
   timestamp: number
@@ -145,6 +152,117 @@ function buildDualSeries(
   )
 }
 
+/**
+ * Point-in-time usage straight from metrics-server, for clusters with no
+ * Prometheus behind them. There is no history in this API — it answers "what
+ * is this pod using now", which is what `kubectl top pod` prints — so it
+ * renders as a table rather than as the charts above.
+ */
+function MetricsServerUsage({
+  namespace,
+  podName,
+}: {
+  namespace: string
+  podName: string
+}): JSX.Element {
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const refreshInterval = useAppStore((s) => s.refreshInterval)
+  const [metric, setMetric] = useState<K8sPodMetric | null>(null)
+  const [unavailable, setUnavailable] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  const contextRef = useRef(selectedContext)
+  contextRef.current = selectedContext
+
+  const fetchMetric = useCallback(async () => {
+    try {
+      const result = await window.api.k8s.getPodMetric({
+        contextName: contextRef.current ?? undefined,
+        namespace,
+        name: podName,
+      })
+      if ("unavailable" in result) {
+        setUnavailable(true)
+        setMetric(null)
+      } else {
+        setUnavailable(false)
+        setMetric(result)
+      }
+    } catch {
+      setUnavailable(true)
+      setMetric(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [namespace, podName])
+
+  useEffect(() => {
+    setLoading(true)
+    fetchMetric()
+  }, [fetchMetric])
+
+  useEffect(() => {
+    if (refreshInterval === "off" || unavailable) return
+    const id = setInterval(fetchMetric, (refreshInterval as number) * 1000)
+    return () => clearInterval(id)
+  }, [refreshInterval, unavailable, fetchMetric])
+
+  if (loading) {
+    return (
+      <p className="text-xs text-muted-foreground">Loading current usage…</p>
+    )
+  }
+
+  if (unavailable || !metric) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        metrics-server has no reading for this pod
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-baseline justify-between text-xs">
+        <span className="font-medium">Current usage</span>
+        <span className="text-muted-foreground">
+          {metric.window ? `over ${metric.window}` : "metrics-server"}
+        </span>
+      </div>
+      <div className="rounded border divide-y text-xs">
+        <div className="grid grid-cols-3 gap-2 px-2 py-1 font-medium">
+          <span>Container</span>
+          <span className="text-right">CPU</span>
+          <span className="text-right">Memory</span>
+        </div>
+        {metric.containers.map((c) => (
+          <div key={c.name} className="grid grid-cols-3 gap-2 px-2 py-1">
+            <span className="truncate" title={c.name}>
+              {c.name}
+            </span>
+            <span className="text-right tabular-nums">
+              {formatMillicores(c.cpuNanocores)}
+            </span>
+            <span className="text-right tabular-nums">
+              {formatMemory(c.memoryBytes)}
+            </span>
+          </div>
+        ))}
+        <div className="grid grid-cols-3 gap-2 px-2 py-1 font-medium">
+          <span>Pod total</span>
+          <span className="text-right tabular-nums">
+            {formatMillicores(metric.cpuNanocores)} (
+            {formatCores(metric.cpuNanocores)} cores)
+          </span>
+          <span className="text-right tabular-nums">
+            {formatMemory(metric.memoryBytes)}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function PodMetricsSection({
   namespace,
   podName,
@@ -218,29 +336,27 @@ export function PodMetricsSection({
     )
   }
 
-  if (notConfigured) {
+  // Without Prometheus there is no history to chart, but metrics-server still
+  // answers for the current moment — show that rather than nothing.
+  if (notConfigured || error) {
     return (
-      <div className="space-y-1">
+      <div className="space-y-2">
         <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
           Metrics
         </h3>
-        <p className="text-xs text-muted-foreground">
-          Prometheus not configured — add URL in Settings
-        </p>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Metrics
-        </h3>
-        <p className="text-xs text-red-500">{error}</p>
-        <Button size="sm" variant="outline" onClick={fetchMetrics}>
-          Retry
-        </Button>
+        {notConfigured ? (
+          <p className="text-xs text-muted-foreground">
+            Prometheus not configured — add URL in Settings for history
+          </p>
+        ) : (
+          <>
+            <p className="text-xs text-red-500">{error}</p>
+            <Button size="sm" variant="outline" onClick={fetchMetrics}>
+              Retry
+            </Button>
+          </>
+        )}
+        <MetricsServerUsage namespace={namespace} podName={podName} />
       </div>
     )
   }
