@@ -786,6 +786,7 @@ export interface JobInfo {
   completions: number | null
   parallelism: number | null
   backoffLimit: number | null
+  suspend: boolean
   succeeded: number
   failed: number
   active: number

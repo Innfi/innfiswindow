@@ -65,6 +65,7 @@ export interface K8sJob {
   completions: number | null
   parallelism: number | null
   backoffLimit: number | null
+  suspend: boolean
   succeeded: number
   failed: number
   active: number
@@ -848,6 +849,18 @@ export interface K8sAPI {
     namespace: string
     name: string
   }) => Promise<{ success: boolean; name: string; namespace: string }>
+  setJobSuspend: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    suspend: boolean
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
+  setCronJobSuspend: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    suspend: boolean
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
   getNodeMetrics: (args?: {
     contextName?: string
   }) => Promise<NodeMetric[] | { unavailable: true }>
@@ -932,6 +945,24 @@ export interface K8sAPI {
     contextName?: string
     namespace: string
     name: string
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
+  scaleDeployment: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    replicas: number
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
+  scaleStatefulSet: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    replicas: number
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
+  scaleReplicaSet: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    replicas: number
   }) => Promise<{ success: boolean; name: string; namespace: string }>
   getDeploymentHistory: (args: {
     contextName?: string

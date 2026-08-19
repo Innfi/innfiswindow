@@ -164,6 +164,18 @@ const api = {
       namespace: string
       name: string
     }) => ipcRenderer.invoke("k8s:cronjob:trigger", args),
+    setJobSuspend: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+      suspend: boolean
+    }) => ipcRenderer.invoke("k8s:job:suspend", args),
+    setCronJobSuspend: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+      suspend: boolean
+    }) => ipcRenderer.invoke("k8s:cronjob:suspend", args),
     getNodeMetrics: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:node:metrics", args),
     getPodMetrics: (args?: { contextName?: string; namespace?: string }) =>
@@ -223,6 +235,24 @@ const api = {
       namespace: string
       name: string
     }) => ipcRenderer.invoke("k8s:deployment:restart", args),
+    scaleDeployment: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+      replicas: number
+    }) => ipcRenderer.invoke("k8s:deployment:scale", args),
+    scaleStatefulSet: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+      replicas: number
+    }) => ipcRenderer.invoke("k8s:statefulset:scale", args),
+    scaleReplicaSet: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+      replicas: number
+    }) => ipcRenderer.invoke("k8s:replicaset:scale", args),
     getDeploymentHistory: (args: {
       contextName?: string
       namespace: string

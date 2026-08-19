@@ -4,6 +4,8 @@ import {
   listCronJobs,
   listJobs,
   restartJob,
+  setCronJobSuspend,
+  setJobSuspend,
   triggerCronJob,
 } from "../k8s-handlers"
 import { GetContextClients } from "./context-clients"
@@ -32,6 +34,42 @@ export function registerBatchHandlers(
         getContextClients(args.contextName).batchV1,
         args.namespace,
         args.name,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:job:suspend",
+    (
+      _e,
+      args: {
+        contextName?: string
+        namespace: string
+        name: string
+        suspend: boolean
+      },
+    ) =>
+      setJobSuspend(
+        getContextClients(args.contextName).batchV1,
+        args.namespace,
+        args.name,
+        args.suspend,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:cronjob:suspend",
+    (
+      _e,
+      args: {
+        contextName?: string
+        namespace: string
+        name: string
+        suspend: boolean
+      },
+    ) =>
+      setCronJobSuspend(
+        getContextClients(args.contextName).batchV1,
+        args.namespace,
+        args.name,
+        args.suspend,
       ),
   )
   ipcMain.handle(

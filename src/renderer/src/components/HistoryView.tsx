@@ -30,6 +30,21 @@ const ACTION_BADGE: Record<
     className:
       "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300",
   },
+  scale: {
+    label: "scale",
+    className:
+      "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300",
+  },
+  suspend: {
+    label: "suspend",
+    className:
+      "bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300",
+  },
+  resume: {
+    label: "resume",
+    className:
+      "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300",
+  },
   cordon: {
     label: "cordon",
     className:

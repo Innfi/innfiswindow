@@ -22,6 +22,7 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
+import { SuspendButton } from "../../components/ui/SuspendButton"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
@@ -45,6 +46,12 @@ function DetailPanel({
   const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
+  // A Job that has already finished ignores spec.suspend, so the button that
+  // sets it is hidden rather than shown as a no-op.
+  const finished = job.conditions.some(
+    (c) =>
+      (c.type === "Complete" || c.type === "Failed") && c.status === "True",
+  )
   const [restartOpen, setRestartOpen] = useState(false)
   const [restarting, setRestarting] = useState(false)
 
@@ -125,6 +132,16 @@ function DetailPanel({
                   },
                 })}
               />
+              {!finished && (
+                <SuspendButton
+                  resourceKind="Job"
+                  resourceName={job.name}
+                  namespace={job.namespace}
+                  suspended={job.suspend}
+                  onChanged={onReloaded}
+                  onDialogChange={onDeleteDialogChange}
+                />
+              )}
               <Button
                 size="sm"
                 variant="outline"
@@ -173,6 +190,7 @@ function DetailPanel({
         {job.backoffLimit !== null && (
           <MetaEntry label="Backoff Limit" value={String(job.backoffLimit)} />
         )}
+        <MetaEntry label="Suspended" value={job.suspend ? "Yes" : "No"} />
         <MetaEntry
           label="Created"
           value={new Date(job.creationTimestamp).toLocaleString()}
@@ -339,6 +357,7 @@ export function JobsView(): JSX.Element {
         { head: "Active", cell: (job) => job.active },
         { head: "Failed", cell: (job) => job.failed },
         { head: "Duration", cell: (job) => job.duration || "-" },
+        { head: "Suspended", cell: (job) => (job.suspend ? "Yes" : "No") },
         ageColumn<K8sJob>(),
       ]}
       renderDetail={(job, ctl: DetailController) => (

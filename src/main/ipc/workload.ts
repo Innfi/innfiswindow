@@ -25,6 +25,9 @@ import {
   restartDeployment,
   restartStatefulSet,
   rollbackDeployment,
+  scaleDeployment,
+  scaleReplicaSet,
+  scaleStatefulSet,
 } from "../k8s-handlers"
 import { GetContextClients } from "./context-clients"
 
@@ -156,6 +159,24 @@ export function registerWorkloadHandlers(
       ),
   )
   ipcMain.handle(
+    "k8s:deployment:scale",
+    (
+      _e,
+      args: {
+        contextName?: string
+        namespace: string
+        name: string
+        replicas: number
+      },
+    ) =>
+      scaleDeployment(
+        getContextClients(args.contextName).appsV1,
+        args.namespace,
+        args.name,
+        args.replicas,
+      ),
+  )
+  ipcMain.handle(
     "k8s:deployment:history",
     (
       _e,
@@ -223,6 +244,43 @@ export function registerWorkloadHandlers(
         getContextClients(args.contextName).appsV1,
         args.namespace,
         args.name,
+      ),
+  )
+
+  ipcMain.handle(
+    "k8s:statefulset:scale",
+    (
+      _e,
+      args: {
+        contextName?: string
+        namespace: string
+        name: string
+        replicas: number
+      },
+    ) =>
+      scaleStatefulSet(
+        getContextClients(args.contextName).appsV1,
+        args.namespace,
+        args.name,
+        args.replicas,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:replicaset:scale",
+    (
+      _e,
+      args: {
+        contextName?: string
+        namespace: string
+        name: string
+        replicas: number
+      },
+    ) =>
+      scaleReplicaSet(
+        getContextClients(args.contextName).appsV1,
+        args.namespace,
+        args.name,
+        args.replicas,
       ),
   )
 

@@ -22,6 +22,7 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
+import { SuspendButton } from "../../components/ui/SuspendButton"
 import { formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
@@ -124,6 +125,14 @@ function DetailPanel({
                     },
                   },
                 })}
+              />
+              <SuspendButton
+                resourceKind="CronJob"
+                resourceName={cronJob.name}
+                namespace={cronJob.namespace}
+                suspended={cronJob.suspend}
+                onChanged={onReloaded}
+                onDialogChange={onDeleteDialogChange}
               />
               <Button
                 size="sm"

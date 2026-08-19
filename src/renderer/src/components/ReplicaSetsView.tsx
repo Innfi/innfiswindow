@@ -11,6 +11,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ScaleButton } from "../../components/ui/ScaleButton"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sReplicaSet, K8sReplicaSetSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
@@ -19,11 +20,13 @@ import { ResourceEventsSection } from "./ResourceEventsSection"
 function DetailPanel({
   rs,
   onClose,
+  onReloaded,
   onDeleted,
   onDeleteDialogChange,
 }: {
   rs: K8sReplicaSet
   onClose: () => void
+  onReloaded: () => void
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
@@ -83,6 +86,14 @@ function DetailPanel({
                     },
                   },
                 })}
+              />
+              <ScaleButton
+                resourceKind="ReplicaSet"
+                resourceName={rs.name}
+                namespace={rs.namespace}
+                currentReplicas={rs.desiredReplicas}
+                onScaled={onReloaded}
+                onDialogChange={onDeleteDialogChange}
               />
               <DeleteButton
                 resourceKind="ReplicaSet"
@@ -266,6 +277,7 @@ export function ReplicaSetsView(): JSX.Element {
         <DetailPanel
           rs={rs}
           onClose={ctl.onClose}
+          onReloaded={ctl.onDeleted}
           onDeleted={ctl.onDeleted}
           onDeleteDialogChange={ctl.onDeleteDialogChange}
         />

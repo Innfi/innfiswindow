@@ -1,6 +1,19 @@
-import { BatchV1Api, V1Job, V1JobSpec } from "@kubernetes/client-node"
+import {
+  BatchV1Api,
+  PatchStrategy,
+  setHeaderOptions,
+  V1Job,
+  V1JobSpec,
+} from "@kubernetes/client-node"
 
 import { CronJobInfo, JobInfo, MutationResult } from "./types"
+
+// The generated client defaults patch requests to JSON Patch, which rejects the
+// object-shaped suspend bodies below.
+const MERGE_PATCH = setHeaderOptions(
+  "Content-Type",
+  PatchStrategy.StrategicMergePatch,
+)
 
 // Labels the Job controller injects; must be stripped before recreating a Job
 // so the new object generates its own selector.
@@ -72,6 +85,7 @@ export async function listJobs(
       completions: job.spec?.completions ?? null,
       parallelism: job.spec?.parallelism ?? null,
       backoffLimit: job.spec?.backoffLimit ?? null,
+      suspend: job.spec?.suspend ?? false,
       succeeded: job.status?.succeeded ?? 0,
       failed: job.status?.failed ?? 0,
       active: job.status?.active ?? 0,
@@ -207,4 +221,34 @@ export async function triggerCronJob(
   }
   await api.createNamespacedJob({ namespace, body })
   return { success: true, name: jobName, namespace }
+}
+
+/** Suspending a running Job deletes its active pods; resuming starts fresh
+ *  ones. Completed Jobs ignore the flag, so the UI hides it for them. */
+export async function setJobSuspend(
+  api: BatchV1Api,
+  namespace: string,
+  name: string,
+  suspend: boolean,
+): Promise<MutationResult> {
+  await api.patchNamespacedJob(
+    { name, namespace, body: { spec: { suspend } } },
+    MERGE_PATCH,
+  )
+  return { success: true, name, namespace }
+}
+
+/** A suspended CronJob schedules nothing new; Jobs already running keep going.
+ *  Missed schedules are not backfilled on resume. */
+export async function setCronJobSuspend(
+  api: BatchV1Api,
+  namespace: string,
+  name: string,
+  suspend: boolean,
+): Promise<MutationResult> {
+  await api.patchNamespacedCronJob(
+    { name, namespace, body: { spec: { suspend } } },
+    MERGE_PATCH,
+  )
+  return { success: true, name, namespace }
 }

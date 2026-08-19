@@ -21,6 +21,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ScaleButton } from "../../components/ui/ScaleButton"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
@@ -39,11 +40,13 @@ type DeploymentRevision = {
 function DetailPanel({
   deployment,
   onClose,
+  onReloaded,
   onDeleted,
   onDeleteDialogChange,
 }: {
   deployment: K8sDeployment
   onClose: () => void
+  onReloaded: () => void
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
@@ -196,6 +199,14 @@ function DetailPanel({
                     },
                   },
                 })}
+              />
+              <ScaleButton
+                resourceKind="Deployment"
+                resourceName={deployment.name}
+                namespace={deployment.namespace}
+                currentReplicas={deployment.replicas}
+                onScaled={onReloaded}
+                onDialogChange={onDeleteDialogChange}
               />
               <Button
                 size="sm"
@@ -537,6 +548,7 @@ export function DeploymentsView(): JSX.Element {
         <DetailPanel
           deployment={deployment}
           onClose={ctl.onClose}
+          onReloaded={ctl.onDeleted}
           onDeleted={ctl.onDeleted}
           onDeleteDialogChange={ctl.onDeleteDialogChange}
         />

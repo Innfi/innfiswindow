@@ -21,6 +21,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ScaleButton } from "../../components/ui/ScaleButton"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
@@ -31,11 +32,13 @@ import { ResourceEventsSection } from "./ResourceEventsSection"
 function DetailPanel({
   ss,
   onClose,
+  onReloaded,
   onDeleted,
   onDeleteDialogChange,
 }: {
   ss: K8sStatefulSet
   onClose: () => void
+  onReloaded: () => void
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
@@ -128,6 +131,14 @@ function DetailPanel({
                     },
                   },
                 })}
+              />
+              <ScaleButton
+                resourceKind="StatefulSet"
+                resourceName={ss.name}
+                namespace={ss.namespace}
+                currentReplicas={ss.replicas}
+                onScaled={onReloaded}
+                onDialogChange={onDeleteDialogChange}
               />
               <Button
                 size="sm"
@@ -343,6 +354,7 @@ export function StatefulSetsView(): JSX.Element {
         <DetailPanel
           ss={ss}
           onClose={ctl.onClose}
+          onReloaded={ctl.onDeleted}
           onDeleted={ctl.onDeleted}
           onDeleteDialogChange={ctl.onDeleteDialogChange}
         />

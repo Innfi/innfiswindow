@@ -2,6 +2,8 @@ import { load as yamlLoad } from "js-yaml"
 import {
   AppsV1Api,
   CoreV1Api,
+  PatchStrategy,
+  setHeaderOptions,
   V1Container,
   V1DaemonSet,
   V1Deployment,
@@ -34,6 +36,13 @@ import {
   StatefulSetSummary,
   VolumeInfo,
 } from "./types"
+
+/** The generated client defaults patch requests to JSON Patch, which rejects
+ *  the object-shaped bodies used here; every patch below is a merge. */
+const MERGE_PATCH = setHeaderOptions(
+  "Content-Type",
+  PatchStrategy.StrategicMergePatch,
+)
 
 function formatProbe(probe: V1Probe | null | undefined): ProbeInfo | null {
   if (!probe) return null
@@ -922,7 +931,10 @@ export async function rollbackDeployment(
       template: podTemplateSpec,
     },
   }
-  await api.patchNamespacedDeployment({ name: deploymentName, namespace, body })
+  await api.patchNamespacedDeployment(
+    { name: deploymentName, namespace, body },
+    MERGE_PATCH,
+  )
   return { success: true }
 }
 
@@ -947,11 +959,10 @@ export async function restartDeployment(
   namespace: string,
   name: string,
 ): Promise<MutationResult> {
-  await api.patchNamespacedDeployment({
-    name,
-    namespace,
-    body: restartPatchBody(),
-  })
+  await api.patchNamespacedDeployment(
+    { name, namespace, body: restartPatchBody() },
+    MERGE_PATCH,
+  )
   return { success: true, name, namespace }
 }
 
@@ -960,11 +971,10 @@ export async function restartStatefulSet(
   namespace: string,
   name: string,
 ): Promise<MutationResult> {
-  await api.patchNamespacedStatefulSet({
-    name,
-    namespace,
-    body: restartPatchBody(),
-  })
+  await api.patchNamespacedStatefulSet(
+    { name, namespace, body: restartPatchBody() },
+    MERGE_PATCH,
+  )
   return { success: true, name, namespace }
 }
 
@@ -973,10 +983,60 @@ export async function restartDaemonSet(
   namespace: string,
   name: string,
 ): Promise<MutationResult> {
-  await api.patchNamespacedDaemonSet({
-    name,
-    namespace,
-    body: restartPatchBody(),
-  })
+  await api.patchNamespacedDaemonSet(
+    { name, namespace, body: restartPatchBody() },
+    MERGE_PATCH,
+  )
+  return { success: true, name, namespace }
+}
+
+function scaleBody(replicas: number): object {
+  if (!Number.isInteger(replicas) || replicas < 0) {
+    throw new Error(
+      `Replica count must be a non-negative integer, got ${replicas}`,
+    )
+  }
+  return { spec: { replicas } }
+}
+
+/** Patches the `scale` subresource, exactly as `kubectl scale` does, so the
+ *  request is rejected when the workload is HPA-managed rather than fighting
+ *  the autoscaler through a full-object update. */
+export async function scaleDeployment(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+  replicas: number,
+): Promise<MutationResult> {
+  await api.patchNamespacedDeploymentScale(
+    { name, namespace, body: scaleBody(replicas) },
+    MERGE_PATCH,
+  )
+  return { success: true, name, namespace }
+}
+
+export async function scaleStatefulSet(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+  replicas: number,
+): Promise<MutationResult> {
+  await api.patchNamespacedStatefulSetScale(
+    { name, namespace, body: scaleBody(replicas) },
+    MERGE_PATCH,
+  )
+  return { success: true, name, namespace }
+}
+
+export async function scaleReplicaSet(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+  replicas: number,
+): Promise<MutationResult> {
+  await api.patchNamespacedReplicaSetScale(
+    { name, namespace, body: scaleBody(replicas) },
+    MERGE_PATCH,
+  )
   return { success: true, name, namespace }
 }
