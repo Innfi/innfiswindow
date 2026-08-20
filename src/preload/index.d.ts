@@ -1242,6 +1242,15 @@ export interface HelmAPI {
   }) => Promise<{ success: boolean; error?: string }>
 }
 
+/** Options for a pod log read. `null` tailLines/sinceSeconds mean "no limit". */
+export interface PodLogOptions {
+  follow?: boolean
+  previous?: boolean
+  timestamps?: boolean
+  tailLines?: number | null
+  sinceSeconds?: number | null
+}
+
 export interface API {
   k8s: K8sAPI
   checkAwsCredentials: () => Promise<AwsCredentialResult>
@@ -1250,6 +1259,7 @@ export interface API {
     podName: string,
     containerName?: string,
     tabKey?: string,
+    options?: PodLogOptions,
   ) => Promise<{ success: boolean }>
   stopPodLog: (
     namespace: string,
@@ -1259,6 +1269,8 @@ export interface API {
   onPodLogData: (
     callback: (data: { tabKey: string; line: string }) => void,
   ) => () => void
+  /** Fires when a non-following read runs out of log; never for an aborted one. */
+  onPodLogEnd: (callback: (data: { tabKey: string }) => void) => () => void
   getPrometheusConfig: () => Promise<{
     namespace: string
     service: string

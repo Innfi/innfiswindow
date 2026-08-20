@@ -1,9 +1,34 @@
 import { Layers, RefreshCw, Square } from "lucide-react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { useAppStore } from "@store/app.store"
 import { useVirtualizer } from "@tanstack/react-virtual"
 
 import { Button } from "../../components/ui/Button"
+import { normalizeIpcError } from "../../lib/ipc-error"
+
+/** Read-option choices, kept short: these are the ones worth a click. */
+const TAIL_CHOICES: { label: string; value: number | null }[] = [
+  { label: "50", value: 50 },
+  { label: "200", value: 200 },
+  { label: "1000", value: 1000 },
+  { label: "All", value: null },
+]
+
+const SINCE_CHOICES: { label: string; value: number | null }[] = [
+  { label: "Any age", value: null },
+  { label: "5m", value: 300 },
+  { label: "15m", value: 900 },
+  { label: "1h", value: 3600 },
+  { label: "6h", value: 21600 },
+  { label: "24h", value: 86400 },
+]
 
 const MAX_LOG_LINES = 5000
 const SENTINEL_TEXT = `--- [older lines removed, showing last ${MAX_LOG_LINES}] ---`
@@ -32,6 +57,72 @@ function appendCapped<T>(prev: T[], incoming: T[], sentinel: T): T[] {
   return next
 }
 
+/** The API server answers `previous` on a container that never restarted with
+ *  a bare 400, which reads as a mystery unless the reason is spelled out. */
+function describeLogError(err: unknown, previous: boolean): string {
+  const message = normalizeIpcError(err)
+  return previous
+    ? `${message} — a container with no earlier instance has no previous log.`
+    : message
+}
+
+function OptionChip({
+  active,
+  onClick,
+  title,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  title: string
+  children: ReactNode
+}): JSX.Element {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`text-xs px-1.5 py-0.5 rounded border whitespace-nowrap ${
+        active
+          ? "bg-zinc-600 border-zinc-400 text-zinc-100"
+          : "bg-zinc-800 border-zinc-700 text-zinc-400"
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function OptionSelect({
+  label,
+  value,
+  choices,
+  onChange,
+}: {
+  label: string
+  value: number | null
+  choices: { label: string; value: number | null }[]
+  onChange: (value: number | null) => void
+}): JSX.Element {
+  return (
+    <label className="flex items-center gap-1 text-xs text-zinc-500">
+      {label}
+      <select
+        value={value === null ? "all" : String(value)}
+        onChange={(e) =>
+          onChange(e.target.value === "all" ? null : Number(e.target.value))
+        }
+        className="text-xs bg-zinc-800 text-zinc-200 border border-zinc-700 rounded px-1 py-0.5 focus:outline-none"
+      >
+        {choices.map((c) => (
+          <option key={c.label} value={c.value === null ? "all" : c.value}>
+            {c.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
 interface PodLogPanelProps {
   tabKey: string
   namespace: string
@@ -58,13 +149,28 @@ export function PodLogPanel({
   const [mergeMode, setMergeMode] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [regexMode, setRegexMode] = useState(false)
+  const [tailLines, setTailLines] = useState<number | null>(200)
+  const [sinceSeconds, setSinceSeconds] = useState<number | null>(null)
+  const [previous, setPrevious] = useState(false)
+  const [timestamps, setTimestamps] = useState(false)
+  const [streamError, setStreamError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const stickToBottomRef = useRef(true)
   // sessionId → containerName for active merge streams
   const mergeSessionMapRef = useRef<Map<string, string>>(new Map())
   const mergeSessionIdsRef = useRef<string[]>([])
   const prevContainerRef = useRef(containers[0]?.name ?? "")
+  // Sessions the main process has reported as finished, so merge mode knows
+  // when the last of its streams is done rather than only the first.
+  const endedSessionsRef = useRef<Set<string>>(new Set())
   const searchActive = searchTerm.length > 0
+
+  // One object so the stream effects can depend on the whole read spec: any
+  // change to it has to restart the request, there is no way to amend one.
+  const logOptions = useMemo(
+    () => ({ tailLines, sinceSeconds, previous, timestamps }),
+    [tailLines, sinceSeconds, previous, timestamps],
+  )
 
   // Log lines arrive one IPC event at a time. Buffer them and flush once per
   // frame so a chatty pod costs ~60 renders/sec instead of one render per line.
@@ -105,12 +211,14 @@ export function PodLogPanel({
   function startSingleStream(containerName: string): void {
     cancelFlush()
     setLines([])
+    setStreamError(null)
     setStreaming(true)
     stickToBottomRef.current = true
+    endedSessionsRef.current = new Set()
     window.api
-      .startPodLog(namespace, podName, containerName, tabKey)
+      .startPodLog(namespace, podName, containerName, tabKey, logOptions)
       .catch((err) => {
-        console.error("startPodLog error:", err)
+        setStreamError(describeLogError(err, previous))
         setStreaming(false)
       })
   }
@@ -123,7 +231,9 @@ export function PodLogPanel({
   function startMergeStreams(): void {
     cancelFlush()
     setMergedLines([])
+    setStreamError(null)
     stickToBottomRef.current = true
+    endedSessionsRef.current = new Set()
     const ts = Date.now()
     const sessionMap = new Map<string, string>()
     const sessionIds: string[] = []
@@ -132,8 +242,8 @@ export function PodLogPanel({
       sessionIds.push(sid)
       sessionMap.set(sid, c.name)
       window.api
-        .startPodLog(namespace, podName, c.name, sid)
-        .catch(console.error)
+        .startPodLog(namespace, podName, c.name, sid, logOptions)
+        .catch((err) => setStreamError(describeLogError(err, previous)))
     }
     mergeSessionMapRef.current = sessionMap
     mergeSessionIdsRef.current = sessionIds
@@ -183,6 +293,26 @@ export function PodLogPanel({
     return unsub
   }, [tabKey, scheduleFlush])
 
+  // A stream that ends on its own (a non-following read, or a server that hung
+  // up) leaves the panel showing a Stop button for a request that is gone.
+  useEffect(() => {
+    return window.api.onPodLogEnd(({ tabKey: endedKey }) => {
+      if (endedKey === tabKey) {
+        setStreaming(false)
+        return
+      }
+      if (!mergeSessionMapRef.current.has(endedKey)) return
+      endedSessionsRef.current.add(endedKey)
+      const all = mergeSessionIdsRef.current
+      if (
+        all.length > 0 &&
+        all.every((id) => endedSessionsRef.current.has(id))
+      ) {
+        setStreaming(false)
+      }
+    })
+  }, [tabKey])
+
   // Reset when pod changes
   useEffect(() => {
     const first = containers[0]?.name ?? ""
@@ -204,7 +334,14 @@ export function PodLogPanel({
     return () => {
       window.api.stopPodLogSession(tabKey).catch(console.error)
     }
-  }, [namespace, podName, selectedContainer, mergeMode, sessionEnded])
+  }, [
+    namespace,
+    podName,
+    selectedContainer,
+    mergeMode,
+    sessionEnded,
+    logOptions,
+  ])
 
   // Merge mode stream lifecycle
   useEffect(() => {
@@ -214,7 +351,7 @@ export function PodLogPanel({
     return () => {
       stopMergeStreams()
     }
-  }, [mergeMode, namespace, podName, sessionEnded])
+  }, [mergeMode, namespace, podName, sessionEnded, logOptions])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -428,6 +565,11 @@ export function PodLogPanel({
           {mergeMode && (
             <span className="text-xs text-zinc-400 italic">merged</span>
           )}
+          {previous && (
+            <span className="text-xs text-amber-400 italic">
+              previous instance
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1">
           {containers.length > 1 && (
@@ -460,8 +602,8 @@ export function PodLogPanel({
         </div>
       </div>
 
-      {/* Search bar */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-zinc-800 shrink-0">
+      {/* Search bar and read options */}
+      <div className="flex items-center gap-2 flex-wrap px-3 py-1.5 border-b border-zinc-800 shrink-0">
         <input
           type="text"
           value={searchTerm}
@@ -485,7 +627,39 @@ export function PodLogPanel({
             {displayCount} line{displayCount !== 1 ? "s" : ""} match
           </span>
         )}
+        <OptionSelect
+          label="Tail"
+          value={tailLines}
+          choices={TAIL_CHOICES}
+          onChange={setTailLines}
+        />
+        <OptionSelect
+          label="Since"
+          value={sinceSeconds}
+          choices={SINCE_CHOICES}
+          onChange={setSinceSeconds}
+        />
+        <OptionChip
+          active={previous}
+          onClick={() => setPrevious((v) => !v)}
+          title="Read the log of the container's previous instance — what it printed before it last restarted"
+        >
+          Previous
+        </OptionChip>
+        <OptionChip
+          active={timestamps}
+          onClick={() => setTimestamps((v) => !v)}
+          title="Prefix each line with the time the container printed it"
+        >
+          Timestamps
+        </OptionChip>
       </div>
+
+      {streamError && (
+        <div className="px-3 py-1.5 border-b border-zinc-800 shrink-0 text-xs text-red-400">
+          {streamError}
+        </div>
+      )}
 
       {/* Log output */}
       <div

@@ -1,8 +1,67 @@
-import { BrowserWindow, IpcMain } from "electron"
+import type { BrowserWindow, IpcMain } from "electron"
 import { PassThrough } from "stream"
 import { Exec, KubeConfig, Log } from "@kubernetes/client-node"
 
 type ExecWebSocket = { terminate(): void }
+
+/**
+ * The subset of the pod log API the panel drives. `null` for `tailLines` or
+ * `sinceSeconds` means "no limit": the query parameter is left off, which is
+ * how the API server spells "all of it".
+ */
+export interface PodLogOptions {
+  follow?: boolean
+  previous?: boolean
+  timestamps?: boolean
+  tailLines?: number | null
+  sinceSeconds?: number | null
+}
+
+/** The query options one read sends. Written out rather than inlined at the
+ *  call so the mapping — in particular "no limit means omit the parameter" —
+ *  can be checked without a cluster. */
+export function toLogQueryOptions(options: PodLogOptions | undefined): {
+  follow: boolean
+  previous: boolean
+  timestamps: boolean
+  tailLines?: number
+  sinceSeconds?: number
+} {
+  const opts = options ?? {}
+  return {
+    // A terminated container's log is a finished blob: the server writes it and
+    // closes, so following it only holds a dead request open.
+    follow: opts.previous ? false : (opts.follow ?? true),
+    previous: opts.previous ?? false,
+    timestamps: opts.timestamps ?? false,
+    ...(opts.tailLines != null ? { tailLines: opts.tailLines } : {}),
+    ...(opts.sinceSeconds != null ? { sinceSeconds: opts.sinceSeconds } : {}),
+  }
+}
+
+/** Chunk boundaries land mid-line, so the trailing fragment is held back until
+ *  its newline arrives rather than emitted as if it were a whole line. */
+export function createLineSplitter(emit: (line: string) => void): {
+  push: (text: string) => void
+  flush: () => void
+} {
+  let carry = ""
+  return {
+    push: (text: string): void => {
+      const parts = (carry + text).split("\n")
+      carry = parts.pop() ?? ""
+      for (const line of parts) {
+        if (line) emit(line)
+      }
+    },
+    flush: (): void => {
+      if (carry) {
+        emit(carry)
+        carry = ""
+      }
+    },
+  }
+}
 
 export function registerPodStreamHandlers(
   ipcMain: IpcMain,
@@ -24,11 +83,13 @@ export function registerPodStreamHandlers(
         podName,
         containerName,
         tabKey,
+        options,
       }: {
         namespace: string
         podName: string
         containerName?: string
         tabKey?: string
+        options?: PodLogOptions
       },
     ) => {
       const defaultKey = `${namespace}/${podName}`
@@ -42,17 +103,24 @@ export function registerPodStreamHandlers(
       const logStream = new PassThrough()
       const emitKey = storageKey
 
-      logStream.on("data", (chunk: Buffer) => {
-        const text = chunk.toString()
-        const lines = text.split("\n")
-        for (const line of lines) {
-          if (line) {
-            getMainWindow()?.webContents.send("k8s:pod:log:data", {
-              tabKey: emitKey,
-              line,
-            })
-          }
-        }
+      const emit = (line: string): void => {
+        getMainWindow()?.webContents.send("k8s:pod:log:data", {
+          tabKey: emitKey,
+          line,
+        })
+      }
+
+      const splitter = createLineSplitter(emit)
+      logStream.on("data", (chunk: Buffer) => splitter.push(chunk.toString()))
+
+      // Reached only when the stream was not aborted, i.e. a non-following read
+      // ran out of log. The panel uses it to drop out of its streaming state.
+      logStream.on("end", () => {
+        splitter.flush()
+        activeLogRequests.delete(storageKey)
+        getMainWindow()?.webContents.send("k8s:pod:log:end", {
+          tabKey: emitKey,
+        })
       })
 
       const req = await log.log(
@@ -63,7 +131,7 @@ export function registerPodStreamHandlers(
         (err) => {
           if (err) console.error("Log stream ended:", err)
         },
-        { follow: true, tailLines: 200 },
+        toLogQueryOptions(options),
       )
 
       activeLogRequests.set(storageKey, { abort: () => req.abort() })

@@ -1,6 +1,15 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron"
 import { electronAPI } from "@electron-toolkit/preload"
 
+/** Mirrors PodLogOptions in src/main/ipc/pod-streams.ts. */
+interface PodLogOptions {
+  follow?: boolean
+  previous?: boolean
+  timestamps?: boolean
+  tailLines?: number | null
+  sinceSeconds?: number | null
+}
+
 // Custom APIs for renderer
 const api = {
   k8s: {
@@ -377,12 +386,14 @@ const api = {
     podName: string,
     containerName?: string,
     tabKey?: string,
+    options?: PodLogOptions,
   ) =>
     ipcRenderer.invoke("k8s:pod:log:start", {
       namespace,
       podName,
       containerName,
       tabKey,
+      options,
     }),
   stopPodLog: (namespace: string, podName: string) =>
     ipcRenderer.invoke("k8s:pod:log:stop", { namespace, podName }),
@@ -397,6 +408,12 @@ const api = {
     ) => callback(data)
     ipcRenderer.on("k8s:pod:log:data", handler)
     return () => ipcRenderer.removeListener("k8s:pod:log:data", handler)
+  },
+  onPodLogEnd: (callback: (data: { tabKey: string }) => void) => {
+    const handler = (_e: IpcRendererEvent, data: { tabKey: string }) =>
+      callback(data)
+    ipcRenderer.on("k8s:pod:log:end", handler)
+    return () => ipcRenderer.removeListener("k8s:pod:log:end", handler)
   },
   getPrometheusConfig: () => ipcRenderer.invoke("prometheus:config:get"),
   setPrometheusConfig: (config: {
