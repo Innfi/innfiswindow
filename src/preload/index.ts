@@ -359,7 +359,10 @@ const api = {
       name: string
       namespace?: string
       contextName?: string
-      propagationPolicy?: string
+      options?: {
+        propagationPolicy?: "Background" | "Foreground" | "Orphan"
+        gracePeriodSeconds?: number
+      }
     }) => ipcRenderer.invoke("k8s:resource:delete", args),
     replaceResource: (yaml: string) =>
       ipcRenderer.invoke("k8s:resource:replace", yaml),

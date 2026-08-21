@@ -1,5 +1,6 @@
 import { IpcMain } from "electron"
 
+import { DeleteResourceOptions } from "../handlers/types"
 import {
   applyResource,
   deleteResource,
@@ -37,7 +38,7 @@ export function registerApplyHandlers(
         name: string
         namespace?: string
         contextName?: string
-        propagationPolicy?: string
+        options?: DeleteResourceOptions
       },
     ) =>
       deleteResource(
@@ -46,7 +47,7 @@ export function registerApplyHandlers(
         args.kind,
         args.name,
         args.namespace,
-        args.propagationPolicy,
+        args.options,
       ),
   )
 }

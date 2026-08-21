@@ -5,7 +5,7 @@ import {
   PatchStrategy,
 } from "@kubernetes/client-node"
 
-import { ApplyResult, DryRunResult } from "./types"
+import { ApplyResult, DeleteResourceOptions, DryRunResult } from "./types"
 
 const SERVER_METADATA_FIELDS = [
   "managedFields",
@@ -117,8 +117,10 @@ export async function deleteResource(
   kind: string,
   name: string,
   namespace?: string,
-  propagationPolicy?: string,
+  options?: DeleteResourceOptions,
 ): Promise<{ name: string; namespace: string }> {
+  const { gracePeriodSeconds, propagationPolicy } =
+    normalizeDeleteOptions(options)
   const client = KubernetesObjectApi.makeApiClient(kc)
   await client.delete(
     {
@@ -128,11 +130,36 @@ export async function deleteResource(
     },
     undefined,
     undefined,
-    undefined,
+    gracePeriodSeconds,
     undefined,
     propagationPolicy,
   )
   return { name, namespace: namespace ?? "" }
+}
+
+const PROPAGATION_POLICIES: ReadonlySet<string> = new Set([
+  "Background",
+  "Foreground",
+  "Orphan",
+])
+
+/** Drops anything the API server would reject outright — a negative or
+ *  fractional grace period, a policy name that isn't one of the three — so a
+ *  bad value falls back to the server default instead of failing the delete.
+ *  `gracePeriodSeconds: 0` is kept: that is a force delete, not "unset". */
+export function normalizeDeleteOptions(
+  options: DeleteResourceOptions | undefined,
+): { gracePeriodSeconds?: number; propagationPolicy?: string } {
+  const grace = options?.gracePeriodSeconds
+  const policy = options?.propagationPolicy
+  return {
+    ...(typeof grace === "number" && Number.isInteger(grace) && grace >= 0
+      ? { gracePeriodSeconds: grace }
+      : {}),
+    ...(policy && PROPAGATION_POLICIES.has(policy)
+      ? { propagationPolicy: policy }
+      : {}),
+  }
 }
 
 /** A create against an object that already exists comes back 409, which is how

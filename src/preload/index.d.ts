@@ -142,6 +142,16 @@ export interface DryRunResult {
   rendered: string
 }
 
+/** Mirrors `V1DeleteOptions`' cascade and grace-period knobs — `kubectl
+ *  delete --cascade/--grace-period/--force`. */
+export interface DeleteResourceOptions {
+  propagationPolicy?: PropagationPolicy
+  /** `0` is a force delete; omit for the object's own grace period. */
+  gracePeriodSeconds?: number
+}
+
+export type PropagationPolicy = "Background" | "Foreground" | "Orphan"
+
 export interface DrainOptions {
   force?: boolean
   gracePeriodSeconds?: number
@@ -1057,7 +1067,7 @@ export interface K8sAPI {
     name: string
     namespace?: string
     contextName?: string
-    propagationPolicy?: string
+    options?: DeleteResourceOptions
   }) => Promise<{ name: string; namespace: string }>
   replaceResource: (
     yaml: string,

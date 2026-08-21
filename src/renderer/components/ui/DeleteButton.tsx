@@ -2,6 +2,10 @@ import { Trash2 } from "lucide-react"
 import { ReactNode, useState } from "react"
 import { toast } from "sonner"
 
+import type {
+  DeleteResourceOptions,
+  PropagationPolicy,
+} from "../../../shared/k8s"
 import { resourceGvk } from "../../lib/resource-gvk"
 import { useRecordHistory } from "../../src/hooks/useRecordHistory"
 import { DrawerTabInput, useAppStore } from "../../store/app.store"
@@ -14,11 +18,35 @@ import {
   AlertDialogTitle,
 } from "./AlertDialog"
 import { Button } from "./Button"
+import { Input } from "./Input"
+import { Label } from "./Label"
 
 type DeletableKind = Extract<
   DrawerTabInput,
   { type: "yaml-edit" }
 >["resourceKind"]
+
+const PROPAGATION_CHOICES: {
+  value: PropagationPolicy
+  label: string
+  hint: string
+}[] = [
+  {
+    value: "Background",
+    label: "Background",
+    hint: "Returns straight away; the garbage collector deletes the dependents afterwards.",
+  },
+  {
+    value: "Foreground",
+    label: "Foreground",
+    hint: "Deletes the dependents first — the object stays, marked for deletion, until they are gone.",
+  },
+  {
+    value: "Orphan",
+    label: "Orphan",
+    hint: "Leaves the dependents running with no owner. A Deployment's ReplicaSets and Pods keep going.",
+  },
+]
 
 interface DeleteButtonProps {
   resourceKind: DeletableKind
@@ -33,15 +61,15 @@ interface DeleteButtonProps {
   onClose: () => void
   /** Extra warning shown in the confirm dialog (cascading deletes, etc.). */
   warning?: ReactNode
-  /** Passed through as DeleteOptions.propagationPolicy (e.g. "Background"). */
-  propagationPolicy?: string
+  /** Seeds the cascade choice; the dialog can still change it. */
+  propagationPolicy?: PropagationPolicy
   className?: string
 }
 
 /**
  * Deletes by GVK through the generic `k8s:resource:delete` handler, so every
- * detail panel gets the same confirm dialog, history record, and error path
- * without a per-kind IPC method.
+ * detail panel gets the same confirm dialog, delete options, history record,
+ * and error path without a per-kind IPC method.
  */
 export function DeleteButton({
   resourceKind,
@@ -51,7 +79,7 @@ export function DeleteButton({
   onDeleteDialogChange,
   onClose,
   warning,
-  propagationPolicy,
+  propagationPolicy = "Background",
   className,
 }: DeleteButtonProps): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
@@ -59,15 +87,46 @@ export function DeleteButton({
   const [open, setOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showOptions, setShowOptions] = useState(false)
+  const [policy, setPolicy] = useState<PropagationPolicy>(propagationPolicy)
+  // Blank grace period means "use the object's own terminationGracePeriod".
+  const [grace, setGrace] = useState("")
+  const [force, setForce] = useState(false)
   const { apiVersion, kind } = resourceGvk(resourceKind)
+
+  const graceSeconds = Number(grace)
+  const graceValid =
+    grace.trim() === "" || (Number.isInteger(graceSeconds) && graceSeconds >= 0)
 
   function setOpenNotify(next: boolean): void {
     setOpen(next)
     onDeleteDialogChange(next)
-    if (next) setError(null)
+    if (next) {
+      // Options are per-delete: a previous run's force flag must not carry
+      // over into the next object the panel shows.
+      setError(null)
+      setShowOptions(false)
+      setPolicy(propagationPolicy)
+      setGrace("")
+      setForce(false)
+    }
+  }
+
+  function deleteOptions(): DeleteResourceOptions {
+    return {
+      propagationPolicy: policy,
+      // Force is exactly `--grace-period=0`, so it wins over the input, which
+      // is disabled while it is checked.
+      ...(force
+        ? { gracePeriodSeconds: 0 }
+        : grace.trim() === ""
+          ? {}
+          : { gracePeriodSeconds: graceSeconds }),
+    }
   }
 
   async function handleDelete(): Promise<void> {
+    if (!graceValid) return
     const target = {
       action: "delete",
       resourceKind: kind,
@@ -83,7 +142,7 @@ export function DeleteButton({
         name: resourceName,
         namespace: namespace || undefined,
         contextName: selectedContext ?? undefined,
-        propagationPolicy,
+        options: deleteOptions(),
       })
       recordHistory(target, { success: true })
       toast.success(`${kind} ${resourceName} deleted`)
@@ -100,6 +159,15 @@ export function DeleteButton({
       setDeleting(false)
     }
   }
+
+  const policyHint = PROPAGATION_CHOICES.find((c) => c.value === policy)?.hint
+  const optionSummary = force
+    ? `${policy}, force`
+    : grace.trim() !== ""
+      ? `${policy}, ${grace.trim()}s`
+      : policy !== propagationPolicy
+        ? policy
+        : null
 
   return (
     <>
@@ -131,6 +199,92 @@ export function DeleteButton({
               {warning}
             </p>
           )}
+          <button
+            type="button"
+            className="w-fit text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setShowOptions((v) => !v)}
+          >
+            {showOptions ? "▾" : "▸"} Delete options
+            {!showOptions && optionSummary ? ` — ${optionSummary}` : ""}
+          </button>
+          {showOptions && (
+            <div className="space-y-3 text-sm">
+              <div className="space-y-1">
+                <Label htmlFor="delete-propagation" className="text-xs">
+                  Cascade
+                </Label>
+                <select
+                  id="delete-propagation"
+                  value={policy}
+                  onChange={(e) =>
+                    setPolicy(e.target.value as PropagationPolicy)
+                  }
+                  disabled={deleting}
+                  className="w-full rounded border px-2 py-1 text-sm bg-background text-foreground"
+                >
+                  {PROPAGATION_CHOICES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">{policyHint}</p>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="delete-grace-period" className="text-xs">
+                  Grace period (s)
+                </Label>
+                <Input
+                  id="delete-grace-period"
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="object default"
+                  value={force ? "0" : grace}
+                  onChange={(e) => setGrace(e.target.value)}
+                  disabled={deleting || force}
+                  className="h-8"
+                />
+                {!graceValid && (
+                  <p className="text-xs text-red-500">
+                    Grace period must be a whole number of seconds, zero or
+                    greater.
+                  </p>
+                )}
+              </div>
+
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 accent-primary"
+                  checked={force}
+                  onChange={(e) => setForce(e.target.checked)}
+                  disabled={deleting}
+                />
+                <span>
+                  Force (grace period 0)
+                  <span className="block text-xs text-muted-foreground">
+                    Drops the object from the API server without waiting for it
+                    to shut down.
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
+          {force && (
+            <p className="text-sm text-amber-600 dark:text-amber-400">
+              A force delete does not confirm the workload stopped — a Pod
+              removed this way can still be running on its node, so its
+              StatefulSet replacement may run twice.
+            </p>
+          )}
+          {policy === "Orphan" && (
+            <p className="text-sm text-amber-600 dark:text-amber-400">
+              Dependents are left behind with no owner and must be cleaned up by
+              hand.
+            </p>
+          )}
           {error && (
             <p className="text-sm text-red-500 font-mono whitespace-pre-wrap">
               {error}
@@ -147,7 +301,7 @@ export function DeleteButton({
             <Button
               variant="destructive"
               onClick={handleDelete}
-              disabled={deleting}
+              disabled={deleting || !graceValid}
             >
               {deleting ? "Deleting…" : "Delete"}
             </Button>

@@ -17,6 +17,7 @@ export type {
   CronJobInfo,
   DaemonSetInfo,
   DaemonSetSummary,
+  DeleteResourceOptions,
   DeploymentInfo,
   DeploymentRevision,
   DeploymentSummary,

@@ -22,6 +22,21 @@ export interface MutationResult {
   namespace?: string
 }
 
+/** How a delete cascades to dependents. `Background` is the API server's
+ *  default for most kinds and is what the detail panels use unless a view
+ *  overrides it. */
+export type PropagationPolicy = "Background" | "Foreground" | "Orphan"
+
+/** The subset of `V1DeleteOptions` the generic delete exposes — the same knobs
+ *  `kubectl delete` puts behind `--cascade`, `--grace-period` and `--force`. */
+export interface DeleteResourceOptions {
+  propagationPolicy?: PropagationPolicy
+  /** Seconds the object gets to shut down. `0` deletes immediately, which is
+   *  what `kubectl delete --force --grace-period=0` does. Omit to use the
+   *  object's own grace period. */
+  gracePeriodSeconds?: number
+}
+
 export interface ResourceRef {
   name: string
   namespace: string
