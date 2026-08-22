@@ -5,6 +5,7 @@ import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
+import { ExpandPVCButton } from "../../components/ui/ExpandPVCButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
@@ -25,6 +26,11 @@ function pvcStatusClass(status: string): string {
     return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
   return "bg-muted text-muted-foreground"
 }
+
+/** The conditions a resize reports while it is in flight. Anything else on a
+ *  PVC (a provisioning failure, say) is worth showing too, but these two are
+ *  the ones the Expand button's outcome shows up in. */
+const RESIZE_CONDITIONS = ["Resizing", "FileSystemResizePending"]
 
 function DetailPanel({
   pvc,
@@ -79,9 +85,19 @@ function DetailPanel({
                   spec: {
                     accessModes: pvc.accessModes,
                     storageClassName: pvc.storageClass,
-                    resources: { requests: { storage: pvc.capacity } },
+                    resources: { requests: { storage: pvc.requestedStorage } },
                   },
                 })}
+              />
+              <ExpandPVCButton
+                pvcName={pvc.name}
+                namespace={pvc.namespace}
+                requestedStorage={pvc.requestedStorage}
+                capacity={pvc.capacity}
+                storageClass={pvc.storageClass}
+                allowVolumeExpansion={pvc.allowVolumeExpansion}
+                onExpanded={onDeleted}
+                onDialogChange={onDeleteDialogChange}
               />
               <DeleteButton
                 resourceKind="PersistentVolumeClaim"
@@ -125,17 +141,42 @@ function DetailPanel({
         {pvc.volumeName && m(pvc.volumeName) && (
           <MetaEntry label="Volume" value={pvc.volumeName} />
         )}
+        {pvc.conditions
+          .filter(
+            (c) => c.status === "True" || RESIZE_CONDITIONS.includes(c.type),
+          )
+          .filter((c) => m(c.type) || m(c.reason) || m(c.message))
+          .map((c) => (
+            <MetaEntry
+              key={c.type}
+              label={c.type}
+              value={[c.status, c.reason, c.message]
+                .filter(Boolean)
+                .join(" — ")}
+            />
+          ))}
       </div>
 
       {/* Spec */}
       <div className="space-y-1">
         <SectionHeader title="Spec" />
+        <MetaEntry label="Requested" value={pvc.requestedStorage || "-"} />
         <MetaEntry label="Capacity" value={pvc.capacity || "-"} />
         <MetaEntry
           label="Access Modes"
           value={pvc.accessModes.join(", ") || "-"}
         />
         <MetaEntry label="Storage Class" value={pvc.storageClass || "-"} />
+        <MetaEntry
+          label="Expandable"
+          value={
+            pvc.allowVolumeExpansion === null
+              ? "unknown"
+              : pvc.allowVolumeExpansion
+                ? "yes"
+                : "no"
+          }
+        />
         {pvc.volumeMode && m(pvc.volumeMode) && (
           <MetaEntry label="Volume Mode" value={pvc.volumeMode} />
         )}
@@ -201,7 +242,15 @@ export function PVCsView(): JSX.Element {
           ),
         },
         { head: "Volume", cell: (pvc) => pvc.volumeName || "-" },
-        { head: "Capacity", cell: (pvc) => pvc.capacity || "-" },
+        {
+          // While a resize runs, status.capacity trails the request; showing
+          // both is the only place that shows up in the list.
+          head: "Capacity",
+          cell: (pvc) =>
+            pvc.requestedStorage && pvc.requestedStorage !== pvc.capacity
+              ? `${pvc.capacity || "-"} → ${pvc.requestedStorage}`
+              : pvc.capacity || "-",
+        },
         { head: "Access Modes", cell: (pvc) => pvc.accessModes.join(", ") },
         { head: "StorageClass", cell: (pvc) => pvc.storageClass || "-" },
         ageColumn<K8sPVC>(),

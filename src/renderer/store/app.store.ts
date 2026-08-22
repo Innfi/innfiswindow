@@ -50,6 +50,8 @@ export interface HistoryEntry {
     | "create"
     | "update"
     | "delete"
+    | "evict"
+    | "expand"
     | "apply"
     | "restart"
     | "scale"

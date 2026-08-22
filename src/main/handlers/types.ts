@@ -32,6 +32,7 @@ export type {
   EndpointSummary,
   EnvVar,
   EventInfo,
+  EvictPodOptions,
   HelmRelease,
   HelmRepo,
   HPAInfo,

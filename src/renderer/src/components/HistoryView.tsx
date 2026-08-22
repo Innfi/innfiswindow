@@ -20,6 +20,14 @@ const ACTION_BADGE: Record<
     label: "delete",
     className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
   },
+  evict: {
+    label: "evict",
+    className: "bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-300",
+  },
+  expand: {
+    label: "expand",
+    className: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300",
+  },
   apply: {
     label: "apply",
     className:

@@ -152,6 +152,12 @@ export interface DeleteResourceOptions {
 
 export type PropagationPolicy = "Background" | "Foreground" | "Orphan"
 
+/** Delete options the Eviction subresource accepts. */
+export interface EvictPodOptions {
+  gracePeriodSeconds?: number
+  dryRun?: boolean
+}
+
 export interface DrainOptions {
   force?: boolean
   gracePeriodSeconds?: number
@@ -584,15 +590,28 @@ export interface K8sPV {
   source: { type: string; detail: string }
 }
 
+export interface K8sPVCCondition {
+  type: string
+  status: string
+  reason: string
+  message: string
+}
+
 export interface K8sPVC {
   name: string
   namespace: string
   status: string
   volumeName: string
+  /** status.capacity — trails `requestedStorage` while an expansion runs. */
   capacity: string
+  /** spec.resources.requests.storage — the size asked for. */
+  requestedStorage: string
   accessModes: string[]
   storageClass: string
   volumeMode: string
+  /** allowVolumeExpansion of the claim's StorageClass; null when unresolved. */
+  allowVolumeExpansion: boolean | null
+  conditions: K8sPVCCondition[]
   creationTimestamp: string
   labels: Record<string, string>
   annotations: Record<string, string>
@@ -744,6 +763,12 @@ export interface K8sAPI {
     name: string
     options?: DrainOptions
   }) => Promise<DrainResult>
+  evictPod: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    options?: EvictPodOptions
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
   checkConnection: (args?: {
     contextName?: string
   }) => Promise<ConnectionStatus>
@@ -887,6 +912,12 @@ export interface K8sAPI {
     contextName?: string
     namespace?: string
   }) => Promise<K8sPVC[]>
+  expandPVC: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    storage: string
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
   listResourceQuotas: (args?: {
     contextName?: string
     namespace?: string

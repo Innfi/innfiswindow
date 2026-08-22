@@ -5,6 +5,7 @@ import {
   createDaemonSet,
   createDeployment,
   createStatefulSet,
+  evictPod,
   getDaemonSet,
   getDeployment,
   getPod,
@@ -67,6 +68,24 @@ export function registerWorkloadHandlers(
         getContextClients(args.contextName).customObjects,
         args.namespace,
         args.name,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:pod:evict",
+    (
+      _e,
+      args: {
+        contextName?: string
+        namespace: string
+        name: string
+        options?: { gracePeriodSeconds?: number; dryRun?: boolean }
+      },
+    ) =>
+      evictPod(
+        getContextClients(args.contextName).coreV1,
+        args.namespace,
+        args.name,
+        args.options,
       ),
   )
   ipcMain.handle(

@@ -24,6 +24,7 @@ import {
   DeploymentSummary,
   DetailedContainerInfo,
   EnvVar,
+  EvictPodOptions,
   MutationResult,
   PodContainerInfo,
   PodInfo,
@@ -1039,4 +1040,84 @@ export async function scaleReplicaSet(
     MERGE_PATCH,
   )
   return { success: true, name, namespace }
+}
+
+/** Evict a pod through the `policy/v1` Eviction subresource — what
+ *  `kubectl drain` issues per pod, and the only delete path that consults
+ *  PodDisruptionBudgets. A budget that would be violated comes back as HTTP
+ *  429 with a `DisruptionBudget` reason; that is a "try again later", not a
+ *  failure of the request, so it gets a message saying so rather than the raw
+ *  "Too Many Requests" the client reports. */
+export async function evictPod(
+  api: CoreV1Api,
+  namespace: string,
+  name: string,
+  options: EvictPodOptions = {},
+): Promise<MutationResult> {
+  const { gracePeriodSeconds, dryRun = false } = options
+  const deleteOptions = {
+    ...(gracePeriodSeconds !== undefined && { gracePeriodSeconds }),
+    ...(dryRun && { dryRun: ["All"] }),
+  }
+
+  try {
+    await api.createNamespacedPodEviction({
+      name,
+      namespace,
+      body: {
+        apiVersion: "policy/v1",
+        kind: "Eviction",
+        metadata: { name, namespace },
+        ...(Object.keys(deleteOptions).length > 0 && { deleteOptions }),
+      },
+    })
+  } catch (e: unknown) {
+    throw new Error(describeEvictionError(e, namespace, name))
+  }
+  return { success: true, name, namespace }
+}
+
+/** Turn an eviction rejection into something that names the actual blocker.
+ *  The API server puts the useful part in the Status body, which the generated
+ *  client leaves as an unparsed string on the error. */
+function describeEvictionError(
+  err: unknown,
+  namespace: string,
+  name: string,
+): string {
+  const e = err as {
+    code?: number
+    statusCode?: number
+    response?: { statusCode?: number }
+    body?: unknown
+    message?: string
+  }
+  const code = e?.response?.statusCode ?? e?.statusCode ?? e?.code
+  const detail = statusMessage(e?.body) ?? e?.message ?? String(err)
+
+  if (code === 429) {
+    return `Cannot evict ${namespace}/${name} right now: a PodDisruptionBudget would be violated (${detail}). Retry once another replica is ready, or delete the pod to bypass the budget.`
+  }
+  if (code === 500 && /disruption/i.test(detail)) {
+    return `Cannot evict ${namespace}/${name}: the disruption controller could not evaluate the PodDisruptionBudget (${detail}).`
+  }
+  return detail
+}
+
+/** Best-effort read of `.message` out of a `metav1.Status` payload, which the
+ *  client hands back either parsed or as the raw JSON string. */
+function statusMessage(body: unknown): string | null {
+  if (typeof body === "string") {
+    try {
+      const parsed = JSON.parse(body) as { message?: unknown }
+      return typeof parsed.message === "string" ? parsed.message : body
+    } catch {
+      return body
+    }
+  }
+  if (body && typeof body === "object") {
+    const message = (body as { message?: unknown }).message
+    if (typeof message === "string") return message
+  }
+  return null
 }

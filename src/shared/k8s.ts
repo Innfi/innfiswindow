@@ -402,6 +402,18 @@ export interface PodInfo extends PodSummary {
   conditions: Condition[]
 }
 
+/** Options for the Eviction API, which takes the same delete options a pod
+ *  delete does. Unlike a delete, the API server refuses the call when a
+ *  PodDisruptionBudget would be violated. */
+export interface EvictPodOptions {
+  /** Override the pod's own terminationGracePeriodSeconds. 0 kills it without
+   *  waiting for the container to shut down. */
+  gracePeriodSeconds?: number
+  /** Ask the API server to run the admission and PDB checks and then discard
+   *  the eviction — the way to test whether a pod can be evicted right now. */
+  dryRun?: boolean
+}
+
 export interface DeploymentRevision {
   revision: number
   changeCause: string
@@ -570,10 +582,21 @@ export interface PVCInfo {
   namespace: string
   status: string
   volumeName: string
+  /** status.capacity — the size the bound volume actually provides. During an
+   *  expansion it trails `requestedStorage` until the resize finishes. */
   capacity: string
+  /** spec.resources.requests.storage — the size asked for. */
+  requestedStorage: string
   accessModes: string[]
   storageClass: string
   volumeMode: string
+  /** allowVolumeExpansion of the claim's StorageClass. null when the class
+   *  could not be resolved — no class on the claim, or no RBAC to read it —
+   *  in which case expansion is offered but may be rejected by the server. */
+  allowVolumeExpansion: boolean | null
+  /** status.conditions: `Resizing` and `FileSystemResizePending` are how an
+   *  in-flight expansion reports itself. */
+  conditions: Condition[]
   creationTimestamp: string
   labels: Record<string, string>
   annotations: Record<string, string>

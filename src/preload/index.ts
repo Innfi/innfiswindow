@@ -35,6 +35,12 @@ const api = {
         timeoutSeconds?: number
       }
     }) => ipcRenderer.invoke("k8s:node:drain", args),
+    evictPod: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+      options?: { gracePeriodSeconds?: number; dryRun?: boolean }
+    }) => ipcRenderer.invoke("k8s:pod:evict", args),
     checkConnection: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:connection:check", args),
     reconnect: (args?: { contextName?: string }) =>
@@ -147,6 +153,12 @@ const api = {
       ipcRenderer.invoke("k8s:pvs:list", args),
     listPVCs: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:pvcs:list", args),
+    expandPVC: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+      storage: string
+    }) => ipcRenderer.invoke("k8s:pvc:expand", args),
     listStorageClasses: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:storageclasses:list", args),
     listVolumeSnapshots: (args?: {

@@ -36,6 +36,37 @@ export function parseMemoryToBytes(mem: string): number {
   return parseFloat(mem) || 0
 }
 
+const STORAGE_SUFFIXES: Record<string, number> = {
+  Ki: 1024,
+  Mi: 1024 ** 2,
+  Gi: 1024 ** 3,
+  Ti: 1024 ** 4,
+  Pi: 1024 ** 5,
+  Ei: 1024 ** 6,
+  k: 1e3,
+  M: 1e6,
+  G: 1e9,
+  T: 1e12,
+  P: 1e15,
+  E: 1e18,
+}
+
+const STORAGE_QUANTITY_RE = /^(\d+(?:\.\d+)?)(Ki|Mi|Gi|Ti|Pi|Ei|k|M|G|T|P|E)?$/
+
+/**
+ * Strict quantity parse: null for anything that is not a quantity, unlike
+ * `parseMemoryToBytes`, which reads 0 out of junk because its callers are
+ * rendering gauges. A value on its way to the API server — a PVC's new size —
+ * has to tell "0" and "nonsense" apart, and comparing sizes as strings would
+ * let `9Gi` look larger than `10Gi`.
+ */
+export function parseStorageQuantity(value: string): number | null {
+  const match = STORAGE_QUANTITY_RE.exec(value.trim())
+  if (!match) return null
+  const [, digits, suffix] = match
+  return Number(digits) * (suffix ? STORAGE_SUFFIXES[suffix] : 1)
+}
+
 /** Cores with enough precision to stay non-zero for idle pods. */
 export function formatCores(nanocores: number): string {
   const cores = nanocores / 1e9

@@ -8,6 +8,7 @@ import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
+import { EvictButton } from "../../components/ui/EvictButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
@@ -167,6 +168,13 @@ function DetailPanel({
               >
                 <ArrowLeftRight className="h-4 w-4" />
               </Button>
+              <EvictButton
+                podName={pod.name}
+                namespace={pod.namespace}
+                onEvicted={onDeleteSuccess}
+                onDialogChange={onDeleteDialogChange}
+                onClose={onClose}
+              />
               <DeleteButton
                 resourceKind="Pod"
                 resourceName={pod.name}

@@ -5,6 +5,7 @@ import {
   formatMillicores,
   parseCpuToNanocores,
   parseMemoryToBytes,
+  parseStorageQuantity,
 } from "../../shared/quantity"
 
 // Pure math, so unlike the rest of this directory these need no kind cluster.
@@ -49,6 +50,40 @@ describe("parseMemoryToBytes", () => {
   test("reads bare byte counts", () => {
     expect(parseMemoryToBytes("1048576")).toBe(1048576)
     expect(parseMemoryToBytes("")).toBe(0)
+  })
+})
+
+// The PVC expand dialog and handler both compare sizes with this, so an
+// unparseable value has to come back as null rather than 0: "0" would read as
+// a legal shrink to nothing.
+describe("parseStorageQuantity", () => {
+  test("reads binary and decimal suffixes", () => {
+    expect(parseStorageQuantity("20Gi")).toBe(20 * 1024 ** 3)
+    expect(parseStorageQuantity("500M")).toBe(500e6)
+    expect(parseStorageQuantity("1Ti")).toBe(1024 ** 4)
+  })
+
+  test("orders sizes by bytes, not by their text", () => {
+    expect(parseStorageQuantity("9Gi")!).toBeLessThan(
+      parseStorageQuantity("10Gi")!,
+    )
+  })
+
+  test("reads bare and fractional quantities", () => {
+    expect(parseStorageQuantity("1048576")).toBe(1048576)
+    expect(parseStorageQuantity("1.5Gi")).toBe(1.5 * 1024 ** 3)
+  })
+
+  test("rejects anything that is not a quantity", () => {
+    expect(parseStorageQuantity("")).toBeNull()
+    expect(parseStorageQuantity("20 GB")).toBeNull()
+    expect(parseStorageQuantity("-5Gi")).toBeNull()
+    expect(parseStorageQuantity("Gi")).toBeNull()
+  })
+
+  test("is case sensitive about suffixes, as the API server is", () => {
+    expect(parseStorageQuantity("20gi")).toBeNull()
+    expect(parseStorageQuantity("20m")).toBeNull()
   })
 })
 

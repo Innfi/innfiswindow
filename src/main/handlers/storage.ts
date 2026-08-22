@@ -1,17 +1,29 @@
 import {
   CoreV1Api,
   CustomObjectsApi,
+  PatchStrategy,
+  setHeaderOptions,
   StorageV1Api,
   V1PersistentVolume,
 } from "@kubernetes/client-node"
 
+import { parseStorageQuantity } from "../../shared/quantity"
 import {
+  Condition,
+  MutationResult,
   PVCInfo,
   PVInfo,
   PVSourceInfo,
   StorageClassInfo,
   VolumeSnapshotInfo,
 } from "./types"
+
+/** The generated client defaults patch requests to JSON Patch, which rejects
+ *  the object-shaped bodies used here; every patch below is a merge. */
+const MERGE_PATCH = setHeaderOptions(
+  "Content-Type",
+  PatchStrategy.StrategicMergePatch,
+)
 
 function detectPVSource(pv: V1PersistentVolume): PVSourceInfo {
   const s = pv.spec
@@ -70,26 +82,62 @@ export async function listPVs(api: CoreV1Api): Promise<PVInfo[]> {
   })
 }
 
+/** Which StorageClasses allow expansion, keyed by name. Read once per list so
+ *  every claim can say up front whether resizing it is even possible. A
+ *  cluster that refuses the read (no RBAC on storage.k8s.io) yields an empty
+ *  map, and the claims report `null` rather than a wrong `false`. */
+async function storageClassExpansion(
+  storageApi: StorageV1Api,
+): Promise<Map<string, boolean>> {
+  try {
+    const res = await storageApi.listStorageClass()
+    return new Map(
+      res.items.map((sc) => [
+        sc.metadata?.name ?? "",
+        sc.allowVolumeExpansion ?? false,
+      ]),
+    )
+  } catch {
+    return new Map()
+  }
+}
+
 export async function listPVCs(
   api: CoreV1Api,
   namespace?: string,
+  storageApi?: StorageV1Api,
 ): Promise<PVCInfo[]> {
   const res = namespace
     ? await api.listNamespacedPersistentVolumeClaim({ namespace })
     : await api.listPersistentVolumeClaimForAllNamespaces()
-  return res.items.map((pvc) => ({
-    name: pvc.metadata?.name ?? "",
-    namespace: pvc.metadata?.namespace ?? "",
-    status: pvc.status?.phase ?? "",
-    volumeName: pvc.spec?.volumeName ?? "",
-    capacity: pvc.status?.capacity?.["storage"] ?? "",
-    accessModes: pvc.spec?.accessModes ?? [],
-    storageClass: pvc.spec?.storageClassName ?? "",
-    volumeMode: pvc.spec?.volumeMode ?? "",
-    creationTimestamp: pvc.metadata?.creationTimestamp?.toISOString() ?? "",
-    labels: pvc.metadata?.labels ?? {},
-    annotations: pvc.metadata?.annotations ?? {},
-  }))
+  const expansion = storageApi
+    ? await storageClassExpansion(storageApi)
+    : new Map<string, boolean>()
+  return res.items.map((pvc) => {
+    const storageClass = pvc.spec?.storageClassName ?? ""
+    const conditions: Condition[] = (pvc.status?.conditions ?? []).map((c) => ({
+      type: c.type ?? "",
+      status: c.status ?? "",
+      reason: c.reason ?? "",
+      message: c.message ?? "",
+    }))
+    return {
+      name: pvc.metadata?.name ?? "",
+      namespace: pvc.metadata?.namespace ?? "",
+      status: pvc.status?.phase ?? "",
+      volumeName: pvc.spec?.volumeName ?? "",
+      capacity: pvc.status?.capacity?.["storage"] ?? "",
+      requestedStorage: pvc.spec?.resources?.requests?.["storage"] ?? "",
+      accessModes: pvc.spec?.accessModes ?? [],
+      storageClass,
+      volumeMode: pvc.spec?.volumeMode ?? "",
+      allowVolumeExpansion: expansion.get(storageClass) ?? null,
+      conditions,
+      creationTimestamp: pvc.metadata?.creationTimestamp?.toISOString() ?? "",
+      labels: pvc.metadata?.labels ?? {},
+      annotations: pvc.metadata?.annotations ?? {},
+    }
+  })
 }
 
 export async function listStorageClasses(
@@ -151,4 +199,59 @@ export async function listVolumeSnapshots(
     if (code === 404 || code === 403) return []
     throw e
   }
+}
+
+/** Grow a PVC by raising `spec.resources.requests.storage`, the same edit
+ *  `kubectl patch pvc` makes.
+ *
+ *  Two things are checked before the patch, because the API server's own
+ *  rejections for them are terse: the StorageClass has to set
+ *  `allowVolumeExpansion`, and the new size has to be larger — Kubernetes
+ *  never shrinks a bound volume. The resize itself is asynchronous: the
+ *  request returns as soon as the spec is updated, and the claim reports
+ *  progress through its `Resizing` / `FileSystemResizePending` conditions
+ *  until `status.capacity` catches up. A claim whose pods are running may
+ *  need them restarted for a filesystem resize to finish. */
+export async function expandPVC(
+  api: CoreV1Api,
+  storageApi: StorageV1Api,
+  namespace: string,
+  name: string,
+  storage: string,
+): Promise<MutationResult> {
+  const target = parseStorageQuantity(storage)
+  if (target === null || target <= 0) {
+    throw new Error(
+      `"${storage}" is not a valid storage quantity — use a value like 20Gi or 500M.`,
+    )
+  }
+
+  const pvc = await api.readNamespacedPersistentVolumeClaim({ name, namespace })
+  const current = pvc.spec?.resources?.requests?.["storage"] ?? ""
+  const currentBytes = parseStorageQuantity(current)
+  if (currentBytes !== null && target < currentBytes) {
+    throw new Error(
+      `Cannot shrink ${namespace}/${name} from ${current} to ${storage} — Kubernetes only supports growing a PersistentVolumeClaim.`,
+    )
+  }
+
+  const storageClass = pvc.spec?.storageClassName ?? ""
+  if (storageClass) {
+    const expansion = await storageClassExpansion(storageApi)
+    if (expansion.get(storageClass) === false) {
+      throw new Error(
+        `StorageClass "${storageClass}" does not allow volume expansion, so ${namespace}/${name} cannot be resized.`,
+      )
+    }
+  }
+
+  await api.patchNamespacedPersistentVolumeClaim(
+    {
+      name,
+      namespace,
+      body: { spec: { resources: { requests: { storage } } } },
+    },
+    MERGE_PATCH,
+  )
+  return { success: true, name, namespace }
 }
