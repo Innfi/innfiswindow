@@ -107,6 +107,12 @@ export interface K8sNodeTaint {
   value: string
 }
 
+/** A label edit: keys to write, keys to drop. A rename is both. */
+export interface NodeLabelUpdate {
+  set: Record<string, string>
+  remove: string[]
+}
+
 export interface K8sNodeSystemInfo {
   osImage: string
   architecture: string
@@ -763,6 +769,16 @@ export interface K8sAPI {
     name: string
     options?: DrainOptions
   }) => Promise<DrainResult>
+  updateNodeLabels: (args: {
+    contextName?: string
+    name: string
+    update: NodeLabelUpdate
+  }) => Promise<{ success: boolean; name: string }>
+  updateNodeTaints: (args: {
+    contextName?: string
+    name: string
+    taints: K8sNodeTaint[]
+  }) => Promise<{ success: boolean; name: string }>
   evictPod: (args: {
     contextName?: string
     namespace: string

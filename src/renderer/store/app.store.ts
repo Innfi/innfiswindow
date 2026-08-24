@@ -60,6 +60,8 @@ export interface HistoryEntry {
     | "cordon"
     | "uncordon"
     | "drain"
+    | "label"
+    | "taint"
   resourceKind: string
   resourceName: string
   namespace: string | null

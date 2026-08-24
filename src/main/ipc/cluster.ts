@@ -1,7 +1,7 @@
 import { IpcMain } from "electron"
 import { KubeConfig } from "@kubernetes/client-node"
 
-import { DrainOptions } from "../handlers/types"
+import { DrainOptions, NodeLabelUpdate, NodeTaint } from "../handlers/types"
 import {
   checkConnection,
   drainNode,
@@ -12,6 +12,8 @@ import {
   listNamespaces,
   listNodes,
   setNodeSchedulable,
+  updateNodeLabels,
+  updateNodeTaints,
 } from "../k8s-handlers"
 import { GetContextClients, InvalidateContext } from "./context-clients"
 
@@ -52,6 +54,27 @@ export function registerClusterHandlers(
         getContextClients(args.contextName).coreV1,
         args.name,
         args.options,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:node:labels:update",
+    (
+      _e,
+      args: { contextName?: string; name: string; update: NodeLabelUpdate },
+    ) =>
+      updateNodeLabels(
+        getContextClients(args.contextName).coreV1,
+        args.name,
+        args.update,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:node:taints:update",
+    (_e, args: { contextName?: string; name: string; taints: NodeTaint[] }) =>
+      updateNodeTaints(
+        getContextClients(args.contextName).coreV1,
+        args.name,
+        args.taints,
       ),
   )
   ipcMain.handle(

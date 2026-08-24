@@ -24,6 +24,8 @@ import { EmptyState } from "../../components/ui/EmptyState"
 import { Input } from "../../components/ui/Input"
 import { Label } from "../../components/ui/Label"
 import { MetaEntry } from "../../components/ui/MetaEntry"
+import { NodeLabelsButton } from "../../components/ui/NodeLabelsButton"
+import { NodeTaintsButton } from "../../components/ui/NodeTaintsButton"
 import { RefreshBar } from "../../components/ui/RefreshBar"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import {
@@ -158,7 +160,7 @@ function DetailPanel({
   onClose,
   onChanged,
   onDeleted,
-  onDeleteDialogChange,
+  onDialogChange,
 }: {
   node: K8sNode
   metric: NodeMetric | undefined
@@ -166,7 +168,8 @@ function DetailPanel({
   onClose: () => void
   onChanged: () => void
   onDeleted: () => void
-  onDeleteDialogChange: (open: boolean) => void
+  /** Pauses list polling while any dialog in the panel is open. */
+  onDialogChange: (open: boolean) => void
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
@@ -327,6 +330,18 @@ function DetailPanel({
               >
                 Drain
               </Button>
+              <NodeLabelsButton
+                nodeName={node.name}
+                labels={node.labels}
+                onUpdated={onChanged}
+                onDialogChange={onDialogChange}
+              />
+              <NodeTaintsButton
+                nodeName={node.name}
+                taints={node.taints}
+                onUpdated={onChanged}
+                onDialogChange={onDialogChange}
+              />
               <EditButton
                 resourceKind="Node"
                 resourceName={node.name}
@@ -355,7 +370,7 @@ function DetailPanel({
                 resourceKind="Node"
                 resourceName={node.name}
                 onDeleted={onDeleted}
-                onDeleteDialogChange={onDeleteDialogChange}
+                onDeleteDialogChange={onDialogChange}
                 onClose={onClose}
                 warning="Removes the node from the cluster. Drain it first — running pods are not evicted gracefully."
               />
@@ -708,7 +723,9 @@ export function NodesView(): JSX.Element {
   const nameFilter = useAppStore((s) => s.nameFilter)
   const refreshInterval = useAppStore((s) => s.refreshInterval)
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  // Any write dialog in the detail panel pauses the poll, so an edit in
+  // progress is not overwritten by a refreshed node.
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   const {
     data: nodes,
@@ -719,7 +736,7 @@ export function NodesView(): JSX.Element {
   } = useK8sResource(
     (ctx) => window.api.k8s.listNodes({ contextName: ctx }),
     selectedContext,
-    { paused: deleteDialogOpen },
+    { paused: dialogOpen },
   )
 
   const [metricsMap, setMetricsMap] = useState<Map<string, NodeMetric>>(
@@ -852,7 +869,7 @@ export function NodesView(): JSX.Element {
           onClose={() => setSelectedItem(null)}
           onChanged={reload}
           onDeleted={reload}
-          onDeleteDialogChange={setDeleteDialogOpen}
+          onDialogChange={setDialogOpen}
         />
       )}
     </div>

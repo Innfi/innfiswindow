@@ -182,6 +182,14 @@ export interface NodeTaint {
   value: string
 }
 
+/** A label edit expressed the way `kubectl label` expresses it: keys to write
+ *  (adding or overwriting) and keys to drop. Renaming a key is a `remove` of
+ *  the old plus a `set` of the new. */
+export interface NodeLabelUpdate {
+  set: Record<string, string>
+  remove: string[]
+}
+
 export interface NodeSystemInfo {
   osImage: string
   architecture: string

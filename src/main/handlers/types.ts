@@ -55,6 +55,7 @@ export type {
   NetworkPolicySummary,
   NodeAddress,
   NodeInfo,
+  NodeLabelUpdate,
   NodeMetric,
   NodeSystemInfo,
   NodeTaint,

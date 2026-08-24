@@ -1,5 +1,16 @@
-import { CoreV1Api, KubeConfig, V1Pod } from "@kubernetes/client-node"
+import {
+  CoreV1Api,
+  KubeConfig,
+  PatchStrategy,
+  setHeaderOptions,
+  V1Pod,
+} from "@kubernetes/client-node"
 
+import {
+  validateLabelKey,
+  validateLabelValue,
+  validateTaint,
+} from "../../shared/labels"
 import {
   ContextInfo,
   DrainOptions,
@@ -8,9 +19,18 @@ import {
   NamespaceInfo,
   NodeAddress,
   NodeInfo,
+  NodeLabelUpdate,
   NodeSystemInfo,
   NodeTaint,
 } from "./types"
+
+/** A JSON merge patch, not the strategic merge the client defaults to: it is
+ *  the one that deletes a label when its value is null and replaces
+ *  `spec.taints` wholesale instead of trying to merge the two lists. */
+const JSON_MERGE_PATCH = setHeaderOptions(
+  "Content-Type",
+  PatchStrategy.MergePatch,
+)
 
 export async function listNamespaces(api: CoreV1Api): Promise<NamespaceInfo[]> {
   const res = await api.listNamespace()
@@ -86,6 +106,85 @@ export async function setNodeSchedulable(
   schedulable: boolean,
 ): Promise<MutationResult> {
   await api.patchNode({ name, body: { spec: { unschedulable: !schedulable } } })
+  return { success: true, name }
+}
+
+/** Write and drop node labels the way `kubectl label node` does: one merge
+ *  patch carrying the new values plus a null for every key being removed.
+ *  Keys are validated here so a typo comes back as a message about that key
+ *  rather than as a 422 about the whole patch. */
+export async function updateNodeLabels(
+  api: CoreV1Api,
+  name: string,
+  update: NodeLabelUpdate,
+): Promise<MutationResult> {
+  const set = update.set ?? {}
+  const remove = update.remove ?? []
+
+  for (const [key, value] of Object.entries(set)) {
+    const keyProblem = validateLabelKey(key)
+    if (keyProblem) throw new Error(`Label "${key}": ${keyProblem}`)
+    const valueProblem = validateLabelValue(value)
+    if (valueProblem) throw new Error(`Label "${key}": ${valueProblem}`)
+  }
+  for (const key of remove) {
+    const keyProblem = validateLabelKey(key)
+    if (keyProblem) throw new Error(`Label "${key}": ${keyProblem}`)
+    if (key in set)
+      throw new Error(`Label "${key}" is both set and removed — pick one.`)
+  }
+  if (Object.keys(set).length === 0 && remove.length === 0) {
+    throw new Error("No label changes to apply.")
+  }
+
+  const labels: Record<string, string | null> = { ...set }
+  for (const key of remove) labels[key] = null
+
+  await api.patchNode(
+    { name, body: { metadata: { labels } } },
+    JSON_MERGE_PATCH,
+  )
+  return { success: true, name }
+}
+
+/** Replace `spec.taints` wholesale, which is what `kubectl taint` ends up
+ *  doing: taints have no merge key, so add and remove are both expressed as
+ *  the full list the node should end with. An empty list clears them. */
+export async function updateNodeTaints(
+  api: CoreV1Api,
+  name: string,
+  taints: NodeTaint[],
+): Promise<MutationResult> {
+  const seen = new Set<string>()
+  for (const taint of taints) {
+    const problem = validateTaint({
+      key: taint.key,
+      value: taint.value ?? "",
+      effect: taint.effect,
+    })
+    if (problem) throw new Error(`Taint "${taint.key}": ${problem}`)
+    // The API server rejects two taints sharing a key and an effect; catching
+    // it here names the pair instead of returning a field-index error.
+    const id = `${taint.key}:${taint.effect}`
+    if (seen.has(id))
+      throw new Error(
+        `Taint "${taint.key}" appears twice with effect ${taint.effect}.`,
+      )
+    seen.add(id)
+  }
+
+  const body = taints.map((t) => ({
+    key: t.key,
+    effect: t.effect,
+    // An empty value is absent, not "": the two are the same to the scheduler
+    // and kubectl prints the absent form.
+    ...(t.value ? { value: t.value } : {}),
+  }))
+
+  await api.patchNode(
+    { name, body: { spec: { taints: body } } },
+    JSON_MERGE_PATCH,
+  )
   return { success: true, name }
 }
 

@@ -67,6 +67,15 @@ const ACTION_BADGE: Record<
     className:
       "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
   },
+  label: {
+    label: "label",
+    className: "bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-300",
+  },
+  taint: {
+    label: "taint",
+    className:
+      "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900 dark:text-fuchsia-300",
+  },
 }
 
 export function HistoryView(): JSX.Element {

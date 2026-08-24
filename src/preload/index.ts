@@ -35,6 +35,16 @@ const api = {
         timeoutSeconds?: number
       }
     }) => ipcRenderer.invoke("k8s:node:drain", args),
+    updateNodeLabels: (args: {
+      contextName?: string
+      name: string
+      update: { set: Record<string, string>; remove: string[] }
+    }) => ipcRenderer.invoke("k8s:node:labels:update", args),
+    updateNodeTaints: (args: {
+      contextName?: string
+      name: string
+      taints: { key: string; value: string; effect: string }[]
+    }) => ipcRenderer.invoke("k8s:node:taints:update", args),
     evictPod: (args: {
       contextName?: string
       namespace: string
