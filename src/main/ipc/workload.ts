@@ -1,7 +1,9 @@
 import { IpcMain } from "electron"
 import { AppsV1Api } from "@kubernetes/client-node"
 
+import { DebugContainerRequest } from "../handlers/types"
 import {
+  addEphemeralContainer,
   createDaemonSet,
   createDeployment,
   createStatefulSet,
@@ -86,6 +88,24 @@ export function registerWorkloadHandlers(
         args.namespace,
         args.name,
         args.options,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:pod:debug",
+    (
+      _e,
+      args: {
+        contextName?: string
+        namespace: string
+        name: string
+        request: DebugContainerRequest
+      },
+    ) =>
+      addEphemeralContainer(
+        getContextClients(args.contextName).coreV1,
+        args.namespace,
+        args.name,
+        args.request,
       ),
   )
   ipcMain.handle(

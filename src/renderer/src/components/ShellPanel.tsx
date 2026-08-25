@@ -12,6 +12,7 @@ interface ShellPanelProps {
   namespace: string
   podName: string
   containerName: string
+  contextName?: string
   restored?: boolean
 }
 
@@ -20,6 +21,7 @@ export function ShellPanel({
   namespace,
   podName,
   containerName,
+  contextName,
   restored,
 }: ShellPanelProps): JSX.Element {
   const markTabReconnected = useAppStore((s) => s.markTabReconnected)
@@ -42,7 +44,7 @@ export function ShellPanel({
     }
 
     window.api
-      .startPodExec(sessionId, namespace, podName, containerName)
+      .startPodExec(sessionId, namespace, podName, containerName, contextName)
       .catch((err) => {
         term.write(`\r\nFailed to connect: ${String(err)}\r\n`)
       })
@@ -71,7 +73,7 @@ export function ShellPanel({
       ro?.disconnect()
       term.dispose()
     }
-  }, [sessionId, namespace, podName, containerName, sessionEnded])
+  }, [sessionId, namespace, podName, containerName, contextName, sessionEnded])
 
   if (sessionEnded) {
     return (

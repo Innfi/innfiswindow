@@ -76,6 +76,15 @@ const ACTION_BADGE: Record<
     className:
       "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900 dark:text-fuchsia-300",
   },
+  debug: {
+    label: "debug",
+    className:
+      "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-300",
+  },
+  copy: {
+    label: "copy",
+    className: "bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-300",
+  },
 }
 
 export function HistoryView(): JSX.Element {

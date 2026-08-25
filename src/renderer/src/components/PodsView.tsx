@@ -5,11 +5,13 @@ import { formatMemory, formatMillicores } from "../../../shared/quantity"
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
+import { DebugContainerButton } from "../../components/ui/DebugContainerButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { EvictButton } from "../../components/ui/EvictButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
+import { PodCopyButton } from "../../components/ui/PodCopyButton"
 import {
   ageColumn,
   DetailController,
@@ -91,6 +93,7 @@ function DetailPanel({
   onLogs,
   onShell,
   onPortForward,
+  onReloaded,
   onDeleteSuccess,
   onDeleteDialogChange,
 }: {
@@ -99,6 +102,7 @@ function DetailPanel({
   onLogs: () => void
   onShell: (containerName: string) => void
   onPortForward: () => void
+  onReloaded: () => void
   onDeleteSuccess: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
@@ -168,6 +172,21 @@ function DetailPanel({
               >
                 <ArrowLeftRight className="h-4 w-4" />
               </Button>
+              <DebugContainerButton
+                podName={pod.name}
+                namespace={pod.namespace}
+                containers={pod.containers}
+                onAttach={onShell}
+                onAdded={onReloaded}
+                onDialogChange={onDeleteDialogChange}
+              />
+              <PodCopyButton
+                podName={pod.name}
+                namespace={pod.namespace}
+                containers={[...pod.containers, ...pod.ephemeralContainers]}
+                defaultContainer={selectedContainer}
+                onDialogChange={onDeleteDialogChange}
+              />
               <EvictButton
                 podName={pod.name}
                 namespace={pod.namespace}
@@ -295,6 +314,29 @@ function DetailPanel({
         </div>
       )}
 
+      {/* Ephemeral (debug) containers */}
+      {pod.ephemeralContainers.length > 0 && (
+        <div className="space-y-1">
+          <SectionHeader title="Ephemeral Containers" />
+          {pod.ephemeralContainers
+            .filter((c) => m(c.name) || m(c.image))
+            .map((c) => (
+              <div key={c.name} className="space-y-1">
+                <ContainerCard container={c} search={sl} />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => onShell(c.name)}
+                >
+                  <SquareTerminal className="h-3 w-3" />
+                  Shell into {c.name}
+                </Button>
+              </div>
+            ))}
+        </div>
+      )}
+
       {/* Volumes */}
       {pod.volumes.length > 0 && (
         <div className="space-y-1">
@@ -357,6 +399,7 @@ function DetailPanel({
 
 export function PodsView(): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const { metrics, unavailable: metricsUnavailable } = usePodMetrics()
 
   // Readings arrive keyed by identity rather than joined into the rows: the
@@ -463,6 +506,7 @@ export function PodsView(): JSX.Element {
               namespace: pod.namespace,
               podName: pod.name,
               containerName,
+              contextName: selectedContext ?? undefined,
             })
           }}
           onPortForward={() => {
@@ -476,6 +520,7 @@ export function PodsView(): JSX.Element {
               targetPort: 8080,
             })
           }}
+          onReloaded={ctl.onDeleted}
           onDeleteSuccess={ctl.onDeleted}
           onDeleteDialogChange={ctl.onDeleteDialogChange}
         />

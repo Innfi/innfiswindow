@@ -406,8 +406,59 @@ export interface PodInfo extends PodSummary {
   qosClass: string
   initContainers: PodContainerInfo[]
   containers: PodContainerInfo[]
+  /** Debug containers added after the pod started. Empty on almost every pod:
+   *  they only exist once someone has run a debug session against it. */
+  ephemeralContainers: PodContainerInfo[]
   volumes: VolumeInfo[]
   conditions: Condition[]
+}
+
+/** What `kubectl debug` adds to a running pod: a container that shares the
+ *  pod's network (and, with a target, another container's process namespace)
+ *  so a shell can be opened against an image that has the tools the workload
+ *  image lacks. Ephemeral containers cannot be removed or restarted. */
+export interface DebugContainerRequest {
+  /** Image to run, e.g. `busybox:1.36`. Required. */
+  image: string
+  /** Container name. Generated (`debugger-xxxxx`) when blank. */
+  name?: string
+  /** Share this container's process namespace, so its processes and its
+   *  `/proc/<pid>/root` filesystem are visible. Requires cluster support for
+   *  `EphemeralContainers` targeting; left off, the debug container only
+   *  shares the pod's network and volumes. */
+  targetContainer?: string
+  /** Entrypoint override. Empty runs the image's own entrypoint, which is what
+   *  `kubectl debug` does. */
+  command?: string[]
+}
+
+export interface DebugContainerResult extends MutationResult {
+  /** The name the container ended up with, generated or not — the caller needs
+   *  it to attach a shell. */
+  containerName: string
+  /** False when the wait expired before the kubelet reported it running: the
+   *  container exists, but attaching to it now would fail. */
+  running: boolean
+  /** Why it is not running yet (`ContainerCreating`, an image pull failure, an
+   *  exit code), when `running` is false. */
+  state: string
+}
+
+/** One `kubectl cp`. `localPath` is a file or directory on this machine;
+ *  `remotePath` is the path inside the container. Both directions shell out to
+ *  `tar` inside the container, so the container image must have it. */
+export interface PodCopyRequest {
+  namespace: string
+  podName: string
+  containerName: string
+  localPath: string
+  remotePath: string
+}
+
+export interface PodCopyResult {
+  success: boolean
+  /** Bytes of tar stream moved — larger than the payload by the tar headers. */
+  bytes: number
 }
 
 /** Options for the Eviction API, which takes the same delete options a pod

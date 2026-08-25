@@ -62,6 +62,8 @@ export interface HistoryEntry {
     | "drain"
     | "label"
     | "taint"
+    | "debug"
+    | "copy"
   resourceKind: string
   resourceName: string
   namespace: string | null
@@ -95,6 +97,9 @@ export type DrawerTab =
       namespace: string
       podName: string
       containerName: string
+      /** The context the session was opened against, so a reconnect after a
+       *  context switch still lands on the same cluster. */
+      contextName?: string
       restored?: boolean
     }
   | {
@@ -168,6 +173,7 @@ export type DrawerTabInput =
       namespace: string
       podName: string
       containerName: string
+      contextName?: string
     }
   | {
       tabKey: string

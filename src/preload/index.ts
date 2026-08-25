@@ -51,6 +51,35 @@ const api = {
       name: string
       options?: { gracePeriodSeconds?: number; dryRun?: boolean }
     }) => ipcRenderer.invoke("k8s:pod:evict", args),
+    debugPod: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+      request: {
+        image: string
+        name?: string
+        targetContainer?: string
+        command?: string[]
+      }
+    }) => ipcRenderer.invoke("k8s:pod:debug", args),
+    copyToPod: (args: {
+      contextName?: string
+      namespace: string
+      podName: string
+      containerName: string
+      localPath: string
+      remotePath: string
+      transferId: string
+    }) => ipcRenderer.invoke("k8s:pod:copy:to", args),
+    copyFromPod: (args: {
+      contextName?: string
+      namespace: string
+      podName: string
+      containerName: string
+      localPath: string
+      remotePath: string
+      transferId: string
+    }) => ipcRenderer.invoke("k8s:pod:copy:from", args),
     checkConnection: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:connection:check", args),
     reconnect: (args?: { contextName?: string }) =>
@@ -488,17 +517,31 @@ const api = {
     namespace: string,
     podName: string,
     containerName: string,
+    contextName?: string,
   ) =>
     ipcRenderer.invoke("k8s:pod:exec", {
       sessionId,
       namespace,
       podName,
       containerName,
+      contextName,
     }),
   sendPodExecInput: (sessionId: string, data: string) =>
     ipcRenderer.send("k8s:pod:exec:input", { sessionId, data }),
   closePodExec: (sessionId: string) =>
     ipcRenderer.send("k8s:pod:exec:close", { sessionId }),
+  selectLocalPath: (args: { mode: "file" | "directory"; title?: string }) =>
+    ipcRenderer.invoke("dialog:path:select", args),
+  onPodCopyProgress: (
+    callback: (data: { transferId: string; bytes: number }) => void,
+  ) => {
+    const handler = (
+      _e: IpcRendererEvent,
+      data: { transferId: string; bytes: number },
+    ) => callback(data)
+    ipcRenderer.on("k8s:pod:copy:progress", handler)
+    return () => ipcRenderer.removeListener("k8s:pod:copy:progress", handler)
+  },
   onPodExecOutput: (
     callback: (data: { sessionId: string; data: string }) => void,
   ) => {

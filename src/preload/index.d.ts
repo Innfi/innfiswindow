@@ -164,6 +164,45 @@ export interface EvictPodOptions {
   dryRun?: boolean
 }
 
+/** What `kubectl debug` adds to a running pod. */
+export interface DebugContainerRequest {
+  image: string
+  name?: string
+  targetContainer?: string
+  command?: string[]
+}
+
+export interface DebugContainerResult {
+  success: boolean
+  name?: string
+  namespace?: string
+  containerName: string
+  /** False when the container exists but was not running before the wait
+   *  expired — attaching a shell to it would fail. */
+  running: boolean
+  state: string
+}
+
+/** One `kubectl cp`. For a copy out, `localPath` is the directory the entry
+ *  lands in; for a copy in, `remotePath` is the directory inside the container.
+ *  Either way the entry keeps its own name. */
+export interface PodCopyArgs {
+  contextName?: string
+  namespace: string
+  podName: string
+  containerName: string
+  localPath: string
+  remotePath: string
+  /** Ties `onPodCopyProgress` events to the call that produced them. */
+  transferId: string
+}
+
+export interface PodCopyResult {
+  success: boolean
+  /** Bytes of tar stream moved — larger than the payload by the tar headers. */
+  bytes: number
+}
+
 export interface DrainOptions {
   force?: boolean
   gracePeriodSeconds?: number
@@ -307,6 +346,8 @@ export interface K8sPod extends K8sPodSummary {
   qosClass: string
   initContainers: K8sPodContainer[]
   containers: K8sPodContainer[]
+  /** Debug containers added after the pod started; empty on almost every pod. */
+  ephemeralContainers: K8sPodContainer[]
   volumes: K8sVolumeInfo[]
   conditions: K8sPodCondition[]
 }
@@ -785,6 +826,14 @@ export interface K8sAPI {
     name: string
     options?: EvictPodOptions
   }) => Promise<{ success: boolean; name: string; namespace: string }>
+  debugPod: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    request: DebugContainerRequest
+  }) => Promise<DebugContainerResult>
+  copyToPod: (args: PodCopyArgs) => Promise<PodCopyResult>
+  copyFromPod: (args: PodCopyArgs) => Promise<PodCopyResult>
   checkConnection: (args?: {
     contextName?: string
   }) => Promise<ConnectionStatus>
@@ -1369,7 +1418,16 @@ export interface API {
     namespace: string,
     podName: string,
     containerName: string,
+    contextName?: string,
   ) => Promise<{ success: boolean }>
+  /** Opens the OS file picker; resolves `{ path: null }` when it is dismissed. */
+  selectLocalPath: (args: {
+    mode: "file" | "directory"
+    title?: string
+  }) => Promise<{ path: string | null }>
+  onPodCopyProgress: (
+    callback: (data: { transferId: string; bytes: number }) => void,
+  ) => () => void
   sendPodExecInput: (sessionId: string, data: string) => void
   closePodExec: (sessionId: string) => void
   onPodExecOutput: (

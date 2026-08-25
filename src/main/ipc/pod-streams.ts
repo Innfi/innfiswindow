@@ -1,6 +1,8 @@
 import type { BrowserWindow, IpcMain } from "electron"
 import { PassThrough } from "stream"
-import { Exec, KubeConfig, Log } from "@kubernetes/client-node"
+import { Exec, Log } from "@kubernetes/client-node"
+
+import { GetKubeConfig } from "./context-clients"
 
 type ExecWebSocket = { terminate(): void }
 
@@ -65,7 +67,7 @@ export function createLineSplitter(emit: (line: string) => void): {
 
 export function registerPodStreamHandlers(
   ipcMain: IpcMain,
-  kc: KubeConfig,
+  getKubeConfig: GetKubeConfig,
   getMainWindow: () => BrowserWindow | null,
 ): void {
   const activeLogRequests = new Map<string, { abort: () => void }>()
@@ -99,7 +101,9 @@ export function registerPodStreamHandlers(
         activeLogRequests.delete(storageKey)
       }
 
-      const log = new Log(kc)
+      // Logs stay on the default kubeconfig, as the panel that drives them has
+      // always done; only the exec path below takes a context.
+      const log = new Log(getKubeConfig())
       const logStream = new PassThrough()
       const emitKey = storageKey
 
@@ -167,11 +171,13 @@ export function registerPodStreamHandlers(
     async (
       _e,
       {
+        contextName,
         sessionId,
         namespace,
         podName,
         containerName,
       }: {
+        contextName?: string
         sessionId: string
         namespace: string
         podName: string
@@ -195,7 +201,7 @@ export function registerPodStreamHandlers(
         })
       })
 
-      const exec = new Exec(kc)
+      const exec = new Exec(getKubeConfig(contextName))
       const ws = await exec.exec(
         namespace,
         podName,

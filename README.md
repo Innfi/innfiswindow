@@ -40,6 +40,7 @@ Standalone sections below the tree cover **Helm** (Repositories, Releases) and *
 - Editor shows inline YAML syntax markers and a diff view against the live manifest before saving
 - Delete resources with AlertDialog confirmation (Delete button in detail panel)
 - Deployments additionally support rollout history and rollback to a prior revision
+- Pods support `kubectl debug` (an ephemeral container, with a shell attached once it runs) and `kubectl cp` in both directions
 - Every write (apply / update / delete, success or failure) is recorded to the History view
 
 ### BottomDrawer tabs
@@ -133,6 +134,8 @@ innfiswindow/
 │   │   ├── ipc/                     # ipcMain.handle registration per domain
 │   │   │   ├── context-clients.ts   #   per-context KubeConfig client cache
 │   │   │   ├── pod-streams.ts       #   log tail + exec stream plumbing
+│   │   │   ├── pod-copy.ts          #   kubectl cp (tar over the exec channel)
+│   │   │   ├── dialog.ts            #   native file/folder picker
 │   │   │   ├── portforward.ts, socket-stream.ts
 │   │   │   └── …                    #   one module per handler domain
 │   │   ├── k8s-handlers.ts          # Barrel re-exporting handlers/*

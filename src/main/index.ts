@@ -26,10 +26,12 @@ import {
   createContextClientsCache,
   createKubeConfigCache,
 } from "./ipc/context-clients"
+import { registerDialogHandlers } from "./ipc/dialog"
 import { registerEventsHandlers } from "./ipc/events"
 import { registerGovernanceHandlers } from "./ipc/governance"
 import { registerHelmHandlers } from "./ipc/helm"
 import { registerNetworkingHandlers } from "./ipc/networking"
+import { registerPodCopyHandlers } from "./ipc/pod-copy"
 import { registerPodStreamHandlers } from "./ipc/pod-streams"
 import { registerPortForwardHandlers } from "./ipc/portforward"
 import { registerPrometheusHandlers } from "./ipc/prometheus"
@@ -218,7 +220,9 @@ app.whenReady().then(() => {
   registerPrometheusHandlers(ipcMain)
   registerEventsHandlers(ipcMain, getContextClients)
   registerWatchHandlers(ipcMain, { getKubeConfig, getContextClients })
-  registerPodStreamHandlers(ipcMain, kc, getMainWindow)
+  registerPodStreamHandlers(ipcMain, getKubeConfig, getMainWindow)
+  registerPodCopyHandlers(ipcMain, getKubeConfig, getMainWindow)
+  registerDialogHandlers(ipcMain, getMainWindow)
   registerSocketStreamHandlers(ipcMain, getMainWindow)
   registerPortForwardHandlers(ipcMain, kc, coreV1Api)
 
