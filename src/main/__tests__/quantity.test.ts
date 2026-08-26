@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest"
 import {
   formatMemory,
   formatMillicores,
+  isPositiveQuantity,
   parseCpuToNanocores,
   parseMemoryToBytes,
   parseStorageQuantity,
@@ -96,5 +97,27 @@ describe("formatters", () => {
   test("memory switches to Gi above a gibibyte", () => {
     expect(formatMemory(256 * 1024 ** 2)).toBe("256 Mi")
     expect(formatMemory(2.5 * 1024 ** 3)).toBe("2.5 Gi")
+  })
+})
+
+describe("isPositiveQuantity", () => {
+  test("takes the CPU and memory suffixes an HPA target uses", () => {
+    expect(isPositiveQuantity("100m")).toBe(true)
+    expect(isPositiveQuantity("1")).toBe(true)
+    expect(isPositiveQuantity("500Mi")).toBe(true)
+    expect(isPositiveQuantity("1.5")).toBe(true)
+    expect(isPositiveQuantity("3e2")).toBe(true)
+  })
+
+  test("rejects zero, since a target the HPA divides by cannot be one", () => {
+    expect(isPositiveQuantity("0")).toBe(false)
+    expect(isPositiveQuantity("0Mi")).toBe(false)
+  })
+
+  test("rejects anything that is not a quantity", () => {
+    expect(isPositiveQuantity("")).toBe(false)
+    expect(isPositiveQuantity("70%")).toBe(false)
+    expect(isPositiveQuantity("-1")).toBe(false)
+    expect(isPositiveQuantity("500 Mi")).toBe(false)
   })
 })

@@ -188,6 +188,28 @@ const api = {
       ),
     listHPAs: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:hpas:list", args),
+    getHPA: (args: { contextName?: string; namespace: string; name: string }) =>
+      ipcRenderer.invoke("k8s:hpa:get", args),
+    updateHPAReplicas: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+      minReplicas: number
+      maxReplicas: number
+    }) => ipcRenderer.invoke("k8s:hpa:replicas:update", args),
+    updateHPAMetrics: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+      metrics: {
+        kind: "Resource" | "ContainerResource"
+        name: string
+        container: string
+        targetType: "Utilization" | "AverageValue" | "Value"
+        averageUtilization: number | null
+        value: string
+      }[]
+    }) => ipcRenderer.invoke("k8s:hpa:metrics:update", args),
     listPVs: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:pvs:list", args),
     listPVCs: (args?: { contextName?: string; namespace?: string }) =>

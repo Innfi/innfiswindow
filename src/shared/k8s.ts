@@ -924,6 +924,46 @@ export interface HPAMetric {
   current: string
 }
 
+/** How a metric target is expressed: a percentage of the pod's request
+ *  (`Utilization`), a per-pod average (`AverageValue`), or a total (`Value`).
+ *  Resource metrics take the first two; `Value` belongs to Object/External. */
+export type HPAMetricTargetType = "Utilization" | "AverageValue" | "Value"
+
+/**
+ * A `Resource` or `ContainerResource` entry of `spec.metrics`, structured
+ * rather than flattened into `HPAMetric`'s display strings, so the metric
+ * editor can round-trip it. Pods/Object/External metrics carry a metric
+ * selector and stay in YAML; `HPAInfo.otherMetricCount` counts them.
+ */
+export interface HPAResourceMetricSpec {
+  kind: "Resource" | "ContainerResource"
+  /** `cpu`, `memory`, or an extended resource name. */
+  name: string
+  /** The container the reading comes from; "" for a whole-pod `Resource`. */
+  container: string
+  targetType: HPAMetricTargetType
+  /** Percent of the pod's request, when `targetType` is `Utilization`. */
+  averageUtilization: number | null
+  /** Quantity, when `targetType` is `AverageValue`. */
+  value: string
+}
+
+/** A metric spec paired with what the HPA last read for it. The write path
+ *  takes the spec alone — status is the API server's to fill. */
+export interface HPAResourceMetric extends HPAResourceMetricSpec {
+  /** `status.currentMetrics` for this metric as a percentage, or null when
+   *  the metric has no reading yet. */
+  currentUtilization: number | null
+  /** `status.currentMetrics` for this metric as a quantity, or "". */
+  currentValue: string
+}
+
+/** New `spec.minReplicas`/`spec.maxReplicas` for one HPA. */
+export interface HPAReplicaBounds {
+  minReplicas: number
+  maxReplicas: number
+}
+
 export interface HPAInfo {
   name: string
   namespace: string
@@ -934,6 +974,12 @@ export interface HPAInfo {
   desiredReplicas: number
   conditions: Condition[]
   metrics: HPAMetric[]
+  /** The editable subset of `metrics`, in structured form. */
+  resourceMetrics: HPAResourceMetric[]
+  /** Pods/Object/External metrics on this HPA. The metric editor cannot
+   *  represent them and leaves them untouched; the count is shown so the user
+   *  knows the list they are editing is not the whole of `spec.metrics`. */
+  otherMetricCount: number
   creationTimestamp: string
   labels: Record<string, string>
   annotations: Record<string, string>

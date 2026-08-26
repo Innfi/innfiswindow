@@ -5,6 +5,8 @@ import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
+import { HPAMetricsButton } from "../../components/ui/HPAMetricsButton"
+import { HPAReplicasButton } from "../../components/ui/HPAReplicasButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
@@ -14,16 +16,19 @@ import {
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { K8sHPA } from "../types/k8s"
+import { HPAUtilizationSection } from "./HPAUtilizationSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
   hpa,
   onClose,
+  onReloaded,
   onDeleted,
   onDeleteDialogChange,
 }: {
   hpa: K8sHPA
   onClose: () => void
+  onReloaded: () => void
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
@@ -41,6 +46,12 @@ function DetailPanel({
     )
     .filter(([k, v]) => kv(k, v))
 
+  // Resource and ContainerResource metrics are read live by the utilisation
+  // section, which pairs each with its current value; these are the rest.
+  const otherMetrics = hpa.metrics.filter(
+    (met) => met.type !== "Resource" && met.type !== "ContainerResource",
+  )
+
   return (
     <DetailPanelLayout
       header={
@@ -52,7 +63,25 @@ function DetailPanel({
                 {hpa.namespace}
               </span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center justify-end gap-1">
+              <HPAReplicasButton
+                hpaName={hpa.name}
+                namespace={hpa.namespace}
+                minReplicas={hpa.minReplicas}
+                maxReplicas={hpa.maxReplicas}
+                currentReplicas={hpa.currentReplicas}
+                targetRef={hpa.targetRef}
+                onUpdated={onReloaded}
+                onDialogChange={onDeleteDialogChange}
+              />
+              <HPAMetricsButton
+                hpaName={hpa.name}
+                namespace={hpa.namespace}
+                metrics={hpa.resourceMetrics}
+                otherMetricCount={hpa.otherMetricCount}
+                onUpdated={onReloaded}
+                onDialogChange={onDeleteDialogChange}
+              />
               <EditButton
                 resourceKind="HPA"
                 resourceName={hpa.name}
@@ -123,11 +152,14 @@ function DetailPanel({
         <MetaEntry label="Desired" value={String(hpa.desiredReplicas)} />
       </div>
 
-      {/* Metrics */}
-      {hpa.metrics.length > 0 && (
+      <HPAUtilizationSection hpa={hpa} />
+
+      {/* Metrics the utilisation section above cannot show: they carry a
+          metric selector, and only YAML edits them. */}
+      {otherMetrics.length > 0 && (
         <div className="space-y-1">
-          <SectionHeader title="Metrics" />
-          {hpa.metrics
+          <SectionHeader title="Other Metrics" />
+          {otherMetrics
             .filter((met) => m(met.type) || m(met.target) || m(met.current))
             .map((met, i) => (
               <div key={i} className="text-sm border rounded p-2 space-y-0.5">
@@ -244,6 +276,7 @@ export function HPAsView(): JSX.Element {
         <DetailPanel
           hpa={hpa}
           onClose={ctl.onClose}
+          onReloaded={ctl.onDeleted}
           onDeleted={ctl.onDeleted}
           onDeleteDialogChange={ctl.onDeleteDialogChange}
         />

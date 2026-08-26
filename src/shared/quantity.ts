@@ -84,3 +84,21 @@ export function formatMemory(bytes: number): string {
 export function formatMillicores(nanocores: number): string {
   return `${Math.round(nanocores / 1e6)}m`
 }
+
+/** The full quantity grammar the API server accepts: decimal SI (`n` … `E`),
+ *  binary (`Ki` … `Ei`), or scientific notation. Wider than
+ *  `parseStorageQuantity`, which only covers the byte-sized suffixes a volume
+ *  can carry — an HPA target is just as often `100m` of CPU. */
+const QUANTITY_RE =
+  /^(\d+(?:\.\d+)?|\.\d+)(Ki|Mi|Gi|Ti|Pi|Ei|[numkMGTPE]|[eE][+-]?\d+)?$/
+
+/**
+ * Whether a string is a quantity the API server will take as a metric target.
+ * Targets have to be above zero — an HPA dividing by a zero target is
+ * rejected — so `0` and `0Mi` are refused along with junk.
+ */
+export function isPositiveQuantity(value: string): boolean {
+  const match = QUANTITY_RE.exec(value.trim())
+  if (!match) return false
+  return Number(match[1]) > 0
+}

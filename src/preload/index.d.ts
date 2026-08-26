@@ -607,6 +607,28 @@ export interface K8sHPACondition {
   message: string
 }
 
+export type K8sHPAMetricTargetType = "Utilization" | "AverageValue" | "Value"
+
+export interface K8sHPAResourceMetricSpec {
+  kind: "Resource" | "ContainerResource"
+  /** `cpu`, `memory`, or an extended resource name. */
+  name: string
+  /** The container the reading comes from; "" for a whole-pod `Resource`. */
+  container: string
+  targetType: K8sHPAMetricTargetType
+  /** Percent of the pod's request, when `targetType` is `Utilization`. */
+  averageUtilization: number | null
+  /** Quantity, when `targetType` is `AverageValue`. */
+  value: string
+}
+
+export interface K8sHPAResourceMetric extends K8sHPAResourceMetricSpec {
+  /** status.currentMetrics as a percentage, or null with no reading yet. */
+  currentUtilization: number | null
+  /** status.currentMetrics as a quantity, or "". */
+  currentValue: string
+}
+
 export interface K8sHPA {
   name: string
   namespace: string
@@ -617,6 +639,10 @@ export interface K8sHPA {
   desiredReplicas: number
   conditions: K8sHPACondition[]
   metrics: K8sHPAMetric[]
+  /** The editable subset of `metrics`, in structured form. */
+  resourceMetrics: K8sHPAResourceMetric[]
+  /** Pods/Object/External metrics, which the metric editor leaves alone. */
+  otherMetricCount: number
   creationTimestamp: string
   labels: Record<string, string>
   annotations: Record<string, string>
@@ -923,6 +949,24 @@ export interface K8sAPI {
     contextName?: string
     namespace?: string
   }) => Promise<K8sHPA[]>
+  getHPA: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+  }) => Promise<K8sHPA>
+  updateHPAReplicas: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    minReplicas: number
+    maxReplicas: number
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
+  updateHPAMetrics: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    metrics: K8sHPAResourceMetricSpec[]
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
   listPVs: (args?: { contextName?: string }) => Promise<K8sPV[]>
   listStorageClasses: (args?: {
     contextName?: string
