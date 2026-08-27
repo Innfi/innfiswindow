@@ -1,4 +1,5 @@
-﻿import { useState } from "react"
+﻿import { Pause, Play, RotateCw } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -340,6 +341,52 @@ export function JobsView(): JSX.Element {
   return (
     <ResourceListView<K8sJob>
       title="Jobs"
+      batch={{
+        resourceKind: "Job",
+        actions: [
+          {
+            label: "Restart",
+            runningLabel: "Restarting",
+            action: "restart",
+            icon: RotateCw,
+            destructive: true,
+            warning:
+              "Jobs are immutable: each selected Job is deleted and recreated from its spec. This cannot be undone.",
+            run: (j, ctx) =>
+              window.api.k8s.restartJob({
+                contextName: ctx,
+                namespace: j.namespace,
+                name: j.name,
+              }),
+          },
+          {
+            label: "Suspend",
+            runningLabel: "Suspending",
+            action: "suspend",
+            icon: Pause,
+            run: (j, ctx) =>
+              window.api.k8s.setJobSuspend({
+                contextName: ctx,
+                namespace: j.namespace,
+                name: j.name,
+                suspend: true,
+              }),
+          },
+          {
+            label: "Resume",
+            runningLabel: "Resuming",
+            action: "resume",
+            icon: Play,
+            run: (j, ctx) =>
+              window.api.k8s.setJobSuspend({
+                contextName: ctx,
+                namespace: j.namespace,
+                name: j.name,
+                suspend: false,
+              }),
+          },
+        ],
+      }}
       list={(ctx, ns) =>
         window.api.k8s.listJobs({ contextName: ctx, namespace: ns })
       }

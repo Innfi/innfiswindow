@@ -156,6 +156,7 @@ function DetailPanel({
 export function VolumeSnapshotsView(): JSX.Element {
   return (
     <ResourceListView<K8sVolumeSnapshot>
+      batch={{ resourceKind: "VolumeSnapshot" }}
       title="Volume Snapshots"
       emptyMessage="No VolumeSnapshots found"
       list={(ctx, ns) =>

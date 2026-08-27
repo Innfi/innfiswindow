@@ -175,6 +175,7 @@ function DetailPanel({
 export function ConfigMapsView(): JSX.Element {
   return (
     <ResourceListView<K8sConfigMapSummary, K8sConfigMap>
+      batch={{ resourceKind: "ConfigMap" }}
       title="ConfigMaps"
       list={(ctx, ns) =>
         window.api.k8s.listConfigMaps({ contextName: ctx, namespace: ns })

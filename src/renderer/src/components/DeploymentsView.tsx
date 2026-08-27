@@ -1,4 +1,5 @@
-﻿import { useCallback, useEffect, useState } from "react"
+﻿import { RotateCw } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -522,6 +523,25 @@ export function DeploymentsView(): JSX.Element {
   return (
     <ResourceListView<K8sDeploymentSummary, K8sDeployment>
       title="Deployments"
+      batch={{
+        resourceKind: "Deployment",
+        actions: [
+          {
+            label: "Restart",
+            runningLabel: "Restarting",
+            action: "restart",
+            icon: RotateCw,
+            warning:
+              "Every selected Deployment rolls its pods, one Deployment at a time.",
+            run: (d, ctx) =>
+              window.api.k8s.restartDeployment({
+                contextName: ctx,
+                namespace: d.namespace,
+                name: d.name,
+              }),
+          },
+        ],
+      }}
       list={(ctx, ns) =>
         window.api.k8s.listDeployments({ contextName: ctx, namespace: ns })
       }

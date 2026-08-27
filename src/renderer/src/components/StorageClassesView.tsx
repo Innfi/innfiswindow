@@ -153,6 +153,7 @@ function DetailPanel({
 export function StorageClassesView(): JSX.Element {
   return (
     <ResourceListView<K8sStorageClass>
+      batch={{ resourceKind: "StorageClass" }}
       title="Storage Classes"
       emptyMessage="No StorageClasses found"
       namespaced={false}

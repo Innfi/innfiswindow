@@ -201,6 +201,7 @@ function DetailPanel({
 export function LimitRangesView(): JSX.Element {
   return (
     <ResourceListView<K8sLimitRange>
+      batch={{ resourceKind: "LimitRange" }}
       title="LimitRanges"
       list={(ctx, ns) =>
         window.api.k8s.listLimitRanges({ contextName: ctx, namespace: ns })

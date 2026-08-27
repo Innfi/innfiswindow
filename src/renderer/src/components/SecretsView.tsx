@@ -198,6 +198,7 @@ function DetailPanel({
 export function SecretsView(): JSX.Element {
   return (
     <ResourceListView<K8sSecretSummary, K8sSecret>
+      batch={{ resourceKind: "Secret" }}
       title="Secrets"
       list={(ctx, ns) =>
         window.api.k8s.listSecrets({ contextName: ctx, namespace: ns })

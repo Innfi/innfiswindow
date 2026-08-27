@@ -173,6 +173,7 @@ function DetailPanel({
 export function ServiceAccountsView(): JSX.Element {
   return (
     <ResourceListView<K8sServiceAccount>
+      batch={{ resourceKind: "ServiceAccount" }}
       title="Service Accounts"
       emptyMessage="No Service Accounts found"
       list={(ctx, ns) =>

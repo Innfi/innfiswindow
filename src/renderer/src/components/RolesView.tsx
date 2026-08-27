@@ -184,6 +184,7 @@ function DetailPanel({
 export function RolesView(): JSX.Element {
   return (
     <ResourceListView<K8sRoleSummary, K8sRole>
+      batch={{ resourceKind: "Role" }}
       title="Roles"
       list={(ctx, ns) =>
         window.api.k8s.listRoles({ contextName: ctx, namespace: ns })

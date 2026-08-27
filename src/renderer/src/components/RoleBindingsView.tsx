@@ -193,6 +193,7 @@ function DetailPanel({
 export function RoleBindingsView(): JSX.Element {
   return (
     <ResourceListView<K8sRoleBinding>
+      batch={{ resourceKind: "RoleBinding" }}
       title="Role Bindings"
       emptyMessage="No Role Bindings found"
       list={(ctx, ns) =>

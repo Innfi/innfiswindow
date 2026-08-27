@@ -233,6 +233,7 @@ function DetailPanel({
 export function NetworkPoliciesView(): JSX.Element {
   return (
     <ResourceListView<K8sNetworkPolicySummary, K8sNetworkPolicy>
+      batch={{ resourceKind: "NetworkPolicy" }}
       title="Network Policies"
       emptyMessage="No NetworkPolicies found"
       list={(ctx, ns) =>

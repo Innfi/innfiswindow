@@ -252,6 +252,7 @@ function DetailPanel({
 export function HPAsView(): JSX.Element {
   return (
     <ResourceListView<K8sHPA>
+      batch={{ resourceKind: "HPA" }}
       title="HorizontalPodAutoscalers"
       list={(ctx, ns) =>
         window.api.k8s.listHPAs({ contextName: ctx, namespace: ns })

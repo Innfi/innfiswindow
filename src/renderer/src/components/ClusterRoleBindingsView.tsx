@@ -189,6 +189,7 @@ function DetailPanel({
 export function ClusterRoleBindingsView(): JSX.Element {
   return (
     <ResourceListView<K8sClusterRoleBinding>
+      batch={{ resourceKind: "ClusterRoleBinding" }}
       title="Cluster Role Bindings"
       emptyMessage="No Cluster Role Bindings found"
       namespaced={false}

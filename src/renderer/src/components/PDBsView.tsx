@@ -176,6 +176,7 @@ function DetailPanel({
 export function PDBsView(): JSX.Element {
   return (
     <ResourceListView<K8sPDB>
+      batch={{ resourceKind: "PodDisruptionBudget" }}
       title="PodDisruptionBudgets"
       list={(ctx, ns) =>
         window.api.k8s.listPDBs({ contextName: ctx, namespace: ns })

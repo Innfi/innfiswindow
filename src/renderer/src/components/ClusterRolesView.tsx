@@ -175,6 +175,7 @@ function DetailPanel({
 export function ClusterRolesView(): JSX.Element {
   return (
     <ResourceListView<K8sClusterRoleSummary, K8sClusterRole>
+      batch={{ resourceKind: "ClusterRole" }}
       title="Cluster Roles"
       emptyMessage="No Cluster Roles found"
       namespaced={false}

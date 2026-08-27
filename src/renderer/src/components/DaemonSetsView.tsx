@@ -1,4 +1,5 @@
-﻿import { useState } from "react"
+﻿import { RotateCw } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -343,6 +344,25 @@ export function DaemonSetsView(): JSX.Element {
   return (
     <ResourceListView<K8sDaemonSetSummary, K8sDaemonSet>
       title="DaemonSets"
+      batch={{
+        resourceKind: "DaemonSet",
+        actions: [
+          {
+            label: "Restart",
+            runningLabel: "Restarting",
+            action: "restart",
+            icon: RotateCw,
+            warning:
+              "Every selected DaemonSet rolls its pods on every node it runs on.",
+            run: (d, ctx) =>
+              window.api.k8s.restartDaemonSet({
+                contextName: ctx,
+                namespace: d.namespace,
+                name: d.name,
+              }),
+          },
+        ],
+      }}
       emptyMessage="No Daemon Sets found"
       list={(ctx, ns) =>
         window.api.k8s.listDaemonSets({ contextName: ctx, namespace: ns })

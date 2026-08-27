@@ -187,6 +187,7 @@ function DetailPanel({
 export function PVsView(): JSX.Element {
   return (
     <ResourceListView<K8sPV>
+      batch={{ resourceKind: "PersistentVolume" }}
       title="PersistentVolumes"
       namespaced={false}
       list={(ctx) => window.api.k8s.listPVs({ contextName: ctx })}

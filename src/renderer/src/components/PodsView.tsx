@@ -446,6 +446,7 @@ export function PodsView(): JSX.Element {
 
   return (
     <ResourceListView<K8sPodSummary, K8sPod>
+      batch={{ resourceKind: "Pod" }}
       title="Pods"
       watch="pods"
       list={(ctx, ns) =>

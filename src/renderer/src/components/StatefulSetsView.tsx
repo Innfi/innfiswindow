@@ -1,4 +1,5 @@
-﻿import { useState } from "react"
+﻿import { RotateCw } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -333,6 +334,25 @@ export function StatefulSetsView(): JSX.Element {
   return (
     <ResourceListView<K8sStatefulSetSummary, K8sStatefulSet>
       title="StatefulSets"
+      batch={{
+        resourceKind: "StatefulSet",
+        actions: [
+          {
+            label: "Restart",
+            runningLabel: "Restarting",
+            action: "restart",
+            icon: RotateCw,
+            warning:
+              "Every selected StatefulSet rolls its pods in ordinal order, one StatefulSet at a time.",
+            run: (s, ctx) =>
+              window.api.k8s.restartStatefulSet({
+                contextName: ctx,
+                namespace: s.namespace,
+                name: s.name,
+              }),
+          },
+        ],
+      }}
       emptyMessage="No Stateful Sets found"
       list={(ctx, ns) =>
         window.api.k8s.listStatefulSets({ contextName: ctx, namespace: ns })

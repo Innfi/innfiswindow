@@ -248,6 +248,7 @@ function DetailPanel({
 export function ReplicaSetsView(): JSX.Element {
   return (
     <ResourceListView<K8sReplicaSetSummary, K8sReplicaSet>
+      batch={{ resourceKind: "ReplicaSet" }}
       title="ReplicaSets"
       emptyMessage="No Replica Sets found"
       list={(ctx, ns) =>

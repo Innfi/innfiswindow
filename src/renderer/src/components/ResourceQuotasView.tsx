@@ -187,6 +187,7 @@ function DetailPanel({
 export function ResourceQuotasView(): JSX.Element {
   return (
     <ResourceListView<K8sResourceQuota>
+      batch={{ resourceKind: "ResourceQuota" }}
       title="ResourceQuotas"
       list={(ctx, ns) =>
         window.api.k8s.listResourceQuotas({ contextName: ctx, namespace: ns })

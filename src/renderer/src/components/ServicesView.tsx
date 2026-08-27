@@ -296,6 +296,7 @@ export function ServicesView(): JSX.Element {
 
   return (
     <ResourceListView<K8sService>
+      batch={{ resourceKind: "Service" }}
       title="Services"
       list={(ctx, ns) =>
         window.api.k8s.listServices({ contextName: ctx, namespace: ns })

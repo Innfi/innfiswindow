@@ -222,6 +222,7 @@ function DetailPanel({
 export function EndpointsView(): JSX.Element {
   return (
     <ResourceListView<K8sEndpointSummary, K8sEndpoint>
+      batch={{ resourceKind: "Endpoints" }}
       title="Endpoints"
       list={(ctx, ns) =>
         window.api.k8s.listEndpoints({ contextName: ctx, namespace: ns })

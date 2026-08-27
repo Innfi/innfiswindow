@@ -1,4 +1,5 @@
-﻿import { useState } from "react"
+﻿import { Pause, Play, PlayCircle } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -288,6 +289,51 @@ export function CronJobsView(): JSX.Element {
   return (
     <ResourceListView<K8sCronJob>
       title="CronJobs"
+      batch={{
+        resourceKind: "CronJob",
+        actions: [
+          {
+            label: "Trigger",
+            runningLabel: "Triggering",
+            action: "create",
+            icon: PlayCircle,
+            warning:
+              "Each selected CronJob gets a Job created from its template now, on top of its schedule.",
+            run: (cj, ctx) =>
+              window.api.k8s.restartCronJob({
+                contextName: ctx,
+                namespace: cj.namespace,
+                name: cj.name,
+              }),
+          },
+          {
+            label: "Suspend",
+            runningLabel: "Suspending",
+            action: "suspend",
+            icon: Pause,
+            run: (cj, ctx) =>
+              window.api.k8s.setCronJobSuspend({
+                contextName: ctx,
+                namespace: cj.namespace,
+                name: cj.name,
+                suspend: true,
+              }),
+          },
+          {
+            label: "Resume",
+            runningLabel: "Resuming",
+            action: "resume",
+            icon: Play,
+            run: (cj, ctx) =>
+              window.api.k8s.setCronJobSuspend({
+                contextName: ctx,
+                namespace: cj.namespace,
+                name: cj.name,
+                suspend: false,
+              }),
+          },
+        ],
+      }}
       list={(ctx, ns) =>
         window.api.k8s.listCronJobs({ contextName: ctx, namespace: ns })
       }

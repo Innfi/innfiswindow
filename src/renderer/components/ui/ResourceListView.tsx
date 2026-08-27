@@ -1,4 +1,11 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react"
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 
 import { WatchResource } from "../../../shared/watch"
@@ -9,6 +16,7 @@ import {
   useResourceDetail,
 } from "../../src/hooks/useResourceDetail"
 import { useAppStore } from "../../store/app.store"
+import { BatchActionBar, BatchConfig } from "./BatchActionBar"
 import { EmptyState } from "./EmptyState"
 import { RefreshBar } from "./RefreshBar"
 import {
@@ -92,6 +100,12 @@ interface ResourceListViewProps<T extends Namespaced, D> {
    * established or drops.
    */
   watch?: WatchResource
+  /**
+   * Opts the list into multi-select: a checkbox column, and an action bar that
+   * runs one verb over every checked row. Delete comes for free from the GVK;
+   * `batch.actions` adds the kind's own verbs.
+   */
+  batch?: BatchConfig<T>
 }
 
 const sameItem = (a: Namespaced | null, b: Namespaced): boolean =>
@@ -112,6 +126,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
   sortOptions,
   rowClassName,
   watch,
+  batch,
 }: ResourceListViewProps<T, D>): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as T | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
@@ -119,7 +134,14 @@ export function ResourceListView<T extends Namespaced, D = T>({
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false)
   const [sortIndex, setSortIndex] = useState(0)
+  // Checked rows, by the same key the table renders them under. Held as keys
+  // rather than items so a poll tick handing back new objects doesn't drop the
+  // selection.
+  const [checkedKeys, setCheckedKeys] = useState<ReadonlySet<string>>(new Set())
+  // Anchor for shift-click range selection, as an index into `visible`.
+  const anchorRef = useRef<number | null>(null)
 
   // The active namespace is pushed down to the handler so the API server does
   // the filtering — a cluster-wide list of every pod is a large IPC payload to
@@ -130,7 +152,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
     list,
     selectedContext,
     {
-      paused: deleteDialogOpen,
+      paused: deleteDialogOpen || batchDialogOpen,
       namespace: namespaced ? selectedNamespace : null,
       watch,
     },
@@ -163,6 +185,48 @@ export function ResourceListView<T extends Namespaced, D = T>({
     ((item: T): string =>
       item.namespace ? `${item.namespace}/${item.name}` : item.name)
 
+  // The selection is over the rows on screen: a key that has been filtered
+  // out, or whose object is gone from the cluster, must not end up in a batch.
+  const checkedItems = useMemo(
+    () => (batch ? visible.filter((item) => checkedKeys.has(keyOf(item))) : []),
+    [batch, visible, checkedKeys],
+  )
+  const clearChecked = useCallback(() => setCheckedKeys(new Set()), [])
+
+  // A different context or namespace is a different set of objects, so any
+  // carried-over checkmark would point at the wrong one.
+  useEffect(() => {
+    clearChecked()
+    anchorRef.current = null
+  }, [selectedContext, selectedNamespace, clearChecked])
+
+  function toggleChecked(index: number, shiftKey: boolean): void {
+    const item = visible[index]
+    const key = keyOf(item)
+    const next = new Set(checkedKeys)
+    const anchor = anchorRef.current
+    if (shiftKey && anchor !== null && anchor < visible.length) {
+      // Shift-click extends from the anchor, taking the clicked row's new
+      // state for the whole range — the behaviour of every other list UI.
+      const on = !next.has(key)
+      const [from, to] = anchor <= index ? [anchor, index] : [index, anchor]
+      for (let i = from; i <= to; i++) {
+        const k = keyOf(visible[i])
+        if (on) next.add(k)
+        else next.delete(k)
+      }
+    } else if (next.has(key)) {
+      next.delete(key)
+    } else {
+      next.add(key)
+    }
+    anchorRef.current = index
+    setCheckedKeys(next)
+  }
+
+  const allChecked =
+    checkedItems.length > 0 && checkedItems.length === visible.length
+
   const showDetail = selectedItem !== null && detailGuard(selectedItem)
 
   const {
@@ -173,7 +237,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
     getDetail,
     showDetail ? selectedItem : null,
     selectedContext,
-    { paused: deleteDialogOpen },
+    { paused: deleteDialogOpen || batchDialogOpen },
   )
 
   // Only the rows in view are mounted; a large cluster otherwise puts thousands
@@ -228,11 +292,49 @@ export function ResourceListView<T extends Namespaced, D = T>({
         {!loading && !error && visible.length === 0 && (
           <EmptyState message={emptyMessage ?? `No ${title} found`} />
         )}
+        {batch && checkedItems.length > 0 && (
+          <BatchActionBar
+            config={batch}
+            selected={checkedItems}
+            onClear={clearChecked}
+            onDone={(succeeded) => {
+              const done = new Set(succeeded.map(keyOf))
+              setCheckedKeys(
+                new Set([...checkedKeys].filter((k) => !done.has(k))),
+              )
+            }}
+            onReload={reload}
+            onDialogChange={setBatchDialogOpen}
+          />
+        )}
         {!loading && !error && visible.length > 0 && (
           <div ref={scrollRef} className="flex-1 overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  {batch && (
+                    <TableHead className="w-8">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select all ${title}`}
+                        className="accent-primary align-middle"
+                        checked={allChecked}
+                        ref={(el) => {
+                          if (el)
+                            el.indeterminate =
+                              checkedItems.length > 0 && !allChecked
+                        }}
+                        onChange={() => {
+                          anchorRef.current = null
+                          setCheckedKeys(
+                            allChecked
+                              ? new Set()
+                              : new Set(visible.map(keyOf)),
+                          )
+                        }}
+                      />
+                    </TableHead>
+                  )}
                   {columns.map((col) => (
                     <TableHead
                       key={col.head}
@@ -247,7 +349,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
                 {paddingTop > 0 && (
                   <tr aria-hidden>
                     <td
-                      colSpan={columns.length}
+                      colSpan={columns.length + (batch ? 1 : 0)}
                       style={{ height: paddingTop }}
                     />
                   </tr>
@@ -270,6 +372,26 @@ export function ResourceListView<T extends Namespaced, D = T>({
                         )
                       }
                     >
+                      {batch && (
+                        <TableCell
+                          className="w-8"
+                          // The checkbox column is for picking rows, not for
+                          // opening one: a click here must not swap the detail
+                          // panel out from under the selection.
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${keyOf(item)}`}
+                            className="accent-primary align-middle"
+                            checked={checkedKeys.has(keyOf(item))}
+                            onChange={() => {}}
+                            onClick={(e) =>
+                              toggleChecked(virtualRow.index, e.shiftKey)
+                            }
+                          />
+                        </TableCell>
+                      )}
                       {columns.map((col) => (
                         <TableCell
                           key={col.head}
@@ -289,7 +411,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
                 {paddingBottom > 0 && (
                   <tr aria-hidden>
                     <td
-                      colSpan={columns.length}
+                      colSpan={columns.length + (batch ? 1 : 0)}
                       style={{ height: paddingBottom }}
                     />
                   </tr>

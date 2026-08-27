@@ -258,6 +258,7 @@ function DetailPanel({
 export function IngressesView(): JSX.Element {
   return (
     <ResourceListView<K8sIngressSummary, K8sIngress>
+      batch={{ resourceKind: "Ingress" }}
       title="Ingresses"
       list={(ctx, ns) =>
         window.api.k8s.listIngresses({ contextName: ctx, namespace: ns })
