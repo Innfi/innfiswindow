@@ -6,9 +6,13 @@ import type {
   DeleteResourceOptions,
   PropagationPolicy,
 } from "../../../shared/k8s"
-import { resourceGvk } from "../../lib/resource-gvk"
+import {
+  type ResourceGvk,
+  resourceGvk,
+  type ResourceKind,
+} from "../../lib/resource-gvk"
 import { useRecordHistory } from "../../src/hooks/useRecordHistory"
-import { DrawerTabInput, useAppStore } from "../../store/app.store"
+import { useAppStore } from "../../store/app.store"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -20,11 +24,6 @@ import {
 import { Button } from "./Button"
 import { Input } from "./Input"
 import { Label } from "./Label"
-
-type DeletableKind = Extract<
-  DrawerTabInput,
-  { type: "yaml-edit" }
->["resourceKind"]
 
 const PROPAGATION_CHOICES: {
   value: PropagationPolicy
@@ -49,7 +48,9 @@ const PROPAGATION_CHOICES: {
 ]
 
 interface DeleteButtonProps {
-  resourceKind: DeletableKind
+  resourceKind: ResourceKind
+  /** Required for a custom resource, whose group/version only its CRD knows. */
+  gvk?: ResourceGvk
   resourceName: string
   /** Omit for cluster-scoped resources. */
   namespace?: string
@@ -73,6 +74,7 @@ interface DeleteButtonProps {
  */
 export function DeleteButton({
   resourceKind,
+  gvk,
   resourceName,
   namespace,
   onDeleted,
@@ -92,7 +94,7 @@ export function DeleteButton({
   // Blank grace period means "use the object's own terminationGracePeriod".
   const [grace, setGrace] = useState("")
   const [force, setForce] = useState(false)
-  const { apiVersion, kind } = resourceGvk(resourceKind)
+  const { apiVersion, kind } = resourceGvk(resourceKind, gvk)
 
   const graceSeconds = Number(grace)
   const graceValid =

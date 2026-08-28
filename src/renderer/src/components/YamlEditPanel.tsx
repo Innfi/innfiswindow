@@ -40,7 +40,7 @@ export function YamlEditPanel({
 
   useEffect(() => {
     let cancelled = false
-    const { apiVersion, kind } = resourceGvk(tab.resourceKind)
+    const { apiVersion, kind } = resourceGvk(tab.resourceKind, tab.gvk)
     setLoading(true)
     window.api.k8s
       .readResource(
@@ -68,7 +68,7 @@ export function YamlEditPanel({
     return () => {
       cancelled = true
     }
-  }, [tab.resourceKind, tab.resourceName, tab.namespace])
+  }, [tab.resourceKind, tab.gvk, tab.resourceName, tab.namespace])
 
   const hasChanges = yaml !== baseline
 

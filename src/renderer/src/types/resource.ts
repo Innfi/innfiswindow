@@ -23,6 +23,8 @@ export const RESOURCE_TYPES = [
   "PersistentVolumeClaims",
   "StorageClasses",
   "VolumeSnapshots",
+  "CustomResourceDefinitions",
+  "custom-resources",
   "Jobs",
   "CronJobs",
   "ResourceQuotas",

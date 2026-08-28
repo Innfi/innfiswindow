@@ -50,7 +50,17 @@ const groups: { label: string; items: ResourceType[] }[] = [
     label: "Governance",
     items: ["ResourceQuotas", "LimitRanges", "PodDisruptionBudgets"],
   },
+  {
+    label: "Custom Resources",
+    items: ["CustomResourceDefinitions", "custom-resources"],
+  },
 ]
+
+/** Tree labels for the leaves whose ResourceType name isn't presentable. */
+const itemLabels: Partial<Record<ResourceType, string>> = {
+  CustomResourceDefinitions: "Definitions",
+  "custom-resources": "Browse objects",
+}
 
 const clusterTypeBadgeClass: Record<string, string> = {
   EKS: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
@@ -186,7 +196,7 @@ export function TreeView(): JSX.Element {
                         )}
                         onClick={() => selectLeaf(ctx.name, item)}
                       >
-                        {item}
+                        {itemLabels[item] ?? item}
                       </div>
                     ))}
                   </Collapsible.Content>

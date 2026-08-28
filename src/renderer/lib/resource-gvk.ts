@@ -1,16 +1,11 @@
-import { DrawerTabInput } from "../store/app.store"
-
-type YamlEditKind = Extract<
-  DrawerTabInput,
-  { type: "yaml-edit" }
->["resourceKind"]
-
 export interface ResourceGvk {
   apiVersion: string
   kind: string
 }
 
-const GVK: Record<YamlEditKind, ResourceGvk> = {
+/** The kinds this app has a view for. Custom resources are not in here — they
+ *  are addressed by the GVK their CRD declares, passed alongside the kind. */
+const GVK = {
   Deployment: { apiVersion: "apps/v1", kind: "Deployment" },
   ReplicaSet: { apiVersion: "apps/v1", kind: "ReplicaSet" },
   DaemonSet: { apiVersion: "apps/v1", kind: "DaemonSet" },
@@ -54,8 +49,36 @@ const GVK: Record<YamlEditKind, ResourceGvk> = {
     apiVersion: "snapshot.storage.k8s.io/v1",
     kind: "VolumeSnapshot",
   },
-}
+  CustomResourceDefinition: {
+    apiVersion: "apiextensions.k8s.io/v1",
+    kind: "CustomResourceDefinition",
+  },
+} as const satisfies Record<string, ResourceGvk>
 
-export function resourceGvk(kind: YamlEditKind): ResourceGvk {
-  return GVK[kind]
+export type BuiltinResourceKind = keyof typeof GVK
+
+/**
+ * A kind the shared write buttons can act on. The open arm keeps the built-in
+ * names as autocomplete suggestions while still admitting a custom resource's
+ * kind, which is only known at runtime — such a kind must be passed with its
+ * own `gvk`, since there is nothing to look it up in. (`Record<never, never>`
+ * is `{}` spelled in a way the ban-types rule allows: intersecting it with
+ * `string` is what stops the union collapsing to plain `string`.)
+ */
+export type ResourceKind = BuiltinResourceKind | (string & Record<never, never>)
+
+/** Resolves a kind to its group/version. `override` is what a custom resource
+ *  passes: the CRD supplies the GVK, so no lookup happens. */
+export function resourceGvk(
+  kind: ResourceKind,
+  override?: ResourceGvk,
+): ResourceGvk {
+  if (override) return override
+  const known = GVK[kind as BuiltinResourceKind]
+  if (!known) {
+    throw new Error(
+      `No apiVersion known for kind "${kind}" — pass its GVK explicitly.`,
+    )
+  }
+  return known
 }

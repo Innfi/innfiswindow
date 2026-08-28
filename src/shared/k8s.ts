@@ -1038,3 +1038,88 @@ export interface HelmRelease {
   status: string
   updated: string
 }
+
+// ---------------------------------------------------------------------------
+// customresources.ts
+// ---------------------------------------------------------------------------
+
+/** One entry of a CRD version's `additionalPrinterColumns`. `jsonPath` is
+ *  evaluated against each object by `evaluateJsonPath`. */
+export interface CRDPrinterColumn {
+  name: string
+  type: string
+  jsonPath: string
+  description: string
+  /** Columns above 0 are the ones `kubectl get -o wide` hides by default. */
+  priority: number
+}
+
+export interface CRDVersionInfo {
+  name: string
+  served: boolean
+  storage: boolean
+  deprecated: boolean
+  deprecationWarning: string
+  printerColumns: CRDPrinterColumn[]
+  /** Whether this version exposes the `scale` subresource, which is what
+   *  makes a CR scalable by an HPA. */
+  hasScale: boolean
+  hasStatus: boolean
+}
+
+export interface CRDInfo {
+  /** `plural.group`, the CRD object's own name. */
+  name: string
+  group: string
+  kind: string
+  listKind: string
+  singular: string
+  plural: string
+  shortNames: string[]
+  categories: string[]
+  scope: CustomResourceScope
+  versions: CRDVersionInfo[]
+  /** The one version with `storage: true` — the version to read and write. */
+  storageVersion: string
+  /** Every version with `served: true`, in the order the CRD declares them. */
+  servedVersions: string[]
+  established: boolean
+  conditions: Condition[]
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
+export type CustomResourceScope = "Namespaced" | "Cluster"
+
+/** Addresses one CRD version's objects. Everything the generic browser needs
+ *  to list, read, edit and delete a kind it has no compiled-in knowledge of. */
+export interface CustomResourceRef {
+  group: string
+  version: string
+  plural: string
+  kind: string
+  scope: CustomResourceScope
+}
+
+export interface CustomResourceInfo {
+  name: string
+  namespace: string
+  /** Cluster-scoped kinds report `""`, matching the other cluster-scoped
+   *  list shapes. */
+  apiVersion: string
+  kind: string
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+  /** One entry per requested printer column, in order. `null` where the
+   *  JSONPath did not resolve, so the view renders a dash rather than "". */
+  columns: (string | null)[]
+}
+
+/** A row plus the object behind it — the detail panel renders the whole
+ *  manifest, since nothing here knows the kind's schema. */
+export interface CustomResourceDetail {
+  info: CustomResourceInfo
+  object: Record<string, unknown>
+}

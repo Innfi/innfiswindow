@@ -83,6 +83,14 @@ export const resourceViews: Record<ResourceType, ComponentType> = {
     () => import("./components/VolumeSnapshotsView"),
     "VolumeSnapshotsView",
   ),
+  CustomResourceDefinitions: named(
+    () => import("./components/CRDsView"),
+    "CRDsView",
+  ),
+  "custom-resources": named(
+    () => import("./components/CustomResourcesView"),
+    "CustomResourcesView",
+  ),
   Jobs: named(() => import("./components/JobsView"), "JobsView"),
   CronJobs: named(() => import("./components/CronJobsView"), "CronJobsView"),
   ResourceQuotas: named(

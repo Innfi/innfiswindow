@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, session, shell } from "electron"
 import { join } from "path"
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
 import {
+  ApiextensionsV1Api,
   AppsV1Api,
   AutoscalingV2Api,
   BatchV1Api,
@@ -26,6 +27,7 @@ import {
   createContextClientsCache,
   createKubeConfigCache,
 } from "./ipc/context-clients"
+import { registerCustomResourceHandlers } from "./ipc/customresources"
 import { registerDialogHandlers } from "./ipc/dialog"
 import { registerEventsHandlers } from "./ipc/events"
 import { registerGovernanceHandlers } from "./ipc/governance"
@@ -46,6 +48,7 @@ const kc = new KubeConfig()
 kc.loadFromDefault()
 
 const coreV1Api = kc.makeApiClient(CoreV1Api)
+const apiextensionsV1Api = kc.makeApiClient(ApiextensionsV1Api)
 const appsV1Api = kc.makeApiClient(AppsV1Api)
 const networkingV1Api = kc.makeApiClient(NetworkingV1Api)
 const rbacV1Api = kc.makeApiClient(RbacAuthorizationV1Api)
@@ -57,6 +60,7 @@ const storageV1Api = kc.makeApiClient(StorageV1Api)
 
 const { getContextClients, invalidateContext } = createContextClientsCache({
   coreV1: coreV1Api,
+  apiextensionsV1: apiextensionsV1Api,
   appsV1: appsV1Api,
   networkingV1: networkingV1Api,
   rbacV1: rbacV1Api,
@@ -213,6 +217,7 @@ app.whenReady().then(() => {
   registerBatchHandlers(ipcMain, getContextClients)
   registerAutoscalingHandlers(ipcMain, getContextClients)
   registerStorageHandlers(ipcMain, getContextClients)
+  registerCustomResourceHandlers(ipcMain, getContextClients)
   registerApplyHandlers(ipcMain, getKubeConfig)
   registerAwsHandlers(ipcMain)
   registerAlarmHandlers(ipcMain, getContextClients)

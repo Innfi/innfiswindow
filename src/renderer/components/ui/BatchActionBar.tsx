@@ -6,12 +6,16 @@ import type {
   DeleteResourceOptions,
   PropagationPolicy,
 } from "../../../shared/k8s"
-import { resourceGvk } from "../../lib/resource-gvk"
+import {
+  type ResourceGvk,
+  resourceGvk,
+  type ResourceKind,
+} from "../../lib/resource-gvk"
 import {
   HistoryTarget,
   useRecordHistory,
 } from "../../src/hooks/useRecordHistory"
-import { DrawerTabInput, useAppStore } from "../../store/app.store"
+import { useAppStore } from "../../store/app.store"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -22,8 +26,6 @@ import {
 } from "./AlertDialog"
 import { Button } from "./Button"
 import { Label } from "./Label"
-
-type BatchKind = Extract<DrawerTabInput, { type: "yaml-edit" }>["resourceKind"]
 
 interface Named {
   name: string
@@ -50,7 +52,9 @@ export interface BatchAction<T> {
 /** Opts a `ResourceListView` into multi-select. Delete is always offered. */
 export interface BatchConfig<T> {
   /** GVK of the rows, for the built-in delete and for history records. */
-  resourceKind: BatchKind
+  resourceKind: ResourceKind
+  /** Required for a custom resource, whose group/version only its CRD knows. */
+  gvk?: ResourceGvk
   /** Verbs offered alongside Delete. */
   actions?: BatchAction<T>[]
   /** Seeds the cascade choice of the built-in delete. */
@@ -111,7 +115,7 @@ export function BatchActionBar<T extends Named>({
     config.propagationPolicy ?? "Background",
   )
   const [force, setForce] = useState(false)
-  const { apiVersion, kind } = resourceGvk(config.resourceKind)
+  const { apiVersion, kind } = resourceGvk(config.resourceKind, config.gvk)
 
   function openDialog(action: BatchAction<T> | null): void {
     setFailures([])

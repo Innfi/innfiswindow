@@ -19,6 +19,9 @@ The tree sidebar lists every kubeconfig context, each expanding into these group
 - **Auth**: ServiceAccounts, Roles, ClusterRoles, RoleBindings, ClusterRoleBindings
 - **Storage**: PersistentVolumes, PersistentVolumeClaims, StorageClasses, VolumeSnapshots
 - **Governance**: ResourceQuotas, LimitRanges, PodDisruptionBudgets
+- **Custom Resources**: Definitions (CRDs), Browse objects — a generic browser
+  for any CRD in the cluster, with the columns that CRD's own
+  `additionalPrinterColumns` declare
 
 Standalone sections below the tree cover **Helm** (Repositories, Releases) and **Alarms** (Rules, Active Alarms).
 

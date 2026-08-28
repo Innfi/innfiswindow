@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
+import type { ResourceGvk, ResourceKind } from "../lib/resource-gvk"
 import type { ResourceType } from "../src/types/resource"
 
 interface K8sPodContainer {
@@ -106,35 +107,10 @@ export type DrawerTab =
       id: string
       tabKey: string
       type: "yaml-edit"
-      resourceKind:
-        | "Deployment"
-        | "Service"
-        | "Ingress"
-        | "DaemonSet"
-        | "StatefulSet"
-        | "ConfigMap"
-        | "Secret"
-        | "Namespace"
-        | "Pod"
-        | "ReplicaSet"
-        | "HPA"
-        | "PersistentVolume"
-        | "PersistentVolumeClaim"
-        | "NetworkPolicy"
-        | "ResourceQuota"
-        | "LimitRange"
-        | "PodDisruptionBudget"
-        | "CronJob"
-        | "Job"
-        | "Role"
-        | "ClusterRole"
-        | "RoleBinding"
-        | "ClusterRoleBinding"
-        | "ServiceAccount"
-        | "Node"
-        | "Endpoints"
-        | "StorageClass"
-        | "VolumeSnapshot"
+      resourceKind: ResourceKind
+      /** Required for a kind outside the built-in GVK table — a custom
+       *  resource, whose group/version only its CRD knows. */
+      gvk?: ResourceGvk
       resourceName: string
       namespace: string
       initialYaml: string
@@ -178,35 +154,10 @@ export type DrawerTabInput =
   | {
       tabKey: string
       type: "yaml-edit"
-      resourceKind:
-        | "Deployment"
-        | "Service"
-        | "Ingress"
-        | "DaemonSet"
-        | "StatefulSet"
-        | "ConfigMap"
-        | "Secret"
-        | "Namespace"
-        | "Pod"
-        | "ReplicaSet"
-        | "HPA"
-        | "PersistentVolume"
-        | "PersistentVolumeClaim"
-        | "NetworkPolicy"
-        | "ResourceQuota"
-        | "LimitRange"
-        | "PodDisruptionBudget"
-        | "CronJob"
-        | "Job"
-        | "Role"
-        | "ClusterRole"
-        | "RoleBinding"
-        | "ClusterRoleBinding"
-        | "ServiceAccount"
-        | "Node"
-        | "Endpoints"
-        | "StorageClass"
-        | "VolumeSnapshot"
+      resourceKind: ResourceKind
+      /** Required for a kind outside the built-in GVK table — a custom
+       *  resource, whose group/version only its CRD knows. */
+      gvk?: ResourceGvk
       resourceName: string
       namespace: string
       initialYaml: string
@@ -229,8 +180,17 @@ export type DrawerTabInput =
 
 export type RefreshIntervalValue = 10 | 30 | 60 | 120 | "off"
 
+/** Which CRD version the generic custom-resource browser is pointed at. Held
+ *  as a CRD name rather than a resolved ref so the printer columns are always
+ *  re-read from the live CRD, which an operator upgrade can change. */
+export interface CustomResourceTarget {
+  crdName: string
+  version: string
+}
+
 export interface ContextState {
   selectedResourceType: ResourceType | null
+  customResourceTarget: CustomResourceTarget | null
   selectedItem: object | null
   selectedNamespace: string | null
   nameFilter: string
@@ -240,6 +200,7 @@ export interface ContextState {
 
 interface AppState {
   selectedResourceType: ResourceType | null
+  customResourceTarget: CustomResourceTarget | null
   selectedItem: object | null
   selectedNamespace: string | null
   selectedContext: string | null
@@ -257,6 +218,8 @@ interface AppState {
   globalErrors: ErrorEntry[]
   unreadErrorCount: number
   setSelectedResourceType: (type: ResourceType | null) => void
+  setCustomResourceTarget: (target: CustomResourceTarget | null) => void
+  browseCustomResource: (target: CustomResourceTarget) => void
   setSelectedItem: (item: object | null) => void
   navigateToResource: (type: ResourceType, item: object) => void
   setSelectedNamespace: (ns: string | null) => void
@@ -285,6 +248,7 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       selectedResourceType: null,
+      customResourceTarget: null,
       selectedItem: null,
       selectedNamespace: null,
       selectedContext: null,
@@ -303,6 +267,17 @@ export const useAppStore = create<AppState>()(
       unreadErrorCount: 0,
       setSelectedResourceType: (type) =>
         set({ selectedResourceType: type, selectedItem: null }),
+      setCustomResourceTarget: (target) =>
+        set({ customResourceTarget: target, selectedItem: null }),
+      // Point the generic browser at a kind and show it, in one step: the
+      // browser reads the target on mount, so setting it after the view
+      // switched would render one frame of the previous kind.
+      browseCustomResource: (target) =>
+        set({
+          customResourceTarget: target,
+          selectedResourceType: "custom-resources",
+          selectedItem: null,
+        }),
       setSelectedItem: (item) => set({ selectedItem: item }),
       navigateToResource: (type, item) =>
         set({ selectedResourceType: type, selectedItem: item }),
@@ -326,6 +301,7 @@ export const useAppStore = create<AppState>()(
         if (prev !== null) {
           updatedContextStates[prev] = {
             selectedResourceType: state.selectedResourceType,
+            customResourceTarget: state.customResourceTarget,
             selectedItem: state.selectedItem,
             selectedNamespace: state.selectedNamespace,
             nameFilter: state.nameFilter,
@@ -353,6 +329,7 @@ export const useAppStore = create<AppState>()(
             selectedContext: ctx,
             contextStates: updatedContextStates,
             selectedResourceType: saved.selectedResourceType,
+            customResourceTarget: saved.customResourceTarget,
             selectedItem: saved.selectedItem,
             selectedNamespace: restoredNamespace,
             nameFilter: saved.nameFilter,
@@ -364,6 +341,7 @@ export const useAppStore = create<AppState>()(
             selectedContext: ctx,
             contextStates: updatedContextStates,
             selectedResourceType: null,
+            customResourceTarget: null,
             selectedItem: null,
             selectedNamespace: restoredNamespace,
             nameFilter: "",

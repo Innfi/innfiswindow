@@ -226,6 +226,33 @@ const api = {
       contextName?: string
       namespace?: string
     }) => ipcRenderer.invoke("k8s:volumesnapshots:list", args),
+    listCRDs: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:crds:list", args),
+    listCustomResources: (args: {
+      contextName?: string
+      namespace?: string
+      ref: {
+        group: string
+        version: string
+        plural: string
+        kind: string
+        scope: "Namespaced" | "Cluster"
+      }
+      printerColumns?: string[]
+    }) => ipcRenderer.invoke("k8s:customresources:list", args),
+    getCustomResource: (args: {
+      contextName?: string
+      namespace?: string
+      name: string
+      ref: {
+        group: string
+        version: string
+        plural: string
+        kind: string
+        scope: "Namespaced" | "Cluster"
+      }
+      printerColumns?: string[]
+    }) => ipcRenderer.invoke("k8s:customresource:get", args),
     listResourceQuotas: (args?: { contextName?: string; namespace?: string }) =>
       ipcRenderer.invoke("k8s:resourcequotas:list", args),
     listLimitRanges: (args?: { contextName?: string; namespace?: string }) =>

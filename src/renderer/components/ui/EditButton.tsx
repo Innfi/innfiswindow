@@ -1,18 +1,17 @@
 import { Pencil } from "lucide-react"
 
+import type { ResourceGvk, ResourceKind } from "../../lib/resource-gvk"
 import { dumpYaml } from "../../lib/yaml"
-import { DrawerTabInput, useAppStore } from "../../store/app.store"
+import { useAppStore } from "../../store/app.store"
 import { Button } from "./Button"
 
-type YamlEditKind = Extract<
-  DrawerTabInput,
-  { type: "yaml-edit" }
->["resourceKind"]
-
 interface EditButtonProps {
-  resourceKind: YamlEditKind
+  resourceKind: ResourceKind
   resourceName: string
   namespace?: string
+  /** Required for a custom resource: its group/version is only known from the
+   *  CRD, so the editor cannot look the kind up. */
+  gvk?: ResourceGvk
   buildYaml: () => Record<string, unknown>
   className?: string
 }
@@ -21,6 +20,7 @@ export function EditButton({
   resourceKind,
   resourceName,
   namespace = "",
+  gvk,
   buildYaml,
   className,
 }: EditButtonProps): JSX.Element {
@@ -35,6 +35,7 @@ export function EditButton({
       tabKey,
       type: "yaml-edit",
       resourceKind,
+      ...(gvk ? { gvk } : {}),
       resourceName,
       namespace: ns,
       initialYaml: dumpYaml(buildYaml()),

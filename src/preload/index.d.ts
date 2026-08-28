@@ -2,6 +2,12 @@ import { ElectronAPI } from "@electron-toolkit/preload"
 import { K8sEndpoint, K8sEndpointSummary } from "@renderer/types/k8s"
 
 import type {
+  CRDInfo,
+  CustomResourceDetail,
+  CustomResourceInfo,
+  CustomResourceRef,
+} from "../shared/k8s"
+import type {
   WatchClosedMessage,
   WatchEventMessage,
   WatchSnapshot,
@@ -714,6 +720,14 @@ export interface K8sVolumeSnapshot {
   annotations: Record<string, string>
 }
 
+// CRDs and their objects are described by the canonical shapes rather than
+// re-declared here: the generic browser is driven by the CRD's own metadata,
+// so the two sides drifting would be a silent wrong-column bug.
+export type K8sCRD = CRDInfo
+export type K8sCustomResource = CustomResourceInfo
+export type K8sCustomResourceDetail = CustomResourceDetail
+export type K8sCustomResourceRef = CustomResourceRef
+
 export interface K8sServiceAccount {
   name: string
   namespace: string
@@ -975,6 +989,22 @@ export interface K8sAPI {
     contextName?: string
     namespace?: string
   }) => Promise<K8sVolumeSnapshot[]>
+  listCRDs: (args?: { contextName?: string }) => Promise<K8sCRD[]>
+  listCustomResources: (args: {
+    contextName?: string
+    namespace?: string
+    ref: K8sCustomResourceRef
+    /** JSONPaths from the CRD version's `additionalPrinterColumns`; each row
+     *  comes back with one `columns` entry per path, in order. */
+    printerColumns?: string[]
+  }) => Promise<K8sCustomResource[]>
+  getCustomResource: (args: {
+    contextName?: string
+    namespace?: string
+    name: string
+    ref: K8sCustomResourceRef
+    printerColumns?: string[]
+  }) => Promise<K8sCustomResourceDetail>
   listJobs: (args?: {
     contextName?: string
     namespace?: string
