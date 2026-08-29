@@ -44,6 +44,10 @@ const GVK = {
   },
   Node: { apiVersion: "v1", kind: "Node" },
   Endpoints: { apiVersion: "v1", kind: "Endpoints" },
+  EndpointSlice: {
+    apiVersion: "discovery.k8s.io/v1",
+    kind: "EndpointSlice",
+  },
   StorageClass: { apiVersion: "storage.k8s.io/v1", kind: "StorageClass" },
   VolumeSnapshot: {
     apiVersion: "snapshot.storage.k8s.io/v1",

@@ -4,7 +4,7 @@ import type { ResourceType } from "./types/resource"
 
 /**
  * Views are code-split: only the selected one is fetched and evaluated, so the
- * initial bundle doesn't carry all 35 (plus Monaco, xterm, and recharts behind
+ * initial bundle doesn't carry all 36 (plus Monaco, xterm, and recharts behind
  * them). Consumers must render these under a <Suspense> boundary.
  */
 const named = <M, K extends keyof M>(
@@ -51,6 +51,10 @@ export const resourceViews: Record<ResourceType, ComponentType> = {
     "NetworkPoliciesView",
   ),
   Endpoints: named(() => import("./components/EndpointsView"), "EndpointsView"),
+  EndpointSlices: named(
+    () => import("./components/EndpointSlicesView"),
+    "EndpointSlicesView",
+  ),
   Events: named(() => import("./components/EventsView"), "EventsView"),
   HPAs: named(() => import("./components/HPAsView"), "HPAsView"),
   ServiceAccounts: named(

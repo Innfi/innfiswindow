@@ -1,9 +1,11 @@
 import { load as yamlLoad } from "js-yaml"
 import {
   CoreV1Api,
+  DiscoveryV1Api,
   NetworkingV1Api,
   V1EndpointAddress,
   V1Endpoints,
+  V1EndpointSlice,
   V1Ingress,
   V1NetworkPolicy,
   V1NetworkPolicyPeer,
@@ -13,6 +15,10 @@ import {
 import {
   EndpointAddress,
   EndpointInfo,
+  EndpointSliceEndpoint,
+  EndpointSliceInfo,
+  EndpointSlicePortInfo,
+  EndpointSliceSummary,
   EndpointSummary,
   IngressInfo,
   IngressSummary,
@@ -364,6 +370,82 @@ export async function getEndpoint(
         protocol: p.protocol ?? "TCP",
       })),
     })),
+  }
+}
+
+/** The API tells consumers to read an unset `ready` as true, so an endpoint
+ *  only counts as not-ready when the publisher said so explicitly. */
+function isSliceEndpointReady(ready: boolean | null | undefined): boolean {
+  return ready !== false
+}
+
+function mapEndpointSlicePorts(
+  slice: V1EndpointSlice,
+): EndpointSlicePortInfo[] {
+  return (slice.ports ?? []).map((p) => ({
+    name: p.name ?? "",
+    port: p.port ?? null,
+    protocol: p.protocol ?? "TCP",
+    appProtocol: p.appProtocol ?? null,
+  }))
+}
+
+function mapEndpointSliceSummary(slice: V1EndpointSlice): EndpointSliceSummary {
+  const endpoints = slice.endpoints ?? []
+  const ports = mapEndpointSlicePorts(slice).map(
+    (p) =>
+      `${p.name ? p.name + ":" : ""}${p.port === null ? "*" : p.port}/${p.protocol}`,
+  )
+  return {
+    name: slice.metadata?.name ?? "",
+    namespace: slice.metadata?.namespace ?? "",
+    serviceName: slice.metadata?.labels?.["kubernetes.io/service-name"] ?? "",
+    addressType: slice.addressType,
+    endpointCount: endpoints.length,
+    readyCount: endpoints.filter((e) =>
+      isSliceEndpointReady(e.conditions?.ready),
+    ).length,
+    ports: [...new Set(ports)].join(", "),
+    creationTimestamp: slice.metadata?.creationTimestamp?.toISOString() ?? "",
+  }
+}
+
+export async function listEndpointSlices(
+  api: DiscoveryV1Api,
+  namespace?: string,
+): Promise<EndpointSliceSummary[]> {
+  const res = namespace
+    ? await api.listNamespacedEndpointSlice({ namespace })
+    : await api.listEndpointSliceForAllNamespaces()
+  return res.items.map(mapEndpointSliceSummary)
+}
+
+export async function getEndpointSlice(
+  api: DiscoveryV1Api,
+  namespace: string,
+  name: string,
+): Promise<EndpointSliceInfo> {
+  const slice = await api.readNamespacedEndpointSlice({ name, namespace })
+  const endpoints: EndpointSliceEndpoint[] = (slice.endpoints ?? []).map(
+    (e) => ({
+      addresses: e.addresses ?? [],
+      ready: e.conditions?.ready ?? null,
+      serving: e.conditions?.serving ?? null,
+      terminating: e.conditions?.terminating ?? null,
+      hostname: e.hostname ?? null,
+      nodeName: e.nodeName ?? null,
+      zone: e.zone ?? null,
+      targetKind: e.targetRef?.kind ?? null,
+      targetName: e.targetRef?.name ?? null,
+      targetNamespace: e.targetRef?.namespace ?? null,
+    }),
+  )
+  return {
+    ...mapEndpointSliceSummary(slice),
+    labels: slice.metadata?.labels ?? {},
+    annotations: slice.metadata?.annotations ?? {},
+    endpoints,
+    endpointPorts: mapEndpointSlicePorts(slice),
   }
 }
 

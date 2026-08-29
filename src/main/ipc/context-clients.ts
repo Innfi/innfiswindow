@@ -5,6 +5,7 @@ import {
   BatchV1Api,
   CoreV1Api,
   CustomObjectsApi,
+  DiscoveryV1Api,
   KubeConfig,
   NetworkingV1Api,
   PolicyV1Api,
@@ -16,6 +17,7 @@ export interface ApiClients {
   coreV1: CoreV1Api
   apiextensionsV1: ApiextensionsV1Api
   appsV1: AppsV1Api
+  discoveryV1: DiscoveryV1Api
   networkingV1: NetworkingV1Api
   rbacV1: RbacAuthorizationV1Api
   autoscalingV2: AutoscalingV2Api
@@ -65,6 +67,7 @@ export function createContextClientsCache(defaultClients: ApiClients): {
       coreV1: ctxKc.makeApiClient(CoreV1Api),
       apiextensionsV1: ctxKc.makeApiClient(ApiextensionsV1Api),
       appsV1: ctxKc.makeApiClient(AppsV1Api),
+      discoveryV1: ctxKc.makeApiClient(DiscoveryV1Api),
       networkingV1: ctxKc.makeApiClient(NetworkingV1Api),
       rbacV1: ctxKc.makeApiClient(RbacAuthorizationV1Api),
       autoscalingV2: ctxKc.makeApiClient(AutoscalingV2Api),

@@ -323,6 +323,13 @@ const api = {
       namespace: string
       name: string
     }) => ipcRenderer.invoke("k8s:endpoint:get", args),
+    listEndpointSlices: (args?: { contextName?: string; namespace?: string }) =>
+      ipcRenderer.invoke("k8s:endpointslices:list", args),
+    getEndpointSlice: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:endpointslice:get", args),
     getClusterType: () => ipcRenderer.invoke("k8s:cluster:type"),
     createDeployment: (
       namespace: string,

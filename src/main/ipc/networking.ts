@@ -5,9 +5,11 @@ import {
   createIngress,
   createService,
   getEndpoint,
+  getEndpointSlice,
   getIngress,
   getNetworkPolicy,
   listEndpoints,
+  listEndpointSlices,
   listIngresses,
   listNetworkPolicies,
   listServices,
@@ -54,6 +56,14 @@ export function registerNetworkingHandlers(
         args?.namespace,
       ),
   )
+  ipcMain.handle(
+    "k8s:endpointslices:list",
+    (_e, args?: { contextName?: string; namespace?: string }) =>
+      listEndpointSlices(
+        getContextClients(args?.contextName).discoveryV1,
+        args?.namespace,
+      ),
+  )
 
   // The list handlers above return counts and summaries; these fetch the rules
   // and addresses behind them.
@@ -80,6 +90,15 @@ export function registerNetworkingHandlers(
     (_e, args: { contextName?: string; namespace: string; name: string }) =>
       getEndpoint(
         getContextClients(args.contextName).coreV1,
+        args.namespace,
+        args.name,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:endpointslice:get",
+    (_e, args: { contextName?: string; namespace: string; name: string }) =>
+      getEndpointSlice(
+        getContextClients(args.contextName).discoveryV1,
         args.namespace,
         args.name,
       ),

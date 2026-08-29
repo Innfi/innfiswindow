@@ -574,6 +574,49 @@ export interface EndpointInfo extends EndpointSummary {
   subsets: EndpointSubset[]
 }
 
+export interface EndpointSlicePortInfo {
+  name: string
+  /** Null is the API's "all ports" wildcard, not a missing value. */
+  port: number | null
+  protocol: string
+  appProtocol: string | null
+}
+
+export interface EndpointSliceEndpoint {
+  addresses: string[]
+  /** The conditions are tri-state: unset means the publisher did not say, and
+   *  the API tells consumers to read an unset `ready` as true. */
+  ready: boolean | null
+  serving: boolean | null
+  terminating: boolean | null
+  hostname: string | null
+  nodeName: string | null
+  zone: string | null
+  targetKind: string | null
+  targetName: string | null
+  targetNamespace: string | null
+}
+
+export interface EndpointSliceSummary {
+  name: string
+  namespace: string
+  /** Owning Service, from the `kubernetes.io/service-name` label. Empty for a
+   *  slice published by something other than the EndpointSlice controller. */
+  serviceName: string
+  addressType: string
+  endpointCount: number
+  readyCount: number
+  ports: string
+  creationTimestamp: string
+}
+
+export interface EndpointSliceInfo extends EndpointSliceSummary {
+  labels: Record<string, string>
+  annotations: Record<string, string>
+  endpoints: EndpointSliceEndpoint[]
+  endpointPorts: EndpointSlicePortInfo[]
+}
+
 export interface NetworkPolicyPeer {
   ipBlock?: { cidr: string; except: string[] }
   namespaceSelector?: Record<string, string>

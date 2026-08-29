@@ -25,7 +25,13 @@ const groups: { label: string; items: ResourceType[] }[] = [
   { label: "Configuration", items: ["ConfigMaps", "Secrets"] },
   {
     label: "Networking",
-    items: ["Services", "Ingresses", "NetworkPolicies", "Endpoints"],
+    items: [
+      "Services",
+      "Ingresses",
+      "NetworkPolicies",
+      "Endpoints",
+      "EndpointSlices",
+    ],
   },
   {
     label: "Auth",

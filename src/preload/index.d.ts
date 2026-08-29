@@ -1,5 +1,10 @@
 import { ElectronAPI } from "@electron-toolkit/preload"
-import { K8sEndpoint, K8sEndpointSummary } from "@renderer/types/k8s"
+import {
+  K8sEndpoint,
+  K8sEndpointSlice,
+  K8sEndpointSliceSummary,
+  K8sEndpointSummary,
+} from "@renderer/types/k8s"
 
 import type {
   CRDInfo,
@@ -1109,6 +1114,15 @@ export interface K8sAPI {
     namespace: string
     name: string
   }) => Promise<K8sEndpoint>
+  listEndpointSlices: (args?: {
+    contextName?: string
+    namespace?: string
+  }) => Promise<K8sEndpointSliceSummary[]>
+  getEndpointSlice: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+  }) => Promise<K8sEndpointSlice>
   getClusterType: () => Promise<"EKS" | "AKS" | "Local">
   createDeployment: (
     namespace: string,

@@ -8,6 +8,7 @@ import {
   BatchV1Api,
   CoreV1Api,
   CustomObjectsApi,
+  DiscoveryV1Api,
   KubeConfig,
   NetworkingV1Api,
   PolicyV1Api,
@@ -50,6 +51,7 @@ kc.loadFromDefault()
 const coreV1Api = kc.makeApiClient(CoreV1Api)
 const apiextensionsV1Api = kc.makeApiClient(ApiextensionsV1Api)
 const appsV1Api = kc.makeApiClient(AppsV1Api)
+const discoveryV1Api = kc.makeApiClient(DiscoveryV1Api)
 const networkingV1Api = kc.makeApiClient(NetworkingV1Api)
 const rbacV1Api = kc.makeApiClient(RbacAuthorizationV1Api)
 const autoscalingV2Api = kc.makeApiClient(AutoscalingV2Api)
@@ -62,6 +64,7 @@ const { getContextClients, invalidateContext } = createContextClientsCache({
   coreV1: coreV1Api,
   apiextensionsV1: apiextensionsV1Api,
   appsV1: appsV1Api,
+  discoveryV1: discoveryV1Api,
   networkingV1: networkingV1Api,
   rbacV1: rbacV1Api,
   autoscalingV2: autoscalingV2Api,
