@@ -5,6 +5,7 @@ import {
   listPVCs,
   listPVs,
   listStorageClasses,
+  listVolumeSnapshotClasses,
   listVolumeSnapshots,
 } from "../k8s-handlers"
 import { GetContextClients } from "./context-clients"
@@ -55,6 +56,13 @@ export function registerStorageHandlers(
       listVolumeSnapshots(
         getContextClients(args?.contextName).customObjects,
         args?.namespace,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:volumesnapshotclasses:list",
+    (_e, args?: { contextName?: string }) =>
+      listVolumeSnapshotClasses(
+        getContextClients(args?.contextName).customObjects,
       ),
   )
 }

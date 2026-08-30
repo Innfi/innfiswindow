@@ -87,6 +87,10 @@ export const resourceViews: Record<ResourceType, ComponentType> = {
     () => import("./components/VolumeSnapshotsView"),
     "VolumeSnapshotsView",
   ),
+  VolumeSnapshotClasses: named(
+    () => import("./components/VolumeSnapshotClassesView"),
+    "VolumeSnapshotClassesView",
+  ),
   CustomResourceDefinitions: named(
     () => import("./components/CRDsView"),
     "CRDsView",

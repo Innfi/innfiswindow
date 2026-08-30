@@ -226,6 +226,8 @@ const api = {
       contextName?: string
       namespace?: string
     }) => ipcRenderer.invoke("k8s:volumesnapshots:list", args),
+    listVolumeSnapshotClasses: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:volumesnapshotclasses:list", args),
     listCRDs: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:crds:list", args),
     listCustomResources: (args: {

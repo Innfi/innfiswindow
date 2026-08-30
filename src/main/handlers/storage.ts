@@ -15,6 +15,7 @@ import {
   PVInfo,
   PVSourceInfo,
   StorageClassInfo,
+  VolumeSnapshotClassInfo,
   VolumeSnapshotInfo,
 } from "./types"
 
@@ -191,6 +192,48 @@ export async function listVolumeSnapshots(
           : "",
         labels: (meta.labels as Record<string, string>) ?? {},
         annotations: (meta.annotations as Record<string, string>) ?? {},
+      }
+    })
+  } catch (e: unknown) {
+    const err = e as { response?: { statusCode?: number }; statusCode?: number }
+    const code = err?.response?.statusCode ?? err?.statusCode
+    if (code === 404 || code === 403) return []
+    throw e
+  }
+}
+
+/** VolumeSnapshotClass is a CRD installed by the snapshot controller, not a
+ *  built-in kind, so it is read through `customObjects` and a cluster without
+ *  the controller answers 404 — an empty list, the same treatment
+ *  `listVolumeSnapshots` gives. */
+export async function listVolumeSnapshotClasses(
+  api: CustomObjectsApi,
+): Promise<VolumeSnapshotClassInfo[]> {
+  try {
+    const res = (await api.listClusterCustomObject({
+      group: "snapshot.storage.k8s.io",
+      version: "v1",
+      plural: "volumesnapshotclasses",
+    })) as { items?: unknown[] }
+    const items = res.items ?? []
+    return items.map((item: unknown) => {
+      const cls = item as Record<string, unknown>
+      const meta = (cls.metadata ?? {}) as Record<string, unknown>
+      const annotations =
+        (meta.annotations as Record<string, string>) ?? ({} as const)
+      return {
+        name: (meta.name as string) ?? "",
+        driver: (cls.driver as string) ?? "",
+        deletionPolicy: (cls.deletionPolicy as string) ?? "",
+        isDefault:
+          annotations["snapshot.storage.kubernetes.io/is-default-class"] ===
+          "true",
+        parameters: (cls.parameters as Record<string, string>) ?? {},
+        creationTimestamp: meta.creationTimestamp
+          ? new Date(meta.creationTimestamp as string).toISOString()
+          : "",
+        labels: (meta.labels as Record<string, string>) ?? {},
+        annotations,
       }
     })
   } catch (e: unknown) {

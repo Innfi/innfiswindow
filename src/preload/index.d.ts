@@ -725,6 +725,18 @@ export interface K8sVolumeSnapshot {
   annotations: Record<string, string>
 }
 
+export interface K8sVolumeSnapshotClass {
+  name: string
+  driver: string
+  deletionPolicy: string
+  /** Carries `snapshot.storage.kubernetes.io/is-default-class: "true"`. */
+  isDefault: boolean
+  parameters: Record<string, string>
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 // CRDs and their objects are described by the canonical shapes rather than
 // re-declared here: the generic browser is driven by the CRD's own metadata,
 // so the two sides drifting would be a silent wrong-column bug.
@@ -994,6 +1006,9 @@ export interface K8sAPI {
     contextName?: string
     namespace?: string
   }) => Promise<K8sVolumeSnapshot[]>
+  listVolumeSnapshotClasses: (args?: {
+    contextName?: string
+  }) => Promise<K8sVolumeSnapshotClass[]>
   listCRDs: (args?: { contextName?: string }) => Promise<K8sCRD[]>
   listCustomResources: (args: {
     contextName?: string

@@ -114,5 +114,6 @@ export type {
   UpdateServiceAccountResult,
   VolumeInfo,
   VolumeMount,
+  VolumeSnapshotClassInfo,
   VolumeSnapshotInfo,
 } from "../../shared/k8s"

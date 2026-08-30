@@ -53,6 +53,10 @@ const GVK = {
     apiVersion: "snapshot.storage.k8s.io/v1",
     kind: "VolumeSnapshot",
   },
+  VolumeSnapshotClass: {
+    apiVersion: "snapshot.storage.k8s.io/v1",
+    kind: "VolumeSnapshotClass",
+  },
   CustomResourceDefinition: {
     apiVersion: "apiextensions.k8s.io/v1",
     kind: "CustomResourceDefinition",

@@ -50,6 +50,7 @@ const groups: { label: string; items: ResourceType[] }[] = [
       "PersistentVolumeClaims",
       "StorageClasses",
       "VolumeSnapshots",
+      "VolumeSnapshotClasses",
     ],
   },
   {

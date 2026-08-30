@@ -96,6 +96,7 @@ export type K8sEndpointSlice = Shared.EndpointSliceInfo
 export type K8sPDB = Shared.PDBInfo
 export type K8sStorageClass = Shared.StorageClassInfo
 export type K8sVolumeSnapshot = Shared.VolumeSnapshotInfo
+export type K8sVolumeSnapshotClass = Shared.VolumeSnapshotClassInfo
 export type K8sCRDPrinterColumn = Shared.CRDPrinterColumn
 export type K8sCRDVersion = Shared.CRDVersionInfo
 export type K8sCRD = Shared.CRDInfo

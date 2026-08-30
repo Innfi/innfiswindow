@@ -728,6 +728,23 @@ export interface VolumeSnapshotInfo {
   annotations: Record<string, string>
 }
 
+export interface VolumeSnapshotClassInfo {
+  name: string
+  /** The CSI driver that takes the snapshot. */
+  driver: string
+  /** `Delete` or `Retain` — what happens to the underlying VolumeSnapshotContent
+   *  when the VolumeSnapshot that bound it is deleted. */
+  deletionPolicy: string
+  /** True when the class carries
+   *  `snapshot.storage.kubernetes.io/is-default-class: "true"`, which is what a
+   *  VolumeSnapshot with no `volumeSnapshotClassName` falls back to. */
+  isDefault: boolean
+  parameters: Record<string, string>
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 // ---------------------------------------------------------------------------
 // config.ts
 // ---------------------------------------------------------------------------
