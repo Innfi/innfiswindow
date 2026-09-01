@@ -31,6 +31,7 @@ import {
   scaleDeployment,
   scaleReplicaSet,
   scaleStatefulSet,
+  setDeploymentPaused,
 } from "../k8s-handlers"
 import { GetContextClients } from "./context-clients"
 
@@ -195,6 +196,24 @@ export function registerWorkloadHandlers(
         getContextClients(args.contextName).appsV1,
         args.namespace,
         args.name,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:deployment:pause",
+    (
+      _e,
+      args: {
+        contextName?: string
+        namespace: string
+        name: string
+        paused: boolean
+      },
+    ) =>
+      setDeploymentPaused(
+        getContextClients(args.contextName).appsV1,
+        args.namespace,
+        args.name,
+        args.paused,
       ),
   )
   ipcMain.handle(

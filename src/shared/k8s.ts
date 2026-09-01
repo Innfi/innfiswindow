@@ -266,6 +266,8 @@ export interface DeploymentSummary {
   readyReplicas: number
   updatedReplicas: number
   availableReplicas: number
+  /** `spec.paused`: the rollout controller ignores template changes while set. */
+  paused: boolean
   creationTimestamp: string
 }
 

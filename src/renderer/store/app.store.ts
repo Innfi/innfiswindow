@@ -58,6 +58,7 @@ export interface HistoryEntry {
     | "scale"
     | "suspend"
     | "resume"
+    | "pause"
     | "cordon"
     | "uncordon"
     | "drain"

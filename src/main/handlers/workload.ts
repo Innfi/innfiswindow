@@ -191,6 +191,7 @@ function mapDeploymentSummary(d: V1Deployment): DeploymentSummary {
     readyReplicas: d.status?.readyReplicas ?? 0,
     updatedReplicas: d.status?.updatedReplicas ?? 0,
     availableReplicas: d.status?.availableReplicas ?? 0,
+    paused: d.spec?.paused ?? false,
     creationTimestamp: d.metadata?.creationTimestamp?.toISOString() ?? "",
   }
 }
@@ -974,6 +975,24 @@ export async function restartDeployment(
 ): Promise<MutationResult> {
   await api.patchNamespacedDeployment(
     { name, namespace, body: restartPatchBody() },
+    MERGE_PATCH,
+  )
+  return { success: true, name, namespace }
+}
+
+/** Flips `spec.paused`, as `kubectl rollout pause/resume` does. A paused
+ *  Deployment keeps its pods but stops reconciling template changes, so edits
+ *  pile up until it is resumed and then roll out as one revision. Resuming
+ *  writes `false` rather than dropping the field; both read the same to the
+ *  controller. */
+export async function setDeploymentPaused(
+  api: AppsV1Api,
+  namespace: string,
+  name: string,
+  paused: boolean,
+): Promise<MutationResult> {
+  await api.patchNamespacedDeployment(
+    { name, namespace, body: { spec: { paused } } },
     MERGE_PATCH,
   )
   return { success: true, name, namespace }

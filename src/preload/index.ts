@@ -353,6 +353,12 @@ const api = {
       namespace: string
       name: string
     }) => ipcRenderer.invoke("k8s:deployment:restart", args),
+    setDeploymentPaused: (args: {
+      contextName?: string
+      namespace: string
+      name: string
+      paused: boolean
+    }) => ipcRenderer.invoke("k8s:deployment:pause", args),
     scaleDeployment: (args: {
       contextName?: string
       namespace: string

@@ -6,6 +6,7 @@ import {
   scaleDeployment,
   scaleReplicaSet,
   scaleStatefulSet,
+  setDeploymentPaused,
 } from "../handlers/workload"
 
 // The patch bodies and their content type are what these handlers exist for,
@@ -108,6 +109,31 @@ describe("suspend handlers", () => {
       name: "nightly",
       namespace: "ns",
       body: { spec: { suspend: false } },
+    })
+  })
+})
+
+describe("rollout pause handler", () => {
+  test("pause patches spec.paused", async () => {
+    const { calls, api } = stubApi()
+    const res = await setDeploymentPaused(api, "ns", "web", true)
+    expect(res).toEqual({ success: true, name: "web", namespace: "ns" })
+    expect(calls[0].method).toBe("patchNamespacedDeployment")
+    expect(calls[0].args[0]).toEqual({
+      name: "web",
+      namespace: "ns",
+      body: { spec: { paused: true } },
+    })
+    expect(contentType(calls[0])).toContain("strategic-merge-patch")
+  })
+
+  test("resume patches spec.paused false", async () => {
+    const { calls, api } = stubApi()
+    await setDeploymentPaused(api, "ns", "web", false)
+    expect(calls[0].args[0]).toEqual({
+      name: "web",
+      namespace: "ns",
+      body: { spec: { paused: false } },
     })
   })
 })

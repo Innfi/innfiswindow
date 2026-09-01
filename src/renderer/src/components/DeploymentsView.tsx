@@ -1,4 +1,4 @@
-﻿import { RotateCw } from "lucide-react"
+﻿import { Pause, Play, RotateCw } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -17,6 +17,7 @@ import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
+import { PauseRolloutButton } from "../../components/ui/PauseRolloutButton"
 import {
   ageColumn,
   DetailController,
@@ -217,6 +218,14 @@ function DetailPanel({
               >
                 Restart
               </Button>
+              <PauseRolloutButton
+                resourceKind="Deployment"
+                resourceName={deployment.name}
+                namespace={deployment.namespace}
+                paused={deployment.paused}
+                onChanged={onReloaded}
+                onDialogChange={onDeleteDialogChange}
+              />
               <DeleteButton
                 resourceKind="Deployment"
                 resourceName={deployment.name}
@@ -257,6 +266,7 @@ function DetailPanel({
           value={String(deployment.availableReplicas)}
         />
         <MetaEntry label="Strategy" value={deployment.strategy} />
+        <MetaEntry label="Paused" value={deployment.paused ? "Yes" : "No"} />
         {deployment.rollingUpdate && (
           <>
             <MetaEntry
@@ -501,6 +511,12 @@ function DetailPanel({
               to revision <strong>#{rollbackRevision}</strong>?
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deployment.paused && (
+            <p className="text-sm text-amber-600 dark:text-amber-400">
+              This Deployment&apos;s rollout is paused: the old pod template is
+              written now but no pods are replaced until it is resumed.
+            </p>
+          )}
           <AlertDialogFooter>
             <Button
               variant="outline"
@@ -540,6 +556,34 @@ export function DeploymentsView(): JSX.Element {
                 name: d.name,
               }),
           },
+          {
+            label: "Pause",
+            runningLabel: "Pausing",
+            action: "pause",
+            icon: Pause,
+            warning:
+              "Pods keep running, but no template change rolls out on a paused Deployment until it is resumed.",
+            run: (d, ctx) =>
+              window.api.k8s.setDeploymentPaused({
+                contextName: ctx,
+                namespace: d.namespace,
+                name: d.name,
+                paused: true,
+              }),
+          },
+          {
+            label: "Resume",
+            runningLabel: "Resuming",
+            action: "resume",
+            icon: Play,
+            run: (d, ctx) =>
+              window.api.k8s.setDeploymentPaused({
+                contextName: ctx,
+                namespace: d.namespace,
+                name: d.name,
+                paused: false,
+              }),
+          },
         ],
       }}
       list={(ctx, ns) =>
@@ -562,6 +606,7 @@ export function DeploymentsView(): JSX.Element {
         { head: "Ready", cell: (d) => `${d.readyReplicas}/${d.replicas}` },
         { head: "Up-to-date", cell: (d) => d.updatedReplicas },
         { head: "Available", cell: (d) => d.availableReplicas },
+        { head: "Paused", cell: (d) => (d.paused ? "Yes" : "No") },
         ageColumn<K8sDeploymentSummary>(),
       ]}
       renderDetail={(deployment, ctl: DetailController) => (

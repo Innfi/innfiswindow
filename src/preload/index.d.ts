@@ -298,6 +298,7 @@ export interface K8sDeploymentSummary {
   readyReplicas: number
   updatedReplicas: number
   availableReplicas: number
+  paused: boolean
   creationTimestamp: string
 }
 
@@ -1154,6 +1155,12 @@ export interface K8sAPI {
     contextName?: string
     namespace: string
     name: string
+  }) => Promise<{ success: boolean; name: string; namespace: string }>
+  setDeploymentPaused: (args: {
+    contextName?: string
+    namespace: string
+    name: string
+    paused: boolean
   }) => Promise<{ success: boolean; name: string; namespace: string }>
   scaleDeployment: (args: {
     contextName?: string
