@@ -46,6 +46,10 @@ export const resourceViews: Record<ResourceType, ComponentType> = {
   Pods: named(() => import("./components/PodsView"), "PodsView"),
   Services: named(() => import("./components/ServicesView"), "ServicesView"),
   Ingresses: named(() => import("./components/IngressesView"), "IngressesView"),
+  IngressClasses: named(
+    () => import("./components/IngressClassesView"),
+    "IngressClassesView",
+  ),
   NetworkPolicies: named(
     () => import("./components/NetworkPoliciesView"),
     "NetworkPoliciesView",

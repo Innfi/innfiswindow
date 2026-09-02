@@ -309,6 +309,8 @@ const api = {
       namespace: string
       name: string
     }) => ipcRenderer.invoke("k8s:ingress:get", args),
+    listIngressClasses: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:ingressclasses:list", args),
     listNetworkPolicies: (args?: {
       contextName?: string
       namespace?: string

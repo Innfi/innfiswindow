@@ -28,6 +28,7 @@ const groups: { label: string; items: ResourceType[] }[] = [
     items: [
       "Services",
       "Ingresses",
+      "IngressClasses",
       "NetworkPolicies",
       "Endpoints",
       "EndpointSlices",

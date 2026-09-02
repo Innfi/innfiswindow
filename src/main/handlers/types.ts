@@ -54,6 +54,8 @@ export type {
   HPAReplicaBounds,
   HPAResourceMetric,
   HPAResourceMetricSpec,
+  IngressClassInfo,
+  IngressClassParametersRef,
   IngressInfo,
   IngressPathInfo,
   IngressRuleInfo,

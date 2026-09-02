@@ -10,6 +10,7 @@ export const RESOURCE_TYPES = [
   "Pods",
   "Services",
   "Ingresses",
+  "IngressClasses",
   "NetworkPolicies",
   "Endpoints",
   "EndpointSlices",

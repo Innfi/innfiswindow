@@ -592,6 +592,27 @@ export interface K8sIngress extends K8sIngressSummary {
   annotations: Record<string, string>
 }
 
+export interface K8sIngressClassParametersRef {
+  apiGroup: string
+  kind: string
+  name: string
+  /** `Cluster` (the default) or `Namespace`. */
+  scope: string
+  /** Set only when scope is `Namespace`. */
+  namespace: string
+}
+
+export interface K8sIngressClass {
+  name: string
+  controller: string
+  parameters: K8sIngressClassParametersRef | null
+  /** Carries `ingressclass.kubernetes.io/is-default-class: "true"`. */
+  isDefault: boolean
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 export interface K8sEvent {
   name: string
   namespace: string
@@ -1112,6 +1133,9 @@ export interface K8sAPI {
     namespace: string
     name: string
   }) => Promise<K8sIngress>
+  listIngressClasses: (args?: {
+    contextName?: string
+  }) => Promise<K8sIngressClass[]>
   listNetworkPolicies: (args?: {
     contextName?: string
     namespace?: string

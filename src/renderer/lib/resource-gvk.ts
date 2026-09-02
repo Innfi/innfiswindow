@@ -21,6 +21,10 @@ const GVK = {
   ResourceQuota: { apiVersion: "v1", kind: "ResourceQuota" },
   LimitRange: { apiVersion: "v1", kind: "LimitRange" },
   Ingress: { apiVersion: "networking.k8s.io/v1", kind: "Ingress" },
+  IngressClass: {
+    apiVersion: "networking.k8s.io/v1",
+    kind: "IngressClass",
+  },
   NetworkPolicy: { apiVersion: "networking.k8s.io/v1", kind: "NetworkPolicy" },
   HPA: { apiVersion: "autoscaling/v2", kind: "HorizontalPodAutoscaler" },
   PodDisruptionBudget: {

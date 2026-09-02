@@ -10,6 +10,7 @@ import {
   getNetworkPolicy,
   listEndpoints,
   listEndpointSlices,
+  listIngressClasses,
   listIngresses,
   listNetworkPolicies,
   listServices,
@@ -39,6 +40,11 @@ export function registerNetworkingHandlers(
         getContextClients(args?.contextName).networkingV1,
         args?.namespace,
       ),
+  )
+  ipcMain.handle(
+    "k8s:ingressclasses:list",
+    (_e, args?: { contextName?: string }) =>
+      listIngressClasses(getContextClients(args?.contextName).networkingV1),
   )
   ipcMain.handle(
     "k8s:networkpolicies:list",

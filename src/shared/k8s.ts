@@ -543,6 +543,32 @@ export interface IngressInfo extends IngressSummary {
   annotations: Record<string, string>
 }
 
+export interface IngressClassParametersRef {
+  apiGroup: string
+  kind: string
+  name: string
+  /** `Cluster` (the default) or `Namespace`. */
+  scope: string
+  /** Set only when scope is `Namespace`. */
+  namespace: string
+}
+
+export interface IngressClassInfo {
+  name: string
+  /** The controller that acts on Ingresses naming this class, e.g.
+   *  `k8s.io/ingress-nginx`. Immutable once set. */
+  controller: string
+  /** The controller-specific config object this class points at, if any. */
+  parameters: IngressClassParametersRef | null
+  /** True when the class carries
+   *  `ingressclass.kubernetes.io/is-default-class: "true"`, which is what an
+   *  Ingress with no `spec.ingressClassName` falls back to. */
+  isDefault: boolean
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 export interface EndpointAddress {
   ip: string
   targetPodName: string | null

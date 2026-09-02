@@ -7,6 +7,7 @@ import {
   V1Endpoints,
   V1EndpointSlice,
   V1Ingress,
+  V1IngressClass,
   V1NetworkPolicy,
   V1NetworkPolicyPeer,
   V1NetworkPolicyPort,
@@ -20,6 +21,8 @@ import {
   EndpointSlicePortInfo,
   EndpointSliceSummary,
   EndpointSummary,
+  IngressClassInfo,
+  IngressClassParametersRef,
   IngressInfo,
   IngressSummary,
   NetworkPolicyInfo,
@@ -141,6 +144,43 @@ export async function getIngress(
     labels: ing.metadata?.labels ?? {},
     annotations: ing.metadata?.annotations ?? {},
   }
+}
+
+const DEFAULT_INGRESS_CLASS_ANNOTATION =
+  "ingressclass.kubernetes.io/is-default-class"
+
+function mapIngressClass(cls: V1IngressClass): IngressClassInfo {
+  const ref = cls.spec?.parameters
+  const parameters: IngressClassParametersRef | null = ref
+    ? {
+        // An empty apiGroup means the core group, which is what the API server
+        // reads an unset one as — keep it "" rather than inventing a group.
+        apiGroup: ref.apiGroup ?? "",
+        kind: ref.kind ?? "",
+        name: ref.name ?? "",
+        scope: ref.scope ?? "Cluster",
+        namespace: ref.namespace ?? "",
+      }
+    : null
+  const annotations = cls.metadata?.annotations ?? {}
+  return {
+    name: cls.metadata?.name ?? "",
+    controller: cls.spec?.controller ?? "",
+    parameters,
+    isDefault: annotations[DEFAULT_INGRESS_CLASS_ANNOTATION] === "true",
+    creationTimestamp: cls.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: cls.metadata?.labels ?? {},
+    annotations,
+  }
+}
+
+/** IngressClasses are cluster-scoped, so there is no namespace argument — the
+ *  list every Ingress's `spec.ingressClassName` points into. */
+export async function listIngressClasses(
+  api: NetworkingV1Api,
+): Promise<IngressClassInfo[]> {
+  const res = await api.listIngressClass()
+  return res.items.map(mapIngressClass)
 }
 
 export async function createService(
