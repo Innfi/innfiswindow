@@ -961,6 +961,22 @@ export interface PDBInfo {
   annotations: Record<string, string>
 }
 
+export interface PriorityClassInfo {
+  name: string
+  /** The priority the scheduler compares pods by; higher wins a preemption. */
+  value: number
+  /** True for the class a pod with no `priorityClassName` gets. At most one
+   *  class in a cluster may set it. */
+  globalDefault: boolean
+  description: string
+  /** `PreemptLowerPriority` (the default) or `Never` — a `Never` class still
+   *  queues ahead of lower-priority pods but evicts nothing. */
+  preemptionPolicy: string
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 // ---------------------------------------------------------------------------
 // batch.ts
 // ---------------------------------------------------------------------------

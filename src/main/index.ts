@@ -13,6 +13,7 @@ import {
   NetworkingV1Api,
   PolicyV1Api,
   RbacAuthorizationV1Api,
+  SchedulingV1Api,
   StorageV1Api,
 } from "@kubernetes/client-node"
 
@@ -58,6 +59,7 @@ const autoscalingV2Api = kc.makeApiClient(AutoscalingV2Api)
 const batchV1Api = kc.makeApiClient(BatchV1Api)
 const customObjectsApi = kc.makeApiClient(CustomObjectsApi)
 const policyV1Api = kc.makeApiClient(PolicyV1Api)
+const schedulingV1Api = kc.makeApiClient(SchedulingV1Api)
 const storageV1Api = kc.makeApiClient(StorageV1Api)
 
 const { getContextClients, invalidateContext } = createContextClientsCache({
@@ -71,6 +73,7 @@ const { getContextClients, invalidateContext } = createContextClientsCache({
   batchV1: batchV1Api,
   customObjects: customObjectsApi,
   policyV1: policyV1Api,
+  schedulingV1: schedulingV1Api,
   storageV1: storageV1Api,
 })
 

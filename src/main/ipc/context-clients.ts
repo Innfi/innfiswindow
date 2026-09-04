@@ -10,6 +10,7 @@ import {
   NetworkingV1Api,
   PolicyV1Api,
   RbacAuthorizationV1Api,
+  SchedulingV1Api,
   StorageV1Api,
 } from "@kubernetes/client-node"
 
@@ -24,6 +25,7 @@ export interface ApiClients {
   batchV1: BatchV1Api
   customObjects: CustomObjectsApi
   policyV1: PolicyV1Api
+  schedulingV1: SchedulingV1Api
   storageV1: StorageV1Api
 }
 
@@ -74,6 +76,7 @@ export function createContextClientsCache(defaultClients: ApiClients): {
       batchV1: ctxKc.makeApiClient(BatchV1Api),
       customObjects: ctxKc.makeApiClient(CustomObjectsApi),
       policyV1: ctxKc.makeApiClient(PolicyV1Api),
+      schedulingV1: ctxKc.makeApiClient(SchedulingV1Api),
       storageV1: ctxKc.makeApiClient(StorageV1Api),
     }
     clientCache.set(contextName, clients)

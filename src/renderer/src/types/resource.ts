@@ -33,6 +33,7 @@ export const RESOURCE_TYPES = [
   "ResourceQuotas",
   "LimitRanges",
   "PodDisruptionBudgets",
+  "PriorityClasses",
   "overview",
   "custom-stream",
   "history",

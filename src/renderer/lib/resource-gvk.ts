@@ -31,6 +31,10 @@ const GVK = {
     apiVersion: "policy/v1",
     kind: "PodDisruptionBudget",
   },
+  PriorityClass: {
+    apiVersion: "scheduling.k8s.io/v1",
+    kind: "PriorityClass",
+  },
   CronJob: { apiVersion: "batch/v1", kind: "CronJob" },
   Job: { apiVersion: "batch/v1", kind: "Job" },
   Role: { apiVersion: "rbac.authorization.k8s.io/v1", kind: "Role" },

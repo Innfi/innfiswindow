@@ -1,6 +1,11 @@
 import { IpcMain } from "electron"
 
-import { listLimitRanges, listPDBs, listResourceQuotas } from "../k8s-handlers"
+import {
+  listLimitRanges,
+  listPDBs,
+  listPriorityClasses,
+  listResourceQuotas,
+} from "../k8s-handlers"
 import { GetContextClients } from "./context-clients"
 
 export function registerGovernanceHandlers(
@@ -27,5 +32,10 @@ export function registerGovernanceHandlers(
     "k8s:pdbs:list",
     (_e, args?: { contextName?: string; namespace?: string }) =>
       listPDBs(getContextClients(args?.contextName).policyV1, args?.namespace),
+  )
+  ipcMain.handle(
+    "k8s:priorityclasses:list",
+    (_e, args?: { contextName?: string }) =>
+      listPriorityClasses(getContextClients(args?.contextName).schedulingV1),
   )
 }

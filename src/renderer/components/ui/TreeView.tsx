@@ -56,7 +56,12 @@ const groups: { label: string; items: ResourceType[] }[] = [
   },
   {
     label: "Governance",
-    items: ["ResourceQuotas", "LimitRanges", "PodDisruptionBudgets"],
+    items: [
+      "ResourceQuotas",
+      "LimitRanges",
+      "PodDisruptionBudgets",
+      "PriorityClasses",
+    ],
   },
   {
     label: "Custom Resources",

@@ -1111,6 +1111,9 @@ export interface K8sAPI {
     contextName?: string
     namespace?: string
   }) => Promise<K8sPDB[]>
+  listPriorityClasses: (args?: {
+    contextName?: string
+  }) => Promise<K8sPriorityClass[]>
   listPods: (args?: {
     contextName?: string
     namespace?: string
@@ -1392,6 +1395,19 @@ export interface K8sPDB {
   disruptionsAllowed: number
   expectedPods: number
   selector: Record<string, string>
+  creationTimestamp: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
+export interface K8sPriorityClass {
+  name: string
+  value: number
+  /** True for the class a pod with no `priorityClassName` gets. */
+  globalDefault: boolean
+  description: string
+  /** `PreemptLowerPriority` (the default) or `Never`. */
+  preemptionPolicy: string
   creationTimestamp: string
   labels: Record<string, string>
   annotations: Record<string, string>

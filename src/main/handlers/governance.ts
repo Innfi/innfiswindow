@@ -1,6 +1,15 @@
-import { CoreV1Api, PolicyV1Api } from "@kubernetes/client-node"
+import {
+  CoreV1Api,
+  PolicyV1Api,
+  SchedulingV1Api,
+} from "@kubernetes/client-node"
 
-import { LimitRangeInfo, PDBInfo, ResourceQuotaInfo } from "./types"
+import {
+  LimitRangeInfo,
+  PDBInfo,
+  PriorityClassInfo,
+  ResourceQuotaInfo,
+} from "./types"
 
 export async function listResourceQuotas(
   api: CoreV1Api,
@@ -94,4 +103,24 @@ export async function listPDBs(
     }
     throw e
   }
+}
+
+/** PriorityClasses are cluster-scoped: the value a pod inherits from
+ *  `spec.priorityClassName`, which the scheduler orders and preempts by. */
+export async function listPriorityClasses(
+  api: SchedulingV1Api,
+): Promise<PriorityClassInfo[]> {
+  const res = await api.listPriorityClass()
+  return res.items.map((pc) => ({
+    name: pc.metadata?.name ?? "",
+    value: pc.value ?? 0,
+    globalDefault: pc.globalDefault ?? false,
+    description: pc.description ?? "",
+    // An unset policy is PreemptLowerPriority, which is what the API server
+    // defaults the field to — spell it out rather than showing a blank.
+    preemptionPolicy: pc.preemptionPolicy ?? "PreemptLowerPriority",
+    creationTimestamp: pc.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: pc.metadata?.labels ?? {},
+    annotations: pc.metadata?.annotations ?? {},
+  }))
 }

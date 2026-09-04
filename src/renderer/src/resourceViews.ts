@@ -117,6 +117,10 @@ export const resourceViews: Record<ResourceType, ComponentType> = {
     () => import("./components/PDBsView"),
     "PDBsView",
   ),
+  PriorityClasses: named(
+    () => import("./components/PriorityClassesView"),
+    "PriorityClassesView",
+  ),
   overview: named(() => import("./components/OverviewView"), "OverviewView"),
   "custom-stream": named(
     () => import("../components/ui/CustomStreamView"),

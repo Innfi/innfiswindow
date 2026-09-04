@@ -85,6 +85,7 @@ export type {
   PodInfo,
   PodMetric,
   PodSummary,
+  PriorityClassInfo,
   ProbeInfo,
   PVCInfo,
   PVClaimRef,

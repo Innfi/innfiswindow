@@ -96,6 +96,7 @@ export type K8sEndpointSliceEndpoint = Shared.EndpointSliceEndpoint
 export type K8sEndpointSliceSummary = Shared.EndpointSliceSummary
 export type K8sEndpointSlice = Shared.EndpointSliceInfo
 export type K8sPDB = Shared.PDBInfo
+export type K8sPriorityClass = Shared.PriorityClassInfo
 export type K8sStorageClass = Shared.StorageClassInfo
 export type K8sVolumeSnapshot = Shared.VolumeSnapshotInfo
 export type K8sVolumeSnapshotClass = Shared.VolumeSnapshotClassInfo
