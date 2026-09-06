@@ -14,6 +14,7 @@ import {
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sServiceAccount } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
+import { SubjectPermissionsSection } from "./SubjectPermissionsSection"
 
 function DetailPanel({
   sa,
@@ -158,6 +159,16 @@ function DetailPanel({
           ))}
         </div>
       )}
+
+      {/* What this account can do */}
+      <SubjectPermissionsSection
+        subject={{
+          kind: "ServiceAccount",
+          name: sa.name,
+          namespace: sa.namespace,
+        }}
+        search={sl}
+      />
 
       {/* Events */}
       <ResourceEventsSection

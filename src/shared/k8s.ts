@@ -916,6 +916,114 @@ export interface UpdateServiceAccountResult {
 }
 
 // ---------------------------------------------------------------------------
+// rbac.ts — access review
+// ---------------------------------------------------------------------------
+
+/** Who a review runs as. `current-user` is the kubeconfig's own identity,
+ *  which the API server answers for without any impersonation rights. */
+export type AccessSubjectKind =
+  | "current-user"
+  | "User"
+  | "Group"
+  | "ServiceAccount"
+
+export interface AccessSubject {
+  kind: AccessSubjectKind
+  /** Empty for `current-user`, whose name only the API server knows. */
+  name: string
+  /** Where a ServiceAccount lives; empty for every other kind. */
+  namespace: string
+}
+
+export interface AccessReviewRequest {
+  subject: AccessSubject
+  verb: string
+  /** API group of the resource; empty string is the core group. */
+  group: string
+  resource: string
+  subresource: string
+  /** A single object, when the question is about one rather than the kind. */
+  name: string
+  /** Empty means cluster-scoped, or "in any namespace" for a namespaced kind. */
+  namespace: string
+  /** Asked instead of the resource attributes when set, e.g. `/healthz`. */
+  nonResourceURL: string
+}
+
+export interface AccessReviewResult {
+  allowed: boolean
+  /** Explicitly denied, as opposed to merely not allowed. */
+  denied: boolean
+  reason: string
+  evaluationError: string
+  /** Which review answered: the self one for the kubeconfig user, the
+   *  impersonating one for anybody else. */
+  reviewKind: "SelfSubjectAccessReview" | "SubjectAccessReview"
+  /** The identity the API server was asked about, as it saw it. */
+  checkedAs: string
+}
+
+/** A policy rule as an introspection answer reports it — the same shape a Role
+ *  carries, plus the two fields the Role views don't show. */
+export interface AccessRule {
+  apiGroups: string[]
+  resources: string[]
+  resourceNames: string[]
+  verbs: string[]
+  nonResourceURLs: string[]
+}
+
+export interface SubjectBinding {
+  bindingKind: "RoleBinding" | "ClusterRoleBinding"
+  bindingName: string
+  /** Empty for a ClusterRoleBinding. */
+  bindingNamespace: string
+  roleKind: string
+  roleName: string
+  /** Namespace the rules apply in; `*` when the binding is cluster-wide. */
+  scope: string
+  /** Which matcher pulled the binding in — the subject itself, or one of the
+   *  groups it belongs to without being named. */
+  via: string
+  rules: AccessRule[]
+  /** Set when the referenced role could not be read (deleted, or no access),
+   *  in which case `rules` is empty rather than wrong. */
+  error: string
+}
+
+export interface EffectiveAccessRule extends AccessRule {
+  scope: string
+  /** The bindings the rule arrives through, as `RoleBinding ns/name → Role`. */
+  sources: string[]
+}
+
+export interface SubjectPermissions {
+  subject: AccessSubject
+  bindings: SubjectBinding[]
+  effectiveRules: EffectiveAccessRule[]
+  /** True when a role behind a binding could not be read, so the rules below
+   *  are a floor rather than the whole picture. */
+  incomplete: boolean
+}
+
+export interface SelfRulesResult {
+  /** The namespace the rules were asked for; cluster-scoped rules are always
+   *  included by the API server. */
+  namespace: string
+  incomplete: boolean
+  evaluationError: string
+  resourceRules: AccessRule[]
+  nonResourceRules: AccessRule[]
+}
+
+export interface RoleSubjectBinding {
+  bindingKind: "RoleBinding" | "ClusterRoleBinding"
+  bindingName: string
+  bindingNamespace: string
+  subjects: RbacSubject[]
+}
+
+// ---------------------------------------------------------------------------
 // governance.ts
 // ---------------------------------------------------------------------------
 

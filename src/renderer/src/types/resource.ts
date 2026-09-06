@@ -21,6 +21,7 @@ export const RESOURCE_TYPES = [
   "ClusterRoles",
   "RoleBindings",
   "ClusterRoleBindings",
+  "access-review",
   "PersistentVolumes",
   "PersistentVolumeClaims",
   "StorageClasses",

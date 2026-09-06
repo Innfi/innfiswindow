@@ -4,6 +4,7 @@ import { electronApp, is, optimizer } from "@electron-toolkit/utils"
 import {
   ApiextensionsV1Api,
   AppsV1Api,
+  AuthorizationV1Api,
   AutoscalingV2Api,
   BatchV1Api,
   CoreV1Api,
@@ -52,6 +53,7 @@ kc.loadFromDefault()
 const coreV1Api = kc.makeApiClient(CoreV1Api)
 const apiextensionsV1Api = kc.makeApiClient(ApiextensionsV1Api)
 const appsV1Api = kc.makeApiClient(AppsV1Api)
+const authorizationV1Api = kc.makeApiClient(AuthorizationV1Api)
 const discoveryV1Api = kc.makeApiClient(DiscoveryV1Api)
 const networkingV1Api = kc.makeApiClient(NetworkingV1Api)
 const rbacV1Api = kc.makeApiClient(RbacAuthorizationV1Api)
@@ -66,6 +68,7 @@ const { getContextClients, invalidateContext } = createContextClientsCache({
   coreV1: coreV1Api,
   apiextensionsV1: apiextensionsV1Api,
   appsV1: appsV1Api,
+  authorizationV1: authorizationV1Api,
   discoveryV1: discoveryV1Api,
   networkingV1: networkingV1Api,
   rbacV1: rbacV1Api,

@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "../../components/ui/Table"
 import { K8sRole, K8sRoleSummary } from "../types/k8s"
+import { RoleSubjectsSection } from "./RoleSubjectsSection"
 
 function DetailPanel({
   role,
@@ -149,6 +150,13 @@ function DetailPanel({
           </div>
         )}
       </div>
+
+      <RoleSubjectsSection
+        kind="Role"
+        name={role.name}
+        namespace={role.namespace}
+        search={sl}
+      />
 
       {Object.keys(role.labels).length > 0 && (
         <div className="space-y-1">

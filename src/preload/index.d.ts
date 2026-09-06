@@ -7,10 +7,16 @@ import {
 } from "@renderer/types/k8s"
 
 import type {
+  AccessReviewRequest,
+  AccessReviewResult,
+  AccessSubject,
   CRDInfo,
   CustomResourceDetail,
   CustomResourceInfo,
   CustomResourceRef,
+  RoleSubjectBinding,
+  SelfRulesResult,
+  SubjectPermissions,
 } from "../shared/k8s"
 import type {
   WatchClosedMessage,
@@ -998,6 +1004,24 @@ export interface K8sAPI {
   listClusterRoleBindings: (args?: {
     contextName?: string
   }) => Promise<K8sClusterRoleBinding[]>
+  checkAccess: (args: {
+    contextName?: string
+    request: AccessReviewRequest
+  }) => Promise<AccessReviewResult>
+  listSelfRules: (args: {
+    contextName?: string
+    namespace: string
+  }) => Promise<SelfRulesResult>
+  getSubjectPermissions: (args: {
+    contextName?: string
+    subject: AccessSubject
+  }) => Promise<SubjectPermissions>
+  getRoleSubjects: (args: {
+    contextName?: string
+    kind: "Role" | "ClusterRole"
+    name: string
+    namespace: string
+  }) => Promise<RoleSubjectBinding[]>
   listHPAs: (args?: {
     contextName?: string
     namespace?: string

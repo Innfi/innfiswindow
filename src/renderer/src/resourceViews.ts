@@ -78,6 +78,10 @@ export const resourceViews: Record<ResourceType, ComponentType> = {
     () => import("./components/ClusterRoleBindingsView"),
     "ClusterRoleBindingsView",
   ),
+  "access-review": named(
+    () => import("./components/AccessReviewView"),
+    "AccessReviewView",
+  ),
   PersistentVolumes: named(() => import("./components/PVsView"), "PVsView"),
   PersistentVolumeClaims: named(
     () => import("./components/PVCsView"),

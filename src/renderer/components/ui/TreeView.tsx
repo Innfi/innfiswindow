@@ -42,6 +42,7 @@ const groups: { label: string; items: ResourceType[] }[] = [
       "ClusterRoles",
       "RoleBindings",
       "ClusterRoleBindings",
+      "access-review",
     ],
   },
   {
@@ -71,6 +72,7 @@ const groups: { label: string; items: ResourceType[] }[] = [
 
 /** Tree labels for the leaves whose ResourceType name isn't presentable. */
 const itemLabels: Partial<Record<ResourceType, string>> = {
+  "access-review": "Access Review",
   CustomResourceDefinitions: "Definitions",
   "custom-resources": "Browse objects",
 }

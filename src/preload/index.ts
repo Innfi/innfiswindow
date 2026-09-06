@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron"
 import { electronAPI } from "@electron-toolkit/preload"
 
+import type { AccessReviewRequest, AccessSubject } from "../shared/k8s"
+
 /** Mirrors PodLogOptions in src/main/ipc/pod-streams.ts. */
 interface PodLogOptions {
   follow?: boolean
@@ -145,6 +147,22 @@ const api = {
       ipcRenderer.invoke("k8s:rolebindings:list", args),
     listClusterRoleBindings: (args?: { contextName?: string }) =>
       ipcRenderer.invoke("k8s:clusterrolebindings:list", args),
+    checkAccess: (args: {
+      contextName?: string
+      request: AccessReviewRequest
+    }) => ipcRenderer.invoke("k8s:access:review", args),
+    listSelfRules: (args: { contextName?: string; namespace: string }) =>
+      ipcRenderer.invoke("k8s:access:selfrules", args),
+    getSubjectPermissions: (args: {
+      contextName?: string
+      subject: AccessSubject
+    }) => ipcRenderer.invoke("k8s:access:subject", args),
+    getRoleSubjects: (args: {
+      contextName?: string
+      kind: "Role" | "ClusterRole"
+      name: string
+      namespace: string
+    }) => ipcRenderer.invoke("k8s:access:rolesubjects", args),
     updateRole: (
       namespace: string,
       name: string,

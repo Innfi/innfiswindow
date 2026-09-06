@@ -12,6 +12,7 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
+import { SubjectLink } from "../../components/ui/SubjectLink"
 import {
   Table,
   TableBody,
@@ -142,7 +143,7 @@ function DetailPanel({
                         {s.kind}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs font-mono">
-                        {s.name}
+                        <SubjectLink subject={s} />
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {s.namespace}

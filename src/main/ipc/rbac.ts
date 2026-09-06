@@ -1,13 +1,18 @@
 import { IpcMain } from "electron"
 import { RbacAuthorizationV1Api } from "@kubernetes/client-node"
 
+import { AccessReviewRequest, AccessSubject } from "../handlers/types"
 import {
+  checkAccess,
   getClusterRole,
   getRole,
+  getRoleSubjects,
+  getSubjectPermissions,
   listClusterRoleBindings,
   listClusterRoles,
   listRoleBindings,
   listRoles,
+  listSelfRules,
   updateClusterRole,
   updateClusterRoleBinding,
   updateRole,
@@ -101,5 +106,49 @@ export function registerRbacHandlers(
       name: string,
       subjects: Array<{ kind: string; name: string; namespace?: string }>,
     ) => updateClusterRoleBinding(rbacV1Api, name, subjects),
+  )
+
+  // Access review. The first two are answered by the API server's authorizer,
+  // the last two by walking the bindings ourselves.
+  ipcMain.handle(
+    "k8s:access:review",
+    (_e, args: { contextName?: string; request: AccessReviewRequest }) =>
+      checkAccess(
+        getContextClients(args.contextName).authorizationV1,
+        args.request,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:access:selfrules",
+    (_e, args: { contextName?: string; namespace: string }) =>
+      listSelfRules(
+        getContextClients(args.contextName).authorizationV1,
+        args.namespace,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:access:subject",
+    (_e, args: { contextName?: string; subject: AccessSubject }) =>
+      getSubjectPermissions(
+        getContextClients(args.contextName).rbacV1,
+        args.subject,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:access:rolesubjects",
+    (
+      _e,
+      args: {
+        contextName?: string
+        kind: "Role" | "ClusterRole"
+        name: string
+        namespace: string
+      },
+    ) =>
+      getRoleSubjects(getContextClients(args.contextName).rbacV1, {
+        kind: args.kind,
+        name: args.name,
+        namespace: args.namespace,
+      }),
   )
 }

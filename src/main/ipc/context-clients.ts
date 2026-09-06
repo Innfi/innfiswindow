@@ -1,6 +1,7 @@
 import {
   ApiextensionsV1Api,
   AppsV1Api,
+  AuthorizationV1Api,
   AutoscalingV2Api,
   BatchV1Api,
   CoreV1Api,
@@ -18,6 +19,7 @@ export interface ApiClients {
   coreV1: CoreV1Api
   apiextensionsV1: ApiextensionsV1Api
   appsV1: AppsV1Api
+  authorizationV1: AuthorizationV1Api
   discoveryV1: DiscoveryV1Api
   networkingV1: NetworkingV1Api
   rbacV1: RbacAuthorizationV1Api
@@ -69,6 +71,7 @@ export function createContextClientsCache(defaultClients: ApiClients): {
       coreV1: ctxKc.makeApiClient(CoreV1Api),
       apiextensionsV1: ctxKc.makeApiClient(ApiextensionsV1Api),
       appsV1: ctxKc.makeApiClient(AppsV1Api),
+      authorizationV1: ctxKc.makeApiClient(AuthorizationV1Api),
       discoveryV1: ctxKc.makeApiClient(DiscoveryV1Api),
       networkingV1: ctxKc.makeApiClient(NetworkingV1Api),
       rbacV1: ctxKc.makeApiClient(RbacAuthorizationV1Api),

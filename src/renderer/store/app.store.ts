@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
+import type { AccessSubject } from "../../shared/k8s"
 import type { ResourceGvk, ResourceKind } from "../lib/resource-gvk"
 import type { ResourceType } from "../src/types/resource"
 
@@ -192,6 +193,7 @@ export interface CustomResourceTarget {
 export interface ContextState {
   selectedResourceType: ResourceType | null
   customResourceTarget: CustomResourceTarget | null
+  accessReviewSubject: AccessSubject | null
   selectedItem: object | null
   selectedNamespace: string | null
   nameFilter: string
@@ -202,6 +204,9 @@ export interface ContextState {
 interface AppState {
   selectedResourceType: ResourceType | null
   customResourceTarget: CustomResourceTarget | null
+  /** Who the access review view is pointed at, set by a click on a subject
+   *  somewhere else. Null means the view keeps whatever it was showing. */
+  accessReviewSubject: AccessSubject | null
   selectedItem: object | null
   selectedNamespace: string | null
   selectedContext: string | null
@@ -221,6 +226,7 @@ interface AppState {
   setSelectedResourceType: (type: ResourceType | null) => void
   setCustomResourceTarget: (target: CustomResourceTarget | null) => void
   browseCustomResource: (target: CustomResourceTarget) => void
+  inspectSubject: (subject: AccessSubject) => void
   setSelectedItem: (item: object | null) => void
   navigateToResource: (type: ResourceType, item: object) => void
   setSelectedNamespace: (ns: string | null) => void
@@ -250,6 +256,7 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       selectedResourceType: null,
       customResourceTarget: null,
+      accessReviewSubject: null,
       selectedItem: null,
       selectedNamespace: null,
       selectedContext: null,
@@ -279,6 +286,14 @@ export const useAppStore = create<AppState>()(
           selectedResourceType: "custom-resources",
           selectedItem: null,
         }),
+      // Same one-step switch for the access review view, which reads the
+      // subject on mount.
+      inspectSubject: (subject) =>
+        set({
+          accessReviewSubject: subject,
+          selectedResourceType: "access-review",
+          selectedItem: null,
+        }),
       setSelectedItem: (item) => set({ selectedItem: item }),
       navigateToResource: (type, item) =>
         set({ selectedResourceType: type, selectedItem: item }),
@@ -303,6 +318,7 @@ export const useAppStore = create<AppState>()(
           updatedContextStates[prev] = {
             selectedResourceType: state.selectedResourceType,
             customResourceTarget: state.customResourceTarget,
+            accessReviewSubject: state.accessReviewSubject,
             selectedItem: state.selectedItem,
             selectedNamespace: state.selectedNamespace,
             nameFilter: state.nameFilter,
@@ -331,6 +347,7 @@ export const useAppStore = create<AppState>()(
             contextStates: updatedContextStates,
             selectedResourceType: saved.selectedResourceType,
             customResourceTarget: saved.customResourceTarget,
+            accessReviewSubject: saved.accessReviewSubject ?? null,
             selectedItem: saved.selectedItem,
             selectedNamespace: restoredNamespace,
             nameFilter: saved.nameFilter,
@@ -343,6 +360,7 @@ export const useAppStore = create<AppState>()(
             contextStates: updatedContextStates,
             selectedResourceType: null,
             customResourceTarget: null,
+            accessReviewSubject: null,
             selectedItem: null,
             selectedNamespace: restoredNamespace,
             nameFilter: "",

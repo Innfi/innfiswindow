@@ -16,7 +16,8 @@ The tree sidebar lists every kubeconfig context, each expanding into these group
 - **Workloads**: Deployments, ReplicaSets, StatefulSets, DaemonSets, Pods, HPAs, Jobs, CronJobs
 - **Configuration**: ConfigMaps, Secrets
 - **Networking**: Services, Ingresses, IngressClasses, NetworkPolicies, Endpoints, EndpointSlices
-- **Auth**: ServiceAccounts, Roles, ClusterRoles, RoleBindings, ClusterRoleBindings
+- **Auth**: ServiceAccounts, Roles, ClusterRoles, RoleBindings, ClusterRoleBindings,
+  Access Review (`can-i` checks and subject/role reverse lookups)
 - **Storage**: PersistentVolumes, PersistentVolumeClaims, StorageClasses, VolumeSnapshots, VolumeSnapshotClasses
 - **Governance**: ResourceQuotas, LimitRanges, PodDisruptionBudgets
 - **Custom Resources**: Definitions (CRDs), Browse objects — a generic browser
