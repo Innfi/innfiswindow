@@ -14,6 +14,7 @@ import type {
   CustomResourceDetail,
   CustomResourceInfo,
   CustomResourceRef,
+  ResourceRelations,
   RoleSubjectBinding,
   SelfRulesResult,
   SubjectPermissions,
@@ -1022,6 +1023,13 @@ export interface K8sAPI {
     name: string
     namespace: string
   }) => Promise<RoleSubjectBinding[]>
+  getResourceRelations: (args: {
+    contextName?: string
+    apiVersion: string
+    kind: string
+    name: string
+    namespace?: string
+  }) => Promise<ResourceRelations>
   listHPAs: (args?: {
     contextName?: string
     namespace?: string

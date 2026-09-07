@@ -1335,3 +1335,44 @@ export interface CustomResourceDetail {
   info: CustomResourceInfo
   object: Record<string, unknown>
 }
+
+// ---------------------------------------------------------------------------
+// references.ts
+// ---------------------------------------------------------------------------
+
+/** One end of an owner/reference edge, addressed the way a list row is so the
+ *  renderer can jump straight to it. */
+export interface RelatedResource {
+  kind: string
+  name: string
+  /** `""` for a cluster-scoped kind, matching the other cluster-scoped
+   *  shapes. */
+  namespace: string
+  /** What the edge is, in the words the panel shows: `controller`,
+   *  `config map volume "config"`, `scale target`, `scheduled here`. */
+  detail: string
+}
+
+/**
+ * How one object connects to the rest of the cluster.
+ *
+ * `owners` is `metadata.ownerReferences` walked to the root, nearest first —
+ * Pod → ReplicaSet → Deployment. `dependents` is the other direction, objects
+ * whose own ownerReferences point back here. `references` is everything named
+ * by a spec field rather than an ownerReference, in both directions: the
+ * ConfigMap a pod mounts, and the pods mounting a ConfigMap.
+ */
+export interface ResourceRelations {
+  owners: RelatedResource[]
+  dependents: RelatedResource[]
+  references: RelatedResource[]
+  /**
+   * Lookups that failed — a kind the cluster does not serve, a list the
+   * kubeconfig identity may not read. The answer is still shown, flagged as
+   * partial rather than passed off as complete.
+   */
+  errors: string[]
+  /** True when a group hit the per-group cap, so the list shown is a prefix of
+   *  what the cluster holds. */
+  truncated: boolean
+}

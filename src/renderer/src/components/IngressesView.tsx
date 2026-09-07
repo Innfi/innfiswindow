@@ -18,6 +18,7 @@ import {
   K8sIngressSummary,
   K8sIngressTLS,
 } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -249,6 +250,13 @@ function DetailPanel({
         namespace={item.namespace}
         name={item.name}
         kind="Ingress"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="Ingress"
+        namespace={item.namespace}
+        name={item.name}
         search={sl}
       />
     </DetailPanelLayout>

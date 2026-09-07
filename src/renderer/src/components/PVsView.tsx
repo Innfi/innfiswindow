@@ -14,6 +14,7 @@ import {
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { K8sPV } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function pvStatusClass(status: string): string {
@@ -178,6 +179,13 @@ function DetailPanel({
         namespace=""
         name={pv.name}
         kind="PersistentVolume"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="PersistentVolume"
+        namespace=""
+        name={pv.name}
         search={sl}
       />
     </DetailPanelLayout>

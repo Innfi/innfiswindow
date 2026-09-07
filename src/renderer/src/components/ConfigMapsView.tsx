@@ -13,6 +13,7 @@ import {
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sConfigMap, K8sConfigMapSummary } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -166,6 +167,13 @@ function DetailPanel({
         namespace={cm.namespace}
         name={cm.name}
         kind="ConfigMap"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="ConfigMap"
+        namespace={cm.namespace}
+        name={cm.name}
         search={sl}
       />
     </DetailPanelLayout>

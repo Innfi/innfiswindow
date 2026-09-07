@@ -190,6 +190,20 @@ export interface CustomResourceTarget {
   version: string
 }
 
+/**
+ * A jump to another object aimed by name, before the target list has been
+ * fetched. `selectedItem` has to be a real row — the detail panel's
+ * `detailGuard` and its poll-tick re-sync both key off the list's own shape —
+ * so a cross-reference click parks its target here and the view for `type`
+ * resolves it against the rows it loads.
+ */
+export interface PendingSelection {
+  type: ResourceType
+  name: string
+  /** `""` for a cluster-scoped kind. */
+  namespace: string
+}
+
 export interface ContextState {
   selectedResourceType: ResourceType | null
   customResourceTarget: CustomResourceTarget | null
@@ -208,6 +222,8 @@ interface AppState {
    *  somewhere else. Null means the view keeps whatever it was showing. */
   accessReviewSubject: AccessSubject | null
   selectedItem: object | null
+  /** Set by a cross-reference click, cleared by the view that resolves it. */
+  pendingSelection: PendingSelection | null
   selectedNamespace: string | null
   selectedContext: string | null
   nameFilter: string
@@ -229,6 +245,12 @@ interface AppState {
   inspectSubject: (subject: AccessSubject) => void
   setSelectedItem: (item: object | null) => void
   navigateToResource: (type: ResourceType, item: object) => void
+  navigateToResourceRef: (
+    type: ResourceType,
+    name: string,
+    namespace: string,
+  ) => void
+  clearPendingSelection: () => void
   setSelectedNamespace: (ns: string | null) => void
   setSelectedContext: (ctx: string | null) => void
   setNameFilter: (filter: string) => void
@@ -258,6 +280,7 @@ export const useAppStore = create<AppState>()(
       customResourceTarget: null,
       accessReviewSubject: null,
       selectedItem: null,
+      pendingSelection: null,
       selectedNamespace: null,
       selectedContext: null,
       nameFilter: "",
@@ -274,9 +297,18 @@ export const useAppStore = create<AppState>()(
       globalErrors: [],
       unreadErrorCount: 0,
       setSelectedResourceType: (type) =>
-        set({ selectedResourceType: type, selectedItem: null }),
+        set({
+          selectedResourceType: type,
+          selectedItem: null,
+          // Picking a view by hand abandons any jump still waiting to resolve.
+          pendingSelection: null,
+        }),
       setCustomResourceTarget: (target) =>
-        set({ customResourceTarget: target, selectedItem: null }),
+        set({
+          customResourceTarget: target,
+          selectedItem: null,
+          pendingSelection: null,
+        }),
       // Point the generic browser at a kind and show it, in one step: the
       // browser reads the target on mount, so setting it after the view
       // switched would render one frame of the previous kind.
@@ -285,6 +317,7 @@ export const useAppStore = create<AppState>()(
           customResourceTarget: target,
           selectedResourceType: "custom-resources",
           selectedItem: null,
+          pendingSelection: null,
         }),
       // Same one-step switch for the access review view, which reads the
       // subject on mount.
@@ -293,10 +326,42 @@ export const useAppStore = create<AppState>()(
           accessReviewSubject: subject,
           selectedResourceType: "access-review",
           selectedItem: null,
+          pendingSelection: null,
         }),
       setSelectedItem: (item) => set({ selectedItem: item }),
       navigateToResource: (type, item) =>
         set({ selectedResourceType: type, selectedItem: item }),
+      // The cross-reference jump: the target is known by name only, so the
+      // view is switched and the name parked for that view to resolve.
+      navigateToResourceRef: (type, name, namespace) => {
+        const { selectedContext, contextNamespaces, selectedNamespace } = get()
+        const updates: Partial<AppState> = {
+          selectedResourceType: type,
+          selectedItem: null,
+          pendingSelection: { type, name, namespace },
+          // A filter carried over from the previous view would hide the very
+          // row the jump is aimed at.
+          nameFilter: "",
+        }
+        // So would a namespace scope that excludes the target. Move the scope
+        // to the target's namespace rather than widening it to all of them,
+        // which would re-list every object in the cluster.
+        if (
+          namespace &&
+          selectedNamespace !== null &&
+          selectedNamespace !== namespace
+        ) {
+          updates.selectedNamespace = namespace
+          if (selectedContext !== null) {
+            updates.contextNamespaces = {
+              ...contextNamespaces,
+              [selectedContext]: namespace,
+            }
+          }
+        }
+        set(updates)
+      },
+      clearPendingSelection: () => set({ pendingSelection: null }),
       setSelectedNamespace: (ns) => {
         const { selectedContext, contextNamespaces } = get()
         const updates: Partial<AppState> = { selectedNamespace: ns }
@@ -345,6 +410,9 @@ export const useAppStore = create<AppState>()(
           set({
             selectedContext: ctx,
             contextStates: updatedContextStates,
+            // A different cluster is a different set of objects; a jump aimed
+            // at the old one must not land on a same-named row here.
+            pendingSelection: null,
             selectedResourceType: saved.selectedResourceType,
             customResourceTarget: saved.customResourceTarget,
             accessReviewSubject: saved.accessReviewSubject ?? null,
@@ -358,6 +426,7 @@ export const useAppStore = create<AppState>()(
           set({
             selectedContext: ctx,
             contextStates: updatedContextStates,
+            pendingSelection: null,
             selectedResourceType: null,
             customResourceTarget: null,
             accessReviewSubject: null,

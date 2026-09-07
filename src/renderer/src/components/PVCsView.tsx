@@ -15,6 +15,7 @@ import {
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { K8sPVC } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function pvcStatusClass(status: string): string {
@@ -211,6 +212,13 @@ function DetailPanel({
         namespace={pvc.namespace}
         name={pvc.name}
         kind="PersistentVolumeClaim"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="PersistentVolumeClaim"
+        namespace={pvc.namespace}
+        name={pvc.name}
         search={sl}
       />
     </DetailPanelLayout>

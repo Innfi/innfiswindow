@@ -12,6 +12,7 @@ import {
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sEndpoint, K8sEndpointSummary } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 
 function DetailPanel({
   endpoint,
@@ -215,6 +216,13 @@ function DetailPanel({
           ))}
         </div>
       )}
+
+      <RelatedResourcesSection
+        resourceKind="Endpoints"
+        namespace={endpoint.namespace}
+        name={endpoint.name}
+        search={sl}
+      />
     </DetailPanelLayout>
   )
 }

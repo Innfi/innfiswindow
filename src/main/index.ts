@@ -41,6 +41,7 @@ import { registerPodStreamHandlers } from "./ipc/pod-streams"
 import { registerPortForwardHandlers } from "./ipc/portforward"
 import { registerPrometheusHandlers } from "./ipc/prometheus"
 import { registerRbacHandlers } from "./ipc/rbac"
+import { registerReferenceHandlers } from "./ipc/references"
 import { registerSocketStreamHandlers } from "./ipc/socket-stream"
 import { registerStorageHandlers } from "./ipc/storage"
 import { registerWatchHandlers } from "./ipc/watch"
@@ -216,6 +217,7 @@ app.whenReady().then(() => {
   registerWorkloadHandlers(ipcMain, appsV1Api, getContextClients)
   registerConfigHandlers(ipcMain, coreV1Api, getContextClients)
   registerRbacHandlers(ipcMain, rbacV1Api, getContextClients)
+  registerReferenceHandlers(ipcMain, getKubeConfig, getContextClients)
   registerNetworkingHandlers(
     ipcMain,
     coreV1Api,

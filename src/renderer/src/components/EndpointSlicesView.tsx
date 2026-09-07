@@ -17,6 +17,7 @@ import {
   K8sEndpointSlicePort,
   K8sEndpointSliceSummary,
 } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 
 /** The API tells consumers to read an unset `ready` as true. */
 function isReady(endpoint: K8sEndpointSliceEndpoint): boolean {
@@ -252,6 +253,13 @@ function DetailPanel({
           ))}
         </div>
       )}
+
+      <RelatedResourcesSection
+        resourceKind="EndpointSlice"
+        namespace={slice.namespace}
+        name={slice.name}
+        search={sl}
+      />
     </DetailPanelLayout>
   )
 }

@@ -28,6 +28,7 @@ import { formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sCronJob } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -251,6 +252,13 @@ function DetailPanel({
         namespace={cronJob.namespace}
         name={cronJob.name}
         kind="CronJob"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="CronJob"
+        namespace={cronJob.namespace}
+        name={cronJob.name}
         search={sl}
       />
 

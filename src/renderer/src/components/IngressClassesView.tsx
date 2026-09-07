@@ -12,6 +12,7 @@ import {
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sIngressClass, K8sIngressClassParametersRef } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 const DEFAULT_CLASS_ANNOTATION = "ingressclass.kubernetes.io/is-default-class"
@@ -179,6 +180,13 @@ function DetailPanel({
         namespace=""
         name={ic.name}
         kind="IngressClass"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="IngressClass"
+        namespace=""
+        name={ic.name}
         search={sl}
       />
     </DetailPanelLayout>

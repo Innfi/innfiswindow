@@ -12,6 +12,7 @@ import {
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sStorageClass } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -144,6 +145,13 @@ function DetailPanel({
         namespace=""
         name={sc.name}
         kind="StorageClass"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="StorageClass"
+        namespace=""
+        name={sc.name}
         search={sl}
       />
     </DetailPanelLayout>

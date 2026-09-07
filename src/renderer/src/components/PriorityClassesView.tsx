@@ -12,6 +12,7 @@ import {
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sPriorityClass } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 /** Classes the control plane ships for its own pods. They are recreated by the
@@ -166,6 +167,13 @@ function DetailPanel({
         namespace=""
         name={pc.name}
         kind="PriorityClass"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="PriorityClass"
+        namespace=""
+        name={pc.name}
         search={sl}
       />
     </DetailPanelLayout>

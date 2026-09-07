@@ -14,6 +14,7 @@ import {
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sSecret, K8sSecretSummary } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -189,6 +190,13 @@ function DetailPanel({
         namespace={secret.namespace}
         name={secret.name}
         kind="Secret"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="Secret"
+        namespace={secret.namespace}
+        name={secret.name}
         search={sl}
       />
     </DetailPanelLayout>

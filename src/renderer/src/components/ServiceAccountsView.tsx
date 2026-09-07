@@ -13,6 +13,7 @@ import {
 } from "../../components/ui/ResourceListView"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sServiceAccount } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 import { SubjectPermissionsSection } from "./SubjectPermissionsSection"
 
@@ -175,6 +176,13 @@ function DetailPanel({
         namespace={sa.namespace}
         name={sa.name}
         kind="ServiceAccount"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="ServiceAccount"
+        namespace={sa.namespace}
+        name={sa.name}
         search={sl}
       />
     </DetailPanelLayout>

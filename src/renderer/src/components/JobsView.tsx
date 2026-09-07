@@ -28,6 +28,7 @@ import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sJob } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -303,6 +304,13 @@ function DetailPanel({
         namespace={job.namespace}
         name={job.name}
         kind="Job"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="Job"
+        namespace={job.namespace}
+        name={job.name}
         search={sl}
       />
 

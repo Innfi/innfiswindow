@@ -15,6 +15,7 @@ import { ScaleButton } from "../../components/ui/ScaleButton"
 import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sReplicaSet, K8sReplicaSetSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -239,6 +240,13 @@ function DetailPanel({
         namespace={rs.namespace}
         name={rs.name}
         kind="ReplicaSet"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="ReplicaSet"
+        namespace={rs.namespace}
+        name={rs.name}
         search={sl}
       />
     </DetailPanelLayout>

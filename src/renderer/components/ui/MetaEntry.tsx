@@ -1,10 +1,14 @@
+import { type ReactNode } from "react"
+
 export function MetaEntry({
   label,
   value,
   mono,
 }: {
   label: string
-  value: string
+  /** A node rather than a string so an entry can be a link — see
+   *  `ResourceLink` — without every caller changing. */
+  value: ReactNode
   mono?: boolean
 }): JSX.Element {
   return (

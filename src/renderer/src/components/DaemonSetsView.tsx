@@ -27,6 +27,7 @@ import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sDaemonSet, K8sDaemonSetSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -307,6 +308,13 @@ function DetailPanel({
         namespace={ds.namespace}
         name={ds.name}
         kind="DaemonSet"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="DaemonSet"
+        namespace={ds.namespace}
+        name={ds.name}
         search={sl}
       />
 

@@ -41,6 +41,7 @@ import { useAppStore } from "../../store/app.store"
 import { useK8sResource } from "../hooks/useK8sResource"
 import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sNode } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 interface NodeMetric {
@@ -560,6 +561,13 @@ function DetailPanel({
         namespace=""
         name={node.name}
         kind="Node"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="Node"
+        namespace=""
+        name={node.name}
         search={sl}
       />
 

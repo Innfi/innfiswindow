@@ -118,3 +118,5 @@ export type K8sCustomResourceRef = Shared.CustomResourceRef
 export type K8sCustomResource = Shared.CustomResourceInfo
 export type K8sCustomResourceDetail = Shared.CustomResourceDetail
 export type DryRunResult = Shared.DryRunResult
+export type K8sRelatedResource = Shared.RelatedResource
+export type K8sResourceRelations = Shared.ResourceRelations

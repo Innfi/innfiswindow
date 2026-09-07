@@ -17,6 +17,7 @@ import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { K8sHPA } from "../types/k8s"
 import { HPAUtilizationSection } from "./HPAUtilizationSection"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -243,6 +244,13 @@ function DetailPanel({
         namespace={hpa.namespace}
         name={hpa.name}
         kind="HorizontalPodAutoscaler"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="HPA"
+        namespace={hpa.namespace}
+        name={hpa.name}
         search={sl}
       />
     </DetailPanelLayout>

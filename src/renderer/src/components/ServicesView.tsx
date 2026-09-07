@@ -17,6 +17,7 @@ import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { K8sEndpoint, K8sService, K8sServicePort } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function formatPorts(ports: K8sServicePort[]): string {
@@ -285,6 +286,13 @@ function DetailPanel({
         namespace={svc.namespace}
         name={svc.name}
         kind="Service"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="Service"
+        namespace={svc.namespace}
+        name={svc.name}
         search={sl}
       />
     </DetailPanelLayout>

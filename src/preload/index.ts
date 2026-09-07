@@ -163,6 +163,13 @@ const api = {
       name: string
       namespace: string
     }) => ipcRenderer.invoke("k8s:access:rolesubjects", args),
+    getResourceRelations: (args: {
+      contextName?: string
+      apiVersion: string
+      kind: string
+      name: string
+      namespace?: string
+    }) => ipcRenderer.invoke("k8s:references:get", args),
     updateRole: (
       namespace: string,
       name: string,

@@ -28,6 +28,7 @@ import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sStatefulSet, K8sStatefulSetSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 function DetailPanel({
@@ -297,6 +298,13 @@ function DetailPanel({
         namespace={ss.namespace}
         name={ss.name}
         kind="StatefulSet"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="StatefulSet"
+        namespace={ss.namespace}
+        name={ss.name}
         search={sl}
       />
 

@@ -12,6 +12,7 @@ import { EditButton } from "../../components/ui/EditButton"
 import { EvictButton } from "../../components/ui/EvictButton"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import { PodCopyButton } from "../../components/ui/PodCopyButton"
+import { ResourceLink } from "../../components/ui/ResourceLink"
 import {
   ageColumn,
   DetailController,
@@ -26,6 +27,7 @@ import { usePodMetrics } from "../hooks/usePodMetrics"
 import { K8sPod, K8sPodMetric, K8sPodSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { PodMetricsSection } from "./PodMetricsSection"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 const WORKLOAD_KIND_CLASS: Record<string, string> = {
@@ -71,18 +73,26 @@ function isPodHealthy(status: string): boolean {
 function WorkloadBadge({
   kind,
   name,
+  namespace,
 }: {
   kind: string
   name: string
+  namespace: string
 }): JSX.Element {
   if (!kind) return <span className="text-muted-foreground">-</span>
   const cls = WORKLOAD_KIND_CLASS[kind] ?? "bg-muted text-muted-foreground"
   return (
     <span className="inline-flex items-center gap-1">
       <span className="text-xs text-muted-foreground">{kind}</span>
-      <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", cls)}>
-        {name}
-      </span>
+      <ResourceLink
+        kind={kind}
+        name={name}
+        namespace={namespace}
+        className={cn(
+          "rounded px-1.5 py-0.5 text-xs font-medium no-underline",
+          cls,
+        )}
+      />
     </span>
   )
 }
@@ -228,6 +238,13 @@ function DetailPanel({
         search={sl}
       />
 
+      <RelatedResourcesSection
+        resourceKind="Pod"
+        namespace={pod.namespace}
+        name={pod.name}
+        search={sl}
+      />
+
       {/* Shell container selector */}
       {pod.containers.length > 1 && (
         <div className="space-y-1">
@@ -250,9 +267,27 @@ function DetailPanel({
       <div className="space-y-1">
         <SectionHeader title="Info" />
         <MetaEntry label="Status" value={pod.status} />
-        <MetaEntry label="Node" value={pod.nodeName || "-"} />
+        <MetaEntry
+          label="Node"
+          value={
+            pod.nodeName ? (
+              <ResourceLink kind="Node" name={pod.nodeName} />
+            ) : (
+              "-"
+            )
+          }
+        />
         {pod.ownerKind ? (
-          <MetaEntry label={pod.ownerKind} value={pod.ownerName} />
+          <MetaEntry
+            label={pod.ownerKind}
+            value={
+              <ResourceLink
+                kind={pod.ownerKind}
+                name={pod.ownerName}
+                namespace={pod.namespace}
+              />
+            }
+          />
         ) : (
           <MetaEntry label="Workload" value="-" />
         )}
@@ -477,7 +512,13 @@ export function PodsView(): JSX.Element {
         { head: "Namespace", cell: (p) => p.namespace },
         {
           head: "Workload",
-          cell: (p) => <WorkloadBadge kind={p.ownerKind} name={p.ownerName} />,
+          cell: (p) => (
+            <WorkloadBadge
+              kind={p.ownerKind}
+              name={p.ownerName}
+              namespace={p.namespace}
+            />
+          ),
         },
         { head: "App", cell: (p) => p.app || "-" },
         { head: "Status", cell: (p) => p.status },

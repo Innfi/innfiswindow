@@ -130,6 +130,10 @@ export function ResourceListView<T extends Namespaced, D = T>({
 }: ResourceListViewProps<T, D>): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as T | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+  const selectedResourceType = useAppStore((s) => s.selectedResourceType)
+  const pendingSelection = useAppStore((s) => s.pendingSelection)
+  const clearPendingSelection = useAppStore((s) => s.clearPendingSelection)
+  const addGlobalError = useAppStore((s) => s.addGlobalError)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
@@ -170,6 +174,34 @@ export function ResourceListView<T extends Namespaced, D = T>({
     if (JSON.stringify(fresh) === JSON.stringify(selectedItem)) return
     setSelectedItem(fresh as object)
   }, [data])
+
+  // A cross-reference click names its target by kind and name; this list is
+  // the only place that can turn that into the row the detail panel renders
+  // from, since `detailGuard` and the re-sync above both key off the list's
+  // own shape. The type check keeps a jump aimed at another view from being
+  // consumed here while that view is still loading.
+  useEffect(() => {
+    if (!pendingSelection || pendingSelection.type !== selectedResourceType) {
+      return
+    }
+    if (loading) return
+    const match = data.find(
+      (row) =>
+        row.name === pendingSelection.name &&
+        (row.namespace ?? "") === pendingSelection.namespace,
+    )
+    clearPendingSelection()
+    if (match) {
+      setSelectedItem(match as object)
+      return
+    }
+    // The reference outlived what it pointed at, or names an object this
+    // identity can't list. Say so rather than leaving the click looking dead.
+    const where = pendingSelection.namespace
+      ? `${pendingSelection.namespace}/${pendingSelection.name}`
+      : pendingSelection.name
+    addGlobalError(`No ${title} entry named ${where}`, "navigation")
+  }, [pendingSelection, selectedResourceType, data, loading])
 
   const visible = useMemo(() => {
     const filtered = filterResources(

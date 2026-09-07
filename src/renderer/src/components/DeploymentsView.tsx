@@ -30,6 +30,7 @@ import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sDeployment, K8sDeploymentSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 type DeploymentRevision = {
@@ -420,6 +421,13 @@ function DetailPanel({
         namespace={deployment.namespace}
         name={deployment.name}
         kind="Deployment"
+        search={sl}
+      />
+
+      <RelatedResourcesSection
+        resourceKind="Deployment"
+        namespace={deployment.namespace}
+        name={deployment.name}
         search={sl}
       />
 
