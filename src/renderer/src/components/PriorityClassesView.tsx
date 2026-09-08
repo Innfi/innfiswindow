@@ -187,7 +187,12 @@ export function PriorityClassesView(): JSX.Element {
       title="Priority Classes"
       emptyMessage="No PriorityClasses found"
       namespaced={false}
-      list={(ctx) => window.api.k8s.listPriorityClasses({ contextName: ctx })}
+      list={(ctx, _ns, sel) =>
+        window.api.k8s.listPriorityClasses({
+          contextName: ctx,
+          labelSelector: sel,
+        })
+      }
       detailGuard={(item) => (item as K8sPriorityClass).value !== undefined}
       sortOptions={[
         {

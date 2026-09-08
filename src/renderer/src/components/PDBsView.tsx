@@ -178,8 +178,12 @@ export function PDBsView(): JSX.Element {
     <ResourceListView<K8sPDB>
       batch={{ resourceKind: "PodDisruptionBudget" }}
       title="PodDisruptionBudgets"
-      list={(ctx, ns) =>
-        window.api.k8s.listPDBs({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listPDBs({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       detailGuard={(item) => (item as K8sPDB).selector !== undefined}
       columns={[

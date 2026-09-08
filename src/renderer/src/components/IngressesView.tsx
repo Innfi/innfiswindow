@@ -268,8 +268,12 @@ export function IngressesView(): JSX.Element {
     <ResourceListView<K8sIngressSummary, K8sIngress>
       batch={{ resourceKind: "Ingress" }}
       title="Ingresses"
-      list={(ctx, ns) =>
-        window.api.k8s.listIngresses({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listIngresses({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       getDetail={(ctx, namespace, name) =>
         window.api.k8s.getIngress({ contextName: ctx, namespace, name })

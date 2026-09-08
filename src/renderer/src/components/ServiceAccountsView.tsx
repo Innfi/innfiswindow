@@ -195,8 +195,12 @@ export function ServiceAccountsView(): JSX.Element {
       batch={{ resourceKind: "ServiceAccount" }}
       title="Service Accounts"
       emptyMessage="No Service Accounts found"
-      list={(ctx, ns) =>
-        window.api.k8s.listServiceAccounts({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listServiceAccounts({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       detailGuard={(item) => (item as K8sServiceAccount).secrets !== undefined}
       columns={[

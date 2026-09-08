@@ -41,8 +41,11 @@ function toVersions(crd: V1CustomResourceDefinition): CRDVersionInfo[] {
   }))
 }
 
-export async function listCRDs(api: ApiextensionsV1Api): Promise<CRDInfo[]> {
-  const res = await api.listCustomResourceDefinition()
+export async function listCRDs(
+  api: ApiextensionsV1Api,
+  labelSelector?: string,
+): Promise<CRDInfo[]> {
+  const res = await api.listCustomResourceDefinition({ labelSelector })
   return res.items.map((crd) => {
     const versions = toVersions(crd)
     const conditions: Condition[] = (crd.status?.conditions ?? []).map((c) => ({
@@ -124,14 +127,19 @@ export async function listCustomResources(
   ref: CustomResourceRef,
   printerColumns: string[] = [],
   namespace?: string,
+  labelSelector?: string,
 ): Promise<CustomResourceInfo[]> {
   const gvr = { group: ref.group, version: ref.version, plural: ref.plural }
   const res = (
     ref.scope === "Cluster"
-      ? await api.listClusterCustomObject(gvr)
+      ? await api.listClusterCustomObject({ ...gvr, labelSelector })
       : namespace
-        ? await api.listNamespacedCustomObject({ ...gvr, namespace })
-        : await api.listCustomObjectForAllNamespaces(gvr)
+        ? await api.listNamespacedCustomObject({
+            ...gvr,
+            namespace,
+            labelSelector,
+          })
+        : await api.listCustomObjectForAllNamespaces({ ...gvr, labelSelector })
   ) as { items?: unknown[] }
   return (res.items ?? []).map((item) => toInfo(item, ref, printerColumns))
 }

@@ -594,8 +594,12 @@ export function DeploymentsView(): JSX.Element {
           },
         ],
       }}
-      list={(ctx, ns) =>
-        window.api.k8s.listDeployments({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listDeployments({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       getDetail={(ctx, namespace, name) =>
         window.api.k8s.getDeployment({ contextName: ctx, namespace, name })

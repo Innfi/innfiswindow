@@ -729,6 +729,7 @@ export function NodesView(): JSX.Element {
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
+  const labelSelector = useAppStore((s) => s.labelSelector)
   const refreshInterval = useAppStore((s) => s.refreshInterval)
 
   // Any write dialog in the detail panel pauses the poll, so an edit in
@@ -742,9 +743,10 @@ export function NodesView(): JSX.Element {
     reload,
     lastRefreshedAt,
   } = useK8sResource(
-    (ctx) => window.api.k8s.listNodes({ contextName: ctx }),
+    (ctx, _ns, sel) =>
+      window.api.k8s.listNodes({ contextName: ctx, labelSelector: sel }),
     selectedContext,
-    { paused: dialogOpen },
+    { paused: dialogOpen, labelSelector },
   )
 
   const [metricsMap, setMetricsMap] = useState<Map<string, NodeMetric>>(
@@ -800,7 +802,13 @@ export function NodesView(): JSX.Element {
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
         {!loading && !error && visibleNodes.length === 0 && (
-          <EmptyState message="No Nodes found" />
+          <EmptyState
+            message={
+              labelSelector
+                ? `No Nodes match ${labelSelector}`
+                : "No Nodes found"
+            }
+          />
         )}
         {!loading && !error && visibleNodes.length > 0 && (
           <div className="overflow-x-auto">

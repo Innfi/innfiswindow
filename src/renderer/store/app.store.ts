@@ -211,6 +211,7 @@ export interface ContextState {
   selectedItem: object | null
   selectedNamespace: string | null
   nameFilter: string
+  labelSelector: string
   drawerTabs: DrawerTab[]
   activeTabId: string | null
 }
@@ -227,6 +228,9 @@ interface AppState {
   selectedNamespace: string | null
   selectedContext: string | null
   nameFilter: string
+  /** The app bar's `-l` filter, in the canonical form `parseLabelSelector`
+   *  produces. Sent to the API server with every list; `""` means unfiltered. */
+  labelSelector: string
   themeId: string
   refreshInterval: RefreshIntervalValue
   drawerTabs: DrawerTab[]
@@ -254,6 +258,7 @@ interface AppState {
   setSelectedNamespace: (ns: string | null) => void
   setSelectedContext: (ctx: string | null) => void
   setNameFilter: (filter: string) => void
+  setLabelSelector: (selector: string) => void
   setThemeId: (id: string) => void
   setRefreshInterval: (interval: RefreshIntervalValue) => void
   openDrawerTab: (tab: DrawerTabInput) => void
@@ -284,6 +289,7 @@ export const useAppStore = create<AppState>()(
       selectedNamespace: null,
       selectedContext: null,
       nameFilter: "",
+      labelSelector: "",
       themeId: "default",
       refreshInterval: 30,
       drawerTabs: [],
@@ -340,8 +346,11 @@ export const useAppStore = create<AppState>()(
           selectedItem: null,
           pendingSelection: { type, name, namespace },
           // A filter carried over from the previous view would hide the very
-          // row the jump is aimed at.
+          // row the jump is aimed at — the label selector as surely as the name,
+          // since the target need not carry the labels that were being filtered
+          // on.
           nameFilter: "",
+          labelSelector: "",
         }
         // So would a namespace scope that excludes the target. Move the scope
         // to the target's namespace rather than widening it to all of them,
@@ -387,6 +396,7 @@ export const useAppStore = create<AppState>()(
             selectedItem: state.selectedItem,
             selectedNamespace: state.selectedNamespace,
             nameFilter: state.nameFilter,
+            labelSelector: state.labelSelector,
             drawerTabs: state.drawerTabs,
             activeTabId: state.activeTabId,
           }
@@ -419,6 +429,7 @@ export const useAppStore = create<AppState>()(
             selectedItem: saved.selectedItem,
             selectedNamespace: restoredNamespace,
             nameFilter: saved.nameFilter,
+            labelSelector: saved.labelSelector ?? "",
             drawerTabs: restoredTabs,
             activeTabId: saved.activeTabId,
           })
@@ -433,12 +444,14 @@ export const useAppStore = create<AppState>()(
             selectedItem: null,
             selectedNamespace: restoredNamespace,
             nameFilter: "",
+            labelSelector: "",
             drawerTabs: [],
             activeTabId: null,
           })
         }
       },
       setNameFilter: (filter) => set({ nameFilter: filter }),
+      setLabelSelector: (selector) => set({ labelSelector: selector }),
       setThemeId: (id) => set({ themeId: id }),
       setRefreshInterval: (interval) => set({ refreshInterval: interval }),
       openDrawerTab: (tabData: DrawerTabInput) => {

@@ -20,23 +20,50 @@ export function registerConfigHandlers(
 ): void {
   ipcMain.handle(
     "k8s:configmaps:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
       listConfigMaps(
         getContextClients(args?.contextName).coreV1,
         args?.namespace,
+        args?.labelSelector,
       ),
   )
   ipcMain.handle(
     "k8s:secrets:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
-      listSecrets(getContextClients(args?.contextName).coreV1, args?.namespace),
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
+      listSecrets(
+        getContextClients(args?.contextName).coreV1,
+        args?.namespace,
+        args?.labelSelector,
+      ),
   )
   ipcMain.handle(
     "k8s:serviceaccounts:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
       listServiceAccounts(
         getContextClients(args?.contextName).coreV1,
         args?.namespace,
+        args?.labelSelector,
       ),
   )
 

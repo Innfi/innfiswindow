@@ -194,8 +194,12 @@ export function RolesView(): JSX.Element {
     <ResourceListView<K8sRoleSummary, K8sRole>
       batch={{ resourceKind: "Role" }}
       title="Roles"
-      list={(ctx, ns) =>
-        window.api.k8s.listRoles({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listRoles({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       getDetail={(ctx, namespace, name) =>
         window.api.k8s.getRole({ contextName: ctx, namespace, name })

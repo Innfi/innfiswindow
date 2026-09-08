@@ -57,8 +57,11 @@ function detectPVSource(pv: V1PersistentVolume): PVSourceInfo {
   return { type: "Other", detail: "" }
 }
 
-export async function listPVs(api: CoreV1Api): Promise<PVInfo[]> {
-  const res = await api.listPersistentVolume()
+export async function listPVs(
+  api: CoreV1Api,
+  labelSelector?: string,
+): Promise<PVInfo[]> {
+  const res = await api.listPersistentVolume({ labelSelector })
   return res.items.map((pv) => {
     const claimRef = pv.spec?.claimRef
       ? {
@@ -107,10 +110,14 @@ export async function listPVCs(
   api: CoreV1Api,
   namespace?: string,
   storageApi?: StorageV1Api,
+  labelSelector?: string,
 ): Promise<PVCInfo[]> {
   const res = namespace
-    ? await api.listNamespacedPersistentVolumeClaim({ namespace })
-    : await api.listPersistentVolumeClaimForAllNamespaces()
+    ? await api.listNamespacedPersistentVolumeClaim({
+        namespace,
+        labelSelector,
+      })
+    : await api.listPersistentVolumeClaimForAllNamespaces({ labelSelector })
   const expansion = storageApi
     ? await storageClassExpansion(storageApi)
     : new Map<string, boolean>()
@@ -143,8 +150,9 @@ export async function listPVCs(
 
 export async function listStorageClasses(
   api: StorageV1Api,
+  labelSelector?: string,
 ): Promise<StorageClassInfo[]> {
-  const res = await api.listStorageClass()
+  const res = await api.listStorageClass({ labelSelector })
   return res.items.map((sc) => ({
     name: sc.metadata?.name ?? "",
     provisioner: sc.provisioner ?? "",
@@ -161,6 +169,7 @@ export async function listStorageClasses(
 export async function listVolumeSnapshots(
   api: CustomObjectsApi,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<VolumeSnapshotInfo[]> {
   const gvr = {
     group: "snapshot.storage.k8s.io",
@@ -170,8 +179,12 @@ export async function listVolumeSnapshots(
   try {
     const res = (
       namespace
-        ? await api.listNamespacedCustomObject({ ...gvr, namespace })
-        : await api.listClusterCustomObject(gvr)
+        ? await api.listNamespacedCustomObject({
+            ...gvr,
+            namespace,
+            labelSelector,
+          })
+        : await api.listClusterCustomObject({ ...gvr, labelSelector })
     ) as { items?: unknown[] }
     const items = res.items ?? []
     return items.map((item: unknown) => {
@@ -208,12 +221,14 @@ export async function listVolumeSnapshots(
  *  `listVolumeSnapshots` gives. */
 export async function listVolumeSnapshotClasses(
   api: CustomObjectsApi,
+  labelSelector?: string,
 ): Promise<VolumeSnapshotClassInfo[]> {
   try {
     const res = (await api.listClusterCustomObject({
       group: "snapshot.storage.k8s.io",
       version: "v1",
       plural: "volumesnapshotclasses",
+      labelSelector,
     })) as { items?: unknown[] }
     const items = res.items ?? []
     return items.map((item: unknown) => {

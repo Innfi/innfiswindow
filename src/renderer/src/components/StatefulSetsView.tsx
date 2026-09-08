@@ -362,8 +362,12 @@ export function StatefulSetsView(): JSX.Element {
         ],
       }}
       emptyMessage="No Stateful Sets found"
-      list={(ctx, ns) =>
-        window.api.k8s.listStatefulSets({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listStatefulSets({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       getDetail={(ctx, namespace, name) =>
         window.api.k8s.getStatefulSet({ contextName: ctx, namespace, name })

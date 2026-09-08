@@ -191,10 +191,14 @@ function toHPAInfo(hpa: V2HorizontalPodAutoscaler): HPAInfo {
 export async function listHPAs(
   api: AutoscalingV2Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<HPAInfo[]> {
   const res = namespace
-    ? await api.listNamespacedHorizontalPodAutoscaler({ namespace })
-    : await api.listHorizontalPodAutoscalerForAllNamespaces()
+    ? await api.listNamespacedHorizontalPodAutoscaler({
+        namespace,
+        labelSelector,
+      })
+    : await api.listHorizontalPodAutoscalerForAllNamespaces({ labelSelector })
   return res.items.map(toHPAInfo)
 }
 

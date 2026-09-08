@@ -77,7 +77,7 @@ export async function startWatch(
   args: WatchStartArgs,
   sender: WebContents,
 ): Promise<{ subId: string; items: unknown[] }> {
-  const key = `${args.contextName ?? ""}|${args.resource}|${args.namespace ?? ""}`
+  const key = `${args.contextName ?? ""}|${args.resource}|${args.namespace ?? ""}|${args.labelSelector ?? ""}`
   let entry = entries.get(key)
   if (!entry) {
     entry = await createEntry(deps, args, key)
@@ -168,6 +168,9 @@ async function createEntry(
   const kc = deps.getKubeConfig(args.contextName)
   const clients = deps.getContextClients(args.contextName)
   const ns = args.namespace
+  // Passed to `makeInformer` as well as to the list call: the first filters the
+  // watch request, the second the initial list the cache is built from.
+  const labelSelector = args.labelSelector
 
   let informer: AnyInformer
   let map: (obj: KubernetesObject) => unknown
@@ -179,8 +182,9 @@ async function createEntry(
       ns ? `/api/v1/namespaces/${ns}/pods` : "/api/v1/pods",
       () =>
         ns
-          ? clients.coreV1.listNamespacedPod({ namespace: ns })
-          : clients.coreV1.listPodForAllNamespaces(),
+          ? clients.coreV1.listNamespacedPod({ namespace: ns, labelSelector })
+          : clients.coreV1.listPodForAllNamespaces({ labelSelector }),
+      labelSelector,
     ) as AnyInformer
     const owners = await startReplicaSetOwners(deps, args)
     stopExtra = owners.stop
@@ -191,8 +195,9 @@ async function createEntry(
       ns ? `/api/v1/namespaces/${ns}/events` : "/api/v1/events",
       () =>
         ns
-          ? clients.coreV1.listNamespacedEvent({ namespace: ns })
-          : clients.coreV1.listEventForAllNamespaces(),
+          ? clients.coreV1.listNamespacedEvent({ namespace: ns, labelSelector })
+          : clients.coreV1.listEventForAllNamespaces({ labelSelector }),
+      labelSelector,
     ) as AnyInformer
     map = (obj) => mapEvent(obj as CoreV1Event)
   }
@@ -258,6 +263,9 @@ async function startReplicaSetOwners(
   let started = false
   let usable = false
 
+  // Deliberately unfiltered by `args.labelSelector`: that selector is about
+  // pods, and a ReplicaSet rarely carries the labels its pods do — filtering
+  // here would drop the owners the pods being watched need resolved.
   const informer = makeInformer<V1ReplicaSet>(
     kc,
     ns

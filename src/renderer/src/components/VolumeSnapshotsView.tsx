@@ -159,8 +159,12 @@ export function VolumeSnapshotsView(): JSX.Element {
       batch={{ resourceKind: "VolumeSnapshot" }}
       title="Volume Snapshots"
       emptyMessage="No VolumeSnapshots found"
-      list={(ctx, ns) =>
-        window.api.k8s.listVolumeSnapshots({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listVolumeSnapshots({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       detailGuard={(item) =>
         (item as K8sVolumeSnapshot).sourcePVCName !== undefined

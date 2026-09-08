@@ -17,11 +17,17 @@ const rowKey = (item: unknown): string => {
 }
 
 export function useK8sResource<T>(
-  fetcher: (ctx?: string, ns?: string) => Promise<T[]>,
+  fetcher: (ctx?: string, ns?: string, labelSelector?: string) => Promise<T[]>,
   context: string | null,
   options?: {
     paused?: boolean
     namespace?: string | null
+    /**
+     * The app bar's label selector, in the canonical form the store holds. It
+     * goes to the API server rather than being matched here: list summaries
+     * carry no labels. "" (or omitted) lists everything.
+     */
+    labelSelector?: string
     /**
      * Serve this list from a main-process informer instead of re-listing it on
      * every poll tick. The snapshot and the incremental updates are the same
@@ -47,6 +53,9 @@ export function useK8sResource<T>(
   // null means "all namespaces" — the fetcher then omits the namespace and the
   // handler falls back to a cluster-wide list.
   const namespace = options?.namespace ?? null
+  // "" means unfiltered, which is what the handlers take an absent selector to
+  // mean, so the two are collapsed here.
+  const labelSelector = options?.labelSelector ?? ""
   const watch = options?.watch
 
   // Sticky for the life of the mount: retrying a watch the cluster has already
@@ -68,6 +77,9 @@ export function useK8sResource<T>(
   const namespaceRef = useRef(namespace)
   namespaceRef.current = namespace
 
+  const labelSelectorRef = useRef(labelSelector)
+  labelSelectorRef.current = labelSelector
+
   const load = useCallback((silent = false) => {
     if (!silent) setLoading(true)
     setError(null)
@@ -75,6 +87,7 @@ export function useK8sResource<T>(
       .current(
         contextRef.current ?? undefined,
         namespaceRef.current ?? undefined,
+        labelSelectorRef.current || undefined,
       )
       .then((result) => {
         setData(result)
@@ -93,14 +106,22 @@ export function useK8sResource<T>(
     // While watching, the informer's snapshot is the initial load.
     if (watching) return
     load(false)
-  }, [context, namespace, watching, load])
+  }, [context, namespace, labelSelector, watching, load])
 
   useEffect(() => {
     if (refreshInterval === "off" || paused || watching) return
     const ms = (refreshInterval as number) * 1000
     const id = setInterval(() => load(true), ms)
     return () => clearInterval(id)
-  }, [refreshInterval, paused, load, context, namespace, watching])
+  }, [
+    refreshInterval,
+    paused,
+    load,
+    context,
+    namespace,
+    labelSelector,
+    watching,
+  ])
 
   useEffect(() => {
     if (!watching || watch === undefined || paused) return
@@ -116,6 +137,7 @@ export function useK8sResource<T>(
         resource: watch,
         contextName: context ?? undefined,
         namespace: namespace ?? undefined,
+        labelSelector: labelSelector || undefined,
       })
       .then(({ subId, items }) => {
         if (cancelled) {
@@ -164,7 +186,7 @@ export function useK8sResource<T>(
         window.api.stopWatch({ subId: activeSubId }).catch(() => {})
       }
     }
-  }, [watching, watch, paused, context, namespace])
+  }, [watching, watch, paused, context, namespace, labelSelector])
 
   return { data, loading, error, reload, lastRefreshedAt }
 }

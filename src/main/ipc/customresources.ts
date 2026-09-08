@@ -12,8 +12,13 @@ export function registerCustomResourceHandlers(
   ipcMain: IpcMain,
   getContextClients: GetContextClients,
 ): void {
-  ipcMain.handle("k8s:crds:list", (_e, args?: { contextName?: string }) =>
-    listCRDs(getContextClients(args?.contextName).apiextensionsV1),
+  ipcMain.handle(
+    "k8s:crds:list",
+    (_e, args?: { contextName?: string; labelSelector?: string }) =>
+      listCRDs(
+        getContextClients(args?.contextName).apiextensionsV1,
+        args?.labelSelector,
+      ),
   )
   ipcMain.handle(
     "k8s:customresources:list",
@@ -24,6 +29,7 @@ export function registerCustomResourceHandlers(
         namespace?: string
         ref: CustomResourceRef
         printerColumns?: string[]
+        labelSelector?: string
       },
     ) =>
       listCustomResources(
@@ -31,6 +37,7 @@ export function registerCustomResourceHandlers(
         args.ref,
         args.printerColumns ?? [],
         args.namespace,
+        args.labelSelector,
       ),
   )
   ipcMain.handle(

@@ -208,8 +208,12 @@ export function SecretsView(): JSX.Element {
     <ResourceListView<K8sSecretSummary, K8sSecret>
       batch={{ resourceKind: "Secret" }}
       title="Secrets"
-      list={(ctx, ns) =>
-        window.api.k8s.listSecrets({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listSecrets({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       getDetail={(ctx, namespace, name) =>
         window.api.k8s.getSecret({ contextName: ctx, namespace, name })

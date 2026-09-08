@@ -8,6 +8,10 @@ export interface WatchStartArgs {
   resource: WatchResource
   contextName?: string
   namespace?: string
+  /** The app bar's label selector, applied by the API server to both the
+   *  informer's initial list and its watch, so a watched view filters the same
+   *  way a polled one does. */
+  labelSelector?: string
 }
 
 /**

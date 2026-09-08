@@ -27,47 +27,90 @@ export function registerNetworkingHandlers(
 ): void {
   ipcMain.handle(
     "k8s:services:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
       listServices(
         getContextClients(args?.contextName).coreV1,
         args?.namespace,
+        args?.labelSelector,
       ),
   )
   ipcMain.handle(
     "k8s:ingresses:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
       listIngresses(
         getContextClients(args?.contextName).networkingV1,
         args?.namespace,
+        args?.labelSelector,
       ),
   )
   ipcMain.handle(
     "k8s:ingressclasses:list",
-    (_e, args?: { contextName?: string }) =>
-      listIngressClasses(getContextClients(args?.contextName).networkingV1),
+    (_e, args?: { contextName?: string; labelSelector?: string }) =>
+      listIngressClasses(
+        getContextClients(args?.contextName).networkingV1,
+        args?.labelSelector,
+      ),
   )
   ipcMain.handle(
     "k8s:networkpolicies:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
       listNetworkPolicies(
         getContextClients(args?.contextName).networkingV1,
         args?.namespace,
+        args?.labelSelector,
       ),
   )
   ipcMain.handle(
     "k8s:endpoints:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
       listEndpoints(
         getContextClients(args?.contextName).coreV1,
         args?.namespace,
+        args?.labelSelector,
       ),
   )
   ipcMain.handle(
     "k8s:endpointslices:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
       listEndpointSlices(
         getContextClients(args?.contextName).discoveryV1,
         args?.namespace,
+        args?.labelSelector,
       ),
   )
 

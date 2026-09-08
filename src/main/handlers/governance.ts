@@ -14,10 +14,11 @@ import {
 export async function listResourceQuotas(
   api: CoreV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<ResourceQuotaInfo[]> {
   const res = namespace
-    ? await api.listNamespacedResourceQuota({ namespace })
-    : await api.listResourceQuotaForAllNamespaces()
+    ? await api.listNamespacedResourceQuota({ namespace, labelSelector })
+    : await api.listResourceQuotaForAllNamespaces({ labelSelector })
   return res.items.map((rq) => ({
     name: rq.metadata?.name ?? "",
     namespace: rq.metadata?.namespace ?? "",
@@ -36,10 +37,11 @@ export async function listResourceQuotas(
 export async function listLimitRanges(
   api: CoreV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<LimitRangeInfo[]> {
   const res = namespace
-    ? await api.listNamespacedLimitRange({ namespace })
-    : await api.listLimitRangeForAllNamespaces()
+    ? await api.listNamespacedLimitRange({ namespace, labelSelector })
+    : await api.listLimitRangeForAllNamespaces({ labelSelector })
   return res.items.map((lr) => ({
     name: lr.metadata?.name ?? "",
     namespace: lr.metadata?.namespace ?? "",
@@ -67,11 +69,15 @@ export async function listLimitRanges(
 export async function listPDBs(
   api: PolicyV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<PDBInfo[]> {
   try {
     const res = namespace
-      ? await api.listNamespacedPodDisruptionBudget({ namespace })
-      : await api.listPodDisruptionBudgetForAllNamespaces()
+      ? await api.listNamespacedPodDisruptionBudget({
+          namespace,
+          labelSelector,
+        })
+      : await api.listPodDisruptionBudgetForAllNamespaces({ labelSelector })
     return res.items.map((pdb) => ({
       name: pdb.metadata?.name ?? "",
       namespace: pdb.metadata?.namespace ?? "",
@@ -109,8 +115,9 @@ export async function listPDBs(
  *  `spec.priorityClassName`, which the scheduler orders and preempts by. */
 export async function listPriorityClasses(
   api: SchedulingV1Api,
+  labelSelector?: string,
 ): Promise<PriorityClassInfo[]> {
-  const res = await api.listPriorityClass()
+  const res = await api.listPriorityClass({ labelSelector })
   return res.items.map((pc) => ({
     name: pc.metadata?.name ?? "",
     value: pc.value ?? 0,

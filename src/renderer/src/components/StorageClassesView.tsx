@@ -165,7 +165,12 @@ export function StorageClassesView(): JSX.Element {
       title="Storage Classes"
       emptyMessage="No StorageClasses found"
       namespaced={false}
-      list={(ctx) => window.api.k8s.listStorageClasses({ contextName: ctx })}
+      list={(ctx, _ns, sel) =>
+        window.api.k8s.listStorageClasses({
+          contextName: ctx,
+          labelSelector: sel,
+        })
+      }
       detailGuard={(item) =>
         (item as K8sStorageClass).provisioner !== undefined
       }

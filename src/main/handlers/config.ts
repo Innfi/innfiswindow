@@ -22,10 +22,11 @@ function mapConfigMapSummary(cm: V1ConfigMap): ConfigMapSummary {
 export async function listConfigMaps(
   api: CoreV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<ConfigMapSummary[]> {
   const res = namespace
-    ? await api.listNamespacedConfigMap({ namespace })
-    : await api.listConfigMapForAllNamespaces()
+    ? await api.listNamespacedConfigMap({ namespace, labelSelector })
+    : await api.listConfigMapForAllNamespaces({ labelSelector })
   return res.items.map(mapConfigMapSummary)
 }
 
@@ -64,10 +65,11 @@ function mapSecretSummary(secret: V1Secret): SecretSummary {
 export async function listSecrets(
   api: CoreV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<SecretSummary[]> {
   const res = namespace
-    ? await api.listNamespacedSecret({ namespace })
-    : await api.listSecretForAllNamespaces()
+    ? await api.listNamespacedSecret({ namespace, labelSelector })
+    : await api.listSecretForAllNamespaces({ labelSelector })
   return res.items.map(mapSecretSummary)
 }
 
@@ -88,10 +90,11 @@ export async function getSecret(
 export async function listServiceAccounts(
   api: CoreV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<ServiceAccountInfo[]> {
   const res = namespace
-    ? await api.listNamespacedServiceAccount({ namespace })
-    : await api.listServiceAccountForAllNamespaces()
+    ? await api.listNamespacedServiceAccount({ namespace, labelSelector })
+    : await api.listServiceAccountForAllNamespaces({ labelSelector })
   return res.items.map((sa) => ({
     name: sa.metadata?.name ?? "",
     namespace: sa.metadata?.namespace ?? "",

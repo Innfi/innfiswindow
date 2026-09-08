@@ -342,8 +342,12 @@ export function CronJobsView(): JSX.Element {
           },
         ],
       }}
-      list={(ctx, ns) =>
-        window.api.k8s.listCronJobs({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listCronJobs({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       detailGuard={(item) => "schedule" in item}
       columns={[

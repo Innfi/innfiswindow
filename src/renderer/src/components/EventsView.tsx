@@ -25,14 +25,20 @@ const lastSeen = (ev: K8sEvent): string =>
 export function EventsView(): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const labelSelector = useAppStore((s) => s.labelSelector)
 
   // Watch-backed: an event's `count` climbs as it repeats, so the watch reports
   // it as an update to the same row rather than as another row.
   const { data, loading, error, reload, lastRefreshedAt } =
     useK8sResource<K8sEvent>(
-      (ctx, ns) => window.api.listEvents({ contextName: ctx, namespace: ns }),
+      (ctx, ns, sel) =>
+        window.api.listEvents({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        }),
       selectedContext,
-      { namespace: selectedNamespace, watch: "events" },
+      { namespace: selectedNamespace, labelSelector, watch: "events" },
     )
 
   // Watch updates land in place, so the order has to come from the rows
@@ -54,7 +60,13 @@ export function EventsView(): JSX.Element {
       <div className="flex-1 overflow-auto">
         {error && <p className="p-4 text-sm text-red-500">{error}</p>}
         {!loading && !error && events.length === 0 && (
-          <EmptyState message="No Events found" />
+          <EmptyState
+            message={
+              labelSelector
+                ? `No Events match ${labelSelector} (an Event is matched on its own labels, which it usually has none of)`
+                : "No Events found"
+            }
+          />
         )}
         {events.length > 0 && (
           <div className="overflow-x-auto">

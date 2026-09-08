@@ -884,8 +884,14 @@ export interface ConnectionStatus {
 export interface K8sAPI {
   listContexts: () => Promise<K8sContext[]>
   getCurrentContext: () => Promise<string>
-  listNamespaces: (args?: { contextName?: string }) => Promise<K8sNamespace[]>
-  listNodes: (args?: { contextName?: string }) => Promise<K8sNode[]>
+  listNamespaces: (args?: {
+    contextName?: string
+    labelSelector?: string
+  }) => Promise<K8sNamespace[]>
+  listNodes: (args?: {
+    contextName?: string
+    labelSelector?: string
+  }) => Promise<K8sNode[]>
   cordonNode: (args: {
     contextName?: string
     name: string
@@ -927,6 +933,7 @@ export interface K8sAPI {
   listDeployments: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sDeploymentSummary[]>
   getDeployment: (args: {
     contextName?: string
@@ -936,6 +943,7 @@ export interface K8sAPI {
   listReplicaSets: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sReplicaSetSummary[]>
   getReplicaSet: (args: {
     contextName?: string
@@ -945,6 +953,7 @@ export interface K8sAPI {
   listStatefulSets: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sStatefulSetSummary[]>
   getStatefulSet: (args: {
     contextName?: string
@@ -954,6 +963,7 @@ export interface K8sAPI {
   listDaemonSets: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sDaemonSetSummary[]>
   getDaemonSet: (args: {
     contextName?: string
@@ -963,6 +973,7 @@ export interface K8sAPI {
   listConfigMaps: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sConfigMapSummary[]>
   getConfigMap: (args: {
     contextName?: string
@@ -972,6 +983,7 @@ export interface K8sAPI {
   listSecrets: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sSecretSummary[]>
   getSecret: (args: {
     contextName?: string
@@ -981,10 +993,12 @@ export interface K8sAPI {
   listServiceAccounts: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sServiceAccount[]>
   listRoles: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sRoleSummary[]>
   getRole: (args: {
     contextName?: string
@@ -993,6 +1007,7 @@ export interface K8sAPI {
   }) => Promise<K8sRole>
   listClusterRoles: (args?: {
     contextName?: string
+    labelSelector?: string
   }) => Promise<K8sClusterRoleSummary[]>
   getClusterRole: (args: {
     contextName?: string
@@ -1001,9 +1016,11 @@ export interface K8sAPI {
   listRoleBindings: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sRoleBinding[]>
   listClusterRoleBindings: (args?: {
     contextName?: string
+    labelSelector?: string
   }) => Promise<K8sClusterRoleBinding[]>
   checkAccess: (args: {
     contextName?: string
@@ -1033,6 +1050,7 @@ export interface K8sAPI {
   listHPAs: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sHPA[]>
   getHPA: (args: {
     contextName?: string
@@ -1052,18 +1070,27 @@ export interface K8sAPI {
     name: string
     metrics: K8sHPAResourceMetricSpec[]
   }) => Promise<{ success: boolean; name: string; namespace: string }>
-  listPVs: (args?: { contextName?: string }) => Promise<K8sPV[]>
+  listPVs: (args?: {
+    contextName?: string
+    labelSelector?: string
+  }) => Promise<K8sPV[]>
   listStorageClasses: (args?: {
     contextName?: string
+    labelSelector?: string
   }) => Promise<K8sStorageClass[]>
   listVolumeSnapshots: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sVolumeSnapshot[]>
   listVolumeSnapshotClasses: (args?: {
     contextName?: string
+    labelSelector?: string
   }) => Promise<K8sVolumeSnapshotClass[]>
-  listCRDs: (args?: { contextName?: string }) => Promise<K8sCRD[]>
+  listCRDs: (args?: {
+    contextName?: string
+    labelSelector?: string
+  }) => Promise<K8sCRD[]>
   listCustomResources: (args: {
     contextName?: string
     namespace?: string
@@ -1071,6 +1098,7 @@ export interface K8sAPI {
     /** JSONPaths from the CRD version's `additionalPrinterColumns`; each row
      *  comes back with one `columns` entry per path, in order. */
     printerColumns?: string[]
+    labelSelector?: string
   }) => Promise<K8sCustomResource[]>
   getCustomResource: (args: {
     contextName?: string
@@ -1082,10 +1110,12 @@ export interface K8sAPI {
   listJobs: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sJob[]>
   listCronJobs: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sCronJob[]>
   restartJob: (args: {
     contextName?: string
@@ -1124,6 +1154,7 @@ export interface K8sAPI {
   listPVCs: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sPVC[]>
   expandPVC: (args: {
     contextName?: string
@@ -1134,21 +1165,26 @@ export interface K8sAPI {
   listResourceQuotas: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sResourceQuota[]>
   listLimitRanges: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sLimitRange[]>
   listPDBs: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sPDB[]>
   listPriorityClasses: (args?: {
     contextName?: string
+    labelSelector?: string
   }) => Promise<K8sPriorityClass[]>
   listPods: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sPodSummary[]>
   getPod: (args: {
     contextName?: string
@@ -1158,10 +1194,12 @@ export interface K8sAPI {
   listServices: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sService[]>
   listIngresses: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sIngressSummary[]>
   getIngress: (args: {
     contextName?: string
@@ -1170,10 +1208,12 @@ export interface K8sAPI {
   }) => Promise<K8sIngress>
   listIngressClasses: (args?: {
     contextName?: string
+    labelSelector?: string
   }) => Promise<K8sIngressClass[]>
   listNetworkPolicies: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sNetworkPolicySummary[]>
   getNetworkPolicy: (args: {
     contextName?: string
@@ -1183,6 +1223,7 @@ export interface K8sAPI {
   listEndpoints: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sEndpointSummary[]>
   getEndpoint: (args: {
     contextName?: string
@@ -1192,6 +1233,7 @@ export interface K8sAPI {
   listEndpointSlices: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sEndpointSliceSummary[]>
   getEndpointSlice: (args: {
     contextName?: string
@@ -1578,6 +1620,7 @@ export interface API {
   listEvents: (args?: {
     contextName?: string
     namespace?: string
+    labelSelector?: string
   }) => Promise<K8sEvent[]>
   listEventsForResource: (args: {
     contextName?: string

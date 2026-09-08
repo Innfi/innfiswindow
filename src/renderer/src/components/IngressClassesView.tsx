@@ -200,7 +200,12 @@ export function IngressClassesView(): JSX.Element {
       title="Ingress Classes"
       emptyMessage="No IngressClasses found"
       namespaced={false}
-      list={(ctx) => window.api.k8s.listIngressClasses({ contextName: ctx })}
+      list={(ctx, _ns, sel) =>
+        window.api.k8s.listIngressClasses({
+          contextName: ctx,
+          labelSelector: sel,
+        })
+      }
       detailGuard={(item) => (item as K8sIngressClass).controller !== undefined}
       columns={[
         {

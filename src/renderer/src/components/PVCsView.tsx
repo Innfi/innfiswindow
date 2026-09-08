@@ -230,8 +230,12 @@ export function PVCsView(): JSX.Element {
     <ResourceListView<K8sPVC>
       batch={{ resourceKind: "PersistentVolumeClaim" }}
       title="PersistentVolumeClaims"
-      list={(ctx, ns) =>
-        window.api.k8s.listPVCs({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listPVCs({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       detailGuard={(item) => (item as K8sPVC).namespace !== undefined}
       columns={[

@@ -32,8 +32,11 @@ const JSON_MERGE_PATCH = setHeaderOptions(
   PatchStrategy.MergePatch,
 )
 
-export async function listNamespaces(api: CoreV1Api): Promise<NamespaceInfo[]> {
-  const res = await api.listNamespace()
+export async function listNamespaces(
+  api: CoreV1Api,
+  labelSelector?: string,
+): Promise<NamespaceInfo[]> {
+  const res = await api.listNamespace({ labelSelector })
   return res.items.map((ns) => ({
     name: ns.metadata?.name ?? "",
     status: ns.status?.phase ?? "",
@@ -43,8 +46,11 @@ export async function listNamespaces(api: CoreV1Api): Promise<NamespaceInfo[]> {
   }))
 }
 
-export async function listNodes(api: CoreV1Api): Promise<NodeInfo[]> {
-  const res = await api.listNode()
+export async function listNodes(
+  api: CoreV1Api,
+  labelSelector?: string,
+): Promise<NodeInfo[]> {
+  const res = await api.listNode({ labelSelector })
   return res.items.map((node) => {
     const labels = node.metadata?.labels ?? {}
     const roles = Object.keys(labels)

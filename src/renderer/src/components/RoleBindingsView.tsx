@@ -197,8 +197,12 @@ export function RoleBindingsView(): JSX.Element {
       batch={{ resourceKind: "RoleBinding" }}
       title="Role Bindings"
       emptyMessage="No Role Bindings found"
-      list={(ctx, ns) =>
-        window.api.k8s.listRoleBindings({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listRoleBindings({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       detailGuard={(item) => {
         const b = item as K8sRoleBinding

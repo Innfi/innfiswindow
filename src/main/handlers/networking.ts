@@ -54,10 +54,11 @@ export interface IngressTLSEntry {
 export async function listServices(
   api: CoreV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<ServiceInfo[]> {
   const res = namespace
-    ? await api.listNamespacedService({ namespace })
-    : await api.listServiceForAllNamespaces()
+    ? await api.listNamespacedService({ namespace, labelSelector })
+    : await api.listServiceForAllNamespaces({ labelSelector })
   return res.items.map((svc) => {
     const lbIngress = svc.status?.loadBalancer?.ingress ?? []
     const externalIP =
@@ -110,10 +111,11 @@ function mapIngressSummary(ing: V1Ingress): IngressSummary {
 export async function listIngresses(
   api: NetworkingV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<IngressSummary[]> {
   const res = namespace
-    ? await api.listNamespacedIngress({ namespace })
-    : await api.listIngressForAllNamespaces()
+    ? await api.listNamespacedIngress({ namespace, labelSelector })
+    : await api.listIngressForAllNamespaces({ labelSelector })
   return res.items.map(mapIngressSummary)
 }
 
@@ -178,8 +180,9 @@ function mapIngressClass(cls: V1IngressClass): IngressClassInfo {
  *  list every Ingress's `spec.ingressClassName` points into. */
 export async function listIngressClasses(
   api: NetworkingV1Api,
+  labelSelector?: string,
 ): Promise<IngressClassInfo[]> {
-  const res = await api.listIngressClass()
+  const res = await api.listIngressClass({ labelSelector })
   return res.items.map(mapIngressClass)
 }
 
@@ -384,10 +387,11 @@ function mapEndpointSummary(ep: V1Endpoints): EndpointSummary {
 export async function listEndpoints(
   api: CoreV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<EndpointSummary[]> {
   const res = namespace
-    ? await api.listNamespacedEndpoints({ namespace })
-    : await api.listEndpointsForAllNamespaces()
+    ? await api.listNamespacedEndpoints({ namespace, labelSelector })
+    : await api.listEndpointsForAllNamespaces({ labelSelector })
   return res.items.map(mapEndpointSummary)
 }
 
@@ -453,10 +457,11 @@ function mapEndpointSliceSummary(slice: V1EndpointSlice): EndpointSliceSummary {
 export async function listEndpointSlices(
   api: DiscoveryV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<EndpointSliceSummary[]> {
   const res = namespace
-    ? await api.listNamespacedEndpointSlice({ namespace })
-    : await api.listEndpointSliceForAllNamespaces()
+    ? await api.listNamespacedEndpointSlice({ namespace, labelSelector })
+    : await api.listEndpointSliceForAllNamespaces({ labelSelector })
   return res.items.map(mapEndpointSliceSummary)
 }
 
@@ -532,10 +537,11 @@ function mapNetworkPolicyRule(
 export async function listNetworkPolicies(
   api: NetworkingV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<NetworkPolicySummary[]> {
   const res = namespace
-    ? await api.listNamespacedNetworkPolicy({ namespace })
-    : await api.listNetworkPolicyForAllNamespaces()
+    ? await api.listNamespacedNetworkPolicy({ namespace, labelSelector })
+    : await api.listNetworkPolicyForAllNamespaces({ labelSelector })
   return res.items.map(mapNetworkPolicySummary)
 }
 

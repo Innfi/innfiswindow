@@ -233,10 +233,11 @@ function mapDeploymentInfo(d: V1Deployment): DeploymentInfo {
 export async function listDeployments(
   api: AppsV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<DeploymentSummary[]> {
   const res = namespace
-    ? await api.listNamespacedDeployment({ namespace })
-    : await api.listDeploymentForAllNamespaces()
+    ? await api.listNamespacedDeployment({ namespace, labelSelector })
+    : await api.listDeploymentForAllNamespaces({ labelSelector })
   return res.items.map(mapDeploymentSummary)
 }
 
@@ -287,10 +288,11 @@ function mapReplicaSetInfo(rs: V1ReplicaSet): ReplicaSetInfo {
 export async function listReplicaSets(
   api: AppsV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<ReplicaSetSummary[]> {
   const res = namespace
-    ? await api.listNamespacedReplicaSet({ namespace })
-    : await api.listReplicaSetForAllNamespaces()
+    ? await api.listNamespacedReplicaSet({ namespace, labelSelector })
+    : await api.listReplicaSetForAllNamespaces({ labelSelector })
   return res.items.map(mapReplicaSetSummary)
 }
 
@@ -342,10 +344,11 @@ function mapStatefulSetInfo(ss: V1StatefulSet): StatefulSetInfo {
 export async function listStatefulSets(
   api: AppsV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<StatefulSetSummary[]> {
   const res = namespace
-    ? await api.listNamespacedStatefulSet({ namespace })
-    : await api.listStatefulSetForAllNamespaces()
+    ? await api.listNamespacedStatefulSet({ namespace, labelSelector })
+    : await api.listStatefulSetForAllNamespaces({ labelSelector })
   return res.items.map(mapStatefulSetSummary)
 }
 
@@ -402,10 +405,11 @@ function mapDaemonSetInfo(ds: V1DaemonSet): DaemonSetInfo {
 export async function listDaemonSets(
   api: AppsV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<DaemonSetSummary[]> {
   const res = namespace
-    ? await api.listNamespacedDaemonSet({ namespace })
-    : await api.listDaemonSetForAllNamespaces()
+    ? await api.listNamespacedDaemonSet({ namespace, labelSelector })
+    : await api.listDaemonSetForAllNamespaces({ labelSelector })
   return res.items.map(mapDaemonSetSummary)
 }
 
@@ -629,10 +633,11 @@ export async function listPods(
   api: CoreV1Api,
   namespace?: string,
   appsV1?: AppsV1Api,
+  labelSelector?: string,
 ): Promise<PodSummary[]> {
   const res = namespace
-    ? await api.listNamespacedPod({ namespace })
-    : await api.listPodForAllNamespaces()
+    ? await api.listNamespacedPod({ namespace, labelSelector })
+    : await api.listPodForAllNamespaces({ labelSelector })
 
   // Only pay for the extra list call when some pod is actually RS-owned.
   const anyReplicaSetOwned = res.items.some((p) =>

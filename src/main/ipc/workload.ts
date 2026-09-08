@@ -42,18 +42,34 @@ export function registerWorkloadHandlers(
 ): void {
   ipcMain.handle(
     "k8s:deployments:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
       listDeployments(
         getContextClients(args?.contextName).appsV1,
         args?.namespace,
+        args?.labelSelector,
       ),
   )
   ipcMain.handle(
     "k8s:replicasets:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
       listReplicaSets(
         getContextClients(args?.contextName).appsV1,
         args?.namespace,
+        args?.labelSelector,
       ),
   )
   ipcMain.handle(
@@ -111,25 +127,53 @@ export function registerWorkloadHandlers(
   )
   ipcMain.handle(
     "k8s:pods:list",
-    (_e, args?: { contextName?: string; namespace?: string }) => {
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) => {
       const clients = getContextClients(args?.contextName)
-      return listPods(clients.coreV1, args?.namespace, clients.appsV1)
+      return listPods(
+        clients.coreV1,
+        args?.namespace,
+        clients.appsV1,
+        args?.labelSelector,
+      )
     },
   )
   ipcMain.handle(
     "k8s:daemonsets:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
       listDaemonSets(
         getContextClients(args?.contextName).appsV1,
         args?.namespace,
+        args?.labelSelector,
       ),
   )
   ipcMain.handle(
     "k8s:statefulsets:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
       listStatefulSets(
         getContextClients(args?.contextName).appsV1,
         args?.namespace,
+        args?.labelSelector,
       ),
   )
 

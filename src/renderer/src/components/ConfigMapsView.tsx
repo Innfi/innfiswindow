@@ -185,8 +185,12 @@ export function ConfigMapsView(): JSX.Element {
     <ResourceListView<K8sConfigMapSummary, K8sConfigMap>
       batch={{ resourceKind: "ConfigMap" }}
       title="ConfigMaps"
-      list={(ctx, ns) =>
-        window.api.k8s.listConfigMaps({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listConfigMaps({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       getDetail={(ctx, namespace, name) =>
         window.api.k8s.getConfigMap({ contextName: ctx, namespace, name })

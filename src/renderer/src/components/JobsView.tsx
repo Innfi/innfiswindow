@@ -395,8 +395,12 @@ export function JobsView(): JSX.Element {
           },
         ],
       }}
-      list={(ctx, ns) =>
-        window.api.k8s.listJobs({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listJobs({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       detailGuard={(item) => "active" in item}
       columns={[

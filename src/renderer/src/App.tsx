@@ -6,6 +6,7 @@ import { Button } from "../components/ui/Button"
 import { GlobalFooter } from "../components/ui/GlobalFooter"
 import { GlobalSearch } from "../components/ui/GlobalSearch"
 import { Input } from "../components/ui/Input"
+import { LabelSelectorInput } from "../components/ui/LabelSelectorInput"
 import { NameFilterInput } from "../components/ui/NameFilterInput"
 import {
   Popover,
@@ -163,6 +164,7 @@ function App(): JSX.Element {
             ))}
           </select>
           <NameFilterInput />
+          <LabelSelectorInput />
           <span className="rounded border px-2 py-0.5 text-xs mr-2 ml-2">
             {clusterType}
           </span>

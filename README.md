@@ -33,6 +33,7 @@ Standalone sections below the tree cover **Helm** (Repositories, Releases) and *
 - Global search across common resource types from the AppBar
 - Click any row to open a detail panel; list shows summary fields only
 - Namespace filter + name filter persist across resource type switches
+- Label selector box (`-l`) in the AppBar: `app=nginx`, `tier in (web,cache)`, `!canary`, comma-separated — validated as you type and pushed to the API server, so every list (and the pod/event watches) filters server-side
 - Empty-state message when filtered list has no results
 - Auto-refresh: lists re-fetch on a configurable interval (10s / 30s / 60s / 120s / off) with "Last refreshed" indicator and manual Refresh button
 - Global footer surfaces IPC/API errors with an unread badge

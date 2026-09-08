@@ -59,7 +59,7 @@ interface ResourceListViewProps<T extends Namespaced, D> {
   title: string
   /** Defaults to `No {title} found`. */
   emptyMessage?: string
-  list: (ctx?: string, ns?: string) => Promise<T[]>
+  list: (ctx?: string, ns?: string, labelSelector?: string) => Promise<T[]>
   columns: ResourceColumn<T>[]
   /**
    * Fetches the full object for the selected row. List handlers return only
@@ -137,6 +137,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
+  const labelSelector = useAppStore((s) => s.labelSelector)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [batchDialogOpen, setBatchDialogOpen] = useState(false)
   const [sortIndex, setSortIndex] = useState(0)
@@ -158,6 +159,10 @@ export function ResourceListView<T extends Namespaced, D = T>({
     {
       paused: deleteDialogOpen || batchDialogOpen,
       namespace: namespaced ? selectedNamespace : null,
+      // Unlike the name filter, the label selector is not applied again here:
+      // list summaries carry no labels, so the API server is the only thing
+      // that can answer it.
+      labelSelector,
       watch,
     },
   )
@@ -230,7 +235,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
   useEffect(() => {
     clearChecked()
     anchorRef.current = null
-  }, [selectedContext, selectedNamespace, clearChecked])
+  }, [selectedContext, selectedNamespace, labelSelector, clearChecked])
 
   function toggleChecked(index: number, shiftKey: boolean): void {
     const item = visible[index]
@@ -322,7 +327,13 @@ export function ResourceListView<T extends Namespaced, D = T>({
         {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
         {!loading && !error && visible.length === 0 && (
-          <EmptyState message={emptyMessage ?? `No ${title} found`} />
+          <EmptyState
+            message={
+              labelSelector
+                ? `No ${title} match ${labelSelector}`
+                : (emptyMessage ?? `No ${title} found`)
+            }
+          />
         )}
         {batch && checkedItems.length > 0 && (
           <BatchActionBar

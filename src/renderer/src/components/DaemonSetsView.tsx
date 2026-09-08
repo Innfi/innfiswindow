@@ -372,8 +372,12 @@ export function DaemonSetsView(): JSX.Element {
         ],
       }}
       emptyMessage="No Daemon Sets found"
-      list={(ctx, ns) =>
-        window.api.k8s.listDaemonSets({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listDaemonSets({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       getDetail={(ctx, namespace, name) =>
         window.api.k8s.getDaemonSet({ contextName: ctx, namespace, name })

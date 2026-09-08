@@ -279,7 +279,9 @@ export function CRDsView(): JSX.Element {
       title="Custom Resource Definitions"
       emptyMessage="No CustomResourceDefinitions found"
       namespaced={false}
-      list={(ctx) => window.api.k8s.listCRDs({ contextName: ctx })}
+      list={(ctx, _ns, sel) =>
+        window.api.k8s.listCRDs({ contextName: ctx, labelSelector: sel })
+      }
       detailGuard={(item) => (item as K8sCRD).plural !== undefined}
       sortOptions={[
         { label: "Name", compare: (a, b) => a.name.localeCompare(b.name) },

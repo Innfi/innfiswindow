@@ -198,7 +198,9 @@ export function PVsView(): JSX.Element {
       batch={{ resourceKind: "PersistentVolume" }}
       title="PersistentVolumes"
       namespaced={false}
-      list={(ctx) => window.api.k8s.listPVs({ contextName: ctx })}
+      list={(ctx, _ns, sel) =>
+        window.api.k8s.listPVs({ contextName: ctx, labelSelector: sel })
+      }
       detailGuard={(item) => !("namespace" in item)}
       columns={[
         { head: "Name", cell: (pv) => pv.name },

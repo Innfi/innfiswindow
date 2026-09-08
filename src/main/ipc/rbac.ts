@@ -27,26 +27,51 @@ export function registerRbacHandlers(
 ): void {
   ipcMain.handle(
     "k8s:roles:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
-      listRoles(getContextClients(args?.contextName).rbacV1, args?.namespace),
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
+      listRoles(
+        getContextClients(args?.contextName).rbacV1,
+        args?.namespace,
+        args?.labelSelector,
+      ),
   )
   ipcMain.handle(
     "k8s:clusterroles:list",
-    (_e, args?: { contextName?: string }) =>
-      listClusterRoles(getContextClients(args?.contextName).rbacV1),
+    (_e, args?: { contextName?: string; labelSelector?: string }) =>
+      listClusterRoles(
+        getContextClients(args?.contextName).rbacV1,
+        args?.labelSelector,
+      ),
   )
   ipcMain.handle(
     "k8s:rolebindings:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
       listRoleBindings(
         getContextClients(args?.contextName).rbacV1,
         args?.namespace,
+        args?.labelSelector,
       ),
   )
   ipcMain.handle(
     "k8s:clusterrolebindings:list",
-    (_e, args?: { contextName?: string }) =>
-      listClusterRoleBindings(getContextClients(args?.contextName).rbacV1),
+    (_e, args?: { contextName?: string; labelSelector?: string }) =>
+      listClusterRoleBindings(
+        getContextClients(args?.contextName).rbacV1,
+        args?.labelSelector,
+      ),
   )
 
   // The list handlers above return rule counts; these fetch the rules.

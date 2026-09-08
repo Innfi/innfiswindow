@@ -189,8 +189,12 @@ export function ResourceQuotasView(): JSX.Element {
     <ResourceListView<K8sResourceQuota>
       batch={{ resourceKind: "ResourceQuota" }}
       title="ResourceQuotas"
-      list={(ctx, ns) =>
-        window.api.k8s.listResourceQuotas({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listResourceQuotas({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       detailGuard={(item) => (item as K8sResourceQuota).hard !== undefined}
       columns={[

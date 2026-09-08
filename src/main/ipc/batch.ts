@@ -16,15 +16,34 @@ export function registerBatchHandlers(
 ): void {
   ipcMain.handle(
     "k8s:jobs:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
-      listJobs(getContextClients(args?.contextName).batchV1, args?.namespace),
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
+      listJobs(
+        getContextClients(args?.contextName).batchV1,
+        args?.namespace,
+        args?.labelSelector,
+      ),
   )
   ipcMain.handle(
     "k8s:cronjobs:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
       listCronJobs(
         getContextClients(args?.contextName).batchV1,
         args?.namespace,
+        args?.labelSelector,
       ),
   )
   ipcMain.handle(

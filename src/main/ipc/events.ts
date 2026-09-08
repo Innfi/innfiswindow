@@ -9,8 +9,19 @@ export function registerEventsHandlers(
 ): void {
   ipcMain.handle(
     "k8s:events:list",
-    (_e, args?: { contextName?: string; namespace?: string }) =>
-      listEvents(getContextClients(args?.contextName).coreV1, args?.namespace),
+    (
+      _e,
+      args?: {
+        contextName?: string
+        namespace?: string
+        labelSelector?: string
+      },
+    ) =>
+      listEvents(
+        getContextClients(args?.contextName).coreV1,
+        args?.namespace,
+        args?.labelSelector,
+      ),
   )
 
   ipcMain.handle(

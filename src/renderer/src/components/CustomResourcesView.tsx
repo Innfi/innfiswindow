@@ -250,12 +250,13 @@ function CustomResourceList({
       emptyMessage={`No ${crd.kind} objects found`}
       namespaced={crd.scope === "Namespaced"}
       batch={{ resourceKind: crd.kind, gvk }}
-      list={(ctx, ns) =>
+      list={(ctx, ns, sel) =>
         window.api.k8s.listCustomResources({
           contextName: ctx,
           namespace: ns,
           ref,
           printerColumns: paths,
+          labelSelector: sel,
         })
       }
       getDetail={(ctx, namespace, name) =>

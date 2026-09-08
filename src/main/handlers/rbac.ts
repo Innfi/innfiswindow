@@ -49,10 +49,11 @@ function mapRules(rules: V1PolicyRule[] | undefined): RbacRule[] {
 export async function listRoles(
   api: RbacAuthorizationV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<RoleSummary[]> {
   const res = namespace
-    ? await api.listNamespacedRole({ namespace })
-    : await api.listRoleForAllNamespaces()
+    ? await api.listNamespacedRole({ namespace, labelSelector })
+    : await api.listRoleForAllNamespaces({ labelSelector })
   return res.items.map((r) => ({
     name: r.metadata?.name ?? "",
     namespace: r.metadata?.namespace ?? "",
@@ -80,8 +81,9 @@ export async function getRole(
 
 export async function listClusterRoles(
   api: RbacAuthorizationV1Api,
+  labelSelector?: string,
 ): Promise<ClusterRoleSummary[]> {
-  const res = await api.listClusterRole()
+  const res = await api.listClusterRole({ labelSelector })
   return res.items.map((r) => ({
     name: r.metadata?.name ?? "",
     rulesCount: (r.rules ?? []).length,
@@ -107,10 +109,11 @@ export async function getClusterRole(
 export async function listRoleBindings(
   api: RbacAuthorizationV1Api,
   namespace?: string,
+  labelSelector?: string,
 ): Promise<RoleBindingInfo[]> {
   const res = namespace
-    ? await api.listNamespacedRoleBinding({ namespace })
-    : await api.listRoleBindingForAllNamespaces()
+    ? await api.listNamespacedRoleBinding({ namespace, labelSelector })
+    : await api.listRoleBindingForAllNamespaces({ labelSelector })
   return res.items.map((rb) => ({
     name: rb.metadata?.name ?? "",
     namespace: rb.metadata?.namespace ?? "",
@@ -132,8 +135,9 @@ export async function listRoleBindings(
 
 export async function listClusterRoleBindings(
   api: RbacAuthorizationV1Api,
+  labelSelector?: string,
 ): Promise<ClusterRoleBindingInfo[]> {
-  const res = await api.listClusterRoleBinding()
+  const res = await api.listClusterRoleBinding({ labelSelector })
   return res.items.map((crb) => ({
     name: crb.metadata?.name ?? "",
     roleRef: {

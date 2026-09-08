@@ -137,7 +137,9 @@ export function NamespacesView(): JSX.Element {
     <ResourceListView<K8sNamespace>
       title="Namespaces"
       namespaced={false}
-      list={(ctx) => window.api.k8s.listNamespaces({ contextName: ctx })}
+      list={(ctx, _ns, sel) =>
+        window.api.k8s.listNamespaces({ contextName: ctx, labelSelector: sel })
+      }
       detailGuard={() => true}
       columns={[
         { head: "Name", cell: (ns) => ns.name },

@@ -182,7 +182,12 @@ export function ClusterRolesView(): JSX.Element {
       title="Cluster Roles"
       emptyMessage="No Cluster Roles found"
       namespaced={false}
-      list={(ctx) => window.api.k8s.listClusterRoles({ contextName: ctx })}
+      list={(ctx, _ns, sel) =>
+        window.api.k8s.listClusterRoles({
+          contextName: ctx,
+          labelSelector: sel,
+        })
+      }
       getDetail={(ctx, _namespace, name) =>
         window.api.k8s.getClusterRole({ contextName: ctx, name })
       }

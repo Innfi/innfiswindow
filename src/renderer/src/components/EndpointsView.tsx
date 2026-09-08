@@ -232,8 +232,12 @@ export function EndpointsView(): JSX.Element {
     <ResourceListView<K8sEndpointSummary, K8sEndpoint>
       batch={{ resourceKind: "Endpoints" }}
       title="Endpoints"
-      list={(ctx, ns) =>
-        window.api.k8s.listEndpoints({ contextName: ctx, namespace: ns })
+      list={(ctx, ns, sel) =>
+        window.api.k8s.listEndpoints({
+          contextName: ctx,
+          namespace: ns,
+          labelSelector: sel,
+        })
       }
       getDetail={(ctx, namespace, name) =>
         window.api.k8s.getEndpoint({ contextName: ctx, namespace, name })

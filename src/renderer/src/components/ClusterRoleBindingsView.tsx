@@ -194,8 +194,11 @@ export function ClusterRoleBindingsView(): JSX.Element {
       title="Cluster Role Bindings"
       emptyMessage="No Cluster Role Bindings found"
       namespaced={false}
-      list={(ctx) =>
-        window.api.k8s.listClusterRoleBindings({ contextName: ctx })
+      list={(ctx, _ns, sel) =>
+        window.api.k8s.listClusterRoleBindings({
+          contextName: ctx,
+          labelSelector: sel,
+        })
       }
       detailGuard={(item) =>
         (item as K8sClusterRoleBinding).roleRef !== undefined &&
