@@ -107,6 +107,10 @@ export const resourceViews: Record<ResourceType, ComponentType> = {
     () => import("./components/CustomResourcesView"),
     "CustomResourcesView",
   ),
+  "api-resources": named(
+    () => import("./components/ApiResourcesView"),
+    "ApiResourcesView",
+  ),
   Jobs: named(() => import("./components/JobsView"), "JobsView"),
   CronJobs: named(() => import("./components/CronJobsView"), "CronJobsView"),
   ResourceQuotas: named(

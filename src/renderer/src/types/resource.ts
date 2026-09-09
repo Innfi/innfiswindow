@@ -29,6 +29,7 @@ export const RESOURCE_TYPES = [
   "VolumeSnapshotClasses",
   "CustomResourceDefinitions",
   "custom-resources",
+  "api-resources",
   "Jobs",
   "CronJobs",
   "ResourceQuotas",

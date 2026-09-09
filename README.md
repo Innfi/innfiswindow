@@ -12,7 +12,9 @@ Innfiswindow lets you browse, inspect, and manage Kubernetes resources from a na
 
 The tree sidebar lists every kubeconfig context, each expanding into these groups:
 
-- **Cluster**: Namespaces, Nodes, Events
+- **Cluster**: Namespaces, Nodes, Events, API Resources (`kubectl api-resources`
+  — every kind the server serves, with a jump to the view or the custom-resource
+  browser that lists it)
 - **Workloads**: Deployments, ReplicaSets, StatefulSets, DaemonSets, Pods, HPAs, Jobs, CronJobs
 - **Configuration**: ConfigMaps, Secrets
 - **Networking**: Services, Ingresses, IngressClasses, NetworkPolicies, Endpoints, EndpointSlices

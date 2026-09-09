@@ -10,6 +10,7 @@ import type {
   AccessReviewRequest,
   AccessReviewResult,
   AccessSubject,
+  ApiResourceCatalog,
   CRDInfo,
   CustomResourceDetail,
   CustomResourceInfo,
@@ -1107,6 +1108,11 @@ export interface K8sAPI {
     ref: K8sCustomResourceRef
     printerColumns?: string[]
   }) => Promise<K8sCustomResourceDetail>
+  /** Every kind the cluster serves, as `kubectl api-resources` lists them,
+   *  plus the groupVersions discovery could not read. */
+  listApiResources: (args?: {
+    contextName?: string
+  }) => Promise<ApiResourceCatalog>
   listJobs: (args?: {
     contextName?: string
     namespace?: string

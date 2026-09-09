@@ -1337,6 +1337,60 @@ export interface CustomResourceDetail {
 }
 
 // ---------------------------------------------------------------------------
+// discovery.ts
+// ---------------------------------------------------------------------------
+
+/**
+ * One kind the API server serves, the way `kubectl api-resources` prints it:
+ * one row per (group, resource), at the first served version that carries it —
+ * the group's preferred version unless only an older one serves the kind.
+ */
+export interface ApiResourceInfo {
+  /** `plural` in the core group, `plural.group` everywhere else. Unique across
+   *  the catalogue, which the plural alone is not: `events` is served by both
+   *  the core group and `events.k8s.io`. */
+  name: string
+  /** The name the API addresses the kind by — `deployments`. */
+  plural: string
+  singular: string
+  /** `""` for the core group, which is what the API itself calls it. */
+  group: string
+  /** The version this row's metadata was read from. */
+  version: string
+  /** `group/version`, or bare `version` in the core group. */
+  apiVersion: string
+  kind: string
+  namespaced: boolean
+  /** `get`, `list`, `watch`, `create`, … — what this kind actually supports,
+   *  which is also what a `can-i` check is asking about. */
+  verbs: string[]
+  shortNames: string[]
+  categories: string[]
+  /** Every served version of the group that carries this resource, the one in
+   *  `version` first. */
+  servedVersions: string[]
+  /** Subresources served under this one, without the parent prefix:
+   *  `status`, `scale`, `log`. */
+  subresources: string[]
+}
+
+/** A groupVersion whose resource list could not be read. An aggregated API
+ *  whose backend is down answers 503 here — the reason `kubectl` prints
+ *  "unable to retrieve the complete list of server APIs" and carries on with
+ *  what it did get. */
+export interface ApiGroupVersionError {
+  groupVersion: string
+  error: string
+}
+
+/** What one discovery pass found. Partial by design: a groupVersion that
+ *  failed costs its own kinds, not the whole catalogue. */
+export interface ApiResourceCatalog {
+  resources: ApiResourceInfo[]
+  errors: ApiGroupVersionError[]
+}
+
+// ---------------------------------------------------------------------------
 // references.ts
 // ---------------------------------------------------------------------------
 

@@ -8,7 +8,10 @@ import type { ResourceType } from "../../src/types/resource"
 import { useAppStore } from "../../store/app.store"
 
 const groups: { label: string; items: ResourceType[] }[] = [
-  { label: "Cluster", items: ["Namespaces", "Nodes", "Events"] },
+  {
+    label: "Cluster",
+    items: ["Namespaces", "Nodes", "Events", "api-resources"],
+  },
   {
     label: "Workloads",
     items: [
@@ -72,6 +75,7 @@ const groups: { label: string; items: ResourceType[] }[] = [
 
 /** Tree labels for the leaves whose ResourceType name isn't presentable. */
 const itemLabels: Partial<Record<ResourceType, string>> = {
+  "api-resources": "API Resources",
   "access-review": "Access Review",
   CustomResourceDefinitions: "Definitions",
   "custom-resources": "Browse objects",

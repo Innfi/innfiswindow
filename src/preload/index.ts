@@ -321,6 +321,8 @@ const api = {
       }
       printerColumns?: string[]
     }) => ipcRenderer.invoke("k8s:customresource:get", args),
+    listApiResources: (args?: { contextName?: string }) =>
+      ipcRenderer.invoke("k8s:apiresources:list", args),
     listResourceQuotas: (args?: {
       contextName?: string
       namespace?: string

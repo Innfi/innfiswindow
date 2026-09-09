@@ -10,6 +10,7 @@ import {
   getReplicaSet,
   getSecret,
   getStatefulSet,
+  listApiResources,
   listConfigMaps,
   listContexts,
   listDaemonSets,
@@ -252,5 +253,30 @@ describe.skipIf(!kindAvailable)("k8s IPC handlers against kind cluster", () => {
     const appSecret = await getSecret(coreApi, "test-ns-1", "app-secret")
     expect(typeof appSecret.data).toBe("object")
     expect(typeof appSecret.data["API_KEY"]).toBe("string")
+  })
+
+  // The merge rules are covered by api-resources.test.ts against a stub; what
+  // only a real server shows is the request itself — discovery does not go
+  // through a generated client, so this is the one place the hand-rolled GET
+  // (and the auth on it) is exercised.
+  test("k8s:apiresources:list reads the served kinds off the API server", async () => {
+    const { resources, errors } = await listApiResources(kc)
+    expect(errors).toEqual([])
+    const pods = resources.find((r) => r.name === "pods")
+    expect(pods).toMatchObject({
+      plural: "pods",
+      group: "",
+      apiVersion: "v1",
+      kind: "Pod",
+      namespaced: true,
+    })
+    expect(pods?.shortNames).toContain("po")
+    expect(pods?.verbs).toContain("list")
+    expect(pods?.subresources).toEqual(expect.arrayContaining(["log", "exec"]))
+    const deployments = resources.find((r) => r.name === "deployments.apps")
+    expect(deployments?.apiVersion).toBe("apps/v1")
+    expect(deployments?.subresources).toContain("scale")
+    // Cluster-scoped kinds come back too, flagged as such.
+    expect(resources.find((r) => r.name === "nodes")?.namespaced).toBe(false)
   })
 })

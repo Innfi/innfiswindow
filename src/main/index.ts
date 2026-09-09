@@ -32,6 +32,7 @@ import {
 } from "./ipc/context-clients"
 import { registerCustomResourceHandlers } from "./ipc/customresources"
 import { registerDialogHandlers } from "./ipc/dialog"
+import { registerDiscoveryHandlers } from "./ipc/discovery"
 import { registerEventsHandlers } from "./ipc/events"
 import { registerGovernanceHandlers } from "./ipc/governance"
 import { registerHelmHandlers } from "./ipc/helm"
@@ -229,6 +230,7 @@ app.whenReady().then(() => {
   registerAutoscalingHandlers(ipcMain, getContextClients)
   registerStorageHandlers(ipcMain, getContextClients)
   registerCustomResourceHandlers(ipcMain, getContextClients)
+  registerDiscoveryHandlers(ipcMain, getKubeConfig)
   registerApplyHandlers(ipcMain, getKubeConfig)
   registerAwsHandlers(ipcMain)
   registerAlarmHandlers(ipcMain, getContextClients)
