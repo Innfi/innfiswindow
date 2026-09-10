@@ -2,11 +2,20 @@
 // of `k8s.ts` because it describes the transport, not a cluster object.
 
 /** Resources served by a watch instead of full-list polling. */
-export type WatchResource = "pods" | "events"
+export const WATCH_RESOURCES = [
+  "pods",
+  "events",
+  "deployments",
+  "jobs",
+  "nodes",
+] as const
+
+export type WatchResource = (typeof WATCH_RESOURCES)[number]
 
 export interface WatchStartArgs {
   resource: WatchResource
   contextName?: string
+  /** Ignored for a cluster-scoped resource (`nodes`). */
   namespace?: string
   /** The app bar's label selector, applied by the API server to both the
    *  informer's initial list and its watch, so a watched view filters the same

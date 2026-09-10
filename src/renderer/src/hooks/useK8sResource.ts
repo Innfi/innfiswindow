@@ -5,7 +5,7 @@ import { normalizeIpcError } from "../../lib/ipc-error"
 import { useAppStore } from "../../store/app.store"
 
 /** Watch-backed rows are addressed the way the store addresses a selected
- *  item, which every resource served by a watch supports. */
+ *  item: namespace (absent for a cluster-scoped kind like Node) plus name. */
 interface Addressable {
   name?: string
   namespace?: string
@@ -80,6 +80,12 @@ export function useK8sResource<T>(
   const labelSelectorRef = useRef(labelSelector)
   labelSelectorRef.current = labelSelector
 
+  // What the last subscription was for. Resuming from a pause re-subscribes to
+  // the same target, and the rows on screen are still right for it until the
+  // fresh snapshot lands — raising `loading` there would blank a watched list
+  // every time a dialog closes.
+  const watchTargetRef = useRef("")
+
   const load = useCallback((silent = false) => {
     if (!silent) setLoading(true)
     setError(null)
@@ -131,7 +137,11 @@ export function useK8sResource<T>(
     let offClosed: (() => void) | null = null
     let activeSubId: string | null = null
 
-    setLoading(true)
+    const target = `${watch}|${context ?? ""}|${namespace ?? ""}|${labelSelector}`
+    if (watchTargetRef.current !== target) {
+      watchTargetRef.current = target
+      setLoading(true)
+    }
     window.api
       .startWatch({
         resource: watch,

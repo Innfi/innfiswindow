@@ -547,6 +547,7 @@ export function DeploymentsView(): JSX.Element {
   return (
     <ResourceListView<K8sDeploymentSummary, K8sDeployment>
       title="Deployments"
+      watch="deployments"
       batch={{
         resourceKind: "Deployment",
         actions: [

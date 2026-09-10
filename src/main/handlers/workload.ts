@@ -183,7 +183,7 @@ function mapDetailedContainer(c: V1Container): DetailedContainerInfo {
   }
 }
 
-function mapDeploymentSummary(d: V1Deployment): DeploymentSummary {
+export function mapDeploymentSummary(d: V1Deployment): DeploymentSummary {
   return {
     name: d.metadata?.name ?? "",
     namespace: d.metadata?.namespace ?? "",

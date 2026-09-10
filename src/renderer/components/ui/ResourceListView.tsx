@@ -95,7 +95,8 @@ interface ResourceListViewProps<T extends Namespaced, D> {
   namespaced?: boolean
   /**
    * Serve the rows from a main-process informer instead of re-listing on every
-   * poll tick, for lists big enough that the full payload hurts. `list` is
+   * poll tick, for lists big enough that the full payload hurts or where a row
+   * a poll behind is the one being watched (a rollout, a Job run). `list` is
    * still required: it is what the view falls back to when the watch can't be
    * established or drops.
    */

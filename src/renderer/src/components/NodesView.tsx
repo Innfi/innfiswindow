@@ -732,10 +732,12 @@ export function NodesView(): JSX.Element {
   const labelSelector = useAppStore((s) => s.labelSelector)
   const refreshInterval = useAppStore((s) => s.refreshInterval)
 
-  // Any write dialog in the detail panel pauses the poll, so an edit in
-  // progress is not overwritten by a refreshed node.
+  // Any write dialog in the detail panel pauses the refresh (watch or poll), so
+  // an edit in progress is not overwritten by a refreshed node.
   const [dialogOpen, setDialogOpen] = useState(false)
 
+  // Watch-backed: a node going NotReady or being cordoned shows up as it
+  // happens rather than a poll later.
   const {
     data: nodes,
     loading,
@@ -746,7 +748,7 @@ export function NodesView(): JSX.Element {
     (ctx, _ns, sel) =>
       window.api.k8s.listNodes({ contextName: ctx, labelSelector: sel }),
     selectedContext,
-    { paused: dialogOpen, labelSelector },
+    { paused: dialogOpen, labelSelector, watch: "nodes" },
   )
 
   const [metricsMap, setMetricsMap] = useState<Map<string, NodeMetric>>(
@@ -787,7 +789,11 @@ export function NodesView(): JSX.Element {
     if (!selectedItem || nodes.length === 0) return
     const item = selectedItem as { name: string }
     const fresh = nodes.find((n) => n.name === item.name)
-    if (fresh) setSelectedItem(fresh as object)
+    // Compare by content, as ResourceListView does: the kubelet rewrites node
+    // status periodically, and the watch reports each write even when nothing
+    // shown here changed.
+    if (!fresh || JSON.stringify(fresh) === JSON.stringify(selectedItem)) return
+    setSelectedItem(fresh as object)
   }, [nodes])
 
   const visibleNodes = filterResources(nodes, nameFilter)

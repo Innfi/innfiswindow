@@ -5,24 +5,39 @@ import {
   DELETE,
   ERROR,
   Informer,
+  KubernetesListObject,
   KubernetesObject,
   makeInformer,
   ObjectCache,
   UPDATE,
+  V1Deployment,
+  V1Job,
+  V1Node,
   V1Pod,
   V1ReplicaSet,
 } from "@kubernetes/client-node"
 
 import {
+  WATCH_RESOURCES,
   WatchClosedMessage,
   WatchEventMessage,
   WatchEventType,
   WatchResource,
   WatchStartArgs,
 } from "../shared/watch"
+import { mapJob } from "./handlers/batch"
+import { mapNode } from "./handlers/cluster"
 import { mapEvent } from "./handlers/events"
-import { mapPodSummary, replicaSetOwnerEntry } from "./handlers/workload"
-import { GetContextClients, GetKubeConfig } from "./ipc/context-clients"
+import {
+  mapDeploymentSummary,
+  mapPodSummary,
+  replicaSetOwnerEntry,
+} from "./handlers/workload"
+import {
+  ApiClients,
+  GetContextClients,
+  GetKubeConfig,
+} from "./ipc/context-clients"
 
 export const WATCH_EVENT_CHANNEL = "k8s:watch:event"
 export const WATCH_CLOSED_CHANNEL = "k8s:watch:closed"
@@ -50,9 +65,73 @@ interface Entry {
   disposed: boolean
 }
 
+/**
+ * A watched resource that is nothing more than one informer: the collection to
+ * watch, the list call the informer builds its cache from (the same collection,
+ * so the same filtering), and the handler's own mapper, so a watched row is
+ * exactly what the `list*` handler would have returned. Pods aren't here — they
+ * also run the ReplicaSet owners watch.
+ */
+interface WatchSource {
+  /** One collection for the whole cluster; `startWatch` drops any namespace. */
+  clusterScoped?: boolean
+  path: (namespace: string | undefined) => string
+  list: (
+    clients: ApiClients,
+    namespace: string | undefined,
+    labelSelector: string | undefined,
+  ) => Promise<KubernetesListObject<KubernetesObject>>
+  map: (obj: KubernetesObject) => unknown
+}
+
+const SOURCES: Record<Exclude<WatchResource, "pods">, WatchSource> = {
+  events: {
+    path: (ns) => (ns ? `/api/v1/namespaces/${ns}/events` : "/api/v1/events"),
+    list: (c, ns, labelSelector) =>
+      ns
+        ? c.coreV1.listNamespacedEvent({ namespace: ns, labelSelector })
+        : c.coreV1.listEventForAllNamespaces({ labelSelector }),
+    map: (obj) => mapEvent(obj as CoreV1Event),
+  },
+  deployments: {
+    path: (ns) =>
+      ns
+        ? `/apis/apps/v1/namespaces/${ns}/deployments`
+        : "/apis/apps/v1/deployments",
+    list: (c, ns, labelSelector) =>
+      ns
+        ? c.appsV1.listNamespacedDeployment({ namespace: ns, labelSelector })
+        : c.appsV1.listDeploymentForAllNamespaces({ labelSelector }),
+    map: (obj) => mapDeploymentSummary(obj as V1Deployment),
+  },
+  jobs: {
+    path: (ns) =>
+      ns ? `/apis/batch/v1/namespaces/${ns}/jobs` : "/apis/batch/v1/jobs",
+    list: (c, ns, labelSelector) =>
+      ns
+        ? c.batchV1.listNamespacedJob({ namespace: ns, labelSelector })
+        : c.batchV1.listJobForAllNamespaces({ labelSelector }),
+    map: (obj) => mapJob(obj as V1Job),
+  },
+  nodes: {
+    clusterScoped: true,
+    path: () => "/api/v1/nodes",
+    list: (c, _ns, labelSelector) => c.coreV1.listNode({ labelSelector }),
+    map: (obj) => mapNode(obj as V1Node),
+  },
+}
+
+function isClusterScoped(resource: WatchResource): boolean {
+  return resource !== "pods" && SOURCES[resource].clusterScoped === true
+}
+
 /** One informer per context + resource + namespace, shared by every subscriber
  *  that asked for the same thing. */
 const entries = new Map<string, Entry>()
+/** Entries still starting, so two subscribers racing for the same key (a quick
+ *  namespace flip, a remount) wait on one informer rather than each starting
+ *  their own and the loser's teardown evicting the winner from `entries`. */
+const pending = new Map<string, Promise<Entry>>()
 const entryOfSub = new Map<string, Entry>()
 /** Senders already wired for teardown, so a renderer that subscribes a dozen
  *  times doesn't accumulate a dozen navigation listeners. */
@@ -77,11 +156,28 @@ export async function startWatch(
   args: WatchStartArgs,
   sender: WebContents,
 ): Promise<{ subId: string; items: unknown[] }> {
-  const key = `${args.contextName ?? ""}|${args.resource}|${args.namespace ?? ""}|${args.labelSelector ?? ""}`
+  // A namespace passed for a cluster-scoped resource must neither reach the
+  // path nor split the cache into copies of the same collection.
+  const target: WatchStartArgs = isClusterScoped(args.resource)
+    ? { ...args, namespace: undefined }
+    : args
+  const key = `${target.contextName ?? ""}|${target.resource}|${target.namespace ?? ""}|${target.labelSelector ?? ""}`
+
   let entry = entries.get(key)
   if (!entry) {
-    entry = await createEntry(deps, args, key)
-    entries.set(key, entry)
+    let creating = pending.get(key)
+    if (!creating) {
+      creating = createEntry(deps, target, key)
+        .then((created) => {
+          entries.set(key, created)
+          return created
+        })
+        .finally(() => pending.delete(key))
+      pending.set(key, creating)
+    }
+    entry = await creating
+    // Everyone who subscribed while it was starting has since left.
+    if (entry.disposed) return startWatch(deps, args, sender)
   }
 
   const subId = `watch-${++subCounter}`
@@ -126,7 +222,7 @@ export function stopAllWatches(): void {
 function disposeEntry(entry: Entry): void {
   if (entry.disposed) return
   entry.disposed = true
-  entries.delete(entry.key)
+  if (entries.get(entry.key) === entry) entries.delete(entry.key)
   for (const subId of entry.subs.keys()) entryOfSub.delete(subId)
   entry.subs.clear()
   entry.stopExtra()
@@ -190,16 +286,14 @@ async function createEntry(
     stopExtra = owners.stop
     map = (obj) => mapPodSummary(obj as V1Pod, owners.get())
   } else {
-    informer = makeInformer<CoreV1Event>(
+    const source = SOURCES[args.resource]
+    informer = makeInformer<KubernetesObject>(
       kc,
-      ns ? `/api/v1/namespaces/${ns}/events` : "/api/v1/events",
-      () =>
-        ns
-          ? clients.coreV1.listNamespacedEvent({ namespace: ns, labelSelector })
-          : clients.coreV1.listEventForAllNamespaces({ labelSelector }),
+      source.path(ns),
+      () => source.list(clients, ns, labelSelector),
       labelSelector,
-    ) as AnyInformer
-    map = (obj) => mapEvent(obj as CoreV1Event)
+    )
+    map = source.map
   }
 
   const entry: Entry = {
@@ -320,5 +414,8 @@ async function startReplicaSetOwners(
 
 /** Resources this module can watch, for validating an IPC argument. */
 export function isWatchResource(value: unknown): value is WatchResource {
-  return value === "pods" || value === "events"
+  return (
+    typeof value === "string" &&
+    (WATCH_RESOURCES as readonly string[]).includes(value)
+  )
 }

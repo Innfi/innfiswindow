@@ -1,8 +1,15 @@
 import { WebContents } from "electron"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
-import { AppsV1Api, CoreV1Api, KubeConfig } from "@kubernetes/client-node"
+import {
+  AppsV1Api,
+  BatchV1Api,
+  CoreV1Api,
+  KubeConfig,
+  PatchStrategy,
+  setHeaderOptions,
+} from "@kubernetes/client-node"
 
-import { WatchEventMessage } from "../../shared/watch"
+import { WatchEventMessage, WatchResource } from "../../shared/watch"
 import {
   InformerDeps,
   startWatch,
@@ -11,7 +18,12 @@ import {
   WATCH_EVENT_CHANNEL,
 } from "../informers"
 import { ApiClients } from "../ipc/context-clients"
-import { listPods } from "../k8s-handlers"
+import { listDeployments, listJobs, listNodes, listPods } from "../k8s-handlers"
+
+type DeploymentRow = Awaited<ReturnType<typeof listDeployments>>[number]
+
+const byName = <T extends { name: string }>(rows: T[]): T[] =>
+  [...rows].sort((a, b) => a.name.localeCompare(b.name))
 
 const KIND_CONTEXT = "kind-innfiswindow-test"
 const NAMESPACE = "test-ns-1"
@@ -60,6 +72,8 @@ async function waitFor<T>(
 
 let kc: KubeConfig
 let coreApi: CoreV1Api
+let appsApi: AppsV1Api
+let batchApi: BatchV1Api
 let deps: InformerDeps
 
 beforeAll(() => {
@@ -68,13 +82,14 @@ beforeAll(() => {
   kc.loadFromDefault()
   kc.setCurrentContext(KIND_CONTEXT)
   coreApi = kc.makeApiClient(CoreV1Api)
-  const appsApi = kc.makeApiClient(AppsV1Api)
+  appsApi = kc.makeApiClient(AppsV1Api)
+  batchApi = kc.makeApiClient(BatchV1Api)
   deps = {
     getKubeConfig: () => kc,
     // Only the clients the watched resources need are real; the registry never
     // touches the rest.
     getContextClients: () =>
-      ({ coreV1: coreApi, appsV1: appsApi }) as ApiClients,
+      ({ coreV1: coreApi, appsV1: appsApi, batchV1: batchApi }) as ApiClients,
   }
 })
 
@@ -162,6 +177,115 @@ describe.skipIf(!kindAvailable)("informers against kind cluster", () => {
       stopWatch(subId)
       await coreApi
         .deleteNamespacedPod({ name, namespace: NAMESPACE })
+        .catch(() => {})
+    }
+  }, 90_000)
+
+  // A watched row has to be exactly the row the list handler returns, not just
+  // the same names: the views render either one through the same columns.
+  const namespacedCases: [WatchResource, () => Promise<{ name: string }[]>][] =
+    [
+      ["deployments", () => listDeployments(appsApi, NAMESPACE)],
+      ["jobs", () => listJobs(batchApi, NAMESPACE)],
+    ]
+  for (const [resource, list] of namespacedCases) {
+    test(`${resource} watch snapshot matches the list handler`, async () => {
+      const { sender } = fakeSender()
+      const { subId, items } = await startWatch(
+        deps,
+        { resource, contextName: KIND_CONTEXT, namespace: NAMESPACE },
+        sender,
+      )
+      try {
+        const listed = await list()
+        expect(byName(items as { name: string }[])).toEqual(byName(listed))
+      } finally {
+        stopWatch(subId)
+      }
+    })
+  }
+
+  test("nodes watch matches the list handler and ignores a namespace", async () => {
+    const { sender } = fakeSender()
+    const plain = await startWatch(
+      deps,
+      { resource: "nodes", contextName: KIND_CONTEXT },
+      sender,
+    )
+    const scoped = await startWatch(
+      deps,
+      { resource: "nodes", contextName: KIND_CONTEXT, namespace: NAMESPACE },
+      sender,
+    )
+    try {
+      const listed = await listNodes(coreApi)
+      const watched = plain.items as typeof listed
+      expect(watched.length).toBeGreaterThan(0)
+      expect(byName(watched)).toEqual(byName(listed))
+      expect(byName(scoped.items as typeof listed)).toEqual(byName(watched))
+    } finally {
+      stopWatch(plain.subId)
+      stopWatch(scoped.subId)
+    }
+  })
+
+  test("a deployment change arrives as an update carrying the mapped row", async () => {
+    const { sender, messages } = fakeSender()
+    const { subId } = await startWatch(
+      deps,
+      {
+        resource: "deployments",
+        contextName: KIND_CONTEXT,
+        namespace: NAMESPACE,
+      },
+      sender,
+    )
+    const name = `watch-probe-${Date.now()}`
+    const find = (
+      type: WatchEventMessage["type"],
+      match: (row: DeploymentRow) => boolean = () => true,
+    ): WatchEventMessage | undefined =>
+      messages.find((m) => {
+        const row = m.item as DeploymentRow
+        return m.type === type && row.name === name && match(row)
+      })
+
+    try {
+      // Zero replicas: the Deployment exists without scheduling anything.
+      await appsApi.createNamespacedDeployment({
+        namespace: NAMESPACE,
+        body: {
+          metadata: { name, namespace: NAMESPACE },
+          spec: {
+            replicas: 0,
+            selector: { matchLabels: { app: name } },
+            template: {
+              metadata: { labels: { app: name } },
+              spec: {
+                containers: [
+                  { name: "pause", image: "registry.k8s.io/pause:3.9" },
+                ],
+              },
+            },
+          },
+        },
+      })
+      const added = await waitFor(() => find("add"))
+      expect(added.subId).toBe(subId)
+
+      await appsApi.patchNamespacedDeployment(
+        { name, namespace: NAMESPACE, body: { spec: { paused: true } } },
+        setHeaderOptions("Content-Type", PatchStrategy.MergePatch),
+      )
+      const updated = await waitFor(() => find("update", (row) => row.paused))
+      expect((updated.item as DeploymentRow).replicas).toBe(0)
+
+      await appsApi.deleteNamespacedDeployment({ name, namespace: NAMESPACE })
+      await waitFor(() => find("delete"))
+    } finally {
+      stopWatch(subId)
+      await appsApi
+        .deleteNamespacedDeployment({ name, namespace: NAMESPACE })
         .catch(() => {})
     }
   }, 90_000)

@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron"
 import { electronAPI } from "@electron-toolkit/preload"
 
 import type { AccessReviewRequest, AccessSubject } from "../shared/k8s"
+import type { WatchStartArgs } from "../shared/watch"
 
 /** Mirrors PodLogOptions in src/main/ipc/pod-streams.ts. */
 interface PodLogOptions {
@@ -667,11 +668,8 @@ const api = {
   // Watch-backed lists: `startWatch` returns the informer's synced cache plus a
   // subscription id, and every later change arrives on the shared event
   // channel tagged with that id.
-  startWatch: (args: {
-    resource: "pods" | "events"
-    contextName?: string
-    namespace?: string
-  }) => ipcRenderer.invoke("k8s:watch:start", args),
+  startWatch: (args: WatchStartArgs) =>
+    ipcRenderer.invoke("k8s:watch:start", args),
   stopWatch: (args: { subId: string }) =>
     ipcRenderer.invoke("k8s:watch:stop", args),
   onWatchEvent: (callback: (message: unknown) => void) => {

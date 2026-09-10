@@ -349,6 +349,7 @@ export function JobsView(): JSX.Element {
   return (
     <ResourceListView<K8sJob>
       title="Jobs"
+      watch="jobs"
       batch={{
         resourceKind: "Job",
         actions: [

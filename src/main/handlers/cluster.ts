@@ -3,6 +3,7 @@ import {
   KubeConfig,
   PatchStrategy,
   setHeaderOptions,
+  V1Node,
   V1Pod,
 } from "@kubernetes/client-node"
 
@@ -46,62 +47,64 @@ export async function listNamespaces(
   }))
 }
 
+/** Shared by `listNodes` and the nodes informer, so a watched Nodes view
+ *  renders the same rows a polled one does. */
+export function mapNode(node: V1Node): NodeInfo {
+  const labels = node.metadata?.labels ?? {}
+  const roles = Object.keys(labels)
+    .filter((k) => k.startsWith("node-role.kubernetes.io/"))
+    .map((k) => k.replace("node-role.kubernetes.io/", ""))
+  const readyCondition = node.status?.conditions?.find(
+    (c) => c.type === "Ready",
+  )
+  const status = readyCondition?.status === "True" ? "Ready" : "NotReady"
+  const addresses: NodeAddress[] = (node.status?.addresses ?? []).map((a) => ({
+    type: a.type,
+    address: a.address,
+  }))
+  const taints: NodeTaint[] = (node.spec?.taints ?? []).map((t) => ({
+    key: t.key ?? "",
+    effect: t.effect ?? "",
+    value: t.value ?? "",
+  }))
+  const ni = node.status?.nodeInfo
+  const systemInfo: NodeSystemInfo = {
+    osImage: ni?.osImage ?? "",
+    architecture: ni?.architecture ?? "",
+    operatingSystem: ni?.operatingSystem ?? "",
+    containerRuntimeVersion: ni?.containerRuntimeVersion ?? "",
+    kubeletVersion: ni?.kubeletVersion ?? "",
+    kubeProxyVersion: ni?.kubeProxyVersion ?? "",
+  }
+  return {
+    name: node.metadata?.name ?? "",
+    status,
+    roles: roles.length > 0 ? roles.join(",") : "<none>",
+    creationTimestamp: node.metadata?.creationTimestamp?.toISOString() ?? "",
+    version: node.status?.nodeInfo?.kubeletVersion ?? "",
+    labels,
+    annotations: node.metadata?.annotations ?? {},
+    capacity: node.status?.capacity ?? {},
+    allocatable: node.status?.allocatable ?? {},
+    conditions: (node.status?.conditions ?? []).map((c) => ({
+      type: c.type,
+      status: c.status,
+      reason: c.reason ?? "",
+      message: c.message ?? "",
+    })),
+    addresses,
+    taints,
+    systemInfo,
+    unschedulable: node.spec?.unschedulable ?? false,
+  }
+}
+
 export async function listNodes(
   api: CoreV1Api,
   labelSelector?: string,
 ): Promise<NodeInfo[]> {
   const res = await api.listNode({ labelSelector })
-  return res.items.map((node) => {
-    const labels = node.metadata?.labels ?? {}
-    const roles = Object.keys(labels)
-      .filter((k) => k.startsWith("node-role.kubernetes.io/"))
-      .map((k) => k.replace("node-role.kubernetes.io/", ""))
-    const readyCondition = node.status?.conditions?.find(
-      (c) => c.type === "Ready",
-    )
-    const status = readyCondition?.status === "True" ? "Ready" : "NotReady"
-    const addresses: NodeAddress[] = (node.status?.addresses ?? []).map(
-      (a) => ({
-        type: a.type,
-        address: a.address,
-      }),
-    )
-    const taints: NodeTaint[] = (node.spec?.taints ?? []).map((t) => ({
-      key: t.key ?? "",
-      effect: t.effect ?? "",
-      value: t.value ?? "",
-    }))
-    const ni = node.status?.nodeInfo
-    const systemInfo: NodeSystemInfo = {
-      osImage: ni?.osImage ?? "",
-      architecture: ni?.architecture ?? "",
-      operatingSystem: ni?.operatingSystem ?? "",
-      containerRuntimeVersion: ni?.containerRuntimeVersion ?? "",
-      kubeletVersion: ni?.kubeletVersion ?? "",
-      kubeProxyVersion: ni?.kubeProxyVersion ?? "",
-    }
-    return {
-      name: node.metadata?.name ?? "",
-      status,
-      roles: roles.length > 0 ? roles.join(",") : "<none>",
-      creationTimestamp: node.metadata?.creationTimestamp?.toISOString() ?? "",
-      version: node.status?.nodeInfo?.kubeletVersion ?? "",
-      labels,
-      annotations: node.metadata?.annotations ?? {},
-      capacity: node.status?.capacity ?? {},
-      allocatable: node.status?.allocatable ?? {},
-      conditions: (node.status?.conditions ?? []).map((c) => ({
-        type: c.type,
-        status: c.status,
-        reason: c.reason ?? "",
-        message: c.message ?? "",
-      })),
-      addresses,
-      taints,
-      systemInfo,
-      unschedulable: node.spec?.unschedulable ?? false,
-    }
-  })
+  return res.items.map(mapNode)
 }
 
 /** Cordon (unschedulable=true) or uncordon (false) a node via a merge patch,

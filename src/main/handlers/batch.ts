@@ -60,6 +60,46 @@ async function waitForGone(
   }
 }
 
+/** Shared by `listJobs` and the jobs informer, so a watched Jobs view renders
+ *  the same rows a polled one does. */
+export function mapJob(job: V1Job): JobInfo {
+  const startTime = job.status?.startTime?.toISOString() ?? ""
+  const completionTime = job.status?.completionTime?.toISOString() ?? ""
+  let duration = ""
+  if (startTime && completionTime) {
+    const ms =
+      new Date(completionTime).getTime() - new Date(startTime).getTime()
+    const totalSecs = Math.floor(ms / 1000)
+    const mins = Math.floor(totalSecs / 60)
+    const secs = totalSecs % 60
+    duration = mins > 0 ? `${mins}m${secs}s` : `${secs}s`
+  }
+  return {
+    name: job.metadata?.name ?? "",
+    namespace: job.metadata?.namespace ?? "",
+    completions: job.spec?.completions ?? null,
+    parallelism: job.spec?.parallelism ?? null,
+    backoffLimit: job.spec?.backoffLimit ?? null,
+    suspend: job.spec?.suspend ?? false,
+    succeeded: job.status?.succeeded ?? 0,
+    failed: job.status?.failed ?? 0,
+    active: job.status?.active ?? 0,
+    startTime,
+    completionTime,
+    duration,
+    conditions: (job.status?.conditions ?? []).map((c) => ({
+      type: c.type,
+      status: c.status,
+      reason: c.reason ?? "",
+      message: c.message ?? "",
+    })),
+    selector: job.spec?.selector?.matchLabels ?? {},
+    creationTimestamp: job.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: job.metadata?.labels ?? {},
+    annotations: job.metadata?.annotations ?? {},
+  }
+}
+
 export async function listJobs(
   api: BatchV1Api,
   namespace?: string,
@@ -68,43 +108,7 @@ export async function listJobs(
   const res = namespace
     ? await api.listNamespacedJob({ namespace, labelSelector })
     : await api.listJobForAllNamespaces({ labelSelector })
-  return res.items.map((job) => {
-    const startTime = job.status?.startTime?.toISOString() ?? ""
-    const completionTime = job.status?.completionTime?.toISOString() ?? ""
-    let duration = ""
-    if (startTime && completionTime) {
-      const ms =
-        new Date(completionTime).getTime() - new Date(startTime).getTime()
-      const totalSecs = Math.floor(ms / 1000)
-      const mins = Math.floor(totalSecs / 60)
-      const secs = totalSecs % 60
-      duration = mins > 0 ? `${mins}m${secs}s` : `${secs}s`
-    }
-    return {
-      name: job.metadata?.name ?? "",
-      namespace: job.metadata?.namespace ?? "",
-      completions: job.spec?.completions ?? null,
-      parallelism: job.spec?.parallelism ?? null,
-      backoffLimit: job.spec?.backoffLimit ?? null,
-      suspend: job.spec?.suspend ?? false,
-      succeeded: job.status?.succeeded ?? 0,
-      failed: job.status?.failed ?? 0,
-      active: job.status?.active ?? 0,
-      startTime,
-      completionTime,
-      duration,
-      conditions: (job.status?.conditions ?? []).map((c) => ({
-        type: c.type,
-        status: c.status,
-        reason: c.reason ?? "",
-        message: c.message ?? "",
-      })),
-      selector: job.spec?.selector?.matchLabels ?? {},
-      creationTimestamp: job.metadata?.creationTimestamp?.toISOString() ?? "",
-      labels: job.metadata?.labels ?? {},
-      annotations: job.metadata?.annotations ?? {},
-    }
-  })
+  return res.items.map(mapJob)
 }
 
 export async function listCronJobs(
