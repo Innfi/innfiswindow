@@ -5,8 +5,8 @@ import { toast } from "sonner"
 
 import { Button } from "../../components/ui/Button"
 import { CustomStreamPanel } from "../../components/ui/CustomStreamPanel"
+import { DryRunDiff } from "../../components/ui/DryRunDiff"
 import { normalizeIpcError } from "../../lib/ipc-error"
-import { cn } from "../../lib/utils"
 import type { DrawerTab } from "../../store/app.store"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
@@ -29,41 +29,6 @@ spec: {}
 `
 
 const PREVIEW_MAX_HEIGHT = 200
-
-/** On an update, the diff is the answer. On a create there is nothing to diff
- *  against, so show the server's rendering instead — that's still worth seeing,
- *  since defaulting and mutating webhooks have already run on it. */
-function DryRunPreview({ preview }: { preview: DryRunResult }): JSX.Element {
-  const isDiff = preview.action === "update" && preview.diff !== ""
-  const body = isDiff ? preview.diff : preview.rendered
-
-  return (
-    <div
-      className="overflow-auto border-t bg-muted/50 px-3 py-2 font-mono text-xs shrink-0"
-      style={{ maxHeight: PREVIEW_MAX_HEIGHT }}
-    >
-      {preview.action === "update" && preview.diff === "" ? (
-        <p className="italic text-muted-foreground">
-          No changes — the live object already matches this manifest.
-        </p>
-      ) : (
-        body.split("\n").map((line, idx) => (
-          <div
-            key={idx}
-            className={cn(
-              "whitespace-pre",
-              isDiff && line.startsWith("+") && "text-emerald-600",
-              isDiff && line.startsWith("-") && "text-destructive",
-              isDiff && line.startsWith("@@") && "text-muted-foreground",
-            )}
-          >
-            {line || " "}
-          </div>
-        ))
-      )}
-    </div>
-  )
-}
 
 function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
   const [yaml, setYaml] = useState(YAML_SKELETON)
@@ -147,7 +112,13 @@ function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
         className="flex-1 resize-none p-3 font-mono text-sm bg-muted text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         spellCheck={false}
       />
-      {preview && <DryRunPreview preview={preview} />}
+      {preview && (
+        <DryRunDiff
+          preview={preview}
+          className="border-t shrink-0"
+          style={{ maxHeight: PREVIEW_MAX_HEIGHT }}
+        />
+      )}
       {error && (
         <p className="text-xs text-destructive font-mono whitespace-pre-wrap px-3 py-1.5 border-t border-border bg-destructive/5">
           {error}

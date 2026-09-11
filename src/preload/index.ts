@@ -589,6 +589,8 @@ const api = {
     }) => ipcRenderer.invoke("k8s:resource:delete", args),
     replaceResource: (yaml: string) =>
       ipcRenderer.invoke("k8s:resource:replace", yaml),
+    dryRunReplaceResource: (yaml: string) =>
+      ipcRenderer.invoke("k8s:resource:replace:dryRun", yaml),
     readResource: (
       apiVersion: string,
       kind: string,

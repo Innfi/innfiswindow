@@ -352,3 +352,60 @@ export async function dryRunResource(
     rendered: renderedYaml,
   }
 }
+
+export type ReplaceDryRunClient = Pick<KubernetesObjectApi, "read" | "replace">
+
+/**
+ * Server-side dry run of `replaceResource`, for the YAML editor's review step
+ * before it saves. `dryRunResource` will not do here: it previews a
+ * strategic-merge patch, which keeps every field the manifest no longer
+ * mentions, so its diff could never show the removals a replace makes.
+ */
+export async function dryRunReplaceResource(
+  kc: KubeConfig,
+  yamlString: string,
+): Promise<DryRunResult> {
+  const obj = yamlLoad(yamlString) as Record<string, unknown>
+  if (!obj || typeof obj !== "object") {
+    throw new Error("Invalid YAML: must be a Kubernetes object")
+  }
+  return previewReplace(KubernetesObjectApi.makeApiClient(kc), obj)
+}
+
+/** The diff half of `dryRunReplaceResource`, taking the client so it can run
+ *  against a stub. Unlike the apply preview, a failed read is not "this would
+ *  create it" — a replace of a missing object fails too — so it is thrown. */
+export async function previewReplace(
+  client: ReplaceDryRunClient,
+  obj: Record<string, unknown>,
+): Promise<DryRunResult> {
+  const { name, namespace } = requireObjectIdentity(obj)
+  const kind = obj.kind as string
+  // Nothing is persisted, so the read and the dry run can go together.
+  const [liveRes, renderedRes] = await Promise.all([
+    client.read({
+      apiVersion: obj.apiVersion as string,
+      kind,
+      metadata: { name, ...(namespace ? { namespace } : {}) },
+    }),
+    client.replace(obj as never, undefined, "All"),
+  ])
+
+  const liveYaml = yamlDump(
+    stripServerFields(responseBody(liveRes)),
+    DIFF_YAML_OPTS,
+  )
+  const renderedYaml = yamlDump(
+    stripServerFields(responseBody(renderedRes)),
+    DIFF_YAML_OPTS,
+  )
+
+  return {
+    name,
+    namespace,
+    kind,
+    action: "update",
+    diff: unifiedDiff(liveYaml, renderedYaml),
+    rendered: renderedYaml,
+  }
+}

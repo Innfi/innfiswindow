@@ -147,8 +147,8 @@ export interface DryRunResult {
   name: string
   namespace: string
   kind: string
-  /** What the real apply would do: create the object, or patch the one that's
-   *  already there. */
+  /** What the real write would do: create the object, or change the one that's
+   *  already there (always "update" for a replace dry run). */
   action: "create" | "update"
   /** Unified diff from the live object to what the server said it would
    *  become. Empty when the apply is a no-op (or on a create, where there is

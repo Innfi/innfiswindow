@@ -1385,6 +1385,9 @@ export interface K8sAPI {
   replaceResource: (
     yaml: string,
   ) => Promise<{ name: string; namespace: string }>
+  /** Dry run of `replaceResource`: the diff a Save from the YAML editor would
+   *  make to the live object, after the server's defaulting and admission. */
+  dryRunReplaceResource: (yaml: string) => Promise<DryRunResult>
   readResource: (
     apiVersion: string,
     kind: string,

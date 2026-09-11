@@ -4,6 +4,7 @@ import { DeleteResourceOptions } from "../handlers/types"
 import {
   applyResource,
   deleteResource,
+  dryRunReplaceResource,
   dryRunResource,
   readResource,
   replaceResource,
@@ -22,6 +23,9 @@ export function registerApplyHandlers(
   )
   ipcMain.handle("k8s:resource:replace", (_e, yaml: string) =>
     replaceResource(getKubeConfig(), yaml),
+  )
+  ipcMain.handle("k8s:resource:replace:dryRun", (_e, yaml: string) =>
+    dryRunReplaceResource(getKubeConfig(), yaml),
   )
   ipcMain.handle(
     "k8s:resource:read",
