@@ -133,4 +133,13 @@ export type {
   VolumeMount,
   VolumeSnapshotClassInfo,
   VolumeSnapshotInfo,
+  WebhookClientConfigInfo,
+  WebhookConfigurationInfo,
+  WebhookConfigurationSummary,
+  WebhookConfigurationType,
+  WebhookInfo,
+  WebhookMatchCondition,
+  WebhookRule,
+  WebhookSelectorInfo,
+  WebhookSelectorRequirement,
 } from "../../shared/k8s"

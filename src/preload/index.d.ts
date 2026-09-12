@@ -19,6 +19,8 @@ import type {
   RoleSubjectBinding,
   SelfRulesResult,
   SubjectPermissions,
+  WebhookConfigurationInfo,
+  WebhookConfigurationSummary,
 } from "../shared/k8s"
 import type {
   WatchClosedMessage,
@@ -1187,6 +1189,22 @@ export interface K8sAPI {
     contextName?: string
     labelSelector?: string
   }) => Promise<K8sPriorityClass[]>
+  listValidatingWebhookConfigurations: (args?: {
+    contextName?: string
+    labelSelector?: string
+  }) => Promise<WebhookConfigurationSummary[]>
+  getValidatingWebhookConfiguration: (args: {
+    contextName?: string
+    name: string
+  }) => Promise<WebhookConfigurationInfo>
+  listMutatingWebhookConfigurations: (args?: {
+    contextName?: string
+    labelSelector?: string
+  }) => Promise<WebhookConfigurationSummary[]>
+  getMutatingWebhookConfiguration: (args: {
+    contextName?: string
+    name: string
+  }) => Promise<WebhookConfigurationInfo>
   listPods: (args?: {
     contextName?: string
     namespace?: string

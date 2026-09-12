@@ -35,6 +35,14 @@ const GVK = {
     apiVersion: "scheduling.k8s.io/v1",
     kind: "PriorityClass",
   },
+  ValidatingWebhookConfiguration: {
+    apiVersion: "admissionregistration.k8s.io/v1",
+    kind: "ValidatingWebhookConfiguration",
+  },
+  MutatingWebhookConfiguration: {
+    apiVersion: "admissionregistration.k8s.io/v1",
+    kind: "MutatingWebhookConfiguration",
+  },
   CronJob: { apiVersion: "batch/v1", kind: "CronJob" },
   Job: { apiVersion: "batch/v1", kind: "Job" },
   Role: { apiVersion: "rbac.authorization.k8s.io/v1", kind: "Role" },

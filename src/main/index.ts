@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, session, shell } from "electron"
 import { join } from "path"
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
 import {
+  AdmissionregistrationV1Api,
   ApiextensionsV1Api,
   AppsV1Api,
   AuthorizationV1Api,
@@ -53,6 +54,7 @@ const kc = new KubeConfig()
 kc.loadFromDefault()
 
 const coreV1Api = kc.makeApiClient(CoreV1Api)
+const admissionregistrationV1Api = kc.makeApiClient(AdmissionregistrationV1Api)
 const apiextensionsV1Api = kc.makeApiClient(ApiextensionsV1Api)
 const appsV1Api = kc.makeApiClient(AppsV1Api)
 const authorizationV1Api = kc.makeApiClient(AuthorizationV1Api)
@@ -68,6 +70,7 @@ const storageV1Api = kc.makeApiClient(StorageV1Api)
 
 const { getContextClients, invalidateContext } = createContextClientsCache({
   coreV1: coreV1Api,
+  admissionregistrationV1: admissionregistrationV1Api,
   apiextensionsV1: apiextensionsV1Api,
   appsV1: appsV1Api,
   authorizationV1: authorizationV1Api,

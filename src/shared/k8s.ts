@@ -1086,6 +1086,99 @@ export interface PriorityClassInfo {
 }
 
 // ---------------------------------------------------------------------------
+// governance.ts — admission webhook configurations
+// ---------------------------------------------------------------------------
+
+/** One `rules` entry: the operations on the resources a webhook is called for. */
+export interface WebhookRule {
+  apiGroups: string[]
+  apiVersions: string[]
+  resources: string[]
+  operations: string[]
+  /** `*` (the default), `Namespaced` or `Cluster`. */
+  scope: string
+}
+
+/** Where the API server sends the AdmissionReview. The API allows exactly one
+ *  of `url` and the service fields. */
+export interface WebhookClientConfigInfo {
+  url: string | null
+  serviceNamespace: string | null
+  serviceName: string | null
+  servicePath: string | null
+  servicePort: number | null
+  /** The PEM bundle that verifies the webhook's serving certificate, carried
+   *  so an Edit round-trips it — dropping it breaks every call to the webhook.
+   *  Empty when the endpoint is trusted through the API server's own roots
+   *  (or when a cert-manager injects the bundle after creation). */
+  caBundle: string
+}
+
+export interface WebhookSelectorRequirement {
+  key: string
+  operator: string
+  values: string[]
+}
+
+/** A `namespaceSelector` or `objectSelector`. Null when the field is unset,
+ *  which — like an empty one — matches everything. */
+export interface WebhookSelectorInfo {
+  matchLabels: Record<string, string>
+  matchExpressions: WebhookSelectorRequirement[]
+}
+
+/** A CEL precondition evaluated after the rules and selectors have matched. */
+export interface WebhookMatchCondition {
+  name: string
+  expression: string
+}
+
+export interface WebhookInfo {
+  name: string
+  clientConfig: WebhookClientConfigInfo
+  rules: WebhookRule[]
+  /** `Fail` (the API default — a webhook that is down blocks the write) or
+   *  `Ignore`. */
+  failurePolicy: string
+  /** `Equivalent` (the API default) or `Exact`. */
+  matchPolicy: string
+  /** `None`, `NoneOnDryRun`, `Some` or `Unknown`; the last two reject dry runs. */
+  sideEffects: string
+  /** Seconds. 10 when unset, which is what the API server defaults it to. */
+  timeoutSeconds: number
+  admissionReviewVersions: string[]
+  namespaceSelector: WebhookSelectorInfo | null
+  objectSelector: WebhookSelectorInfo | null
+  matchConditions: WebhookMatchCondition[]
+  /** `Never` (the default) or `IfNeeded` on a mutating webhook; null on a
+   *  validating one, which is never reinvoked. */
+  reinvocationPolicy: string | null
+}
+
+export type WebhookConfigurationType = "Validating" | "Mutating"
+
+export interface WebhookConfigurationSummary {
+  name: string
+  type: WebhookConfigurationType
+  webhookCount: number
+  /** The distinct failure policies across the webhooks — a `Fail` one is what
+   *  turns an unreachable webhook into a rejected create. */
+  failurePolicies: string[]
+  /** Distinct `<group>/<resource>` pairs the rules match. */
+  resources: string[]
+  /** Distinct endpoints: `<namespace>/<service>`, or the URL for a webhook the
+   *  API server calls directly. */
+  endpoints: string[]
+  creationTimestamp: string
+}
+
+export interface WebhookConfigurationInfo extends WebhookConfigurationSummary {
+  webhooks: WebhookInfo[]
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
+// ---------------------------------------------------------------------------
 // batch.ts
 // ---------------------------------------------------------------------------
 

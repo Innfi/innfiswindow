@@ -1,4 +1,5 @@
 import {
+  AdmissionregistrationV1Api,
   ApiextensionsV1Api,
   AppsV1Api,
   AuthorizationV1Api,
@@ -17,6 +18,7 @@ import {
 
 export interface ApiClients {
   coreV1: CoreV1Api
+  admissionregistrationV1: AdmissionregistrationV1Api
   apiextensionsV1: ApiextensionsV1Api
   appsV1: AppsV1Api
   authorizationV1: AuthorizationV1Api
@@ -69,6 +71,7 @@ export function createContextClientsCache(defaultClients: ApiClients): {
     ctxKc.setCurrentContext(contextName)
     const clients: ApiClients = {
       coreV1: ctxKc.makeApiClient(CoreV1Api),
+      admissionregistrationV1: ctxKc.makeApiClient(AdmissionregistrationV1Api),
       apiextensionsV1: ctxKc.makeApiClient(ApiextensionsV1Api),
       appsV1: ctxKc.makeApiClient(AppsV1Api),
       authorizationV1: ctxKc.makeApiClient(AuthorizationV1Api),

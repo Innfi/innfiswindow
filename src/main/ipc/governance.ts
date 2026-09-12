@@ -1,10 +1,14 @@
 import { IpcMain } from "electron"
 
 import {
+  getMutatingWebhookConfiguration,
+  getValidatingWebhookConfiguration,
   listLimitRanges,
+  listMutatingWebhookConfigurations,
   listPDBs,
   listPriorityClasses,
   listResourceQuotas,
+  listValidatingWebhookConfigurations,
 } from "../k8s-handlers"
 import { GetContextClients } from "./context-clients"
 
@@ -66,6 +70,38 @@ export function registerGovernanceHandlers(
       listPriorityClasses(
         getContextClients(args?.contextName).schedulingV1,
         args?.labelSelector,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:validatingwebhookconfigurations:list",
+    (_e, args?: { contextName?: string; labelSelector?: string }) =>
+      listValidatingWebhookConfigurations(
+        getContextClients(args?.contextName).admissionregistrationV1,
+        args?.labelSelector,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:validatingwebhookconfiguration:get",
+    (_e, args: { contextName?: string; name: string }) =>
+      getValidatingWebhookConfiguration(
+        getContextClients(args?.contextName).admissionregistrationV1,
+        args.name,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:mutatingwebhookconfigurations:list",
+    (_e, args?: { contextName?: string; labelSelector?: string }) =>
+      listMutatingWebhookConfigurations(
+        getContextClients(args?.contextName).admissionregistrationV1,
+        args?.labelSelector,
+      ),
+  )
+  ipcMain.handle(
+    "k8s:mutatingwebhookconfiguration:get",
+    (_e, args: { contextName?: string; name: string }) =>
+      getMutatingWebhookConfiguration(
+        getContextClients(args?.contextName).admissionregistrationV1,
+        args.name,
       ),
   )
 }

@@ -21,7 +21,9 @@ The tree sidebar lists every kubeconfig context, each expanding into these group
 - **Auth**: ServiceAccounts, Roles, ClusterRoles, RoleBindings, ClusterRoleBindings,
   Access Review (`can-i` checks and subject/role reverse lookups)
 - **Storage**: PersistentVolumes, PersistentVolumeClaims, StorageClasses, VolumeSnapshots, VolumeSnapshotClasses
-- **Governance**: ResourceQuotas, LimitRanges, PodDisruptionBudgets
+- **Governance**: ResourceQuotas, LimitRanges, PodDisruptionBudgets, PriorityClasses,
+  Validating Webhooks, Mutating Webhooks (the admission configurations behind a
+  rejected or rewritten write)
 - **Custom Resources**: Definitions (CRDs), Browse objects — a generic browser
   for any CRD in the cluster, with the columns that CRD's own
   `additionalPrinterColumns` declare

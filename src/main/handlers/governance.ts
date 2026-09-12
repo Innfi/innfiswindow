@@ -1,7 +1,15 @@
 import {
+  AdmissionregistrationV1Api,
+  AdmissionregistrationV1WebhookClientConfig,
   CoreV1Api,
   PolicyV1Api,
   SchedulingV1Api,
+  V1LabelSelector,
+  V1MutatingWebhook,
+  V1MutatingWebhookConfiguration,
+  V1RuleWithOperations,
+  V1ValidatingWebhook,
+  V1ValidatingWebhookConfiguration,
 } from "@kubernetes/client-node"
 
 import {
@@ -9,6 +17,13 @@ import {
   PDBInfo,
   PriorityClassInfo,
   ResourceQuotaInfo,
+  WebhookClientConfigInfo,
+  WebhookConfigurationInfo,
+  WebhookConfigurationSummary,
+  WebhookConfigurationType,
+  WebhookInfo,
+  WebhookRule,
+  WebhookSelectorInfo,
 } from "./types"
 
 export async function listResourceQuotas(
@@ -130,4 +145,187 @@ export async function listPriorityClasses(
     labels: pc.metadata?.labels ?? {},
     annotations: pc.metadata?.annotations ?? {},
   }))
+}
+
+// ---------------------------------------------------------------------------
+// Admission webhook configurations
+// ---------------------------------------------------------------------------
+
+/** What the API server uses when a webhook leaves `timeoutSeconds` unset. */
+const DEFAULT_WEBHOOK_TIMEOUT_SECONDS = 10
+
+function mapWebhookRules(rules?: V1RuleWithOperations[]): WebhookRule[] {
+  return (rules ?? []).map((r) => ({
+    apiGroups: r.apiGroups ?? [],
+    apiVersions: r.apiVersions ?? [],
+    resources: r.resources ?? [],
+    operations: r.operations ?? [],
+    scope: r.scope ?? "*",
+  }))
+}
+
+/** An unset selector is null rather than an empty one: both match everything,
+ *  but only the empty one must be round-tripped by an Edit. */
+function mapWebhookSelector(
+  selector?: V1LabelSelector,
+): WebhookSelectorInfo | null {
+  if (!selector) return null
+  return {
+    matchLabels: selector.matchLabels ?? {},
+    matchExpressions: (selector.matchExpressions ?? []).map((e) => ({
+      key: e.key,
+      operator: e.operator,
+      values: e.values ?? [],
+    })),
+  }
+}
+
+function mapWebhookClientConfig(
+  config: AdmissionregistrationV1WebhookClientConfig,
+): WebhookClientConfigInfo {
+  return {
+    url: config.url ?? null,
+    serviceNamespace: config.service?.namespace ?? null,
+    serviceName: config.service?.name ?? null,
+    servicePath: config.service?.path ?? null,
+    servicePort: config.service?.port ?? null,
+    caBundle: config.caBundle ?? "",
+  }
+}
+
+/** `type` decides whether a reinvocation policy is reported at all: the field
+ *  is simply absent from a mutating webhook that leaves it at the default, so
+ *  the object itself cannot say which of the two kinds it came from. */
+function mapWebhook(
+  webhook: V1ValidatingWebhook | V1MutatingWebhook,
+  type: WebhookConfigurationType,
+): WebhookInfo {
+  return {
+    name: webhook.name,
+    clientConfig: mapWebhookClientConfig(webhook.clientConfig),
+    rules: mapWebhookRules(webhook.rules),
+    // Both policies are spelled out at their API defaults rather than left
+    // blank: whether an unreachable webhook blocks a write is the first thing
+    // this view is opened to answer.
+    failurePolicy: webhook.failurePolicy ?? "Fail",
+    matchPolicy: webhook.matchPolicy ?? "Equivalent",
+    sideEffects: webhook.sideEffects ?? "Unknown",
+    timeoutSeconds: webhook.timeoutSeconds ?? DEFAULT_WEBHOOK_TIMEOUT_SECONDS,
+    admissionReviewVersions: webhook.admissionReviewVersions ?? [],
+    namespaceSelector: mapWebhookSelector(webhook.namespaceSelector),
+    objectSelector: mapWebhookSelector(webhook.objectSelector),
+    matchConditions: (webhook.matchConditions ?? []).map((c) => ({
+      name: c.name,
+      expression: c.expression,
+    })),
+    reinvocationPolicy:
+      type === "Mutating"
+        ? ((webhook as V1MutatingWebhook).reinvocationPolicy ?? "Never")
+        : null,
+  }
+}
+
+/** `<group>/<resource>` for every rule entry, with the core group's empty
+ *  group written as `core` so a row reads as something. */
+function ruleResourceLabels(webhooks: WebhookInfo[]): string[] {
+  const out: string[] = []
+  for (const webhook of webhooks) {
+    for (const rule of webhook.rules) {
+      for (const group of rule.apiGroups.length > 0 ? rule.apiGroups : [""]) {
+        for (const resource of rule.resources) {
+          out.push(`${group === "" ? "core" : group}/${resource}`)
+        }
+      }
+    }
+  }
+  return [...new Set(out)]
+}
+
+function endpointLabels(webhooks: WebhookInfo[]): string[] {
+  const out: string[] = []
+  for (const { clientConfig } of webhooks) {
+    if (clientConfig.serviceName) {
+      out.push(
+        `${clientConfig.serviceNamespace ?? ""}/${clientConfig.serviceName}`,
+      )
+    } else if (clientConfig.url) {
+      out.push(clientConfig.url)
+    }
+  }
+  return [...new Set(out)]
+}
+
+function mapWebhookConfiguration(
+  type: WebhookConfigurationType,
+  config: V1ValidatingWebhookConfiguration | V1MutatingWebhookConfiguration,
+): WebhookConfigurationInfo {
+  const webhooks = (config.webhooks ?? []).map((webhook) =>
+    mapWebhook(webhook, type),
+  )
+  return {
+    name: config.metadata?.name ?? "",
+    type,
+    webhookCount: webhooks.length,
+    failurePolicies: [...new Set(webhooks.map((w) => w.failurePolicy))],
+    resources: ruleResourceLabels(webhooks),
+    endpoints: endpointLabels(webhooks),
+    creationTimestamp: config.metadata?.creationTimestamp?.toISOString() ?? "",
+    webhooks,
+    labels: config.metadata?.labels ?? {},
+    annotations: config.metadata?.annotations ?? {},
+  }
+}
+
+/** The table's share of the mapping: a configuration's webhooks carry rules,
+ *  selectors and a CA bundle each, none of which a row renders. */
+function summarizeWebhookConfiguration(
+  info: WebhookConfigurationInfo,
+): WebhookConfigurationSummary {
+  return {
+    name: info.name,
+    type: info.type,
+    webhookCount: info.webhookCount,
+    failurePolicies: info.failurePolicies,
+    resources: info.resources,
+    endpoints: info.endpoints,
+    creationTimestamp: info.creationTimestamp,
+  }
+}
+
+export async function listValidatingWebhookConfigurations(
+  api: AdmissionregistrationV1Api,
+  labelSelector?: string,
+): Promise<WebhookConfigurationSummary[]> {
+  const res = await api.listValidatingWebhookConfiguration({ labelSelector })
+  return res.items.map((config) =>
+    summarizeWebhookConfiguration(
+      mapWebhookConfiguration("Validating", config),
+    ),
+  )
+}
+
+export async function getValidatingWebhookConfiguration(
+  api: AdmissionregistrationV1Api,
+  name: string,
+): Promise<WebhookConfigurationInfo> {
+  const config = await api.readValidatingWebhookConfiguration({ name })
+  return mapWebhookConfiguration("Validating", config)
+}
+
+export async function listMutatingWebhookConfigurations(
+  api: AdmissionregistrationV1Api,
+  labelSelector?: string,
+): Promise<WebhookConfigurationSummary[]> {
+  const res = await api.listMutatingWebhookConfiguration({ labelSelector })
+  return res.items.map((config) =>
+    summarizeWebhookConfiguration(mapWebhookConfiguration("Mutating", config)),
+  )
+}
+
+export async function getMutatingWebhookConfiguration(
+  api: AdmissionregistrationV1Api,
+  name: string,
+): Promise<WebhookConfigurationInfo> {
+  const config = await api.readMutatingWebhookConfiguration({ name })
+  return mapWebhookConfiguration("Mutating", config)
 }

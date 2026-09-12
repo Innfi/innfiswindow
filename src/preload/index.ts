@@ -343,6 +343,22 @@ const api = {
       contextName?: string
       labelSelector?: string
     }) => ipcRenderer.invoke("k8s:priorityclasses:list", args),
+    listValidatingWebhookConfigurations: (args?: {
+      contextName?: string
+      labelSelector?: string
+    }) => ipcRenderer.invoke("k8s:validatingwebhookconfigurations:list", args),
+    getValidatingWebhookConfiguration: (args: {
+      contextName?: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:validatingwebhookconfiguration:get", args),
+    listMutatingWebhookConfigurations: (args?: {
+      contextName?: string
+      labelSelector?: string
+    }) => ipcRenderer.invoke("k8s:mutatingwebhookconfigurations:list", args),
+    getMutatingWebhookConfiguration: (args: {
+      contextName?: string
+      name: string
+    }) => ipcRenderer.invoke("k8s:mutatingwebhookconfiguration:get", args),
     listJobs: (args?: {
       contextName?: string
       namespace?: string

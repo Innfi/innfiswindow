@@ -129,6 +129,14 @@ export const resourceViews: Record<ResourceType, ComponentType> = {
     () => import("./components/PriorityClassesView"),
     "PriorityClassesView",
   ),
+  ValidatingWebhookConfigurations: named(
+    () => import("./components/WebhookConfigurationsView"),
+    "ValidatingWebhookConfigurationsView",
+  ),
+  MutatingWebhookConfigurations: named(
+    () => import("./components/WebhookConfigurationsView"),
+    "MutatingWebhookConfigurationsView",
+  ),
   overview: named(() => import("./components/OverviewView"), "OverviewView"),
   "custom-stream": named(
     () => import("../components/ui/CustomStreamView"),

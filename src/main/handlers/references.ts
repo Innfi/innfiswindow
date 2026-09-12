@@ -488,6 +488,41 @@ async function podsReferencing(
   return out
 }
 
+/** The Services an admission webhook configuration is called through. Its
+ *  `webhooks` list sits at the top level of the object rather than under
+ *  `spec`, and a webhook addressed by `url` names no in-cluster object at all.
+ *  There is no reverse direction here: it would cost two cluster-wide lists on
+ *  every Service panel to answer a question only a webhook's own panel asks. */
+const webhookConfigurationReferences: ReferenceResolver = async (
+  _clients,
+  _acc,
+  object,
+) => {
+  const webhooks =
+    (
+      object as {
+        webhooks?: {
+          name?: string
+          clientConfig?: { service?: { name?: string; namespace?: string } }
+        }[]
+      }
+    ).webhooks ?? []
+  const out: RelatedResource[] = []
+  for (const webhook of webhooks) {
+    const service = webhook.clientConfig?.service
+    if (!service?.name) continue
+    out.push(
+      ref(
+        "Service",
+        service.name,
+        service.namespace ?? "",
+        `endpoint for ${webhook.name ?? "webhook"}`,
+      ),
+    )
+  }
+  return out
+}
+
 const REFERENCE_RESOLVERS: Record<string, ReferenceResolver> = {
   Pod: async (clients, acc, object) => {
     const namespace = object.metadata?.namespace ?? ""
@@ -508,6 +543,9 @@ const REFERENCE_RESOLVERS: Record<string, ReferenceResolver> = {
     }
     return out
   },
+
+  ValidatingWebhookConfiguration: webhookConfigurationReferences,
+  MutatingWebhookConfiguration: webhookConfigurationReferences,
 
   Deployment: workloadReferences,
   ReplicaSet: workloadReferences,

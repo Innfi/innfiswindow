@@ -36,6 +36,8 @@ export const RESOURCE_TYPES = [
   "LimitRanges",
   "PodDisruptionBudgets",
   "PriorityClasses",
+  "ValidatingWebhookConfigurations",
+  "MutatingWebhookConfigurations",
   "overview",
   "custom-stream",
   "history",
@@ -92,6 +94,8 @@ const RESOURCE_TYPE_BY_KIND: Record<string, ResourceType> = {
   LimitRange: "LimitRanges",
   PodDisruptionBudget: "PodDisruptionBudgets",
   PriorityClass: "PriorityClasses",
+  ValidatingWebhookConfiguration: "ValidatingWebhookConfigurations",
+  MutatingWebhookConfiguration: "MutatingWebhookConfigurations",
 }
 
 export function resourceTypeForKind(kind: string): ResourceType | null {

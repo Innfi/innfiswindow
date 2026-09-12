@@ -65,6 +65,8 @@ const groups: { label: string; items: ResourceType[] }[] = [
       "LimitRanges",
       "PodDisruptionBudgets",
       "PriorityClasses",
+      "ValidatingWebhookConfigurations",
+      "MutatingWebhookConfigurations",
     ],
   },
   {
@@ -76,6 +78,8 @@ const groups: { label: string; items: ResourceType[] }[] = [
 /** Tree labels for the leaves whose ResourceType name isn't presentable. */
 const itemLabels: Partial<Record<ResourceType, string>> = {
   "api-resources": "API Resources",
+  ValidatingWebhookConfigurations: "Validating Webhooks",
+  MutatingWebhookConfigurations: "Mutating Webhooks",
   "access-review": "Access Review",
   CustomResourceDefinitions: "Definitions",
   "custom-resources": "Browse objects",
