@@ -81,12 +81,14 @@ export function registerPodStreamHandlers(
     async (
       _e,
       {
+        contextName,
         namespace,
         podName,
         containerName,
         tabKey,
         options,
       }: {
+        contextName?: string
         namespace: string
         podName: string
         containerName?: string
@@ -101,9 +103,9 @@ export function registerPodStreamHandlers(
         activeLogRequests.delete(storageKey)
       }
 
-      // Logs stay on the default kubeconfig, as the panel that drives them has
-      // always done; only the exec path below takes a context.
-      const log = new Log(getKubeConfig())
+      // The tab carries the context it was opened against, so a log started
+      // before a context switch keeps reading the cluster it was opened on.
+      const log = new Log(getKubeConfig(contextName))
       const logStream = new PassThrough()
       const emitKey = storageKey
 

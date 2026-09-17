@@ -631,6 +631,7 @@ const api = {
     containerName?: string,
     tabKey?: string,
     options?: PodLogOptions,
+    contextName?: string,
   ) =>
     ipcRenderer.invoke("k8s:pod:log:start", {
       namespace,
@@ -638,6 +639,7 @@ const api = {
       containerName,
       tabKey,
       options,
+      contextName,
     }),
   stopPodLog: (namespace: string, podName: string) =>
     ipcRenderer.invoke("k8s:pod:log:stop", { namespace, podName }),

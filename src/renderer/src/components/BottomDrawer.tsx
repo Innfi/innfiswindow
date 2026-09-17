@@ -352,6 +352,7 @@ export function BottomDrawer(): JSX.Element {
                   namespace={tab.namespace}
                   podName={tab.podName}
                   containers={tab.containers}
+                  contextName={tab.contextName}
                   restored={tab.restored}
                 />
               )}

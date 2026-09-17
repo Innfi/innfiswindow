@@ -84,6 +84,9 @@ export type DrawerTab =
       namespace: string
       podName: string
       containers: K8sPodContainer[]
+      /** The context the log was opened against, so a read started before a
+       *  context switch keeps streaming from the same cluster. */
+      contextName?: string
       restored?: boolean
     }
   | {
@@ -142,6 +145,7 @@ export type DrawerTabInput =
       namespace: string
       podName: string
       containers: K8sPodContainer[]
+      contextName?: string
     }
   | { tabKey: string; type: "new-resource"; resourceKind: string }
   | {

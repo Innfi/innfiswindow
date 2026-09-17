@@ -536,11 +536,14 @@ export function PodsView(): JSX.Element {
           onClose={ctl.onClose}
           onLogs={() =>
             openDrawerTab({
-              tabKey: `pod-log:${pod.namespace}/${pod.name}`,
+              // Scoped by context: the same namespace/name in two clusters are
+              // two different pods, and a shared tab would stream one of them.
+              tabKey: `pod-log:${selectedContext ?? ""}:${pod.namespace}/${pod.name}`,
               type: "pod-log",
               namespace: pod.namespace,
               podName: pod.name,
               containers: pod.containers,
+              contextName: selectedContext ?? undefined,
             })
           }
           onShell={(containerName) => {

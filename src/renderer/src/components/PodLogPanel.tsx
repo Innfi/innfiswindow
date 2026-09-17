@@ -128,6 +128,9 @@ interface PodLogPanelProps {
   namespace: string
   podName: string
   containers: K8sPodContainer[]
+  /** The context the tab was opened against, so a read survives a context
+   *  switch rather than following the kubeconfig's current one. */
+  contextName?: string
   restored?: boolean
 }
 
@@ -136,6 +139,7 @@ export function PodLogPanel({
   namespace,
   podName,
   containers,
+  contextName,
   restored,
 }: PodLogPanelProps): JSX.Element {
   const markTabReconnected = useAppStore((s) => s.markTabReconnected)
@@ -216,7 +220,14 @@ export function PodLogPanel({
     stickToBottomRef.current = true
     endedSessionsRef.current = new Set()
     window.api
-      .startPodLog(namespace, podName, containerName, tabKey, logOptions)
+      .startPodLog(
+        namespace,
+        podName,
+        containerName,
+        tabKey,
+        logOptions,
+        contextName,
+      )
       .catch((err) => {
         setStreamError(describeLogError(err, previous))
         setStreaming(false)
@@ -242,7 +253,7 @@ export function PodLogPanel({
       sessionIds.push(sid)
       sessionMap.set(sid, c.name)
       window.api
-        .startPodLog(namespace, podName, c.name, sid, logOptions)
+        .startPodLog(namespace, podName, c.name, sid, logOptions, contextName)
         .catch((err) => setStreamError(describeLogError(err, previous)))
     }
     mergeSessionMapRef.current = sessionMap
@@ -337,6 +348,7 @@ export function PodLogPanel({
   }, [
     namespace,
     podName,
+    contextName,
     selectedContainer,
     mergeMode,
     sessionEnded,
@@ -351,7 +363,7 @@ export function PodLogPanel({
     return () => {
       stopMergeStreams()
     }
-  }, [mergeMode, namespace, podName, sessionEnded, logOptions])
+  }, [mergeMode, namespace, podName, contextName, sessionEnded, logOptions])
 
   // Cleanup on unmount
   useEffect(() => {

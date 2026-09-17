@@ -1611,12 +1611,15 @@ export interface PodLogOptions {
 export interface API {
   k8s: K8sAPI
   checkAwsCredentials: () => Promise<AwsCredentialResult>
+  /** `contextName` is the context the tab was opened against; omitted, the
+   *  read falls back to the kubeconfig's current context. */
   startPodLog: (
     namespace: string,
     podName: string,
     containerName?: string,
     tabKey?: string,
     options?: PodLogOptions,
+    contextName?: string,
   ) => Promise<{ success: boolean }>
   stopPodLog: (
     namespace: string,
