@@ -603,10 +603,10 @@ const api = {
         gracePeriodSeconds?: number
       }
     }) => ipcRenderer.invoke("k8s:resource:delete", args),
-    replaceResource: (yaml: string) =>
-      ipcRenderer.invoke("k8s:resource:replace", yaml),
-    dryRunReplaceResource: (yaml: string) =>
-      ipcRenderer.invoke("k8s:resource:replace:dryRun", yaml),
+    replaceResource: (yaml: string, resourceVersion?: string) =>
+      ipcRenderer.invoke("k8s:resource:replace", yaml, resourceVersion),
+    dryRunReplaceResource: (yaml: string, resourceVersion?: string) =>
+      ipcRenderer.invoke("k8s:resource:replace:dryRun", yaml, resourceVersion),
     readResource: (
       apiVersion: string,
       kind: string,

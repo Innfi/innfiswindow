@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest"
 
-import { previewReplace, ReplaceDryRunClient } from "../handlers/apply"
+import { isEditConflictMessage } from "../../shared/edit-conflict"
+import {
+  previewReplace,
+  putReplace,
+  ReplaceClient,
+  ReplaceDryRunClient,
+} from "../handlers/apply"
 
 // The YAML editor's review step exists to show what a Save (a PUT) would do,
 // removals included, so these check the diff against stub clients: on a kind
@@ -24,6 +30,7 @@ const LIVE = {
 function stub(options: {
   rendered?: Record<string, unknown>
   readError?: unknown
+  replaceError?: unknown
 }): { calls: Call[]; client: ReplaceDryRunClient } {
   const calls: Call[] = []
   const client = {
@@ -35,7 +42,9 @@ function stub(options: {
     },
     replace: (...args: unknown[]) => {
       calls.push({ method: "replace", args })
-      return Promise.resolve(options.rendered ?? args[0])
+      return options.replaceError
+        ? Promise.reject(options.replaceError)
+        : Promise.resolve(options.rendered ?? args[0])
     },
   } as unknown as ReplaceDryRunClient
   return { calls, client }
@@ -107,5 +116,98 @@ describe("previewReplace", () => {
       previewReplace(client, { apiVersion: "v1", kind: "ConfigMap" }),
     ).rejects.toThrow("metadata.name")
     expect(calls).toEqual([])
+  })
+})
+
+// The editor sends the resourceVersion it loaded with both the review and the
+// save, so the API server refuses either once someone else has written the
+// object — the stale-write case a plain PUT would silently overwrite.
+const conflict = (): Error =>
+  Object.assign(new Error("the object has been modified"), { statusCode: 409 })
+
+describe("previewReplace with a resourceVersion", () => {
+  test("dry-runs the replace at that version", async () => {
+    const { calls, client } = stub({})
+    await previewReplace(client, EDITED, "41")
+
+    const replace = calls.find((c) => c.method === "replace")
+    expect(replace?.args[0]).toEqual({
+      ...EDITED,
+      metadata: { ...EDITED.metadata, resourceVersion: "41" },
+    })
+    expect(replace?.args[2]).toBe("All")
+    // The caller's manifest is not mutated into carrying it.
+    expect(EDITED.metadata).not.toHaveProperty("resourceVersion")
+  })
+
+  test("reports a 409 as an edit conflict", async () => {
+    const { client } = stub({ replaceError: conflict() })
+    const err = await previewReplace(client, EDITED, "41").catch((e) => e)
+    expect(isEditConflictMessage((err as Error).message)).toBe(true)
+    expect((err as Error).message).toContain("ConfigMap/app")
+  })
+
+  test("passes a 409 through untouched when no version was sent", async () => {
+    const original = conflict()
+    const { client } = stub({ replaceError: original })
+    await expect(previewReplace(client, EDITED)).rejects.toBe(original)
+  })
+})
+
+describe("putReplace", () => {
+  function replaceStub(replaceError?: unknown): {
+    calls: unknown[][]
+    client: ReplaceClient
+  } {
+    const calls: unknown[][] = []
+    const client = {
+      replace: (...args: unknown[]) => {
+        calls.push(args)
+        return replaceError
+          ? Promise.reject(replaceError)
+          : Promise.resolve(args[0])
+      },
+    } as unknown as ReplaceClient
+    return { calls, client }
+  }
+
+  test("sends the manifest as-is without a version", async () => {
+    const { calls, client } = replaceStub()
+    const result = await putReplace(client, EDITED)
+    expect(calls[0][0]).toEqual(EDITED)
+    expect(result).toEqual({ name: "app", namespace: "web" })
+  })
+
+  test("makes the write conditional on the version it is given", async () => {
+    const { calls, client } = replaceStub()
+    await putReplace(client, EDITED, "41")
+    expect(
+      (calls[0][0] as { metadata: Record<string, unknown> }).metadata,
+    ).toMatchObject({ resourceVersion: "41" })
+  })
+
+  test("a version the manifest already carries is overridden", async () => {
+    const { calls, client } = replaceStub()
+    const stale = {
+      ...EDITED,
+      metadata: { ...EDITED.metadata, resourceVersion: "7" },
+    }
+    await putReplace(client, stale, "41")
+    expect(
+      (calls[0][0] as { metadata: Record<string, unknown> }).metadata
+        .resourceVersion,
+    ).toBe("41")
+  })
+
+  test("reports a 409 as an edit conflict", async () => {
+    const { client } = replaceStub(conflict())
+    const err = await putReplace(client, EDITED, "41").catch((e) => e)
+    expect(isEditConflictMessage((err as Error).message)).toBe(true)
+  })
+
+  test("passes any other failure through", async () => {
+    const invalid = Object.assign(new Error("invalid"), { statusCode: 422 })
+    const { client } = replaceStub(invalid)
+    await expect(putReplace(client, EDITED, "41")).rejects.toBe(invalid)
   })
 })

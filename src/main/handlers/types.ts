@@ -41,6 +41,7 @@ export type {
   DrainOptions,
   DrainResult,
   DryRunResult,
+  EditableManifest,
   EffectiveAccessRule,
   EndpointAddress,
   EndpointInfo,

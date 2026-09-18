@@ -5,7 +5,13 @@ import {
   PatchStrategy,
 } from "@kubernetes/client-node"
 
-import { ApplyResult, DeleteResourceOptions, DryRunResult } from "./types"
+import { editConflictMessage } from "../../shared/edit-conflict"
+import {
+  ApplyResult,
+  DeleteResourceOptions,
+  DryRunResult,
+  EditableManifest,
+} from "./types"
 
 const SERVER_METADATA_FIELDS = [
   "managedFields",
@@ -70,41 +76,94 @@ function requireObjectIdentity(obj: Record<string, unknown>): {
   return { name, namespace }
 }
 
+/** Reads a live object for the YAML editor. The resourceVersion is stripped
+ *  from the manifest like every other server field, but handed back beside it
+ *  so the editor can make its save conditional on it. */
 export async function readResource(
   kc: KubeConfig,
   apiVersion: string,
   kind: string,
   name: string,
   namespace?: string,
-): Promise<Record<string, unknown>> {
+): Promise<EditableManifest> {
   const client = KubernetesObjectApi.makeApiClient(kc)
   const res = await client.read({
     apiVersion,
     kind,
     metadata: { name, ...(namespace ? { namespace } : {}) },
   })
-  const body =
-    (res as unknown as { body?: Record<string, unknown> }).body ?? res
-  return stripServerFields(body as Record<string, unknown>)
+  const body = responseBody(res)
+  const meta = body.metadata as Record<string, unknown> | undefined
+  const resourceVersion = meta?.resourceVersion
+  return {
+    manifest: stripServerFields(body),
+    ...(typeof resourceVersion === "string" ? { resourceVersion } : {}),
+  }
 }
+
+/** The manifest as a conditional PUT: the API server refuses a replace whose
+ *  `metadata.resourceVersion` is not the current one. Without a version the
+ *  object goes as it is, and the replace is unconditional. */
+function withResourceVersion(
+  obj: Record<string, unknown>,
+  resourceVersion: string | undefined,
+): Record<string, unknown> {
+  if (resourceVersion === undefined) return obj
+  const meta = (obj.metadata ?? {}) as Record<string, unknown>
+  return { ...obj, metadata: { ...meta, resourceVersion } }
+}
+
+/** A 409 on a PUT that carried a resourceVersion means someone else wrote the
+ *  object since that version was read; it is rephrased so the renderer can
+ *  tell it from any other failure. Anything else is passed through. */
+function toEditConflict(
+  err: unknown,
+  obj: Record<string, unknown>,
+  resourceVersion: string | undefined,
+): unknown {
+  if (resourceVersion === undefined || statusCodeOf(err) !== 409) return err
+  const { name } = requireObjectIdentity(obj)
+  return new Error(
+    editConflictMessage(obj.kind as string, name, resourceVersion),
+  )
+}
+
+export type ReplaceClient = Pick<KubernetesObjectApi, "replace">
 
 /**
  * Full PUT replace. Unlike applyResource's merge-patch fallback, this removes
  * fields the user deleted from the manifest. Dispatches on the object's own
- * apiVersion/kind, so it covers every resource kind.
+ * apiVersion/kind, so it covers every resource kind. Given the resourceVersion
+ * the editor loaded, the write fails rather than overwrite a newer one.
  */
 export async function replaceResource(
   kc: KubeConfig,
   yamlString: string,
+  resourceVersion?: string,
 ): Promise<ApplyResult> {
   const obj = yamlLoad(yamlString) as Record<string, unknown>
   if (!obj || typeof obj !== "object") {
     throw new Error("Invalid YAML: must be a Kubernetes object")
   }
+  return putReplace(KubernetesObjectApi.makeApiClient(kc), obj, resourceVersion)
+}
+
+/** The write half of `replaceResource`, taking the client so it can run
+ *  against a stub. */
+export async function putReplace(
+  client: ReplaceClient,
+  obj: Record<string, unknown>,
+  resourceVersion?: string,
+): Promise<ApplyResult> {
   const { name, namespace } = requireObjectIdentity(obj)
-  const client = KubernetesObjectApi.makeApiClient(kc)
-  const res = await client.replace(obj as never)
-  return toApplyResult(res, name, namespace)
+  try {
+    const res = await client.replace(
+      withResourceVersion(obj, resourceVersion) as never,
+    )
+    return toApplyResult(res, name, namespace)
+  } catch (err: unknown) {
+    throw toEditConflict(err, obj, resourceVersion)
+  }
 }
 
 /**
@@ -162,13 +221,17 @@ export function normalizeDeleteOptions(
   }
 }
 
+function statusCodeOf(err: unknown): unknown {
+  return (
+    (err as Record<string, unknown>).statusCode ??
+    (err as Record<string, unknown>).code
+  )
+}
+
 /** A create against an object that already exists comes back 409, which is how
  *  apply learns it should patch instead. */
 function isAlreadyExists(err: unknown): boolean {
-  const statusCode =
-    (err as Record<string, unknown>).statusCode ??
-    (err as Record<string, unknown>).code
-  return statusCode === 409
+  return statusCodeOf(err) === 409
 }
 
 export async function applyResource(
@@ -364,20 +427,29 @@ export type ReplaceDryRunClient = Pick<KubernetesObjectApi, "read" | "replace">
 export async function dryRunReplaceResource(
   kc: KubeConfig,
   yamlString: string,
+  resourceVersion?: string,
 ): Promise<DryRunResult> {
   const obj = yamlLoad(yamlString) as Record<string, unknown>
   if (!obj || typeof obj !== "object") {
     throw new Error("Invalid YAML: must be a Kubernetes object")
   }
-  return previewReplace(KubernetesObjectApi.makeApiClient(kc), obj)
+  return previewReplace(
+    KubernetesObjectApi.makeApiClient(kc),
+    obj,
+    resourceVersion,
+  )
 }
 
 /** The diff half of `dryRunReplaceResource`, taking the client so it can run
  *  against a stub. Unlike the apply preview, a failed read is not "this would
- *  create it" — a replace of a missing object fails too — so it is thrown. */
+ *  create it" — a replace of a missing object fails too — so it is thrown. The
+ *  dry run carries the same resourceVersion the save will, so a write someone
+ *  else made since the editor opened fails the review rather than showing up
+ *  in it as a revert. */
 export async function previewReplace(
   client: ReplaceDryRunClient,
   obj: Record<string, unknown>,
+  resourceVersion?: string,
 ): Promise<DryRunResult> {
   const { name, namespace } = requireObjectIdentity(obj)
   const kind = obj.kind as string
@@ -388,7 +460,15 @@ export async function previewReplace(
       kind,
       metadata: { name, ...(namespace ? { namespace } : {}) },
     }),
-    client.replace(obj as never, undefined, "All"),
+    client
+      .replace(
+        withResourceVersion(obj, resourceVersion) as never,
+        undefined,
+        "All",
+      )
+      .catch((err: unknown) => {
+        throw toEditConflict(err, obj, resourceVersion)
+      }),
   ])
 
   const liveYaml = yamlDump(

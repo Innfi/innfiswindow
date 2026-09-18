@@ -4,10 +4,11 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { Monaco } from "@monaco-editor/react"
 
+import { isEditConflictMessage } from "../../../shared/edit-conflict"
 import { Button } from "../../components/ui/Button"
 import { DryRunDiff } from "../../components/ui/DryRunDiff"
 import { normalizeIpcError } from "../../lib/ipc-error"
-import { resourceGvk } from "../../lib/resource-gvk"
+import { type ResourceGvk, resourceGvk } from "../../lib/resource-gvk"
 import { cn } from "../../lib/utils"
 import { dumpYaml } from "../../lib/yaml"
 import { DrawerTab, useAppStore } from "../../store/app.store"
@@ -20,6 +21,25 @@ const YamlMonacoEditor = lazy(() => import("./YamlMonacoEditor"))
 
 type YamlEditTab = Extract<DrawerTab, { type: "yaml-edit" }>
 
+/** The live manifest as editor text, with the resourceVersion it was read at:
+ *  Review and Save both send that version, so a write someone else makes in
+ *  the meantime refuses the save instead of being overwritten by it. */
+async function readLive(
+  resourceKind: YamlEditTab["resourceKind"],
+  gvk: ResourceGvk | undefined,
+  name: string,
+  namespace: string,
+): Promise<{ text: string; resourceVersion?: string }> {
+  const { apiVersion, kind } = resourceGvk(resourceKind, gvk)
+  const { manifest, resourceVersion } = await window.api.k8s.readResource(
+    apiVersion,
+    kind,
+    name,
+    namespace || undefined,
+  )
+  return { text: dumpYaml(manifest), resourceVersion }
+}
+
 interface YamlEditPanelProps {
   tab: YamlEditTab
   onClose: () => void
@@ -31,6 +51,13 @@ export function YamlEditPanel({
 }: YamlEditPanelProps): JSX.Element {
   const [yaml, setYaml] = useState(tab.initialYaml)
   const [baseline, setBaseline] = useState(tab.initialYaml)
+  // The resourceVersion `baseline` was read at; undefined until the live read
+  // lands (or if the server sent none), which leaves the save unconditional.
+  const [baseVersion, setBaseVersion] = useState<string | undefined>()
+  // Set once the server refuses a review or save because the object changed
+  // since `baseVersion`. Every further attempt would be refused the same way,
+  // so the only ways on are a reload or a review against the newer version.
+  const [conflict, setConflict] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,20 +76,14 @@ export function YamlEditPanel({
 
   useEffect(() => {
     let cancelled = false
-    const { apiVersion, kind } = resourceGvk(tab.resourceKind, tab.gvk)
     setLoading(true)
-    window.api.k8s
-      .readResource(
-        apiVersion,
-        kind,
-        tab.resourceName,
-        tab.namespace || undefined,
-      )
-      .then((obj) => {
+    readLive(tab.resourceKind, tab.gvk, tab.resourceName, tab.namespace)
+      .then(({ text, resourceVersion }) => {
         if (cancelled) return
-        const text = dumpYaml(obj)
         setYaml(text)
         setBaseline(text)
+        setBaseVersion(resourceVersion)
+        setConflict(false)
         setError(null)
       })
       .catch((e: unknown) => {
@@ -120,26 +141,96 @@ export function YamlEditPanel({
     }
   }
 
+  const conflictText = `${tab.resourceKind}/${tab.resourceName} was changed on the server after this editor loaded it, so nothing was written. Reload to start over from the live object, or review your edits against it — that review shows the other change being reverted, and saving then overwrites it.`
+
+  function showConflict(): void {
+    setReview(null)
+    setConflict(true)
+    setError(conflictText)
+  }
+
   // Save is a PUT, so the preview has to be a dry-run PUT too: it runs the
   // server's defaulting, admission and validation, and diffs against the object
-  // as it is live now rather than as it was when the editor opened.
-  async function handleReview(): Promise<void> {
+  // as it is live now. It carries `version` just as the save will, so a change
+  // made since the editor opened is refused here rather than hidden in the diff
+  // as a revert.
+  async function runReview(version: string | undefined): Promise<void> {
     const yamlStr = manifestToSend()
     if (yamlStr === null) return
     setChecking(true)
     setError(null)
     try {
-      const result = await window.api.k8s.dryRunReplaceResource(yamlStr)
+      const result = await window.api.k8s.dryRunReplaceResource(
+        yamlStr,
+        version,
+      )
       setReview({ yaml, result })
       setShowDiff(false)
     } catch (e) {
       const msg = normalizeIpcError(e)
+      if (isEditConflictMessage(msg)) {
+        showConflict()
+        toast.error(
+          `${tab.resourceKind}/${tab.resourceName} changed on the server`,
+        )
+        return
+      }
       setReview(null)
       setError(`Dry run failed: ${msg}`)
       toast.error(`Dry run failed: ${msg}`)
     } finally {
       setChecking(false)
     }
+  }
+
+  /** Discards the edits and starts over from the object as it is now. */
+  async function handleReload(): Promise<void> {
+    setLoading(true)
+    try {
+      const { text, resourceVersion } = await readLive(
+        tab.resourceKind,
+        tab.gvk,
+        tab.resourceName,
+        tab.namespace,
+      )
+      setYaml(text)
+      setBaseline(text)
+      setBaseVersion(resourceVersion)
+      setConflict(false)
+      setReview(null)
+      setError(null)
+    } catch (e) {
+      setError(`Failed to load live manifest: ${normalizeIpcError(e)}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /** Keeps the edits but takes the newer version as the base, then reviews:
+   *  the diff is against the object as it is now, so whatever the other writer
+   *  changed shows up as something this save would revert. */
+  async function handleReviewAgainstLatest(): Promise<void> {
+    setChecking(true)
+    let version: string | undefined
+    try {
+      const live = await readLive(
+        tab.resourceKind,
+        tab.gvk,
+        tab.resourceName,
+        tab.namespace,
+      )
+      version = live.resourceVersion
+      setBaseline(live.text)
+      setBaseVersion(version)
+      setConflict(false)
+    } catch (e) {
+      setError(`Failed to load live manifest: ${normalizeIpcError(e)}`)
+      return
+    } finally {
+      // runReview raises it again itself, and may return before it does.
+      setChecking(false)
+    }
+    await runReview(version)
   }
 
   async function handleSave(): Promise<void> {
@@ -155,16 +246,18 @@ export function YamlEditPanel({
     setSaving(true)
     setError(null)
     try {
-      await window.api.k8s.replaceResource(yamlStr)
+      await window.api.k8s.replaceResource(yamlStr, baseVersion)
       recordHistory(target, { success: true })
       toast.success(`${tab.resourceKind}/${tab.resourceName} saved`)
       onClose()
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
+      const msg = normalizeIpcError(e)
       recordHistory(target, { success: false, error: msg })
       toast.error(`Failed to save: ${msg}`)
       useAppStore.getState().addGlobalError(msg, "YamlEdit: save")
-      setError(msg)
+      // Someone wrote the object between the review and the confirm.
+      if (isEditConflictMessage(msg)) showConflict()
+      else setError(msg)
     } finally {
       setSaving(false)
     }
@@ -217,7 +310,28 @@ export function YamlEditPanel({
         </p>
       )}
       <div className="flex items-center gap-2 px-3 py-1.5 border-t shrink-0">
-        {activeReview ? (
+        {conflict ? (
+          <>
+            <Button
+              size="sm"
+              variant="default"
+              className="h-6 gap-1 text-xs px-2"
+              onClick={handleReviewAgainstLatest}
+              disabled={checking || loading}
+            >
+              {checking ? "Checking…" : "Review against latest"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 gap-1 text-xs px-2"
+              onClick={handleReload}
+              disabled={checking || loading}
+            >
+              Reload (discard edits)
+            </Button>
+          </>
+        ) : activeReview ? (
           <>
             <Button
               size="sm"
@@ -244,7 +358,7 @@ export function YamlEditPanel({
               size="sm"
               variant="default"
               className="h-6 gap-1 text-xs px-2"
-              onClick={handleReview}
+              onClick={() => void runReview(baseVersion)}
               disabled={checking || loading || !hasChanges}
             >
               {checking ? "Checking…" : "Review & save"}

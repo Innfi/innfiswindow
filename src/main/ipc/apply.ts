@@ -21,11 +21,15 @@ export function registerApplyHandlers(
   ipcMain.handle("k8s:resource:dryRun", (_e, yaml: string) =>
     dryRunResource(getKubeConfig(), yaml),
   )
-  ipcMain.handle("k8s:resource:replace", (_e, yaml: string) =>
-    replaceResource(getKubeConfig(), yaml),
+  ipcMain.handle(
+    "k8s:resource:replace",
+    (_e, yaml: string, resourceVersion?: string) =>
+      replaceResource(getKubeConfig(), yaml, resourceVersion),
   )
-  ipcMain.handle("k8s:resource:replace:dryRun", (_e, yaml: string) =>
-    dryRunReplaceResource(getKubeConfig(), yaml),
+  ipcMain.handle(
+    "k8s:resource:replace:dryRun",
+    (_e, yaml: string, resourceVersion?: string) =>
+      dryRunReplaceResource(getKubeConfig(), yaml, resourceVersion),
   )
   ipcMain.handle(
     "k8s:resource:read",

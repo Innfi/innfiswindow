@@ -143,6 +143,14 @@ export interface ApplyResult {
   namespace: string
 }
 
+/** A live object as the YAML editor opens it: the manifest with the
+ *  server-managed fields stripped, and the resourceVersion it was read at kept
+ *  aside, so a save can be refused if the object moved on in between. */
+export interface EditableManifest {
+  manifest: Record<string, unknown>
+  resourceVersion?: string
+}
+
 export interface DryRunResult {
   name: string
   namespace: string
