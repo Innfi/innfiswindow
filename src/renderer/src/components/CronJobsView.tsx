@@ -297,6 +297,7 @@ export function CronJobsView(): JSX.Element {
   return (
     <ResourceListView<K8sCronJob>
       title="CronJobs"
+      watch="cronjobs"
       batch={{
         resourceKind: "CronJob",
         actions: [

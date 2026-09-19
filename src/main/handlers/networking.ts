@@ -11,6 +11,7 @@ import {
   V1NetworkPolicy,
   V1NetworkPolicyPeer,
   V1NetworkPolicyPort,
+  V1Service,
 } from "@kubernetes/client-node"
 
 import {
@@ -59,35 +60,38 @@ export async function listServices(
   const res = namespace
     ? await api.listNamespacedService({ namespace, labelSelector })
     : await api.listServiceForAllNamespaces({ labelSelector })
-  return res.items.map((svc) => {
-    const lbIngress = svc.status?.loadBalancer?.ingress ?? []
-    const externalIP =
-      lbIngress[0]?.ip ??
-      lbIngress[0]?.hostname ??
-      (svc.spec?.externalIPs ?? [])[0] ??
-      ""
-    const ports = (svc.spec?.ports ?? []).map((p) => ({
-      name: p.name ?? "",
-      protocol: p.protocol ?? "TCP",
-      port: p.port,
-      targetPort: String(p.targetPort ?? ""),
-      nodePort: p.nodePort ?? null,
-    }))
-    return {
-      name: svc.metadata?.name ?? "",
-      namespace: svc.metadata?.namespace ?? "",
-      type: svc.spec?.type ?? "ClusterIP",
-      clusterIP: svc.spec?.clusterIP ?? "",
-      externalIP,
-      ports,
-      creationTimestamp: svc.metadata?.creationTimestamp?.toISOString() ?? "",
-      selector: svc.spec?.selector ?? {},
-      labels: svc.metadata?.labels ?? {},
-      annotations: svc.metadata?.annotations ?? {},
-      sessionAffinity: svc.spec?.sessionAffinity ?? "None",
-      externalTrafficPolicy: svc.spec?.externalTrafficPolicy ?? "",
-    }
-  })
+  return res.items.map(mapService)
+}
+
+/** Shared by `listServices` and the services informer. */
+export function mapService(svc: V1Service): ServiceInfo {
+  const lbIngress = svc.status?.loadBalancer?.ingress ?? []
+  const externalIP =
+    lbIngress[0]?.ip ??
+    lbIngress[0]?.hostname ??
+    (svc.spec?.externalIPs ?? [])[0] ??
+    ""
+  const ports = (svc.spec?.ports ?? []).map((p) => ({
+    name: p.name ?? "",
+    protocol: p.protocol ?? "TCP",
+    port: p.port,
+    targetPort: String(p.targetPort ?? ""),
+    nodePort: p.nodePort ?? null,
+  }))
+  return {
+    name: svc.metadata?.name ?? "",
+    namespace: svc.metadata?.namespace ?? "",
+    type: svc.spec?.type ?? "ClusterIP",
+    clusterIP: svc.spec?.clusterIP ?? "",
+    externalIP,
+    ports,
+    creationTimestamp: svc.metadata?.creationTimestamp?.toISOString() ?? "",
+    selector: svc.spec?.selector ?? {},
+    labels: svc.metadata?.labels ?? {},
+    annotations: svc.metadata?.annotations ?? {},
+    sessionAffinity: svc.spec?.sessionAffinity ?? "None",
+    externalTrafficPolicy: svc.spec?.externalTrafficPolicy ?? "",
+  }
 }
 
 function mapIngressSummary(ing: V1Ingress): IngressSummary {

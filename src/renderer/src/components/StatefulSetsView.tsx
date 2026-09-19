@@ -342,6 +342,7 @@ export function StatefulSetsView(): JSX.Element {
   return (
     <ResourceListView<K8sStatefulSetSummary, K8sStatefulSet>
       title="StatefulSets"
+      watch="statefulsets"
       batch={{
         resourceKind: "StatefulSet",
         actions: [

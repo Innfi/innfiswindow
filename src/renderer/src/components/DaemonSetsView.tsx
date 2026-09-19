@@ -352,6 +352,7 @@ export function DaemonSetsView(): JSX.Element {
   return (
     <ResourceListView<K8sDaemonSetSummary, K8sDaemonSet>
       title="DaemonSets"
+      watch="daemonsets"
       batch={{
         resourceKind: "DaemonSet",
         actions: [

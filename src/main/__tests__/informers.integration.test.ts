@@ -18,7 +18,17 @@ import {
   WATCH_EVENT_CHANNEL,
 } from "../informers"
 import { ApiClients } from "../ipc/context-clients"
-import { listDeployments, listJobs, listNodes, listPods } from "../k8s-handlers"
+import {
+  listCronJobs,
+  listDaemonSets,
+  listDeployments,
+  listJobs,
+  listNodes,
+  listPods,
+  listReplicaSets,
+  listServices,
+  listStatefulSets,
+} from "../k8s-handlers"
 
 type DeploymentRow = Awaited<ReturnType<typeof listDeployments>>[number]
 
@@ -186,7 +196,12 @@ describe.skipIf(!kindAvailable)("informers against kind cluster", () => {
   const namespacedCases: [WatchResource, () => Promise<{ name: string }[]>][] =
     [
       ["deployments", () => listDeployments(appsApi, NAMESPACE)],
+      ["replicasets", () => listReplicaSets(appsApi, NAMESPACE)],
+      ["statefulsets", () => listStatefulSets(appsApi, NAMESPACE)],
+      ["daemonsets", () => listDaemonSets(appsApi, NAMESPACE)],
       ["jobs", () => listJobs(batchApi, NAMESPACE)],
+      ["cronjobs", () => listCronJobs(batchApi, NAMESPACE)],
+      ["services", () => listServices(coreApi, NAMESPACE)],
     ]
   for (const [resource, list] of namespacedCases) {
     test(`${resource} watch snapshot matches the list handler`, async () => {

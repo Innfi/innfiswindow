@@ -251,7 +251,9 @@ export async function getDeployment(
   )
 }
 
-function mapReplicaSetSummary(rs: V1ReplicaSet): ReplicaSetSummary {
+/** Shared by `listReplicaSets` and the replicasets informer, so a watched
+ *  ReplicaSets view renders the same rows a polled one does. */
+export function mapReplicaSetSummary(rs: V1ReplicaSet): ReplicaSetSummary {
   return {
     name: rs.metadata?.name ?? "",
     namespace: rs.metadata?.namespace ?? "",
@@ -306,7 +308,8 @@ export async function getReplicaSet(
   )
 }
 
-function mapStatefulSetSummary(ss: V1StatefulSet): StatefulSetSummary {
+/** Shared by `listStatefulSets` and the statefulsets informer. */
+export function mapStatefulSetSummary(ss: V1StatefulSet): StatefulSetSummary {
   return {
     name: ss.metadata?.name ?? "",
     namespace: ss.metadata?.namespace ?? "",
@@ -362,7 +365,8 @@ export async function getStatefulSet(
   )
 }
 
-function mapDaemonSetSummary(ds: V1DaemonSet): DaemonSetSummary {
+/** Shared by `listDaemonSets` and the daemonsets informer. */
+export function mapDaemonSetSummary(ds: V1DaemonSet): DaemonSetSummary {
   return {
     name: ds.metadata?.name ?? "",
     namespace: ds.metadata?.namespace ?? "",

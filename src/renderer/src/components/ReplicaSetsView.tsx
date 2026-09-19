@@ -258,6 +258,7 @@ export function ReplicaSetsView(): JSX.Element {
     <ResourceListView<K8sReplicaSetSummary, K8sReplicaSet>
       batch={{ resourceKind: "ReplicaSet" }}
       title="ReplicaSets"
+      watch="replicasets"
       emptyMessage="No Replica Sets found"
       list={(ctx, ns, sel) =>
         window.api.k8s.listReplicaSets({

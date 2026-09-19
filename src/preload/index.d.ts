@@ -1615,6 +1615,8 @@ export interface PodLogOptions {
   timestamps?: boolean
   tailLines?: number | null
   sinceSeconds?: number | null
+  /** Absolute cutoff; wins over `sinceSeconds`. */
+  sinceTime?: string | null
 }
 
 export interface API {
@@ -1630,6 +1632,16 @@ export interface API {
     options?: PodLogOptions,
     contextName?: string,
   ) => Promise<{ success: boolean }>
+  /** Asks for a file in the save dialog and writes the containers' logs to it
+   *  with a one-off, non-following read. `path` is null when the dialog was
+   *  cancelled. */
+  savePodLog: (args: {
+    contextName?: string
+    namespace: string
+    podName: string
+    containers: string[]
+    options?: PodLogOptions
+  }) => Promise<{ path: string | null; bytes?: number }>
   stopPodLog: (
     namespace: string,
     podName: string,

@@ -36,6 +36,14 @@ export function parseResourceValue(value: string): number {
   return parseFloat(value) || 0
 }
 
+/** A byte count in binary units, for transfer sizes (a copy, a saved log). */
+export function formatBytes(bytes: number): string {
+  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GiB`
+  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MiB`
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KiB`
+  return `${bytes} B`
+}
+
 export function formatAge(isoTimestamp: string): string {
   if (!isoTimestamp) return "-"
   const diffMs = Date.now() - new Date(isoTimestamp).getTime()

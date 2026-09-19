@@ -1,4 +1,4 @@
-import { Layers, RefreshCw, Square } from "lucide-react"
+import { Download, Layers, RefreshCw, Square } from "lucide-react"
 import {
   type ReactNode,
   useCallback,
@@ -7,11 +7,13 @@ import {
   useRef,
   useState,
 } from "react"
+import { toast } from "sonner"
 import { useAppStore } from "@store/app.store"
 import { useVirtualizer } from "@tanstack/react-virtual"
 
 import { Button } from "../../components/ui/Button"
 import { normalizeIpcError } from "../../lib/ipc-error"
+import { formatBytes } from "../../lib/utils"
 
 /** Read-option choices, kept short: these are the ones worth a click. */
 const TAIL_CHOICES: { label: string; value: number | null }[] = [
@@ -21,6 +23,10 @@ const TAIL_CHOICES: { label: string; value: number | null }[] = [
   { label: "All", value: null },
 ]
 
+/** The Since choice that swaps the relative cutoffs for an absolute time. Not
+ *  a real `sinceSeconds` value: it only ever lives in the select. */
+const SINCE_AT_TIME = -1
+
 const SINCE_CHOICES: { label: string; value: number | null }[] = [
   { label: "Any age", value: null },
   { label: "5m", value: 300 },
@@ -28,7 +34,26 @@ const SINCE_CHOICES: { label: string; value: number | null }[] = [
   { label: "1h", value: 3600 },
   { label: "6h", value: 21600 },
   { label: "24h", value: 86400 },
+  { label: "At time…", value: SINCE_AT_TIME },
 ]
+
+const pad = (n: number): string => String(n).padStart(2, "0")
+
+/** A date as a `datetime-local` input value, in local time to the second. */
+function toLocalInputValue(date: Date): string {
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  )
+}
+
+/** A `datetime-local` value — local time with no zone — as UTC ISO, or null
+ *  while the input is empty or half-typed. */
+function localInputToIso(value: string | null): string | null {
+  if (!value) return null
+  const ms = new Date(value).getTime()
+  return Number.isNaN(ms) ? null : new Date(ms).toISOString()
+}
 
 const MAX_LOG_LINES = 5000
 const SENTINEL_TEXT = `--- [older lines removed, showing last ${MAX_LOG_LINES}] ---`
@@ -155,6 +180,10 @@ export function PodLogPanel({
   const [regexMode, setRegexMode] = useState(false)
   const [tailLines, setTailLines] = useState<number | null>(200)
   const [sinceSeconds, setSinceSeconds] = useState<number | null>(null)
+  // The absolute cutoff as the `datetime-local` input holds it; null while a
+  // relative choice is in use.
+  const [sinceTime, setSinceTime] = useState<string | null>(null)
+  const [savingLog, setSavingLog] = useState(false)
   const [previous, setPrevious] = useState(false)
   const [timestamps, setTimestamps] = useState(false)
   const [streamError, setStreamError] = useState<string | null>(null)
@@ -171,10 +200,51 @@ export function PodLogPanel({
 
   // One object so the stream effects can depend on the whole read spec: any
   // change to it has to restart the request, there is no way to amend one.
+  const sinceTimeIso = useMemo(() => localInputToIso(sinceTime), [sinceTime])
   const logOptions = useMemo(
-    () => ({ tailLines, sinceSeconds, previous, timestamps }),
-    [tailLines, sinceSeconds, previous, timestamps],
+    () => ({
+      tailLines,
+      sinceSeconds: sinceTime !== null ? null : sinceSeconds,
+      sinceTime: sinceTimeIso,
+      previous,
+      timestamps,
+    }),
+    [tailLines, sinceSeconds, sinceTime, sinceTimeIso, previous, timestamps],
   )
+
+  function handleSinceChange(value: number | null): void {
+    if (value === SINCE_AT_TIME) {
+      // Starts an hour back, the middle of the relative choices, rather than
+      // at "now", which would show nothing until the input is edited.
+      setSinceTime(toLocalInputValue(new Date(Date.now() - 3_600_000)))
+      return
+    }
+    setSinceTime(null)
+    setSinceSeconds(value)
+  }
+
+  // Saves with a fresh read at the current Tail/Since/Previous/Timestamps
+  // settings — the whole of it, not the capped buffer on screen, and without
+  // the filter, which is a view over the log rather than part of it.
+  async function handleSaveLog(): Promise<void> {
+    setSavingLog(true)
+    try {
+      const { path, bytes } = await window.api.savePodLog({
+        contextName,
+        namespace,
+        podName,
+        containers: mergeMode
+          ? containers.map((c) => c.name)
+          : [selectedContainer],
+        options: logOptions,
+      })
+      if (path) toast.success(`Saved ${formatBytes(bytes ?? 0)} to ${path}`)
+    } catch (err) {
+      toast.error(`Failed to save log: ${describeLogError(err, previous)}`)
+    } finally {
+      setSavingLog(false)
+    }
+  }
 
   // Log lines arrive one IPC event at a time. Buffer them and flush once per
   // frame so a chatty pod costs ~60 renders/sec instead of one render per line.
@@ -600,6 +670,16 @@ export function PodLogPanel({
               Merge
             </button>
           )}
+          <Button
+            size="icon"
+            variant="ghost"
+            title="Save log to a file — read afresh with the current Tail, Since, Previous and Timestamps settings; the filter is not applied"
+            onClick={handleSaveLog}
+            disabled={savingLog || (!mergeMode && !selectedContainer)}
+            className="h-6 w-6 text-zinc-400 hover:text-zinc-100"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </Button>
           {streaming && (
             <Button
               size="icon"
@@ -647,10 +727,20 @@ export function PodLogPanel({
         />
         <OptionSelect
           label="Since"
-          value={sinceSeconds}
+          value={sinceTime !== null ? SINCE_AT_TIME : sinceSeconds}
           choices={SINCE_CHOICES}
-          onChange={setSinceSeconds}
+          onChange={handleSinceChange}
         />
+        {sinceTime !== null && (
+          <input
+            type="datetime-local"
+            step={1}
+            value={sinceTime}
+            onChange={(e) => setSinceTime(e.target.value)}
+            title="Only lines printed at or after this time (your local time zone)"
+            className={`text-xs bg-zinc-800 text-zinc-200 border rounded px-1 py-0.5 focus:outline-none [color-scheme:dark] ${sinceTimeIso ? "border-zinc-700" : "border-red-500"}`}
+          />
+        )}
         <OptionChip
           active={previous}
           onClick={() => setPrevious((v) => !v)}

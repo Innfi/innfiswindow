@@ -2,6 +2,7 @@ import {
   BatchV1Api,
   PatchStrategy,
   setHeaderOptions,
+  V1CronJob,
   V1Job,
   V1JobSpec,
 } from "@kubernetes/client-node"
@@ -119,25 +120,28 @@ export async function listCronJobs(
   const res = namespace
     ? await api.listNamespacedCronJob({ namespace, labelSelector })
     : await api.listCronJobForAllNamespaces({ labelSelector })
-  return res.items.map((cj) => {
-    const activeJobs = cj.status?.active ?? []
-    return {
-      name: cj.metadata?.name ?? "",
-      namespace: cj.metadata?.namespace ?? "",
-      schedule: cj.spec?.schedule ?? "",
-      concurrencyPolicy: cj.spec?.concurrencyPolicy ?? "",
-      suspend: cj.spec?.suspend ?? false,
-      successfulJobsHistoryLimit: cj.spec?.successfulJobsHistoryLimit ?? null,
-      failedJobsHistoryLimit: cj.spec?.failedJobsHistoryLimit ?? null,
-      startingDeadlineSeconds: cj.spec?.startingDeadlineSeconds ?? null,
-      lastScheduleTime: cj.status?.lastScheduleTime?.toISOString() ?? "",
-      activeCount: activeJobs.length,
-      activeJobNames: activeJobs.map((r) => r.name ?? ""),
-      creationTimestamp: cj.metadata?.creationTimestamp?.toISOString() ?? "",
-      labels: cj.metadata?.labels ?? {},
-      annotations: cj.metadata?.annotations ?? {},
-    }
-  })
+  return res.items.map(mapCronJob)
+}
+
+/** Shared by `listCronJobs` and the cronjobs informer. */
+export function mapCronJob(cj: V1CronJob): CronJobInfo {
+  const activeJobs = cj.status?.active ?? []
+  return {
+    name: cj.metadata?.name ?? "",
+    namespace: cj.metadata?.namespace ?? "",
+    schedule: cj.spec?.schedule ?? "",
+    concurrencyPolicy: cj.spec?.concurrencyPolicy ?? "",
+    suspend: cj.spec?.suspend ?? false,
+    successfulJobsHistoryLimit: cj.spec?.successfulJobsHistoryLimit ?? null,
+    failedJobsHistoryLimit: cj.spec?.failedJobsHistoryLimit ?? null,
+    startingDeadlineSeconds: cj.spec?.startingDeadlineSeconds ?? null,
+    lastScheduleTime: cj.status?.lastScheduleTime?.toISOString() ?? "",
+    activeCount: activeJobs.length,
+    activeJobNames: activeJobs.map((r) => r.name ?? ""),
+    creationTimestamp: cj.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: cj.metadata?.labels ?? {},
+    annotations: cj.metadata?.annotations ?? {},
+  }
 }
 
 /** Jobs are immutable, so "restart" deletes the Job and recreates it from its

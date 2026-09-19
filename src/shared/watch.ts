@@ -6,7 +6,12 @@ export const WATCH_RESOURCES = [
   "pods",
   "events",
   "deployments",
+  "replicasets",
+  "statefulsets",
+  "daemonsets",
   "jobs",
+  "cronjobs",
+  "services",
   "nodes",
 ] as const
 

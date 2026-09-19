@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { normalizeIpcError } from "../../lib/ipc-error"
+import { formatBytes } from "../../lib/utils"
 import { useRecordHistory } from "../../src/hooks/useRecordHistory"
 import { useAppStore } from "../../store/app.store"
 import {
@@ -18,13 +19,6 @@ import { Input } from "./Input"
 import { Label } from "./Label"
 
 type Direction = "to" | "from"
-
-function formatBytes(bytes: number): string {
-  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GiB`
-  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MiB`
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KiB`
-  return `${bytes} B`
-}
 
 interface PodCopyButtonProps {
   podName: string

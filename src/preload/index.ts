@@ -11,6 +11,8 @@ interface PodLogOptions {
   timestamps?: boolean
   tailLines?: number | null
   sinceSeconds?: number | null
+  /** Absolute cutoff; wins over `sinceSeconds`. */
+  sinceTime?: string | null
 }
 
 // Custom APIs for renderer
@@ -641,6 +643,13 @@ const api = {
       options,
       contextName,
     }),
+  savePodLog: (args: {
+    contextName?: string
+    namespace: string
+    podName: string
+    containers: string[]
+    options?: PodLogOptions
+  }) => ipcRenderer.invoke("k8s:pod:log:save", args),
   stopPodLog: (namespace: string, podName: string) =>
     ipcRenderer.invoke("k8s:pod:log:stop", { namespace, podName }),
   stopPodLogSession: (sessionId: string) =>

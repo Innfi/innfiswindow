@@ -10,11 +10,15 @@ import {
   makeInformer,
   ObjectCache,
   UPDATE,
+  V1CronJob,
+  V1DaemonSet,
   V1Deployment,
   V1Job,
   V1Node,
   V1Pod,
   V1ReplicaSet,
+  V1Service,
+  V1StatefulSet,
 } from "@kubernetes/client-node"
 
 import {
@@ -25,12 +29,16 @@ import {
   WatchResource,
   WatchStartArgs,
 } from "../shared/watch"
-import { mapJob } from "./handlers/batch"
+import { mapCronJob, mapJob } from "./handlers/batch"
 import { mapNode } from "./handlers/cluster"
 import { mapEvent } from "./handlers/events"
+import { mapService } from "./handlers/networking"
 import {
+  mapDaemonSetSummary,
   mapDeploymentSummary,
   mapPodSummary,
+  mapReplicaSetSummary,
+  mapStatefulSetSummary,
   replicaSetOwnerEntry,
 } from "./handlers/workload"
 import {
@@ -104,6 +112,41 @@ const SOURCES: Record<Exclude<WatchResource, "pods">, WatchSource> = {
         : c.appsV1.listDeploymentForAllNamespaces({ labelSelector }),
     map: (obj) => mapDeploymentSummary(obj as V1Deployment),
   },
+  // Its own informer, filtered by the view's selector — not the unfiltered
+  // owners informer the pods entry runs, which only resolves owner names.
+  replicasets: {
+    path: (ns) =>
+      ns
+        ? `/apis/apps/v1/namespaces/${ns}/replicasets`
+        : "/apis/apps/v1/replicasets",
+    list: (c, ns, labelSelector) =>
+      ns
+        ? c.appsV1.listNamespacedReplicaSet({ namespace: ns, labelSelector })
+        : c.appsV1.listReplicaSetForAllNamespaces({ labelSelector }),
+    map: (obj) => mapReplicaSetSummary(obj as V1ReplicaSet),
+  },
+  statefulsets: {
+    path: (ns) =>
+      ns
+        ? `/apis/apps/v1/namespaces/${ns}/statefulsets`
+        : "/apis/apps/v1/statefulsets",
+    list: (c, ns, labelSelector) =>
+      ns
+        ? c.appsV1.listNamespacedStatefulSet({ namespace: ns, labelSelector })
+        : c.appsV1.listStatefulSetForAllNamespaces({ labelSelector }),
+    map: (obj) => mapStatefulSetSummary(obj as V1StatefulSet),
+  },
+  daemonsets: {
+    path: (ns) =>
+      ns
+        ? `/apis/apps/v1/namespaces/${ns}/daemonsets`
+        : "/apis/apps/v1/daemonsets",
+    list: (c, ns, labelSelector) =>
+      ns
+        ? c.appsV1.listNamespacedDaemonSet({ namespace: ns, labelSelector })
+        : c.appsV1.listDaemonSetForAllNamespaces({ labelSelector }),
+    map: (obj) => mapDaemonSetSummary(obj as V1DaemonSet),
+  },
   jobs: {
     path: (ns) =>
       ns ? `/apis/batch/v1/namespaces/${ns}/jobs` : "/apis/batch/v1/jobs",
@@ -112,6 +155,26 @@ const SOURCES: Record<Exclude<WatchResource, "pods">, WatchSource> = {
         ? c.batchV1.listNamespacedJob({ namespace: ns, labelSelector })
         : c.batchV1.listJobForAllNamespaces({ labelSelector }),
     map: (obj) => mapJob(obj as V1Job),
+  },
+  cronjobs: {
+    path: (ns) =>
+      ns
+        ? `/apis/batch/v1/namespaces/${ns}/cronjobs`
+        : "/apis/batch/v1/cronjobs",
+    list: (c, ns, labelSelector) =>
+      ns
+        ? c.batchV1.listNamespacedCronJob({ namespace: ns, labelSelector })
+        : c.batchV1.listCronJobForAllNamespaces({ labelSelector }),
+    map: (obj) => mapCronJob(obj as V1CronJob),
+  },
+  services: {
+    path: (ns) =>
+      ns ? `/api/v1/namespaces/${ns}/services` : "/api/v1/services",
+    list: (c, ns, labelSelector) =>
+      ns
+        ? c.coreV1.listNamespacedService({ namespace: ns, labelSelector })
+        : c.coreV1.listServiceForAllNamespaces({ labelSelector }),
+    map: (obj) => mapService(obj as V1Service),
   },
   nodes: {
     clusterScoped: true,
