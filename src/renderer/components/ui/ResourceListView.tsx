@@ -154,10 +154,8 @@ export function ResourceListView<T extends Namespaced, D = T>({
   // ship on every poll just to throw most of it away here. `filterResources`
   // below still applies it, which keeps the view correct if a handler ever
   // ignores the hint.
-  const { data, loading, error, reload, lastRefreshedAt } = useK8sResource(
-    list,
-    selectedContext,
-    {
+  const { data, loading, error, reload, reloadAfterWrite, lastRefreshedAt } =
+    useK8sResource(list, selectedContext, {
       paused: deleteDialogOpen || batchDialogOpen,
       namespace: namespaced ? selectedNamespace : null,
       // Unlike the name filter, the label selector is not applied again here:
@@ -165,8 +163,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
       // that can answer it.
       labelSelector,
       watch,
-    },
-  )
+    })
 
   // Re-sync the selected item with fresh data after a reload. Every poll hands
   // back newly-deserialized objects, so compare by content: an unconditional
@@ -347,7 +344,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
                 new Set([...checkedKeys].filter((k) => !done.has(k))),
               )
             }}
-            onReload={reload}
+            onReload={reloadAfterWrite}
             onDialogChange={setBatchDialogOpen}
           />
         )}
@@ -476,7 +473,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
           render={(item) =>
             renderDetail(item, {
               onClose: () => setSelectedItem(null),
-              onDeleted: reload,
+              onDeleted: reloadAfterWrite,
               onDeleteDialogChange: setDeleteDialogOpen,
             })
           }

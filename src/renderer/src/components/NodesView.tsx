@@ -23,6 +23,7 @@ import { EditButton } from "../../components/ui/EditButton"
 import { EmptyState } from "../../components/ui/EmptyState"
 import { Input } from "../../components/ui/Input"
 import { Label } from "../../components/ui/Label"
+import { LabelEntries } from "../../components/ui/LabelEntries"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import { NodeLabelsButton } from "../../components/ui/NodeLabelsButton"
 import { NodeTaintsButton } from "../../components/ui/NodeTaintsButton"
@@ -540,9 +541,7 @@ function DetailPanel({
       {labelEntries.length > 0 && (
         <div className="space-y-1">
           <SectionHeader title="Labels" />
-          {labelEntries.map(([k, v]) => (
-            <MetaEntry key={k} label={k} value={v} />
-          ))}
+          <LabelEntries entries={labelEntries} />
         </div>
       )}
 
@@ -743,6 +742,7 @@ export function NodesView(): JSX.Element {
     loading,
     error,
     reload,
+    reloadAfterWrite,
     lastRefreshedAt,
   } = useK8sResource(
     (ctx, _ns, sel) =>
@@ -889,8 +889,8 @@ export function NodesView(): JSX.Element {
           metric={metricsMap.get(selectedItem.name)}
           metricsUnavailable={metricsUnavailable}
           onClose={() => setSelectedItem(null)}
-          onChanged={reload}
-          onDeleted={reload}
+          onChanged={reloadAfterWrite}
+          onDeleted={reloadAfterWrite}
           onDialogChange={setDialogOpen}
         />
       )}

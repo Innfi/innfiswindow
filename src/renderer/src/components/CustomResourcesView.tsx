@@ -6,6 +6,7 @@ import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
 import { EmptyState } from "../../components/ui/EmptyState"
+import { LabelEntries } from "../../components/ui/LabelEntries"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
@@ -156,9 +157,7 @@ function DetailPanel({
       {labelEntries.length > 0 && (
         <div className="space-y-1">
           <SectionHeader title="Labels" />
-          {labelEntries.map(([k, v]) => (
-            <MetaEntry key={k} label={k} value={v} />
-          ))}
+          <LabelEntries entries={labelEntries} />
         </div>
       )}
 

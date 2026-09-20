@@ -40,7 +40,10 @@ export function useK8sResource<T>(
   data: T[]
   loading: boolean
   error: string | null
+  /** An explicit refresh — the Refresh button. Always re-lists. */
   reload: () => void
+  /** What a view calls after its own write instead of `reload`. */
+  reloadAfterWrite: () => void
   lastRefreshedAt: number | null
 } {
   const [data, setData] = useState<T[]>([])
@@ -106,7 +109,26 @@ export function useK8sResource<T>(
       })
   }, [])
 
-  const reload = useCallback(() => load(false), [load])
+  // Read inside the callbacks below so they stay stable across a watch
+  // starting, failing, or being paused.
+  const watchingRef = useRef(watching)
+  watchingRef.current = watching
+
+  // A watched list is already loaded, so a re-list would blank the table on
+  // the way to the rows it is showing; it refreshes silently instead.
+  const reload = useCallback(() => load(watchingRef.current), [load])
+
+  /**
+   * After a write of this view's own. A watched list gets the change from the
+   * informer within milliseconds — re-listing would only race that event and
+   * flash the table — so this does nothing there, and the event that follows
+   * updates the row. A polled list re-lists silently rather than leaving the
+   * row stale until the next tick.
+   */
+  const reloadAfterWrite = useCallback(() => {
+    if (watchingRef.current) return
+    load(true)
+  }, [load])
 
   useEffect(() => {
     // While watching, the informer's snapshot is the initial load.
@@ -198,5 +220,5 @@ export function useK8sResource<T>(
     }
   }, [watching, watch, paused, context, namespace, labelSelector])
 
-  return { data, loading, error, reload, lastRefreshedAt }
+  return { data, loading, error, reload, reloadAfterWrite, lastRefreshedAt }
 }

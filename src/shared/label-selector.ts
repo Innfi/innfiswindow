@@ -150,6 +150,43 @@ export function formatRequirement(req: LabelRequirement): string {
  * wire, so whitespace differences don't count as a new filter and re-list every
  * view.
  */
+/** Whether `selector` pins `key` to exactly `value` — what a label rendered as
+ *  active in a detail panel means. */
+export function hasLabelEquality(
+  selector: string,
+  key: string,
+  value: string,
+): boolean {
+  const { requirements } = parseLabelSelector(selector)
+  return requirements.some(
+    (r) => r.key === key && r.operator === "=" && r.values[0] === value,
+  )
+}
+
+/**
+ * Adds `key=value` to `selector`, or takes it out again when it is already
+ * there — clicking a label in a detail panel, and clicking it a second time.
+ * Any other requirement on the same key is replaced rather than ANDed with:
+ * two equalities on one key match nothing, and a click is meant to narrow the
+ * list, not empty it. Returns the canonical form, so it can go straight to the
+ * store.
+ */
+export function toggleLabelEquality(
+  selector: string,
+  key: string,
+  value: string,
+): string {
+  const { requirements } = parseLabelSelector(selector)
+  const already = requirements.some(
+    (r) => r.key === key && r.operator === "=" && r.values[0] === value,
+  )
+  const rest = requirements.filter((r) => r.key !== key)
+  const next = already
+    ? rest
+    : [...rest, { key, operator: "=" as const, values: [value] }]
+  return next.map(formatRequirement).join(",")
+}
+
 export function parseLabelSelector(input: string): LabelSelectorResult {
   if (input.trim() === "") return EMPTY
   const parts = splitRequirements(input)

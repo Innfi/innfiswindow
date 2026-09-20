@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest"
 
-import { parseLabelSelector } from "../../shared/label-selector"
+import {
+  hasLabelEquality,
+  parseLabelSelector,
+  toggleLabelEquality,
+} from "../../shared/label-selector"
 
 // The app bar's `-l` box sends its selector to the API server with every list,
 // so a mis-parse is either a 400 on every poll tick or, worse, a filter that
@@ -73,5 +77,51 @@ describe("parseLabelSelector", () => {
     expect(parseLabelSelector(`app=${"n".repeat(64)}`).error).not.toBeNull()
     expect(parseLabelSelector("-app=nginx").error).not.toBeNull()
     expect(parseLabelSelector("a/b/c=nginx").error).not.toBeNull()
+  })
+})
+
+// Clicking a label in a detail panel puts it in the same box, so the result has
+// to be a selector the parser above would have accepted.
+describe("toggleLabelEquality", () => {
+  test("adds a label to an empty selector", () => {
+    expect(toggleLabelEquality("", "app", "nginx")).toBe("app=nginx")
+  })
+
+  test("ANDs onto what is already there", () => {
+    expect(toggleLabelEquality("tier=web", "app", "nginx")).toBe(
+      "tier=web,app=nginx",
+    )
+  })
+
+  test("a second click on the same label takes it out again", () => {
+    expect(toggleLabelEquality("tier=web,app=nginx", "app", "nginx")).toBe(
+      "tier=web",
+    )
+    expect(toggleLabelEquality("app=nginx", "app", "nginx")).toBe("")
+  })
+
+  test("replaces another requirement on the same key rather than ANDing", () => {
+    // app=nginx,app=redis would match nothing; a click is meant to narrow.
+    expect(toggleLabelEquality("app=redis", "app", "nginx")).toBe("app=nginx")
+    expect(toggleLabelEquality("app in (redis,web)", "app", "nginx")).toBe(
+      "app=nginx",
+    )
+    expect(toggleLabelEquality("!app", "app", "nginx")).toBe("app=nginx")
+  })
+
+  test("what it produces parses back to itself", () => {
+    const selector = toggleLabelEquality("tier=web", "app", "nginx")
+    expect(parseLabelSelector(selector).selector).toBe(selector)
+    expect(parseLabelSelector(selector).error).toBeNull()
+  })
+})
+
+describe("hasLabelEquality", () => {
+  test("is true only for that exact key and value", () => {
+    expect(hasLabelEquality("app=nginx,tier=web", "app", "nginx")).toBe(true)
+    expect(hasLabelEquality("app=nginx", "app", "redis")).toBe(false)
+    expect(hasLabelEquality("app!=nginx", "app", "nginx")).toBe(false)
+    expect(hasLabelEquality("app in (nginx)", "app", "nginx")).toBe(false)
+    expect(hasLabelEquality("", "app", "nginx")).toBe(false)
   })
 })

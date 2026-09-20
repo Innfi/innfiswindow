@@ -5,6 +5,7 @@ import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
+import { LabelEntries } from "../../components/ui/LabelEntries"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   ageColumn,
@@ -159,11 +160,11 @@ function DetailPanel({
       {Object.keys(binding.labels).length > 0 && (
         <div className="space-y-1">
           <SectionHeader title="Labels" />
-          {Object.entries(binding.labels)
-            .filter(([k, v]) => kv(k, v))
-            .map(([k, v]) => (
-              <MetaEntry key={k} label={k} value={v} />
-            ))}
+          <LabelEntries
+            entries={Object.entries(binding.labels).filter(([k, v]) =>
+              kv(k, v),
+            )}
+          />
         </div>
       )}
 
