@@ -66,10 +66,15 @@ export async function listSecrets(
   api: CoreV1Api,
   namespace?: string,
   labelSelector?: string,
+  fieldSelector?: string,
 ): Promise<SecretSummary[]> {
   const res = namespace
-    ? await api.listNamespacedSecret({ namespace, labelSelector })
-    : await api.listSecretForAllNamespaces({ labelSelector })
+    ? await api.listNamespacedSecret({
+        namespace,
+        labelSelector,
+        fieldSelector,
+      })
+    : await api.listSecretForAllNamespaces({ labelSelector, fieldSelector })
   return res.items.map(mapSecretSummary)
 }
 

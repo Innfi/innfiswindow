@@ -28,18 +28,34 @@ export function registerClusterHandlers(
   ipcMain.handle("k8s:cluster:type", () => getClusterType(kc))
   ipcMain.handle(
     "k8s:namespaces:list",
-    (_e, args?: { contextName?: string; labelSelector?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        labelSelector?: string
+        fieldSelector?: string
+      },
+    ) =>
       listNamespaces(
         getContextClients(args?.contextName).coreV1,
         args?.labelSelector,
+        args?.fieldSelector,
       ),
   )
   ipcMain.handle(
     "k8s:nodes:list",
-    (_e, args?: { contextName?: string; labelSelector?: string }) =>
+    (
+      _e,
+      args?: {
+        contextName?: string
+        labelSelector?: string
+        fieldSelector?: string
+      },
+    ) =>
       listNodes(
         getContextClients(args?.contextName).coreV1,
         args?.labelSelector,
+        args?.fieldSelector,
       ),
   )
   ipcMain.handle("k8s:node:metrics", (_e, args?: { contextName?: string }) =>

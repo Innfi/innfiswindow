@@ -36,8 +36,9 @@ const JSON_MERGE_PATCH = setHeaderOptions(
 export async function listNamespaces(
   api: CoreV1Api,
   labelSelector?: string,
+  fieldSelector?: string,
 ): Promise<NamespaceInfo[]> {
-  const res = await api.listNamespace({ labelSelector })
+  const res = await api.listNamespace({ labelSelector, fieldSelector })
   return res.items.map((ns) => ({
     name: ns.metadata?.name ?? "",
     status: ns.status?.phase ?? "",
@@ -102,8 +103,9 @@ export function mapNode(node: V1Node): NodeInfo {
 export async function listNodes(
   api: CoreV1Api,
   labelSelector?: string,
+  fieldSelector?: string,
 ): Promise<NodeInfo[]> {
-  const res = await api.listNode({ labelSelector })
+  const res = await api.listNode({ labelSelector, fieldSelector })
   return res.items.map(mapNode)
 }
 

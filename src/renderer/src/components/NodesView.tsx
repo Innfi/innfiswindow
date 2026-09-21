@@ -729,6 +729,7 @@ export function NodesView(): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
   const labelSelector = useAppStore((s) => s.labelSelector)
+  const fieldSelector = useAppStore((s) => s.fieldSelector)
   const refreshInterval = useAppStore((s) => s.refreshInterval)
 
   // Any write dialog in the detail panel pauses the refresh (watch or poll), so
@@ -745,10 +746,14 @@ export function NodesView(): JSX.Element {
     reloadAfterWrite,
     lastRefreshedAt,
   } = useK8sResource(
-    (ctx, _ns, sel) =>
-      window.api.k8s.listNodes({ contextName: ctx, labelSelector: sel }),
+    (ctx, _ns, sel, fieldSel) =>
+      window.api.k8s.listNodes({
+        contextName: ctx,
+        labelSelector: sel,
+        fieldSelector: fieldSel,
+      }),
     selectedContext,
-    { paused: dialogOpen, labelSelector, watch: "nodes" },
+    { paused: dialogOpen, labelSelector, fieldSelector, watch: "nodes" },
   )
 
   const [metricsMap, setMetricsMap] = useState<Map<string, NodeMetric>>(

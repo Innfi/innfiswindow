@@ -3,6 +3,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 
 import { ThemePicker } from "../components/ThemePicker"
 import { Button } from "../components/ui/Button"
+import { FieldSelectorInput } from "../components/ui/FieldSelectorInput"
 import { GlobalFooter } from "../components/ui/GlobalFooter"
 import { GlobalSearch } from "../components/ui/GlobalSearch"
 import { Input } from "../components/ui/Input"
@@ -165,6 +166,7 @@ function App(): JSX.Element {
           </select>
           <NameFilterInput />
           <LabelSelectorInput />
+          <FieldSelectorInput />
           <span className="rounded border px-2 py-0.5 text-xs mr-2 ml-2">
             {clusterType}
           </span>

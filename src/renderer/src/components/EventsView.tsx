@@ -26,19 +26,26 @@ export function EventsView(): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const labelSelector = useAppStore((s) => s.labelSelector)
+  const fieldSelector = useAppStore((s) => s.fieldSelector)
 
   // Watch-backed: an event's `count` climbs as it repeats, so the watch reports
   // it as an update to the same row rather than as another row.
   const { data, loading, error, reload, lastRefreshedAt } =
     useK8sResource<K8sEvent>(
-      (ctx, ns, sel) =>
+      (ctx, ns, sel, fieldSel) =>
         window.api.listEvents({
           contextName: ctx,
           namespace: ns,
           labelSelector: sel,
+          fieldSelector: fieldSel,
         }),
       selectedContext,
-      { namespace: selectedNamespace, labelSelector, watch: "events" },
+      {
+        namespace: selectedNamespace,
+        labelSelector,
+        fieldSelector,
+        watch: "events",
+      },
     )
 
   // Watch updates land in place, so the order has to come from the rows

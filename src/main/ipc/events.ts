@@ -15,12 +15,14 @@ export function registerEventsHandlers(
         contextName?: string
         namespace?: string
         labelSelector?: string
+        fieldSelector?: string
       },
     ) =>
       listEvents(
         getContextClients(args?.contextName).coreV1,
         args?.namespace,
         args?.labelSelector,
+        args?.fieldSelector,
       ),
   )
 

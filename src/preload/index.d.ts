@@ -891,10 +891,16 @@ export interface K8sAPI {
   listNamespaces: (args?: {
     contextName?: string
     labelSelector?: string
+    /** Only the fields this kind indexes; see FIELD_SELECTOR_FIELDS in
+     *  src/shared/field-selector.ts. */
+    fieldSelector?: string
   }) => Promise<K8sNamespace[]>
   listNodes: (args?: {
     contextName?: string
     labelSelector?: string
+    /** Only the fields this kind indexes; see FIELD_SELECTOR_FIELDS in
+     *  src/shared/field-selector.ts. */
+    fieldSelector?: string
   }) => Promise<K8sNode[]>
   cordonNode: (args: {
     contextName?: string
@@ -988,6 +994,9 @@ export interface K8sAPI {
     contextName?: string
     namespace?: string
     labelSelector?: string
+    /** Only the fields this kind indexes; see FIELD_SELECTOR_FIELDS in
+     *  src/shared/field-selector.ts. */
+    fieldSelector?: string
   }) => Promise<K8sSecretSummary[]>
   getSecret: (args: {
     contextName?: string
@@ -1210,6 +1219,9 @@ export interface K8sAPI {
     contextName?: string
     namespace?: string
     labelSelector?: string
+    /** Only the fields this kind indexes; see FIELD_SELECTOR_FIELDS in
+     *  src/shared/field-selector.ts. */
+    fieldSelector?: string
   }) => Promise<K8sPodSummary[]>
   getPod: (args: {
     contextName?: string
@@ -1672,6 +1684,9 @@ export interface API {
     contextName?: string
     namespace?: string
     labelSelector?: string
+    /** Only the fields this kind indexes; see FIELD_SELECTOR_FIELDS in
+     *  src/shared/field-selector.ts. */
+    fieldSelector?: string
   }) => Promise<K8sEvent[]>
   listEventsForResource: (args: {
     contextName?: string

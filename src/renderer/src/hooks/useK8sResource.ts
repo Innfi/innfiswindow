@@ -17,7 +17,12 @@ const rowKey = (item: unknown): string => {
 }
 
 export function useK8sResource<T>(
-  fetcher: (ctx?: string, ns?: string, labelSelector?: string) => Promise<T[]>,
+  fetcher: (
+    ctx?: string,
+    ns?: string,
+    labelSelector?: string,
+    fieldSelector?: string,
+  ) => Promise<T[]>,
   context: string | null,
   options?: {
     paused?: boolean
@@ -28,6 +33,14 @@ export function useK8sResource<T>(
      * carry no labels. "" (or omitted) lists everything.
      */
     labelSelector?: string
+    /**
+     * The app bar's field selector, in the canonical form the store holds, for
+     * the kinds that index anything worth filtering on. Like the label
+     * selector it is the API server's to answer; unlike it, an informer cannot
+     * carry one, so a list with a field selector polls even when `watch` is
+     * set.
+     */
+    fieldSelector?: string
     /**
      * Serve this list from a main-process informer instead of re-listing it on
      * every poll tick. The snapshot and the incremental updates are the same
@@ -59,6 +72,7 @@ export function useK8sResource<T>(
   // "" means unfiltered, which is what the handlers take an absent selector to
   // mean, so the two are collapsed here.
   const labelSelector = options?.labelSelector ?? ""
+  const fieldSelector = options?.fieldSelector ?? ""
   const watch = options?.watch
 
   // Sticky for the life of the mount: retrying a watch the cluster has already
@@ -68,8 +82,14 @@ export function useK8sResource<T>(
   // A watch is a background refresh, so "off" turns it off too. Pausing tears
   // the subscription down instead of buffering, so resuming re-lists rather
   // than leaving the view on a cache that stopped being updated.
+  // `makeInformer` takes a label selector and nothing else, so a watch cannot
+  // be narrowed by field; a field selector drops the list back to polling,
+  // where the handler can pass it to the API server.
   const watching =
-    watch !== undefined && !watchFailed && refreshInterval !== "off"
+    watch !== undefined &&
+    !watchFailed &&
+    refreshInterval !== "off" &&
+    fieldSelector === ""
 
   const fetcherRef = useRef(fetcher)
   fetcherRef.current = fetcher
@@ -82,6 +102,9 @@ export function useK8sResource<T>(
 
   const labelSelectorRef = useRef(labelSelector)
   labelSelectorRef.current = labelSelector
+
+  const fieldSelectorRef = useRef(fieldSelector)
+  fieldSelectorRef.current = fieldSelector
 
   // What the last subscription was for. Resuming from a pause re-subscribes to
   // the same target, and the rows on screen are still right for it until the
@@ -97,6 +120,7 @@ export function useK8sResource<T>(
         contextRef.current ?? undefined,
         namespaceRef.current ?? undefined,
         labelSelectorRef.current || undefined,
+        fieldSelectorRef.current || undefined,
       )
       .then((result) => {
         setData(result)
@@ -134,7 +158,7 @@ export function useK8sResource<T>(
     // While watching, the informer's snapshot is the initial load.
     if (watching) return
     load(false)
-  }, [context, namespace, labelSelector, watching, load])
+  }, [context, namespace, labelSelector, fieldSelector, watching, load])
 
   useEffect(() => {
     if (refreshInterval === "off" || paused || watching) return
@@ -148,6 +172,7 @@ export function useK8sResource<T>(
     context,
     namespace,
     labelSelector,
+    fieldSelector,
     watching,
   ])
 

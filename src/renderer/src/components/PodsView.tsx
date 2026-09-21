@@ -483,11 +483,12 @@ export function PodsView(): JSX.Element {
       batch={{ resourceKind: "Pod" }}
       title="Pods"
       watch="pods"
-      list={(ctx, ns, sel) =>
+      list={(ctx, ns, sel, fieldSel) =>
         window.api.k8s.listPods({
           contextName: ctx,
           namespace: ns,
           labelSelector: sel,
+          fieldSelector: fieldSel,
         })
       }
       getDetail={(ctx, namespace, name) =>

@@ -638,10 +638,11 @@ export async function listPods(
   namespace?: string,
   appsV1?: AppsV1Api,
   labelSelector?: string,
+  fieldSelector?: string,
 ): Promise<PodSummary[]> {
   const res = namespace
-    ? await api.listNamespacedPod({ namespace, labelSelector })
-    : await api.listPodForAllNamespaces({ labelSelector })
+    ? await api.listNamespacedPod({ namespace, labelSelector, fieldSelector })
+    : await api.listPodForAllNamespaces({ labelSelector, fieldSelector })
 
   // Only pay for the extra list call when some pod is actually RS-owned.
   const anyReplicaSetOwned = res.items.some((p) =>

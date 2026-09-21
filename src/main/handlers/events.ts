@@ -45,9 +45,10 @@ export async function listEvents(
   api: CoreV1Api,
   namespace?: string,
   labelSelector?: string,
+  fieldSelector?: string,
 ): Promise<EventInfo[]> {
   const res = namespace
-    ? await api.listNamespacedEvent({ namespace, labelSelector })
-    : await api.listEventForAllNamespaces({ labelSelector })
+    ? await api.listNamespacedEvent({ namespace, labelSelector, fieldSelector })
+    : await api.listEventForAllNamespaces({ labelSelector, fieldSelector })
   return res.items.map(mapEvent)
 }

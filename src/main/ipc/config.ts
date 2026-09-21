@@ -42,12 +42,14 @@ export function registerConfigHandlers(
         contextName?: string
         namespace?: string
         labelSelector?: string
+        fieldSelector?: string
       },
     ) =>
       listSecrets(
         getContextClients(args?.contextName).coreV1,
         args?.namespace,
         args?.labelSelector,
+        args?.fieldSelector,
       ),
   )
   ipcMain.handle(

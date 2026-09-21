@@ -133,6 +133,7 @@ export function registerWorkloadHandlers(
         contextName?: string
         namespace?: string
         labelSelector?: string
+        fieldSelector?: string
       },
     ) => {
       const clients = getContextClients(args?.contextName)
@@ -141,6 +142,7 @@ export function registerWorkloadHandlers(
         args?.namespace,
         clients.appsV1,
         args?.labelSelector,
+        args?.fieldSelector,
       )
     },
   )

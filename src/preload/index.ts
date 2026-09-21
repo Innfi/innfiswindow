@@ -20,10 +20,16 @@ const api = {
   k8s: {
     listContexts: () => ipcRenderer.invoke("k8s:contexts:list"),
     getCurrentContext: () => ipcRenderer.invoke("k8s:context:current"),
-    listNamespaces: (args?: { contextName?: string; labelSelector?: string }) =>
-      ipcRenderer.invoke("k8s:namespaces:list", args),
-    listNodes: (args?: { contextName?: string; labelSelector?: string }) =>
-      ipcRenderer.invoke("k8s:nodes:list", args),
+    listNamespaces: (args?: {
+      contextName?: string
+      labelSelector?: string
+      fieldSelector?: string
+    }) => ipcRenderer.invoke("k8s:namespaces:list", args),
+    listNodes: (args?: {
+      contextName?: string
+      labelSelector?: string
+      fieldSelector?: string
+    }) => ipcRenderer.invoke("k8s:nodes:list", args),
     cordonNode: (args: {
       contextName?: string
       name: string
@@ -143,6 +149,7 @@ const api = {
       contextName?: string
       namespace?: string
       labelSelector?: string
+      fieldSelector?: string
     }) => ipcRenderer.invoke("k8s:secrets:list", args),
     getSecret: (args: {
       contextName?: string
@@ -406,6 +413,7 @@ const api = {
       contextName?: string
       namespace?: string
       labelSelector?: string
+      fieldSelector?: string
     }) => ipcRenderer.invoke("k8s:pods:list", args),
     getPod: (args: { contextName?: string; namespace: string; name: string }) =>
       ipcRenderer.invoke("k8s:pod:get", args),
@@ -687,6 +695,7 @@ const api = {
     contextName?: string
     namespace?: string
     labelSelector?: string
+    fieldSelector?: string
   }) => ipcRenderer.invoke("k8s:events:list", args),
   listEventsForResource: (args: {
     contextName?: string

@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
+import { fieldSelectorFields } from "../../shared/field-selector"
 import type { AccessSubject } from "../../shared/k8s"
 import type { ResourceGvk, ResourceKind } from "../lib/resource-gvk"
 import type { ResourceType } from "../src/types/resource"
@@ -216,6 +217,7 @@ export interface ContextState {
   selectedNamespace: string | null
   nameFilter: string
   labelSelector: string
+  fieldSelector: string
   drawerTabs: DrawerTab[]
   activeTabId: string | null
 }
@@ -235,6 +237,10 @@ interface AppState {
   /** The app bar's `-l` filter, in the canonical form `parseLabelSelector`
    *  produces. Sent to the API server with every list; `""` means unfiltered. */
   labelSelector: string
+  /** The app bar's `--field-selector`, for the kinds that index anything to
+   *  filter on. Unlike the label selector it is dropped when the view changes:
+   *  the fields belong to the kind it was typed for. */
+  fieldSelector: string
   themeId: string
   refreshInterval: RefreshIntervalValue
   drawerTabs: DrawerTab[]
@@ -263,6 +269,7 @@ interface AppState {
   setSelectedContext: (ctx: string | null) => void
   setNameFilter: (filter: string) => void
   setLabelSelector: (selector: string) => void
+  setFieldSelector: (selector: string) => void
   setThemeId: (id: string) => void
   setRefreshInterval: (interval: RefreshIntervalValue) => void
   openDrawerTab: (tab: DrawerTabInput) => void
@@ -294,6 +301,7 @@ export const useAppStore = create<AppState>()(
       selectedContext: null,
       nameFilter: "",
       labelSelector: "",
+      fieldSelector: "",
       themeId: "default",
       refreshInterval: 30,
       drawerTabs: [],
@@ -312,6 +320,13 @@ export const useAppStore = create<AppState>()(
           selectedItem: null,
           // Picking a view by hand abandons any jump still waiting to resolve.
           pendingSelection: null,
+          // A field selector is only meaningful against the kind it was typed
+          // for — the next kind indexes different fields, and most index none
+          // — so it does not follow the user across views the way the label
+          // selector does.
+          fieldSelector: fieldSelectorFields(type).length
+            ? get().fieldSelector
+            : "",
         }),
       setCustomResourceTarget: (target) =>
         set({
@@ -355,6 +370,7 @@ export const useAppStore = create<AppState>()(
           // on.
           nameFilter: "",
           labelSelector: "",
+          fieldSelector: "",
         }
         // So would a namespace scope that excludes the target. Move the scope
         // to the target's namespace rather than widening it to all of them,
@@ -401,6 +417,7 @@ export const useAppStore = create<AppState>()(
             selectedNamespace: state.selectedNamespace,
             nameFilter: state.nameFilter,
             labelSelector: state.labelSelector,
+            fieldSelector: state.fieldSelector,
             drawerTabs: state.drawerTabs,
             activeTabId: state.activeTabId,
           }
@@ -434,6 +451,7 @@ export const useAppStore = create<AppState>()(
             selectedNamespace: restoredNamespace,
             nameFilter: saved.nameFilter,
             labelSelector: saved.labelSelector ?? "",
+            fieldSelector: saved.fieldSelector ?? "",
             drawerTabs: restoredTabs,
             activeTabId: saved.activeTabId,
           })
@@ -449,6 +467,7 @@ export const useAppStore = create<AppState>()(
             selectedNamespace: restoredNamespace,
             nameFilter: "",
             labelSelector: "",
+            fieldSelector: "",
             drawerTabs: [],
             activeTabId: null,
           })
@@ -456,6 +475,7 @@ export const useAppStore = create<AppState>()(
       },
       setNameFilter: (filter) => set({ nameFilter: filter }),
       setLabelSelector: (selector) => set({ labelSelector: selector }),
+      setFieldSelector: (selector) => set({ fieldSelector: selector }),
       setThemeId: (id) => set({ themeId: id }),
       setRefreshInterval: (interval) => set({ refreshInterval: interval }),
       openDrawerTab: (tabData: DrawerTabInput) => {

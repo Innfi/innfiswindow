@@ -59,7 +59,12 @@ interface ResourceListViewProps<T extends Namespaced, D> {
   title: string
   /** Defaults to `No {title} found`. */
   emptyMessage?: string
-  list: (ctx?: string, ns?: string, labelSelector?: string) => Promise<T[]>
+  list: (
+    ctx?: string,
+    ns?: string,
+    labelSelector?: string,
+    fieldSelector?: string,
+  ) => Promise<T[]>
   columns: ResourceColumn<T>[]
   /**
    * Fetches the full object for the selected row. List handlers return only
@@ -139,6 +144,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
   const selectedContext = useAppStore((s) => s.selectedContext)
   const nameFilter = useAppStore((s) => s.nameFilter)
   const labelSelector = useAppStore((s) => s.labelSelector)
+  const fieldSelector = useAppStore((s) => s.fieldSelector)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [batchDialogOpen, setBatchDialogOpen] = useState(false)
   const [sortIndex, setSortIndex] = useState(0)
@@ -148,6 +154,10 @@ export function ResourceListView<T extends Namespaced, D = T>({
   const [checkedKeys, setCheckedKeys] = useState<ReadonlySet<string>>(new Set())
   // Anchor for shift-click range selection, as an index into `visible`.
   const anchorRef = useRef<number | null>(null)
+
+  // Both selectors are answered by the API server, so an empty list under one
+  // says which filter emptied it rather than that the kind has no objects.
+  const activeSelectors = [labelSelector, fieldSelector].filter((s) => s !== "")
 
   // The active namespace is pushed down to the handler so the API server does
   // the filtering — a cluster-wide list of every pod is a large IPC payload to
@@ -162,6 +172,9 @@ export function ResourceListView<T extends Namespaced, D = T>({
       // list summaries carry no labels, so the API server is the only thing
       // that can answer it.
       labelSelector,
+      // Only a handful of kinds index anything to filter on, and the app bar
+      // clears this when the view changes, so for the rest it is always "".
+      fieldSelector,
       watch,
     })
 
@@ -233,7 +246,13 @@ export function ResourceListView<T extends Namespaced, D = T>({
   useEffect(() => {
     clearChecked()
     anchorRef.current = null
-  }, [selectedContext, selectedNamespace, labelSelector, clearChecked])
+  }, [
+    selectedContext,
+    selectedNamespace,
+    labelSelector,
+    fieldSelector,
+    clearChecked,
+  ])
 
   function toggleChecked(index: number, shiftKey: boolean): void {
     const item = visible[index]
@@ -327,8 +346,8 @@ export function ResourceListView<T extends Namespaced, D = T>({
         {!loading && !error && visible.length === 0 && (
           <EmptyState
             message={
-              labelSelector
-                ? `No ${title} match ${labelSelector}`
+              activeSelectors.length > 0
+                ? `No ${title} match ${activeSelectors.join(" and ")}`
                 : (emptyMessage ?? `No ${title} found`)
             }
           />
