@@ -1,6 +1,7 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -13,7 +14,6 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { ScaleButton } from "../../components/ui/ScaleButton"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sReplicaSet, K8sReplicaSetSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
@@ -124,8 +124,7 @@ function DetailPanel({
       }
     >
       {/* Replicas */}
-      <div className="space-y-1">
-        <SectionHeader title="Replicas" />
+      <CollapsibleSection id="replicaSet.replicas" title="Replicas">
         <MetaEntry label="Desired" value={String(rs.desiredReplicas)} />
         <MetaEntry label="Current" value={String(rs.currentReplicas)} />
         <MetaEntry label="Ready" value={String(rs.readyReplicas)} />
@@ -136,87 +135,85 @@ function DetailPanel({
           label="Created"
           value={new Date(rs.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Owner References */}
       {rs.ownerReferences.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Owner References" />
+        <CollapsibleSection
+          id="replicaSet.ownerReferences"
+          title="Owner References"
+        >
           {rs.ownerReferences.map((o, i) => (
             <div key={i} className="text-sm border rounded p-2 space-y-0.5">
               <div className="font-medium">{o.name}</div>
               <div className="text-xs text-muted-foreground">{o.kind}</div>
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="replicaSet.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="replicaSet.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Selector */}
       {selectorEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Selector" />
+        <CollapsibleSection id="replicaSet.selector" title="Selector">
           {selectorEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Pod Template Labels */}
       {podTemplateEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Pod Template" />
+        <CollapsibleSection id="replicaSet.podTemplate" title="Pod Template">
           {podTemplateEntries.map(([k, v]) => (
             <MetaEntry key={k} label={`label: ${k}`} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Init Containers */}
       {rs.initContainers.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Init Containers" />
+        <CollapsibleSection
+          id="replicaSet.initContainers"
+          title="Init Containers"
+        >
           {rs.initContainers
             .filter((c) => m(c.name) || m(c.image))
             .map((c) => (
               <ContainerCard key={c.name} container={c} search={sl} />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Containers */}
       {rs.containers.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Containers" />
+        <CollapsibleSection id="replicaSet.containers" title="Containers">
           {rs.containers
             .filter((c) => m(c.name) || m(c.image))
             .map((c) => (
               <ContainerCard key={c.name} container={c} search={sl} />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Volumes */}
       {rs.volumes.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Volumes" />
+        <CollapsibleSection id="replicaSet.volumes" title="Volumes">
           {rs.volumes
             .filter((v) => m(v.name) || m(v.type) || m(v.detail))
             .map((v) => (
@@ -231,7 +228,7 @@ function DetailPanel({
                 </div>
               </div>
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -240,6 +237,7 @@ function DetailPanel({
         name={rs.name}
         kind="ReplicaSet"
         search={sl}
+        collapsibleId="replicaSet.events"
       />
 
       <RelatedResourcesSection
@@ -247,6 +245,7 @@ function DetailPanel({
         namespace={rs.namespace}
         name={rs.name}
         search={sl}
+        collapsibleId="replicaSet.related"
       />
     </DetailPanelLayout>
   )

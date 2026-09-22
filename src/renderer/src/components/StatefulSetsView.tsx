@@ -12,6 +12,7 @@ import {
 } from "../../components/ui/AlertDialog"
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -24,7 +25,6 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { ScaleButton } from "../../components/ui/ScaleButton"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sStatefulSet, K8sStatefulSetSummary } from "../types/k8s"
@@ -178,8 +178,7 @@ function DetailPanel({
       }
     >
       {/* Replicas */}
-      <div className="space-y-1">
-        <SectionHeader title="Replicas" />
+      <CollapsibleSection id="statefulSet.replicas" title="Replicas">
         <MetaEntry label="Desired" value={String(ss.replicas)} />
         <MetaEntry label="Ready" value={String(ss.readyReplicas)} />
         <MetaEntry label="Service Name" value={ss.serviceName} />
@@ -191,74 +190,70 @@ function DetailPanel({
           label="Created"
           value={new Date(ss.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="statefulSet.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="statefulSet.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Selector */}
       {selectorEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Selector" />
+        <CollapsibleSection id="statefulSet.selector" title="Selector">
           {selectorEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Pod Template Labels */}
       {podLabelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Pod Template" />
+        <CollapsibleSection id="statefulSet.podTemplate" title="Pod Template">
           {podLabelEntries.map(([k, v]) => (
             <MetaEntry key={k} label={`label: ${k}`} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Init Containers */}
       {ss.initContainers.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Init Containers" />
+        <CollapsibleSection
+          id="statefulSet.initContainers"
+          title="Init Containers"
+        >
           {ss.initContainers
             .filter((c) => m(c.name) || m(c.image))
             .map((c) => (
               <ContainerCard key={c.name} container={c} search={sl} />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Containers */}
       {ss.containers.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Containers" />
+        <CollapsibleSection id="statefulSet.containers" title="Containers">
           {ss.containers
             .filter((c) => m(c.name) || m(c.image))
             .map((c) => (
               <ContainerCard key={c.name} container={c} search={sl} />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Volumes */}
       {ss.volumes.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Volumes" />
+        <CollapsibleSection id="statefulSet.volumes" title="Volumes">
           {ss.volumes
             .filter((v) => m(v.name) || m(v.type) || m(v.detail))
             .map((v) => (
@@ -273,13 +268,15 @@ function DetailPanel({
                 </div>
               </div>
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Volume Claim Templates */}
       {ss.volumeClaimTemplates.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Volume Claim Templates" />
+        <CollapsibleSection
+          id="statefulSet.volumeClaimTemplates"
+          title="Volume Claim Templates"
+        >
           {ss.volumeClaimTemplates.map((vct) => (
             <div
               key={vct.name}
@@ -289,7 +286,7 @@ function DetailPanel({
               <div className="text-xs text-muted-foreground">{vct.storage}</div>
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -298,6 +295,7 @@ function DetailPanel({
         name={ss.name}
         kind="StatefulSet"
         search={sl}
+        collapsibleId="statefulSet.events"
       />
 
       <RelatedResourcesSection
@@ -305,6 +303,7 @@ function DetailPanel({
         namespace={ss.namespace}
         name={ss.name}
         search={sl}
+        collapsibleId="statefulSet.related"
       />
 
       <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>

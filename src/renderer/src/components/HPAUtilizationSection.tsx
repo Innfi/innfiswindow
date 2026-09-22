@@ -11,7 +11,7 @@ import {
 } from "recharts"
 
 import { metricIdentity } from "../../../shared/hpa"
-import { SectionHeader } from "../../components/ui/SectionHeader"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { useAppStore } from "../../store/app.store"
 import { K8sHPA, K8sHPAResourceMetric } from "../types/k8s"
 
@@ -136,9 +136,11 @@ export function HPAUtilizationSection({ hpa }: { hpa: K8sHPA }): JSX.Element {
   )
 
   return (
-    <div className="space-y-2">
-      <SectionHeader title="Utilisation" />
-
+    <CollapsibleSection
+      id="hpa.utilisation"
+      title="Utilisation"
+      className="space-y-2"
+    >
       {live.resourceMetrics.length === 0 ? (
         <p className="text-xs text-muted-foreground">
           This HPA reads no resource metrics.
@@ -239,6 +241,6 @@ export function HPAUtilizationSection({ hpa }: { hpa: K8sHPA }): JSX.Element {
         </span>
         <span>Desired {live.desiredReplicas}</span>
       </div>
-    </div>
+    </CollapsibleSection>
   )
 }

@@ -12,6 +12,7 @@ import {
 } from "../../components/ui/AlertDialog"
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -25,7 +26,6 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { ScaleButton } from "../../components/ui/ScaleButton"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
@@ -255,8 +255,7 @@ function DetailPanel({
       }
     >
       {/* Replicas & Strategy */}
-      <div className="space-y-1">
-        <SectionHeader title="Replicas" />
+      <CollapsibleSection id="deployment.replicas" title="Replicas">
         <MetaEntry label="Desired" value={String(deployment.replicas)} />
         <MetaEntry label="Ready" value={String(deployment.readyReplicas)} />
         <MetaEntry
@@ -291,40 +290,36 @@ function DetailPanel({
           label="Created"
           value={new Date(deployment.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="deployment.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="deployment.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Selector */}
       {selectorEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Selector" />
+        <CollapsibleSection id="deployment.selector" title="Selector">
           {selectorEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Pod Template */}
       {(podLabelEntries.length > 0 || deployment.serviceAccountName) && (
-        <div className="space-y-1">
-          <SectionHeader title="Pod Template" />
+        <CollapsibleSection id="deployment.podTemplate" title="Pod Template">
           {deployment.serviceAccountName &&
             matches(deployment.serviceAccountName) && (
               <MetaEntry
@@ -335,37 +330,37 @@ function DetailPanel({
           {podLabelEntries.map(([k, v]) => (
             <MetaEntry key={k} label={`label: ${k}`} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Init Containers */}
       {deployment.initContainers.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Init Containers" />
+        <CollapsibleSection
+          id="deployment.initContainers"
+          title="Init Containers"
+        >
           {deployment.initContainers
             .filter((c) => matches(c.name) || matches(c.image))
             .map((c) => (
               <ContainerCard key={c.name} container={c} search={sl} />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Containers */}
       {deployment.containers.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Containers" />
+        <CollapsibleSection id="deployment.containers" title="Containers">
           {deployment.containers
             .filter((c) => matches(c.name) || matches(c.image))
             .map((c) => (
               <ContainerCard key={c.name} container={c} search={sl} />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Volumes */}
       {deployment.volumes.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Volumes" />
+        <CollapsibleSection id="deployment.volumes" title="Volumes">
           {deployment.volumes
             .filter(
               (v) => matches(v.name) || matches(v.type) || matches(v.detail),
@@ -382,13 +377,12 @@ function DetailPanel({
                 </div>
               </div>
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Conditions */}
       {deployment.conditions.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Conditions" />
+        <CollapsibleSection id="deployment.conditions" title="Conditions">
           {deployment.conditions.map((c) => (
             <div
               key={c.type}
@@ -412,7 +406,7 @@ function DetailPanel({
               )}
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -421,6 +415,7 @@ function DetailPanel({
         name={deployment.name}
         kind="Deployment"
         search={sl}
+        collapsibleId="deployment.events"
       />
 
       <RelatedResourcesSection
@@ -428,11 +423,14 @@ function DetailPanel({
         namespace={deployment.namespace}
         name={deployment.name}
         search={sl}
+        collapsibleId="deployment.related"
       />
 
       {/* Rollout History */}
-      <div className="space-y-1">
-        <SectionHeader title="Rollout History" />
+      <CollapsibleSection
+        id="deployment.rolloutHistory"
+        title="Rollout History"
+      >
         {historyLoading && (
           <p className="text-xs text-muted-foreground">Loading...</p>
         )}
@@ -472,7 +470,7 @@ function DetailPanel({
             ))}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
       <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
         <AlertDialogContent>

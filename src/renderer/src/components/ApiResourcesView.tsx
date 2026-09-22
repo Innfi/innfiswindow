@@ -3,13 +3,13 @@ import { useEffect, useState } from "react"
 
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { useAppStore } from "../../store/app.store"
 import { K8sApiGroupVersionError, K8sApiResource } from "../types/k8s"
 import { ResourceType, resourceTypeForKind } from "../types/resource"
@@ -119,8 +119,7 @@ function DetailPanel({
         </>
       }
     >
-      <div className="space-y-1">
-        <SectionHeader title="Names" />
+      <CollapsibleSection id="apiResource.names" title="Names">
         <MetaEntry label="Kind" value={resource.kind} />
         <MetaEntry label="Plural" value={resource.plural} mono />
         <MetaEntry label="Singular" value={resource.singular || "—"} mono />
@@ -142,10 +141,9 @@ function DetailPanel({
           }
           mono
         />
-      </div>
+      </CollapsibleSection>
 
-      <div className="space-y-1">
-        <SectionHeader title="API" />
+      <CollapsibleSection id="apiResource.api" title="API">
         <MetaEntry label="Group" value={resource.group || "core"} mono />
         <MetaEntry label="Version" value={resource.version} mono />
         <MetaEntry label="API version" value={resource.apiVersion} mono />
@@ -166,10 +164,9 @@ function DetailPanel({
               : targetLabel(target)
           }
         />
-      </div>
+      </CollapsibleSection>
 
-      <div className="space-y-1">
-        <SectionHeader title="Verbs" />
+      <CollapsibleSection id="apiResource.verbs" title="Verbs">
         {resource.verbs.length === 0 ? (
           <p className="text-sm text-muted-foreground">None</p>
         ) : (
@@ -177,10 +174,9 @@ function DetailPanel({
             {resource.verbs.join(", ")}
           </p>
         )}
-      </div>
+      </CollapsibleSection>
 
-      <div className="space-y-1">
-        <SectionHeader title="Subresources" />
+      <CollapsibleSection id="apiResource.subresources" title="Subresources">
         {resource.subresources.length === 0 ? (
           <p className="text-sm text-muted-foreground">None</p>
         ) : (
@@ -190,7 +186,7 @@ function DetailPanel({
               .join(", ")}
           </p>
         )}
-      </div>
+      </CollapsibleSection>
     </DetailPanelLayout>
   )
 }

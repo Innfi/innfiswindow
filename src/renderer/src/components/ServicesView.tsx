@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -14,7 +15,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { K8sEndpoint, K8sService, K8sServicePort } from "../types/k8s"
@@ -163,8 +163,7 @@ function DetailPanel({
       }
     >
       {/* Network */}
-      <div className="space-y-1">
-        <SectionHeader title="Network" />
+      <CollapsibleSection id="service.network" title="Network">
         <MetaEntry label="Type" value={svc.type} />
         <MetaEntry label="ClusterIP" value={svc.clusterIP || "None"} mono />
         {svc.externalIP && m(svc.externalIP) && (
@@ -183,12 +182,11 @@ function DetailPanel({
           label="Created"
           value={new Date(svc.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Ports */}
       {svc.ports.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Ports" />
+        <CollapsibleSection id="service.ports" title="Ports">
           <table className="w-full text-xs font-mono">
             <thead>
               <tr className="text-muted-foreground">
@@ -215,13 +213,12 @@ function DetailPanel({
                 ))}
             </tbody>
           </table>
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Endpoints */}
       {endpoints && allEndpointIPs.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Endpoints" />
+        <CollapsibleSection id="service.endpoints2" title="Endpoints">
           <div className="flex flex-wrap gap-1">
             {allEndpointIPs
               .filter((e) => !sl || m(e.ip) || (e.pod && m(e.pod)))
@@ -243,41 +240,37 @@ function DetailPanel({
           {endpoints.subsets.some((s) => s.notReadyAddresses.length > 0) && (
             <p className="text-xs text-muted-foreground">Yellow = not ready</p>
           )}
-        </div>
+        </CollapsibleSection>
       )}
       {endpoints && allEndpointIPs.length === 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Endpoints" />
+        <CollapsibleSection id="service.endpoints" title="Endpoints">
           <p className="text-xs text-muted-foreground italic">No endpoints</p>
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Selector */}
       {selectorEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Selector" />
+        <CollapsibleSection id="service.selector" title="Selector">
           {selectorEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="service.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="service.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -286,6 +279,7 @@ function DetailPanel({
         name={svc.name}
         kind="Service"
         search={sl}
+        collapsibleId="service.events"
       />
 
       <RelatedResourcesSection
@@ -293,6 +287,7 @@ function DetailPanel({
         namespace={svc.namespace}
         name={svc.name}
         search={sl}
+        collapsibleId="service.related"
       />
     </DetailPanelLayout>
   )

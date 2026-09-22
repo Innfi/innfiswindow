@@ -1,6 +1,7 @@
 import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
@@ -11,7 +12,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sPriorityClass } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -117,8 +117,7 @@ function DetailPanel({
         </>
       }
     >
-      <div className="space-y-1">
-        <SectionHeader title="Spec" />
+      <CollapsibleSection id="priorityClass.spec" title="Spec">
         <MetaEntry label="Value" value={pc.value.toLocaleString()} mono />
         <MetaEntry
           label="Global Default"
@@ -130,7 +129,7 @@ function DetailPanel({
           label="Created"
           value={new Date(pc.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {pc.preemptionPolicy === "Never" && (
         <p className="text-xs text-muted-foreground">
@@ -147,19 +146,17 @@ function DetailPanel({
       )}
 
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="priorityClass.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="priorityClass.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       <ResourceEventsSection
@@ -167,6 +164,7 @@ function DetailPanel({
         name={pc.name}
         kind="PriorityClass"
         search={sl}
+        collapsibleId="priorityClass.events"
       />
 
       <RelatedResourcesSection
@@ -174,6 +172,7 @@ function DetailPanel({
         namespace=""
         name={pc.name}
         search={sl}
+        collapsibleId="priorityClass.related"
       />
     </DetailPanelLayout>
   )

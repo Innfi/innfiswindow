@@ -1,6 +1,7 @@
 import { ReactNode, useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
@@ -11,7 +12,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import {
   Table,
   TableBody,
@@ -373,8 +373,7 @@ function DetailPanel({
         </>
       }
     >
-      <div className="space-y-1">
-        <SectionHeader title="Summary" />
+      <CollapsibleSection id="webhookConfiguration.summary" title="Summary">
         <MetaEntry label="Webhooks" value={String(config.webhookCount)} />
         <MetaEntry
           label="Failure Policies"
@@ -389,7 +388,7 @@ function DetailPanel({
           label="Created"
           value={new Date(config.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {failCount > 0 && (
         <p className="text-xs text-muted-foreground">
@@ -399,8 +398,12 @@ function DetailPanel({
         </p>
       )}
 
-      <div className="space-y-2">
-        <SectionHeader title={`Webhooks (${config.webhookCount})`} />
+      <CollapsibleSection
+        id="webhookConfiguration.webhooks"
+        title="Webhooks"
+        count={config.webhookCount}
+        className="space-y-2"
+      >
         {config.webhookCount === 0 ? (
           <p className="text-sm text-muted-foreground">
             No webhooks — this configuration admits everything.
@@ -418,22 +421,23 @@ function DetailPanel({
             />
           ))
         )}
-      </div>
+      </CollapsibleSection>
 
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="webhookConfiguration.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection
+          id="webhookConfiguration.annotations"
+          title="Annotations"
+        >
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       <ResourceEventsSection
@@ -441,6 +445,7 @@ function DetailPanel({
         name={config.name}
         kind={kind}
         search={sl}
+        collapsibleId="webhookConfiguration.events"
       />
 
       <RelatedResourcesSection
@@ -448,6 +453,7 @@ function DetailPanel({
         namespace=""
         name={config.name}
         search={sl}
+        collapsibleId="webhookConfiguration.related"
       />
     </DetailPanelLayout>
   )

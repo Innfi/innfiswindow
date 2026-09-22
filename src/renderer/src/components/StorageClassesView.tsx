@@ -1,6 +1,7 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
@@ -11,7 +12,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sStorageClass } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -97,8 +97,7 @@ function DetailPanel({
         </>
       }
     >
-      <div className="space-y-1">
-        <SectionHeader title="Spec" />
+      <CollapsibleSection id="storageClass.spec" title="Spec">
         <MetaEntry label="Provisioner" value={sc.provisioner} mono />
         <MetaEntry label="Reclaim Policy" value={sc.reclaimPolicy || "—"} />
         <MetaEntry
@@ -113,31 +112,28 @@ function DetailPanel({
           label="Created"
           value={new Date(sc.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {paramEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Parameters" />
+        <CollapsibleSection id="storageClass.parameters" title="Parameters">
           {paramEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} mono />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="storageClass.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="storageClass.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       <ResourceEventsSection
@@ -145,6 +141,7 @@ function DetailPanel({
         name={sc.name}
         kind="StorageClass"
         search={sl}
+        collapsibleId="storageClass.events"
       />
 
       <RelatedResourcesSection
@@ -152,6 +149,7 @@ function DetailPanel({
         namespace=""
         name={sc.name}
         search={sl}
+        collapsibleId="storageClass.related"
       />
     </DetailPanelLayout>
   )

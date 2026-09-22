@@ -1,6 +1,7 @@
 import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -12,7 +13,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { SubjectLink } from "../../components/ui/SubjectLink"
 import {
   Table,
@@ -99,24 +99,25 @@ function DetailPanel({
         </>
       }
     >
-      <div className="space-y-1">
-        <SectionHeader title="Metadata" />
+      <CollapsibleSection id="clusterRoleBinding.metadata" title="Metadata">
         <MetaEntry
           label="Created"
           value={new Date(binding.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
-      <div className="space-y-1">
-        <SectionHeader title="Role Ref" />
+      <CollapsibleSection id="clusterRoleBinding.roleRef" title="Role Ref">
         <div className="text-sm">
           <span className="font-medium">{binding.roleRef.kind}:</span>{" "}
           {binding.roleRef.name}
         </div>
-      </div>
+      </CollapsibleSection>
 
-      <div className="space-y-1">
-        <SectionHeader title={`Subjects (${binding.subjects.length})`} />
+      <CollapsibleSection
+        id="clusterRoleBinding.subjects"
+        title="Subjects"
+        count={binding.subjects.length}
+      >
         {binding.subjects.length === 0 ? (
           <p className="text-sm text-muted-foreground">No subjects</p>
         ) : (
@@ -155,22 +156,23 @@ function DetailPanel({
             </Table>
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
       {Object.keys(binding.labels).length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="clusterRoleBinding.labels" title="Labels">
           <LabelEntries
             entries={Object.entries(binding.labels).filter(([k, v]) =>
               kv(k, v),
             )}
           />
-        </div>
+        </CollapsibleSection>
       )}
 
       {Object.keys(binding.annotations).length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection
+          id="clusterRoleBinding.annotations"
+          title="Annotations"
+        >
           {Object.entries(binding.annotations)
             .filter(
               ([k]) =>
@@ -182,7 +184,7 @@ function DetailPanel({
             .map(([k, v]) => (
               <MetaEntry key={k} label={k} value={v} />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
     </DetailPanelLayout>
   )

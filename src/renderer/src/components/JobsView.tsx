@@ -12,6 +12,7 @@ import {
 } from "../../components/ui/AlertDialog"
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -23,7 +24,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { SuspendButton } from "../../components/ui/SuspendButton"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
@@ -181,8 +181,7 @@ function DetailPanel({
       }
     >
       {/* Spec */}
-      <div className="space-y-1">
-        <SectionHeader title="Spec" />
+      <CollapsibleSection id="job.spec" title="Spec">
         <MetaEntry
           label="Completions"
           value={job.completions !== null ? String(job.completions) : "—"}
@@ -198,11 +197,10 @@ function DetailPanel({
           label="Created"
           value={new Date(job.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Status */}
-      <div className="space-y-1">
-        <SectionHeader title="Status" />
+      <CollapsibleSection id="job.status" title="Status">
         <MetaEntry
           label="Progress"
           value={
@@ -217,12 +215,11 @@ function DetailPanel({
         {job.duration && m(job.duration) && (
           <MetaEntry label="Duration" value={job.duration} />
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Timing */}
       {(job.startTime || job.completionTime) && (
-        <div className="space-y-1">
-          <SectionHeader title="Timing" />
+        <CollapsibleSection id="job.timing" title="Timing">
           {job.startTime && m(job.startTime) && (
             <MetaEntry
               label="Start"
@@ -235,13 +232,12 @@ function DetailPanel({
               value={new Date(job.completionTime).toLocaleString()}
             />
           )}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Conditions */}
       {job.conditions.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Conditions" />
+        <CollapsibleSection id="job.conditions" title="Conditions">
           {job.conditions
             .filter((c) => m(c.type) || m(c.reason) || m(c.message))
             .map((c, i) => (
@@ -267,35 +263,32 @@ function DetailPanel({
                 )}
               </div>
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Selector */}
       {selectorEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Selector" />
+        <CollapsibleSection id="job.selector" title="Selector">
           {selectorEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="job.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="job.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -304,6 +297,7 @@ function DetailPanel({
         name={job.name}
         kind="Job"
         search={sl}
+        collapsibleId="job.events"
       />
 
       <RelatedResourcesSection
@@ -311,6 +305,7 @@ function DetailPanel({
         namespace={job.namespace}
         name={job.name}
         search={sl}
+        collapsibleId="job.related"
       />
 
       <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>

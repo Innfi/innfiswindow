@@ -1,6 +1,7 @@
 import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
@@ -11,7 +12,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sIngressClass, K8sIngressClassParametersRef } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -129,19 +129,17 @@ function DetailPanel({
         </>
       }
     >
-      <div className="space-y-1">
-        <SectionHeader title="Spec" />
+      <CollapsibleSection id="ingressClass.spec" title="Spec">
         <MetaEntry label="Controller" value={ic.controller || "—"} mono />
         <MetaEntry label="Default Class" value={ic.isDefault ? "Yes" : "No"} />
         <MetaEntry
           label="Created"
           value={new Date(ic.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {ic.parameters && (
-        <div className="space-y-1">
-          <SectionHeader title="Parameters" />
+        <CollapsibleSection id="ingressClass.parameters" title="Parameters">
           <MetaEntry
             label="API Group"
             value={ic.parameters.apiGroup || "core"}
@@ -156,23 +154,21 @@ function DetailPanel({
               value={ic.parameters.namespace || "—"}
             />
           )}
-        </div>
+        </CollapsibleSection>
       )}
 
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="ingressClass.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="ingressClass.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       <ResourceEventsSection
@@ -180,6 +176,7 @@ function DetailPanel({
         name={ic.name}
         kind="IngressClass"
         search={sl}
+        collapsibleId="ingressClass.events"
       />
 
       <RelatedResourcesSection
@@ -187,6 +184,7 @@ function DetailPanel({
         namespace=""
         name={ic.name}
         search={sl}
+        collapsibleId="ingressClass.related"
       />
     </DetailPanelLayout>
   )

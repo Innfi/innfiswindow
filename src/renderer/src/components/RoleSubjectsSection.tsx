@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from "react"
 
+import {
+  CollapsibleSection,
+  useSectionCollapsed,
+} from "../../components/ui/CollapsibleSection"
 import { SubjectLink } from "../../components/ui/SubjectLink"
 import { normalizeIpcError } from "../../lib/ipc-error"
 import { useAppStore } from "../../store/app.store"
@@ -15,14 +19,20 @@ export function RoleSubjectsSection({
   name,
   namespace,
   search = "",
+  collapsibleId,
 }: {
   kind: "Role" | "ClusterRole"
   name: string
   /** The Role's namespace; ignored for a ClusterRole. */
   namespace?: string
   search?: string
+  /** Makes the section foldable under this id. Folded, it does not read the
+   *  bindings at all; expanding reads them again. */
+  collapsibleId?: string
 }): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
+  const [collapsed] = useSectionCollapsed(collapsibleId ?? "")
+  const folded = collapsibleId !== undefined && collapsed
   const [bindings, setBindings] = useState<K8sRoleSubjectBinding[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,8 +59,9 @@ export function RoleSubjectsSection({
   }, [selectedContext, kind, name, namespace])
 
   useEffect(() => {
+    if (folded) return
     load()
-  }, [load])
+  }, [load, folded])
 
   const sl = search.toLowerCase()
   const visible = bindings.filter(
@@ -62,20 +73,17 @@ export function RoleSubjectsSection({
   )
   const subjectCount = visible.reduce((sum, b) => sum + b.subjects.length, 0)
 
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Bound to ({subjectCount})
-        </h3>
-        <button
-          onClick={load}
-          className="text-xs text-muted-foreground hover:text-foreground"
-        >
-          Refresh
-        </button>
-      </div>
+  const refresh = (
+    <button
+      onClick={load}
+      className="text-xs text-muted-foreground hover:text-foreground"
+    >
+      Refresh
+    </button>
+  )
 
+  const body = (
+    <>
       {loading && <p className="text-xs text-muted-foreground">Loading…</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
       {!loading && !error && visible.length === 0 && (
@@ -117,6 +125,32 @@ export function RoleSubjectsSection({
             )}
           </div>
         ))}
-    </div>
+    </>
+  )
+
+  if (collapsibleId === undefined) {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+            Bound to ({subjectCount})
+          </h3>
+          {refresh}
+        </div>
+        {body}
+      </div>
+    )
+  }
+
+  return (
+    <CollapsibleSection
+      id={collapsibleId}
+      title="Bound to"
+      count={subjectCount}
+      subtle
+      right={refresh}
+    >
+      {body}
+    </CollapsibleSection>
   )
 }

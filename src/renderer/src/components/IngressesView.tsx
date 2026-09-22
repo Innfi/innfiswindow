@@ -1,6 +1,7 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -12,7 +13,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import {
   K8sIngress,
   K8sIngressRule,
@@ -138,8 +138,7 @@ function DetailPanel({
       }
     >
       {/* Info */}
-      <div className="space-y-1">
-        <SectionHeader title="Info" />
+      <CollapsibleSection id="ingress.info" title="Info">
         <MetaEntry
           label="Ingress Class"
           value={item.ingressClassName || "none"}
@@ -151,12 +150,11 @@ function DetailPanel({
           label="Created"
           value={new Date(item.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* TLS */}
       {item.tls.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="TLS" />
+        <CollapsibleSection id="ingress.tls" title="TLS">
           {item.tls.map((t: K8sIngressTLS, i: number) => {
             const secret = t.secretName || "none"
             const hosts = t.hosts.length > 0 ? t.hosts.join(", ") : "*"
@@ -168,12 +166,11 @@ function DetailPanel({
               </div>
             )
           })}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Rules */}
-      <div className="space-y-1">
-        <SectionHeader title="Rules" />
+      <CollapsibleSection id="ingress.rules" title="Rules">
         {item.rules.length === 0 ? (
           <p className="text-xs text-muted-foreground italic">No rules</p>
         ) : (
@@ -224,24 +221,22 @@ function DetailPanel({
               ))}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="ingress.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="ingress.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -250,6 +245,7 @@ function DetailPanel({
         name={item.name}
         kind="Ingress"
         search={sl}
+        collapsibleId="ingress.events"
       />
 
       <RelatedResourcesSection
@@ -257,6 +253,7 @@ function DetailPanel({
         namespace={item.namespace}
         name={item.name}
         search={sl}
+        collapsibleId="ingress.related"
       />
     </DetailPanelLayout>
   )

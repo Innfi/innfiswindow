@@ -16,6 +16,7 @@ import {
 } from "../../components/ui/AlertDialog"
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -28,7 +29,6 @@ import { MetaEntry } from "../../components/ui/MetaEntry"
 import { NodeLabelsButton } from "../../components/ui/NodeLabelsButton"
 import { NodeTaintsButton } from "../../components/ui/NodeTaintsButton"
 import { RefreshBar } from "../../components/ui/RefreshBar"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import {
   Table,
   TableBody,
@@ -117,19 +117,17 @@ function ResourceUsageSection({
 }): JSX.Element {
   if (unavailable) {
     return (
-      <div className="space-y-1">
-        <SectionHeader title="Resource Usage" />
+      <CollapsibleSection id="node.resourceUsage2" title="Resource Usage">
         <p className="text-xs text-muted-foreground">Metrics unavailable</p>
-      </div>
+      </CollapsibleSection>
     )
   }
 
   if (!metric) {
     return (
-      <div className="space-y-1">
-        <SectionHeader title="Resource Usage" />
+      <CollapsibleSection id="node.resourceUsage" title="Resource Usage">
         <p className="text-xs text-muted-foreground">Loading metrics…</p>
-      </div>
+      </CollapsibleSection>
     )
   }
 
@@ -397,32 +395,29 @@ function DetailPanel({
       />
 
       {/* Metadata */}
-      <div className="space-y-1">
-        <SectionHeader title="Metadata" />
+      <CollapsibleSection id="node.metadata" title="Metadata">
         <MetaEntry
           label="Created"
           value={new Date(node.creationTimestamp).toLocaleString()}
         />
         <MetaEntry label="Roles" value={node.roles} />
         <MetaEntry label="Version" value={node.version} />
-      </div>
+      </CollapsibleSection>
 
       {/* Addresses */}
       {node.addresses.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Addresses" />
+        <CollapsibleSection id="node.addresses" title="Addresses">
           {node.addresses
             .filter((a) => m(a.type) || m(a.address))
             .map((a, i) => (
               <MetaEntry key={i} label={a.type} value={a.address} mono />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* System Info */}
       {node.systemInfo && (
-        <div className="space-y-1">
-          <SectionHeader title="System Info" />
+        <CollapsibleSection id="node.systemInfo" title="System Info">
           {node.systemInfo.osImage && m(node.systemInfo.osImage) && (
             <MetaEntry label="OS Image" value={node.systemInfo.osImage} />
           )}
@@ -457,13 +452,12 @@ function DetailPanel({
                 value={node.systemInfo.kubeProxyVersion}
               />
             )}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Taints */}
       {node.taints.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Taints" />
+        <CollapsibleSection id="node.taints" title="Taints">
           {node.taints
             .filter((t) => m(t.key) || m(t.effect) || m(t.value))
             .map((t, i) => (
@@ -475,33 +469,30 @@ function DetailPanel({
                 </div>
               </div>
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Capacity */}
       {capacityEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Capacity" />
+        <CollapsibleSection id="node.capacity" title="Capacity">
           {capacityEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Allocatable */}
       {allocatableEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Allocatable" />
+        <CollapsibleSection id="node.allocatable" title="Allocatable">
           {allocatableEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Conditions */}
       {node.conditions.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Conditions" />
+        <CollapsibleSection id="node.conditions" title="Conditions">
           {node.conditions
             .filter((c) => m(c.type) || m(c.reason) || m(c.message))
             .map((c) => (
@@ -534,25 +525,23 @@ function DetailPanel({
                 )}
               </div>
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="node.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="node.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events — nodes are cluster-scoped, pass empty namespace */}
@@ -561,6 +550,7 @@ function DetailPanel({
         name={node.name}
         kind="Node"
         search={sl}
+        collapsibleId="node.events"
       />
 
       <RelatedResourcesSection
@@ -568,6 +558,7 @@ function DetailPanel({
         namespace=""
         name={node.name}
         search={sl}
+        collapsibleId="node.related"
       />
 
       <AlertDialog open={cordonOpen} onOpenChange={setCordonOpen}>

@@ -1,6 +1,7 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -12,7 +13,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { K8sNamespace } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -96,28 +96,25 @@ function DetailPanel({
         </>
       }
     >
-      <div className="space-y-1">
-        <SectionHeader title="Metadata" />
+      <CollapsibleSection id="namespace.metadata" title="Metadata">
         <MetaEntry
           label="Created"
           value={new Date(ns.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="namespace.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="namespace.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Namespaces are cluster-scoped; events live across namespaces */}
@@ -126,6 +123,7 @@ function DetailPanel({
         name={ns.name}
         kind="Namespace"
         search={sl}
+        collapsibleId="namespace.events"
       />
     </DetailPanelLayout>
   )

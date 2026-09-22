@@ -4,6 +4,7 @@ import { useState } from "react"
 import { formatMemory, formatMillicores } from "../../../shared/quantity"
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DebugContainerButton } from "../../components/ui/DebugContainerButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
@@ -21,7 +22,6 @@ import {
   ResourceListView,
   SortOption,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { usePodMetrics } from "../hooks/usePodMetrics"
@@ -237,6 +237,7 @@ function DetailPanel({
         name={pod.name}
         kind="Pod"
         search={sl}
+        collapsibleId="pod.events"
       />
 
       <RelatedResourcesSection
@@ -244,12 +245,12 @@ function DetailPanel({
         namespace={pod.namespace}
         name={pod.name}
         search={sl}
+        collapsibleId="pod.related"
       />
 
       {/* Shell container selector */}
       {pod.containers.length > 1 && (
-        <div className="space-y-1">
-          <SectionHeader title="Shell Container" />
+        <CollapsibleSection id="pod.shellContainer" title="Shell Container">
           <select
             value={selectedContainer}
             onChange={(e) => setSelectedContainer(e.target.value)}
@@ -261,12 +262,11 @@ function DetailPanel({
               </option>
             ))}
           </select>
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Info */}
-      <div className="space-y-1">
-        <SectionHeader title="Info" />
+      <CollapsibleSection id="pod.info" title="Info">
         <MetaEntry label="Status" value={pod.status} />
         <MetaEntry
           label="Node"
@@ -304,54 +304,69 @@ function DetailPanel({
           label="Created"
           value={new Date(pod.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection
+          id="pod.labels"
+          title="Labels"
+          count={labelEntries.length}
+        >
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection
+          id="pod.annotations"
+          title="Annotations"
+          count={annotationEntries.length}
+        >
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Init Containers */}
       {pod.initContainers.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Init Containers" />
+        <CollapsibleSection
+          id="pod.initContainers"
+          title="Init Containers"
+          count={pod.initContainers.length}
+        >
           {pod.initContainers
             .filter((c) => m(c.name) || m(c.image))
             .map((c) => (
               <ContainerCard key={c.name} container={c} search={sl} />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Containers */}
       {pod.containers.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Containers" />
+        <CollapsibleSection
+          id="pod.containers"
+          title="Containers"
+          count={pod.containers.length}
+        >
           {pod.containers
             .filter((c) => m(c.name) || m(c.image))
             .map((c) => (
               <ContainerCard key={c.name} container={c} search={sl} />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Ephemeral (debug) containers */}
       {pod.ephemeralContainers.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Ephemeral Containers" />
+        <CollapsibleSection
+          id="pod.ephemeralContainers"
+          title="Ephemeral Containers"
+          count={pod.ephemeralContainers.length}
+        >
           {pod.ephemeralContainers
             .filter((c) => m(c.name) || m(c.image))
             .map((c) => (
@@ -368,13 +383,16 @@ function DetailPanel({
                 </Button>
               </div>
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Volumes */}
       {pod.volumes.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Volumes" />
+        <CollapsibleSection
+          id="pod.volumes"
+          title="Volumes"
+          count={pod.volumes.length}
+        >
           {pod.volumes
             .filter((v) => m(v.name) || m(v.type) || m(v.detail))
             .map((v) => (
@@ -389,13 +407,16 @@ function DetailPanel({
                 </div>
               </div>
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Conditions */}
       {pod.conditions.filter((c) => m(c.type)).length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Conditions" />
+        <CollapsibleSection
+          id="pod.conditions"
+          title="Conditions"
+          count={pod.conditions.length}
+        >
           {pod.conditions
             .filter((c) => m(c.type))
             .map((c) => (
@@ -423,10 +444,14 @@ function DetailPanel({
                 )}
               </div>
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
-      <PodMetricsSection namespace={pod.namespace} podName={pod.name} />
+      {/* Folding this one also stops its polling: the body is unmounted, and
+          the 60s metrics refresh goes with it. */}
+      <CollapsibleSection id="pod.metrics" title="Metrics" subtle>
+        <PodMetricsSection namespace={pod.namespace} podName={pod.name} />
+      </CollapsibleSection>
     </DetailPanelLayout>
   )
 }

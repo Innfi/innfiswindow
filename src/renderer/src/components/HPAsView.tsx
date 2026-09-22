@@ -1,6 +1,7 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -14,7 +15,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { K8sHPA } from "../types/k8s"
 import { HPAUtilizationSection } from "./HPAUtilizationSection"
@@ -135,32 +135,29 @@ function DetailPanel({
       }
     >
       {/* Scale Target */}
-      <div className="space-y-1">
-        <SectionHeader title="Scale Target" />
+      <CollapsibleSection id="hpa.scaleTarget" title="Scale Target">
         <MetaEntry label="Kind" value={hpa.targetRef.kind} />
         <MetaEntry label="Name" value={hpa.targetRef.name} />
         <MetaEntry
           label="Created"
           value={new Date(hpa.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Replicas */}
-      <div className="space-y-1">
-        <SectionHeader title="Replicas" />
+      <CollapsibleSection id="hpa.replicas" title="Replicas">
         <MetaEntry label="Min" value={String(hpa.minReplicas)} />
         <MetaEntry label="Max" value={String(hpa.maxReplicas)} />
         <MetaEntry label="Current" value={String(hpa.currentReplicas)} />
         <MetaEntry label="Desired" value={String(hpa.desiredReplicas)} />
-      </div>
+      </CollapsibleSection>
 
       <HPAUtilizationSection hpa={hpa} />
 
       {/* Metrics the utilisation section above cannot show: they carry a
           metric selector, and only YAML edits them. */}
       {otherMetrics.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Other Metrics" />
+        <CollapsibleSection id="hpa.otherMetrics" title="Other Metrics">
           {otherMetrics
             .filter((met) => m(met.type) || m(met.target) || m(met.current))
             .map((met, i) => (
@@ -178,13 +175,12 @@ function DetailPanel({
                 )}
               </div>
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Conditions */}
       {hpa.conditions.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Conditions" />
+        <CollapsibleSection id="hpa.conditions" title="Conditions">
           {hpa.conditions
             .filter((c) => m(c.type) || m(c.reason) || m(c.message))
             .map((c) => (
@@ -217,25 +213,23 @@ function DetailPanel({
                 )}
               </div>
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="hpa.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="hpa.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -244,6 +238,7 @@ function DetailPanel({
         name={hpa.name}
         kind="HorizontalPodAutoscaler"
         search={sl}
+        collapsibleId="hpa.events"
       />
 
       <RelatedResourcesSection
@@ -251,6 +246,7 @@ function DetailPanel({
         namespace={hpa.namespace}
         name={hpa.name}
         search={sl}
+        collapsibleId="hpa.related"
       />
     </DetailPanelLayout>
   )

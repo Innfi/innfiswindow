@@ -10,8 +10,8 @@ import {
   validateSubject,
 } from "../../../shared/access"
 import { Button } from "../../components/ui/Button"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { Input } from "../../components/ui/Input"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { handleIpcError, normalizeIpcError } from "../../lib/ipc-error"
 import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
@@ -184,8 +184,11 @@ function CanITab({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3 rounded border p-3">
-        <SectionHeader title="Who" />
+      <CollapsibleSection
+        id="accessReview.who"
+        title="Who"
+        className="space-y-3 rounded border p-3"
+      >
         <SubjectFields
           subject={subject}
           onChange={(next) => {
@@ -200,10 +203,13 @@ function CanITab({
             needs <code>create</code> on <code>subjectaccessreviews</code>.
           </p>
         )}
-      </div>
+      </CollapsibleSection>
 
-      <div className="space-y-3 rounded border p-3">
-        <SectionHeader title="What" />
+      <CollapsibleSection
+        id="accessReview.what"
+        title="What"
+        className="space-y-3 rounded border p-3"
+      >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Field label="Verb">
             <Input
@@ -277,7 +283,7 @@ function CanITab({
             placeholder="/healthz"
           />
         </Field>
-      </div>
+      </CollapsibleSection>
 
       <div className="flex items-center gap-3">
         <Button onClick={run} disabled={running || problem !== null}>
@@ -376,8 +382,11 @@ function SelfRulesSection(): JSX.Element {
   }
 
   return (
-    <div className="space-y-2 rounded border p-3">
-      <SectionHeader title="Your own rules" />
+    <CollapsibleSection
+      id="accessReview.yourOwnRules"
+      title="Your own rules"
+      className="space-y-2 rounded border p-3"
+    >
       <div className="flex items-end gap-3">
         <Field label="Namespace">
           <Input
@@ -424,7 +433,7 @@ function SelfRulesSection(): JSX.Element {
           ))}
         </div>
       )}
-    </div>
+    </CollapsibleSection>
   )
 }
 
@@ -456,8 +465,11 @@ function SubjectTab({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3 rounded border p-3">
-        <SectionHeader title="Subject" />
+      <CollapsibleSection
+        id="accessReview.subject"
+        title="Subject"
+        className="space-y-3 rounded border p-3"
+      >
         <SubjectFields
           subject={draft}
           onChange={setDraft}
@@ -482,7 +494,7 @@ function SubjectTab({
           reaching {formatSubject(draft)} through a group it belongs to without
           being named — <code>system:authenticated</code> most of all.
         </p>
-      </div>
+      </CollapsibleSection>
 
       {target ? (
         <div className="rounded border p-3">

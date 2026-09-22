@@ -1,6 +1,7 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -12,7 +13,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import {
   K8sNetworkPolicy,
   K8sNetworkPolicyPeer,
@@ -180,8 +180,7 @@ function DetailPanel({
       }
     >
       {/* Spec */}
-      <div className="space-y-1">
-        <SectionHeader title="Spec" />
+      <CollapsibleSection id="networkPolicy.spec" title="Spec">
         <MetaEntry label="Pod Selector" value={item.podSelector} mono />
         <MetaEntry
           label="Policy Types"
@@ -195,27 +194,25 @@ function DetailPanel({
           label="Created"
           value={new Date(item.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       <RuleSection title="Ingress Rules" rules={item.ingressRules} />
       <RuleSection title="Egress Rules" rules={item.egressRules} />
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="networkPolicy.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="networkPolicy.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -224,6 +221,7 @@ function DetailPanel({
         name={item.name}
         kind="NetworkPolicy"
         search={sl}
+        collapsibleId="networkPolicy.events"
       />
     </DetailPanelLayout>
   )

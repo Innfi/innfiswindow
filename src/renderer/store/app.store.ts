@@ -241,6 +241,9 @@ interface AppState {
    *  filter on. Unlike the label selector it is dropped when the view changes:
    *  the fields belong to the kind it was typed for. */
   fieldSelector: string
+  /** Detail-panel sections folded away, by the id `CollapsibleSection` is
+   *  given. Absent means open, so a new section starts expanded. */
+  collapsedSections: Record<string, boolean>
   themeId: string
   refreshInterval: RefreshIntervalValue
   drawerTabs: DrawerTab[]
@@ -270,6 +273,7 @@ interface AppState {
   setNameFilter: (filter: string) => void
   setLabelSelector: (selector: string) => void
   setFieldSelector: (selector: string) => void
+  toggleSectionCollapsed: (id: string) => void
   setThemeId: (id: string) => void
   setRefreshInterval: (interval: RefreshIntervalValue) => void
   openDrawerTab: (tab: DrawerTabInput) => void
@@ -302,6 +306,7 @@ export const useAppStore = create<AppState>()(
       nameFilter: "",
       labelSelector: "",
       fieldSelector: "",
+      collapsedSections: {},
       themeId: "default",
       refreshInterval: 30,
       drawerTabs: [],
@@ -476,6 +481,15 @@ export const useAppStore = create<AppState>()(
       setNameFilter: (filter) => set({ nameFilter: filter }),
       setLabelSelector: (selector) => set({ labelSelector: selector }),
       setFieldSelector: (selector) => set({ fieldSelector: selector }),
+      toggleSectionCollapsed: (id) => {
+        const { collapsedSections } = get()
+        set({
+          collapsedSections: {
+            ...collapsedSections,
+            [id]: !(collapsedSections[id] ?? false),
+          },
+        })
+      },
       setThemeId: (id) => set({ themeId: id }),
       setRefreshInterval: (interval) => set({ refreshInterval: interval }),
       openDrawerTab: (tabData: DrawerTabInput) => {
@@ -605,6 +619,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         themeId: state.themeId,
         refreshInterval: state.refreshInterval,
+        collapsedSections: state.collapsedSections,
         contextStates: state.contextStates,
         contextNamespaces: state.contextNamespaces,
         contextAliases: state.contextAliases,

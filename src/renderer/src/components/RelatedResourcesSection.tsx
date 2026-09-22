@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from "react"
 
+import {
+  CollapsibleSection,
+  useSectionCollapsed,
+} from "../../components/ui/CollapsibleSection"
 import { ResourceLink } from "../../components/ui/ResourceLink"
 import { normalizeIpcError } from "../../lib/ipc-error"
 import {
@@ -29,6 +33,7 @@ export function RelatedResourcesSection({
   name,
   namespace,
   search = "",
+  collapsibleId,
 }: {
   /** The kind as `resourceGvk` spells it — the group/version and the API's own
    *  kind name both come from there, so a view passes what its write buttons
@@ -40,8 +45,13 @@ export function RelatedResourcesSection({
   /** `""` for a cluster-scoped kind. */
   namespace?: string
   search?: string
+  /** Makes the section foldable under this id. Folded, it does not walk the
+   *  object graph at all; expanding walks it again. */
+  collapsibleId?: string
 }): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
+  const [collapsed] = useSectionCollapsed(collapsibleId ?? "")
+  const folded = collapsibleId !== undefined && collapsed
   const [relations, setRelations] = useState<K8sResourceRelations>(EMPTY)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -71,8 +81,9 @@ export function RelatedResourcesSection({
   }, [selectedContext, target.apiVersion, target.kind, name, namespace])
 
   useEffect(() => {
+    if (folded) return
     load()
-  }, [load])
+  }, [load, folded])
 
   const sl = search.toLowerCase()
   const visible = (items: K8sRelatedResource[]): K8sRelatedResource[] =>
@@ -91,20 +102,17 @@ export function RelatedResourcesSection({
   ]
   const total = groups.reduce((sum, group) => sum + group.items.length, 0)
 
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Related ({total})
-        </h3>
-        <button
-          onClick={load}
-          className="text-xs text-muted-foreground hover:text-foreground"
-        >
-          Refresh
-        </button>
-      </div>
+  const refresh = (
+    <button
+      onClick={load}
+      className="text-xs text-muted-foreground hover:text-foreground"
+    >
+      Refresh
+    </button>
+  )
 
+  const body = (
+    <>
       {loading && <p className="text-xs text-muted-foreground">Loading…</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
       {!loading && !error && total === 0 && (
@@ -159,6 +167,32 @@ export function RelatedResourcesSection({
             Partial: {err}
           </p>
         ))}
-    </div>
+    </>
+  )
+
+  if (collapsibleId === undefined) {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+            Related ({total})
+          </h3>
+          {refresh}
+        </div>
+        {body}
+      </div>
+    )
+  }
+
+  return (
+    <CollapsibleSection
+      id={collapsibleId}
+      title="Related"
+      count={total}
+      subtle
+      right={refresh}
+    >
+      {body}
+    </CollapsibleSection>
   )
 }

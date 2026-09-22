@@ -323,9 +323,6 @@ export function PodMetricsSection({
   if (loading) {
     return (
       <div className="space-y-1">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Metrics
-        </h3>
         <div className="flex items-center gap-2 py-4">
           <div className="h-4 w-4 rounded-full border-2 border-muted-foreground border-t-transparent animate-spin" />
           <span className="text-xs text-muted-foreground">
@@ -341,9 +338,6 @@ export function PodMetricsSection({
   if (notConfigured || error) {
     return (
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Metrics
-        </h3>
         {notConfigured ? (
           <p className="text-xs text-muted-foreground">
             Prometheus not configured — add URL in Settings for history
@@ -380,9 +374,6 @@ export function PodMetricsSection({
 
   return (
     <div className="space-y-3">
-      <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-        Metrics
-      </h3>
       <MetricChart
         title="CPU Usage (cores)"
         data={cpuData}

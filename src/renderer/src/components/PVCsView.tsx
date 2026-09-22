@@ -1,6 +1,7 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -13,7 +14,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { K8sPVC } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
@@ -128,8 +128,7 @@ function DetailPanel({
       }
     >
       {/* Status */}
-      <div className="space-y-1">
-        <SectionHeader title="Status" />
+      <CollapsibleSection id="pvc.status" title="Status">
         <div className="flex items-center gap-2">
           <span
             className={cn(
@@ -157,11 +156,10 @@ function DetailPanel({
                 .join(" — ")}
             />
           ))}
-      </div>
+      </CollapsibleSection>
 
       {/* Spec */}
-      <div className="space-y-1">
-        <SectionHeader title="Spec" />
+      <CollapsibleSection id="pvc.spec" title="Spec">
         <MetaEntry label="Requested" value={pvc.requestedStorage || "-"} />
         <MetaEntry label="Capacity" value={pvc.capacity || "-"} />
         <MetaEntry
@@ -186,24 +184,22 @@ function DetailPanel({
           label="Created"
           value={new Date(pvc.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="pvc.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="pvc.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -212,6 +208,7 @@ function DetailPanel({
         name={pvc.name}
         kind="PersistentVolumeClaim"
         search={sl}
+        collapsibleId="pvc.events"
       />
 
       <RelatedResourcesSection
@@ -219,6 +216,7 @@ function DetailPanel({
         namespace={pvc.namespace}
         name={pvc.name}
         search={sl}
+        collapsibleId="pvc.related"
       />
     </DetailPanelLayout>
   )

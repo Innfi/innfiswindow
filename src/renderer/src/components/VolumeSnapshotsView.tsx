@@ -1,6 +1,7 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
@@ -11,7 +12,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sVolumeSnapshot } from "../types/k8s"
 
 function ReadyBadge({ ready }: { ready: boolean | null }): JSX.Element {
@@ -109,8 +109,7 @@ function DetailPanel({
         </>
       }
     >
-      <div className="space-y-1">
-        <SectionHeader title="Spec" />
+      <CollapsibleSection id="volumeSnapshot.spec" title="Spec">
         <MetaEntry label="Source PVC" value={snap.sourcePVCName || "—"} mono />
         <MetaEntry
           label="Snapshot Class"
@@ -120,10 +119,9 @@ function DetailPanel({
           label="Created"
           value={new Date(snap.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
-      <div className="space-y-1">
-        <SectionHeader title="Status" />
+      <CollapsibleSection id="volumeSnapshot.status" title="Status">
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground text-xs w-28 shrink-0">
             Ready
@@ -131,22 +129,20 @@ function DetailPanel({
           <ReadyBadge ready={snap.readyToUse} />
         </div>
         <MetaEntry label="Restore Size" value={snap.restoreSize || "—"} />
-      </div>
+      </CollapsibleSection>
 
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="volumeSnapshot.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="volumeSnapshot.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
     </DetailPanelLayout>
   )

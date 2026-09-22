@@ -1,6 +1,7 @@
 import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
@@ -11,7 +12,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import {
   K8sEndpointSlice,
   K8sEndpointSliceEndpoint,
@@ -181,8 +181,7 @@ function DetailPanel({
       </div>
 
       {slice.endpointPorts.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Ports" />
+        <CollapsibleSection id="endpointSlice.ports" title="Ports">
           {slice.endpointPorts.map((p, i) => (
             <MetaEntry
               key={i}
@@ -190,12 +189,15 @@ function DetailPanel({
               value={portLabel(p)}
             />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {endpoints.length > 0 && (
-        <div className="space-y-2">
-          <SectionHeader title="Endpoints" />
+        <CollapsibleSection
+          id="endpointSlice.endpoints"
+          title="Endpoints"
+          className="space-y-2"
+        >
           {endpoints.map((endpoint, i) => (
             <div
               key={i}
@@ -234,23 +236,21 @@ function DetailPanel({
               )}
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="endpointSlice.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="endpointSlice.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       <RelatedResourcesSection
@@ -258,6 +258,7 @@ function DetailPanel({
         namespace={slice.namespace}
         name={slice.name}
         search={sl}
+        collapsibleId="endpointSlice.related"
       />
     </DetailPanelLayout>
   )

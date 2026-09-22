@@ -1,6 +1,7 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -12,7 +13,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sConfigMap, K8sConfigMapSummary } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -106,37 +106,37 @@ function DetailPanel({
       }
     >
       {/* Info */}
-      <div className="space-y-1">
-        <SectionHeader title="Info" />
+      <CollapsibleSection id="configMap.info" title="Info">
         <MetaEntry label="Keys" value={cm.keys.join(", ") || "none"} />
         <MetaEntry
           label="Created"
           value={new Date(cm.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="configMap.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="configMap.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Data */}
       {dataEntries.length > 0 && (
-        <div className="space-y-2">
-          <SectionHeader title="Data" />
+        <CollapsibleSection
+          id="configMap.data"
+          title="Data"
+          className="space-y-2"
+        >
           {dataEntries.map(([key, value]) => (
             <div key={key} className="space-y-0.5">
               <div className="font-mono font-bold text-sm">{key}</div>
@@ -145,20 +145,19 @@ function DetailPanel({
               </pre>
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Binary Data */}
       {binaryEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Binary Data" />
+        <CollapsibleSection id="configMap.binaryData" title="Binary Data">
           {binaryEntries.map(([key, size]) => (
             <div key={key} className="flex justify-between text-sm">
               <span className="font-mono font-bold">{key}</span>
               <span className="text-muted-foreground">{size} bytes</span>
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -167,6 +166,7 @@ function DetailPanel({
         name={cm.name}
         kind="ConfigMap"
         search={sl}
+        collapsibleId="configMap.events"
       />
 
       <RelatedResourcesSection
@@ -174,6 +174,7 @@ function DetailPanel({
         namespace={cm.namespace}
         name={cm.name}
         search={sl}
+        collapsibleId="configMap.related"
       />
     </DetailPanelLayout>
   )

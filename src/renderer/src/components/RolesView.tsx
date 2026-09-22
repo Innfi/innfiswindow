@@ -1,6 +1,7 @@
 import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -12,7 +13,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import {
   Table,
   TableBody,
@@ -98,16 +98,18 @@ function DetailPanel({
         </>
       }
     >
-      <div className="space-y-1">
-        <SectionHeader title="Metadata" />
+      <CollapsibleSection id="role.metadata" title="Metadata">
         <MetaEntry
           label="Created"
           value={new Date(role.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
-      <div className="space-y-1">
-        <SectionHeader title={`Rules (${role.rules.length})`} />
+      <CollapsibleSection
+        id="role.rules"
+        title="Rules"
+        count={role.rules.length}
+      >
         {role.rules.length === 0 ? (
           <p className="text-sm text-muted-foreground">No rules</p>
         ) : (
@@ -150,27 +152,26 @@ function DetailPanel({
             </Table>
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
       <RoleSubjectsSection
         kind="Role"
         name={role.name}
         namespace={role.namespace}
         search={sl}
+        collapsibleId="role.boundTo"
       />
 
       {Object.keys(role.labels).length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="role.labels" title="Labels">
           <LabelEntries
             entries={Object.entries(role.labels).filter(([k, v]) => kv(k, v))}
           />
-        </div>
+        </CollapsibleSection>
       )}
 
       {Object.keys(role.annotations).length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="role.annotations" title="Annotations">
           {Object.entries(role.annotations)
             .filter(
               ([k]) =>
@@ -182,7 +183,7 @@ function DetailPanel({
             .map(([k, v]) => (
               <MetaEntry key={k} label={k} value={v} />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
     </DetailPanelLayout>
   )

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -14,7 +15,6 @@ import {
   ResourceColumn,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { normalizeIpcError } from "../../lib/ipc-error"
 import type { ResourceGvk } from "../../lib/resource-gvk"
 import { dumpYaml } from "../../lib/yaml"
@@ -124,8 +124,7 @@ function DetailPanel({
         </>
       }
     >
-      <div className="space-y-1">
-        <SectionHeader title="Overview" />
+      <CollapsibleSection id="customResource.overview" title="Overview">
         <MetaEntry label="Kind" value={info.kind} />
         <MetaEntry label="API version" value={info.apiVersion} mono />
         {info.namespace && (
@@ -139,11 +138,10 @@ function DetailPanel({
               : "—"
           }
         />
-      </div>
+      </CollapsibleSection>
 
       {printerColumns.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Status" />
+        <CollapsibleSection id="customResource.status" title="Status">
           {printerColumns.map((col, i) => (
             <MetaEntry
               key={col.name}
@@ -151,23 +149,21 @@ function DetailPanel({
               value={info.columns[i] ?? "—"}
             />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="customResource.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="customResource.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {info.namespace && (
@@ -176,15 +172,15 @@ function DetailPanel({
           name={info.name}
           kind={info.kind}
           search={search}
+          collapsibleId="customResource.events"
         />
       )}
 
-      <div className="space-y-1">
-        <SectionHeader title="Manifest" />
+      <CollapsibleSection id="customResource.manifest" title="Manifest">
         <pre className="max-h-96 overflow-auto rounded border bg-muted p-2 font-mono text-xs whitespace-pre">
           {manifest}
         </pre>
-      </div>
+      </CollapsibleSection>
     </DetailPanelLayout>
   )
 }

@@ -2,6 +2,7 @@
 import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -13,7 +14,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sSecret, K8sSecretSummary } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -118,38 +118,34 @@ function DetailPanel({
       }
     >
       {/* Info */}
-      <div className="space-y-1">
-        <SectionHeader title="Info" />
+      <CollapsibleSection id="secret.info" title="Info">
         <MetaEntry label="Type" value={secret.type} mono />
         <MetaEntry label="Keys" value={secret.keys.join(", ") || "none"} />
         <MetaEntry
           label="Created"
           value={new Date(secret.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="secret.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="secret.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Data */}
       {dataEntries.length > 0 && (
-        <div className="space-y-2">
-          <SectionHeader title="Data" />
+        <CollapsibleSection id="secret.data" title="Data" className="space-y-2">
           {dataEntries.map(([key, value]) => (
             <div key={key} className="space-y-0.5">
               <div className="flex items-center gap-2">
@@ -181,7 +177,7 @@ function DetailPanel({
               )}
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -190,6 +186,7 @@ function DetailPanel({
         name={secret.name}
         kind="Secret"
         search={sl}
+        collapsibleId="secret.events"
       />
 
       <RelatedResourcesSection
@@ -197,6 +194,7 @@ function DetailPanel({
         namespace={secret.namespace}
         name={secret.name}
         search={sl}
+        collapsibleId="secret.related"
       />
     </DetailPanelLayout>
   )

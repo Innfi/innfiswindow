@@ -1,6 +1,7 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -12,7 +13,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sServiceAccount } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -100,17 +100,19 @@ function DetailPanel({
       }
     >
       {/* Metadata */}
-      <div className="space-y-1">
-        <SectionHeader title="Metadata" />
+      <CollapsibleSection id="serviceAccount.metadata" title="Metadata">
         <MetaEntry
           label="Created"
           value={new Date(sa.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Secrets */}
-      <div className="space-y-1">
-        <SectionHeader title={`Secrets (${sa.secrets.length})`} />
+      <CollapsibleSection
+        id="serviceAccount.secrets"
+        title="Secrets"
+        count={sa.secrets.length}
+      >
         {sa.secrets.length === 0 ? (
           <p className="text-sm text-muted-foreground">None</p>
         ) : (
@@ -122,13 +124,14 @@ function DetailPanel({
               </div>
             ))
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Image Pull Secrets */}
-      <div className="space-y-1">
-        <SectionHeader
-          title={`Image Pull Secrets (${sa.imagePullSecrets.length})`}
-        />
+      <CollapsibleSection
+        id="serviceAccount.imagePullSecrets"
+        title="Image Pull Secrets"
+        count={sa.imagePullSecrets.length}
+      >
         {sa.imagePullSecrets.length === 0 ? (
           <p className="text-sm text-muted-foreground">None</p>
         ) : (
@@ -140,24 +143,22 @@ function DetailPanel({
               </div>
             ))
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="serviceAccount.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="serviceAccount.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* What this account can do */}
@@ -168,6 +169,7 @@ function DetailPanel({
           namespace: sa.namespace,
         }}
         search={sl}
+        collapsibleId="serviceAccount.permissions"
       />
 
       {/* Events */}
@@ -176,6 +178,7 @@ function DetailPanel({
         name={sa.name}
         kind="ServiceAccount"
         search={sl}
+        collapsibleId="serviceAccount.events"
       />
 
       <RelatedResourcesSection
@@ -183,6 +186,7 @@ function DetailPanel({
         namespace={sa.namespace}
         name={sa.name}
         search={sl}
+        collapsibleId="serviceAccount.related"
       />
     </DetailPanelLayout>
   )

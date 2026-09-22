@@ -12,6 +12,7 @@ import {
 } from "../../components/ui/AlertDialog"
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -23,7 +24,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { SuspendButton } from "../../components/ui/SuspendButton"
 import { formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
@@ -172,8 +172,7 @@ function DetailPanel({
       }
     >
       {/* Spec */}
-      <div className="space-y-1">
-        <SectionHeader title="Spec" />
+      <CollapsibleSection id="cronJob.spec" title="Spec">
         <MetaEntry label="Schedule" value={cronJob.schedule} mono />
         <MetaEntry
           label="Concurrency Policy"
@@ -202,11 +201,10 @@ function DetailPanel({
           label="Created"
           value={new Date(cronJob.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Status */}
-      <div className="space-y-1">
-        <SectionHeader title="Status" />
+      <CollapsibleSection id="cronJob.status" title="Status">
         <MetaEntry label="Active Jobs" value={String(cronJob.activeCount)} />
         {cronJob.lastScheduleTime && m(cronJob.lastScheduleTime) && (
           <MetaEntry
@@ -214,36 +212,36 @@ function DetailPanel({
             value={new Date(cronJob.lastScheduleTime).toLocaleString()}
           />
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Active Jobs */}
       {activeNames.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Active Job Names" />
+        <CollapsibleSection
+          id="cronJob.activeJobNames"
+          title="Active Job Names"
+        >
           {activeNames.map((name) => (
             <div key={name} className="text-xs font-mono truncate">
               {name}
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="cronJob.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="cronJob.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -252,6 +250,7 @@ function DetailPanel({
         name={cronJob.name}
         kind="CronJob"
         search={sl}
+        collapsibleId="cronJob.events"
       />
 
       <RelatedResourcesSection
@@ -259,6 +258,7 @@ function DetailPanel({
         namespace={cronJob.namespace}
         name={cronJob.name}
         search={sl}
+        collapsibleId="cronJob.related"
       />
 
       <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>

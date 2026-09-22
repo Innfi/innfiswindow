@@ -1,6 +1,7 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -12,7 +13,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { K8sPDB } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -107,8 +107,7 @@ function DetailPanel({
       }
     >
       {/* Spec */}
-      <div className="space-y-1">
-        <SectionHeader title="Spec" />
+      <CollapsibleSection id="pdb.spec" title="Spec">
         {pdb.minAvailable != null && m(String(pdb.minAvailable)) && (
           <MetaEntry label="Min Available" value={pdb.minAvailable} />
         )}
@@ -119,11 +118,10 @@ function DetailPanel({
           label="Created"
           value={new Date(pdb.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Status */}
-      <div className="space-y-1">
-        <SectionHeader title="Status" />
+      <CollapsibleSection id="pdb.status" title="Status">
         <MetaEntry label="Current Healthy" value={String(pdb.currentHealthy)} />
         <MetaEntry label="Desired Healthy" value={String(pdb.desiredHealthy)} />
         <MetaEntry
@@ -131,34 +129,31 @@ function DetailPanel({
           value={String(pdb.disruptionsAllowed)}
         />
         <MetaEntry label="Expected Pods" value={String(pdb.expectedPods)} />
-      </div>
+      </CollapsibleSection>
 
       {/* Selector */}
       {selectorEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Selector" />
+        <CollapsibleSection id="pdb.selector" title="Selector">
           {selectorEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="pdb.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="pdb.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -167,6 +162,7 @@ function DetailPanel({
         name={pdb.name}
         kind="PodDisruptionBudget"
         search={sl}
+        collapsibleId="pdb.events"
       />
     </DetailPanelLayout>
   )

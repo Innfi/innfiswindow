@@ -1,6 +1,7 @@
 ﻿import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -12,7 +13,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn } from "../../lib/utils"
 import { K8sPV } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
@@ -107,8 +107,7 @@ function DetailPanel({
       }
     >
       {/* Spec */}
-      <div className="space-y-1">
-        <SectionHeader title="Spec" />
+      <CollapsibleSection id="pv.spec" title="Spec">
         <MetaEntry label="Capacity" value={pv.capacity || "-"} />
         <MetaEntry
           label="Access Modes"
@@ -121,11 +120,10 @@ function DetailPanel({
           label="Created"
           value={new Date(pv.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Status */}
-      <div className="space-y-1">
-        <SectionHeader title="Status" />
+      <CollapsibleSection id="pv.status" title="Status">
         <div className="flex items-center gap-2">
           <span
             className={cn(
@@ -142,35 +140,32 @@ function DetailPanel({
             value={`${pv.claimRef.namespace}/${pv.claimRef.name}`}
           />
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Source */}
       {pv.source && m(pv.source.type) && (
-        <div className="space-y-1">
-          <SectionHeader title="Source" />
+        <CollapsibleSection id="pv.source" title="Source">
           <MetaEntry label="Type" value={pv.source.type} />
           {pv.source.detail && m(pv.source.detail) && (
             <MetaEntry label="Detail" value={pv.source.detail} mono />
           )}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="pv.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="pv.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events — PVs are cluster-scoped */}
@@ -179,6 +174,7 @@ function DetailPanel({
         name={pv.name}
         kind="PersistentVolume"
         search={sl}
+        collapsibleId="pv.events"
       />
 
       <RelatedResourcesSection
@@ -186,6 +182,7 @@ function DetailPanel({
         namespace=""
         name={pv.name}
         search={sl}
+        collapsibleId="pv.related"
       />
     </DetailPanelLayout>
   )

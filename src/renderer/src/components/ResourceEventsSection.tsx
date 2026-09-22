@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from "react"
 
+import {
+  CollapsibleSection,
+  useSectionCollapsed,
+} from "../../components/ui/CollapsibleSection"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { K8sEvent } from "../types/k8s"
@@ -9,13 +13,19 @@ export function ResourceEventsSection({
   name,
   kind,
   search = "",
+  collapsibleId,
 }: {
   namespace: string
   name: string
   kind: string
   search?: string
+  /** Makes the section foldable under this id. Folded, it does not read the
+   *  events at all; expanding reads them again. */
+  collapsibleId?: string
 }): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
+  const [collapsed] = useSectionCollapsed(collapsibleId ?? "")
+  const folded = collapsibleId !== undefined && collapsed
   const [events, setEvents] = useState<K8sEvent[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -42,26 +52,25 @@ export function ResourceEventsSection({
   }, [namespace, name, kind, selectedContext])
 
   useEffect(() => {
+    if (folded) return
     load()
-  }, [load])
+  }, [load, folded])
 
   const visible = events.filter(
     (ev) => m(ev.reason) || m(ev.message) || m(ev.type),
   )
 
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Events
-        </h3>
-        <button
-          onClick={load}
-          className="text-xs text-muted-foreground hover:text-foreground"
-        >
-          Refresh
-        </button>
-      </div>
+  const refresh = (
+    <button
+      onClick={load}
+      className="text-xs text-muted-foreground hover:text-foreground"
+    >
+      Refresh
+    </button>
+  )
+
+  const body = (
+    <>
       {loading && <p className="text-xs text-muted-foreground">Loading...</p>}
       {!loading && visible.length === 0 && (
         <p className="text-xs text-muted-foreground">No events</p>
@@ -99,6 +108,31 @@ export function ResourceEventsSection({
             <div className="text-muted-foreground">{ev.message}</div>
           </div>
         ))}
-    </div>
+    </>
+  )
+
+  if (collapsibleId === undefined) {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+            Events
+          </h3>
+          {refresh}
+        </div>
+        {body}
+      </div>
+    )
+  }
+
+  return (
+    <CollapsibleSection
+      id={collapsibleId}
+      title="Events"
+      subtle
+      right={refresh}
+    >
+      {body}
+    </CollapsibleSection>
   )
 }

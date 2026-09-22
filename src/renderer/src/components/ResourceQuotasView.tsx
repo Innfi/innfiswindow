@@ -1,6 +1,7 @@
 import { useState } from "react"
 
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -12,7 +13,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { cn, parseResourceValue } from "../../lib/utils"
 import { K8sResourceQuota } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -109,8 +109,11 @@ function DetailPanel({
         />
       </div>
 
-      <div className="space-y-3">
-        <SectionHeader title="Resource Usage" />
+      <CollapsibleSection
+        id="resourceQuota.resourceUsage"
+        title="Resource Usage"
+        className="space-y-3"
+      >
         {resources.map((resource) => {
           const hard = quota.hard[resource] ?? "0"
           const used = quota.used[resource] ?? "0"
@@ -155,22 +158,20 @@ function DetailPanel({
             No resource limits defined
           </p>
         )}
-      </div>
+      </CollapsibleSection>
 
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="resourceQuota.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="resourceQuota.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       <ResourceEventsSection
@@ -178,6 +179,7 @@ function DetailPanel({
         name={quota.name}
         kind="ResourceQuota"
         search={sl}
+        collapsibleId="resourceQuota.events"
       />
     </DetailPanelLayout>
   )

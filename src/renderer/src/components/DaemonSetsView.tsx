@@ -12,6 +12,7 @@ import {
 } from "../../components/ui/AlertDialog"
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -23,7 +24,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sDaemonSet, K8sDaemonSetSummary } from "../types/k8s"
@@ -174,8 +174,7 @@ function DetailPanel({
       }
     >
       {/* Scheduling */}
-      <div className="space-y-1">
-        <SectionHeader title="Scheduling" />
+      <CollapsibleSection id="daemonSet.scheduling" title="Scheduling">
         <MetaEntry label="Desired" value={String(ds.desiredNumberScheduled)} />
         <MetaEntry label="Current" value={String(ds.currentNumberScheduled)} />
         <MetaEntry label="Ready" value={String(ds.numberReady)} />
@@ -192,84 +191,79 @@ function DetailPanel({
           label="Created"
           value={new Date(ds.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
       {/* Labels */}
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="daemonSet.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Annotations */}
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="daemonSet.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Node Selector */}
       {nodeSelectorEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Node Selector" />
+        <CollapsibleSection id="daemonSet.nodeSelector" title="Node Selector">
           {nodeSelectorEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Selector */}
       {selectorEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Selector" />
+        <CollapsibleSection id="daemonSet.selector" title="Selector">
           {selectorEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Pod Template Labels */}
       {podLabelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Pod Template" />
+        <CollapsibleSection id="daemonSet.podTemplate" title="Pod Template">
           {podLabelEntries.map(([k, v]) => (
             <MetaEntry key={k} label={`label: ${k}`} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Init Containers */}
       {ds.initContainers.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Init Containers" />
+        <CollapsibleSection
+          id="daemonSet.initContainers"
+          title="Init Containers"
+        >
           {ds.initContainers
             .filter((c) => m(c.name) || m(c.image))
             .map((c) => (
               <ContainerCard key={c.name} container={c} search={sl} />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Containers */}
       {ds.containers.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Containers" />
+        <CollapsibleSection id="daemonSet.containers" title="Containers">
           {ds.containers
             .filter((c) => m(c.name) || m(c.image))
             .map((c) => (
               <ContainerCard key={c.name} container={c} search={sl} />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Volumes */}
       {ds.volumes.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Volumes" />
+        <CollapsibleSection id="daemonSet.volumes" title="Volumes">
           {ds.volumes
             .filter((v) => m(v.name) || m(v.type) || m(v.detail))
             .map((v) => (
@@ -284,13 +278,12 @@ function DetailPanel({
                 </div>
               </div>
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Tolerations */}
       {ds.tolerations.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Tolerations" />
+        <CollapsibleSection id="daemonSet.tolerations" title="Tolerations">
           {ds.tolerations.map((t, i) => (
             <div key={i} className="text-sm border rounded p-2 space-y-0.5">
               {t.key && <div className="font-medium">{t.key}</div>}
@@ -299,7 +292,7 @@ function DetailPanel({
               </div>
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Events */}
@@ -308,6 +301,7 @@ function DetailPanel({
         name={ds.name}
         kind="DaemonSet"
         search={sl}
+        collapsibleId="daemonSet.events"
       />
 
       <RelatedResourcesSection
@@ -315,6 +309,7 @@ function DetailPanel({
         namespace={ds.namespace}
         name={ds.name}
         search={sl}
+        collapsibleId="daemonSet.related"
       />
 
       <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>

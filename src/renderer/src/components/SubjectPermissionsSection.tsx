@@ -2,6 +2,10 @@ import { useCallback, useEffect, useState } from "react"
 
 import { formatSubject } from "../../../shared/access"
 import {
+  CollapsibleSection,
+  useSectionCollapsed,
+} from "../../components/ui/CollapsibleSection"
+import {
   Table,
   TableBody,
   TableCell,
@@ -36,11 +40,17 @@ function listOrDash(values: string[], wildcard = "*"): string {
 export function SubjectPermissionsSection({
   subject,
   search = "",
+  collapsibleId,
 }: {
   subject: AccessSubject
   search?: string
+  /** Makes the section foldable under this id. Folded, it does not walk the
+   *  bindings at all; expanding walks them again. */
+  collapsibleId?: string
 }): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
+  const [collapsed] = useSectionCollapsed(collapsibleId ?? "")
+  const folded = collapsibleId !== undefined && collapsed
   const [data, setData] = useState<K8sSubjectPermissions | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -69,8 +79,9 @@ export function SubjectPermissionsSection({
   }, [selectedContext, kind, name, namespace])
 
   useEffect(() => {
+    if (folded) return
     load()
-  }, [load])
+  }, [load, folded])
 
   const sl = search.toLowerCase()
   const matches = (values: string[]): boolean =>
@@ -96,20 +107,18 @@ export function SubjectPermissionsSection({
       ]),
   )
 
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          Permissions — {formatSubject(subject)}
-        </h3>
-        <button
-          onClick={load}
-          className="text-xs text-muted-foreground hover:text-foreground"
-        >
-          Refresh
-        </button>
-      </div>
+  const refresh = (
+    <button
+      onClick={load}
+      className="text-xs text-muted-foreground hover:text-foreground"
+    >
+      Refresh
+    </button>
+  )
+  const title = `Permissions — ${formatSubject(subject)}`
 
+  const body = (
+    <>
       {loading && <p className="text-xs text-muted-foreground">Loading…</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
 
@@ -220,6 +229,32 @@ export function SubjectPermissionsSection({
           </div>
         </>
       )}
-    </div>
+    </>
+  )
+
+  if (collapsibleId === undefined) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+            {title}
+          </h3>
+          {refresh}
+        </div>
+        {body}
+      </div>
+    )
+  }
+
+  return (
+    <CollapsibleSection
+      id={collapsibleId}
+      title={title}
+      subtle
+      right={refresh}
+      className="space-y-3"
+    >
+      {body}
+    </CollapsibleSection>
   )
 }

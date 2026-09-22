@@ -3,6 +3,7 @@ import { useState } from "react"
 
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
+import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
@@ -14,7 +15,6 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { SectionHeader } from "../../components/ui/SectionHeader"
 import { useAppStore } from "../../store/app.store"
 import { K8sCRD, K8sCRDVersion } from "../types/k8s"
 
@@ -162,8 +162,7 @@ function DetailPanel({
         </>
       }
     >
-      <div className="space-y-1">
-        <SectionHeader title="Names" />
+      <CollapsibleSection id="crd.names" title="Names">
         <MetaEntry label="Kind" value={crd.kind} />
         <MetaEntry label="List kind" value={crd.listKind || "—"} />
         <MetaEntry label="Singular" value={crd.singular || "—"} mono />
@@ -189,10 +188,9 @@ function DetailPanel({
           label="Created"
           value={new Date(crd.creationTimestamp).toLocaleString()}
         />
-      </div>
+      </CollapsibleSection>
 
-      <div className="space-y-1">
-        <SectionHeader title="Versions" />
+      <CollapsibleSection id="crd.versions" title="Versions">
         {crd.versions.map((v) => (
           <div key={v.name} className="text-sm">
             <MetaEntry
@@ -214,11 +212,13 @@ function DetailPanel({
             )}
           </div>
         ))}
-      </div>
+      </CollapsibleSection>
 
       {shown && (
-        <div className="space-y-1">
-          <SectionHeader title={`Printer columns (${shown.name})`} />
+        <CollapsibleSection
+          id="crd.printerColumns"
+          title={`Printer columns (${shown.name})`}
+        >
           {shown.printerColumns.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               None — the browser shows name and age only.
@@ -235,12 +235,11 @@ function DetailPanel({
                 />
               ))
           )}
-        </div>
+        </CollapsibleSection>
       )}
 
       {crd.conditions.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Conditions" />
+        <CollapsibleSection id="crd.conditions" title="Conditions">
           {crd.conditions
             .filter((c) => m(c.type) || m(c.reason) || m(c.message))
             .map((c) => (
@@ -250,23 +249,21 @@ function DetailPanel({
                 value={`${c.status}${c.reason ? ` — ${c.reason}` : ""}`}
               />
             ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {labelEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Labels" />
+        <CollapsibleSection id="crd.labels" title="Labels">
           <LabelEntries entries={labelEntries} />
-        </div>
+        </CollapsibleSection>
       )}
 
       {annotationEntries.length > 0 && (
-        <div className="space-y-1">
-          <SectionHeader title="Annotations" />
+        <CollapsibleSection id="crd.annotations" title="Annotations">
           {annotationEntries.map(([k, v]) => (
             <MetaEntry key={k} label={k} value={v} />
           ))}
-        </div>
+        </CollapsibleSection>
       )}
     </DetailPanelLayout>
   )
