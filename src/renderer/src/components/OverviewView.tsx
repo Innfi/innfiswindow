@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 
+import { triageCluster } from "../../../shared/triage"
 import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
@@ -13,18 +14,30 @@ import { handleIpcError } from "../../lib/ipc-error"
 import { cn, formatAge } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import {
+  K8sDaemonSetSummary,
   K8sDeploymentSummary,
   K8sEvent,
+  K8sJob,
   K8sNode,
   K8sPodSummary,
+  K8sPVC,
+  K8sStatefulSetSummary,
 } from "../types/k8s"
 import type { ResourceType } from "../types/resource"
+import { NeedsAttentionSection } from "./NeedsAttentionSection"
 
 interface OverviewData {
   pods: K8sPodSummary[]
   nodes: K8sNode[]
   deployments: K8sDeploymentSummary[]
   events: K8sEvent[]
+  // Read for the triage at the top rather than for a card of their own: a
+  // StatefulSet with nothing ready is as urgent as a Deployment with nothing
+  // ready, and neither shows up in a pod count.
+  statefulSets: K8sStatefulSetSummary[]
+  daemonSets: K8sDaemonSetSummary[]
+  jobs: K8sJob[]
+  pvcs: K8sPVC[]
 }
 
 function isUnhealthyPod(pod: K8sPodSummary): boolean {
@@ -58,6 +71,10 @@ export function OverviewView(): JSX.Element {
     nodes: [],
     deployments: [],
     events: [],
+    statefulSets: [],
+    daemonSets: [],
+    jobs: [],
+    pvcs: [],
   })
   const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null)
 
@@ -68,19 +85,36 @@ export function OverviewView(): JSX.Element {
   const fetchAll = useCallback(
     async (silent = false) => {
       try {
-        const [pods, nodes, deployments, events] = await Promise.all([
-          window.api.k8s.listPods({
-            contextName: selectedContext ?? undefined,
-          }),
-          window.api.k8s.listNodes({
-            contextName: selectedContext ?? undefined,
-          }),
-          window.api.k8s.listDeployments({
-            contextName: selectedContext ?? undefined,
-          }),
-          window.api.listEvents({ contextName: selectedContext ?? undefined }),
+        const ctx = { contextName: selectedContext ?? undefined }
+        const [
+          pods,
+          nodes,
+          deployments,
+          events,
+          statefulSets,
+          daemonSets,
+          jobs,
+          pvcs,
+        ] = await Promise.all([
+          window.api.k8s.listPods(ctx),
+          window.api.k8s.listNodes(ctx),
+          window.api.k8s.listDeployments(ctx),
+          window.api.listEvents(ctx),
+          window.api.k8s.listStatefulSets(ctx),
+          window.api.k8s.listDaemonSets(ctx),
+          window.api.k8s.listJobs(ctx),
+          window.api.k8s.listPVCs(ctx),
         ])
-        setData({ pods, nodes, deployments, events })
+        setData({
+          pods,
+          nodes,
+          deployments,
+          events,
+          statefulSets,
+          daemonSets,
+          jobs,
+          pvcs,
+        })
         setLastRefreshedAt(Date.now())
       } catch (err) {
         if (!silent) handleIpcError(err, "overview")
@@ -99,6 +133,10 @@ export function OverviewView(): JSX.Element {
     const id = setInterval(() => fetchAll(true), ms)
     return () => clearInterval(id)
   }, [refreshInterval, fetchAll])
+
+  // Worst-first list of what is actually broken, from the same objects the
+  // cards below count.
+  const alerts = triageCluster(data)
 
   const unhealthyPods = data.pods.filter(isUnhealthyPod)
   const nodePressureCount = data.nodes.filter(isNodeUnderPressure).length
@@ -187,6 +225,8 @@ export function OverviewView(): JSX.Element {
       </div>
 
       <div className="flex-1 overflow-auto p-4 space-y-6">
+        <NeedsAttentionSection alerts={alerts} />
+
         {/* Summary cards */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {cards.map((card) => (
