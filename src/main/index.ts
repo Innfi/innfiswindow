@@ -22,15 +22,13 @@ import {
 import { stopAllWatches } from "./informers"
 import { registerAlarmHandlers } from "./ipc/alarm"
 import { registerApplyHandlers } from "./ipc/apply"
+import { withAuthRetry } from "./ipc/auth-retry"
 import { registerAutoscalingHandlers } from "./ipc/autoscaling"
 import { registerAwsHandlers } from "./ipc/aws"
 import { registerBatchHandlers } from "./ipc/batch"
 import { registerClusterHandlers } from "./ipc/cluster"
 import { registerConfigHandlers } from "./ipc/config"
-import {
-  createContextClientsCache,
-  createKubeConfigCache,
-} from "./ipc/context-clients"
+import { createContextCache } from "./ipc/context-clients"
 import { registerCustomResourceHandlers } from "./ipc/customresources"
 import { registerDialogHandlers } from "./ipc/dialog"
 import { registerDiscoveryHandlers } from "./ipc/discovery"
@@ -68,24 +66,23 @@ const policyV1Api = kc.makeApiClient(PolicyV1Api)
 const schedulingV1Api = kc.makeApiClient(SchedulingV1Api)
 const storageV1Api = kc.makeApiClient(StorageV1Api)
 
-const { getContextClients, invalidateContext } = createContextClientsCache({
-  coreV1: coreV1Api,
-  admissionregistrationV1: admissionregistrationV1Api,
-  apiextensionsV1: apiextensionsV1Api,
-  appsV1: appsV1Api,
-  authorizationV1: authorizationV1Api,
-  discoveryV1: discoveryV1Api,
-  networkingV1: networkingV1Api,
-  rbacV1: rbacV1Api,
-  autoscalingV2: autoscalingV2Api,
-  batchV1: batchV1Api,
-  customObjects: customObjectsApi,
-  policyV1: policyV1Api,
-  schedulingV1: schedulingV1Api,
-  storageV1: storageV1Api,
-})
-
-const getKubeConfig = createKubeConfigCache(kc)
+const { getKubeConfig, getContextClients, invalidateContext } =
+  createContextCache(kc, {
+    coreV1: coreV1Api,
+    admissionregistrationV1: admissionregistrationV1Api,
+    apiextensionsV1: apiextensionsV1Api,
+    appsV1: appsV1Api,
+    authorizationV1: authorizationV1Api,
+    discoveryV1: discoveryV1Api,
+    networkingV1: networkingV1Api,
+    rbacV1: rbacV1Api,
+    autoscalingV2: autoscalingV2Api,
+    batchV1: batchV1Api,
+    customObjects: customObjectsApi,
+    policyV1: policyV1Api,
+    schedulingV1: schedulingV1Api,
+    storageV1: storageV1Api,
+  })
 
 // Export for use in other modules if needed
 export {
@@ -217,35 +214,38 @@ app.whenReady().then(() => {
 
   ipcMain.on("ping", () => console.log("pong"))
 
-  registerClusterHandlers(ipcMain, kc, getContextClients, invalidateContext)
-  registerWorkloadHandlers(ipcMain, appsV1Api, getContextClients)
-  registerConfigHandlers(ipcMain, coreV1Api, getContextClients)
-  registerRbacHandlers(ipcMain, rbacV1Api, getContextClients)
-  registerReferenceHandlers(ipcMain, getKubeConfig, getContextClients)
+  // k8s handlers retry once on a 401 with fresh exec credentials — EKS tokens
+  // die early when the AWS session behind them rotates.
+  const k8sIpc = withAuthRetry(ipcMain, invalidateContext)
+  registerClusterHandlers(k8sIpc, kc, getContextClients, invalidateContext)
+  registerWorkloadHandlers(k8sIpc, appsV1Api, getContextClients)
+  registerConfigHandlers(k8sIpc, coreV1Api, getContextClients)
+  registerRbacHandlers(k8sIpc, rbacV1Api, getContextClients)
+  registerReferenceHandlers(k8sIpc, getKubeConfig, getContextClients)
   registerNetworkingHandlers(
-    ipcMain,
+    k8sIpc,
     coreV1Api,
     networkingV1Api,
     getContextClients,
   )
-  registerGovernanceHandlers(ipcMain, getContextClients)
-  registerBatchHandlers(ipcMain, getContextClients)
-  registerAutoscalingHandlers(ipcMain, getContextClients)
-  registerStorageHandlers(ipcMain, getContextClients)
-  registerCustomResourceHandlers(ipcMain, getContextClients)
-  registerDiscoveryHandlers(ipcMain, getKubeConfig)
-  registerApplyHandlers(ipcMain, getKubeConfig)
+  registerGovernanceHandlers(k8sIpc, getContextClients)
+  registerBatchHandlers(k8sIpc, getContextClients)
+  registerAutoscalingHandlers(k8sIpc, getContextClients)
+  registerStorageHandlers(k8sIpc, getContextClients)
+  registerCustomResourceHandlers(k8sIpc, getContextClients)
+  registerDiscoveryHandlers(k8sIpc, getKubeConfig)
+  registerApplyHandlers(k8sIpc, getKubeConfig)
   registerAwsHandlers(ipcMain)
-  registerAlarmHandlers(ipcMain, getContextClients)
+  registerAlarmHandlers(k8sIpc, getContextClients)
   registerHelmHandlers(ipcMain)
   registerPrometheusHandlers(ipcMain)
-  registerEventsHandlers(ipcMain, getContextClients)
-  registerWatchHandlers(ipcMain, { getKubeConfig, getContextClients })
-  registerPodStreamHandlers(ipcMain, getKubeConfig, getMainWindow)
-  registerPodCopyHandlers(ipcMain, getKubeConfig, getMainWindow)
+  registerEventsHandlers(k8sIpc, getContextClients)
+  registerWatchHandlers(k8sIpc, { getKubeConfig, getContextClients })
+  registerPodStreamHandlers(k8sIpc, getKubeConfig, getMainWindow)
+  registerPodCopyHandlers(k8sIpc, getKubeConfig, getMainWindow)
   registerDialogHandlers(ipcMain, getMainWindow)
   registerSocketStreamHandlers(ipcMain, getMainWindow)
-  registerPortForwardHandlers(ipcMain, kc, coreV1Api)
+  registerPortForwardHandlers(k8sIpc, kc, coreV1Api)
 
   createWindow()
 

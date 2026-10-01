@@ -16,6 +16,8 @@ import {
   StorageV1Api,
 } from "@kubernetes/client-node"
 
+import { installExecAuth } from "../exec-auth"
+
 export interface ApiClients {
   coreV1: CoreV1Api
   admissionregistrationV1: AdmissionregistrationV1Api
@@ -35,65 +37,86 @@ export interface ApiClients {
 
 export type GetContextClients = (contextName?: string | null) => ApiClients
 
-/** Drops cached clients so the next `getContextClients` rebuilds them from a
- *  fresh KubeConfig, re-running the exec credential plugin (e.g. for EKS). */
+/** Forgets a context's exec credentials so the next request re-runs the
+ *  credential plugin (e.g. `aws eks get-token`). Named contexts are also
+ *  rebuilt from a freshly read kubeconfig. */
 export type InvalidateContext = (contextName?: string | null) => void
 
 /** Resolves the KubeConfig for a context, for APIs that need the config itself
  *  (KubernetesObjectApi) rather than a typed client. */
 export type GetKubeConfig = (contextName?: string | null) => KubeConfig
 
-export function createKubeConfigCache(defaultKc: KubeConfig): GetKubeConfig {
-  const cache = new Map<string, KubeConfig>()
-  return (contextName?: string | null): KubeConfig => {
-    if (!contextName) return defaultKc
-    const cached = cache.get(contextName)
-    if (cached) return cached
-    const ctxKc = new KubeConfig()
-    ctxKc.loadFromDefault()
-    ctxKc.setCurrentContext(contextName)
-    cache.set(contextName, ctxKc)
-    return ctxKc
+export function makeApiClients(kc: KubeConfig): ApiClients {
+  return {
+    coreV1: kc.makeApiClient(CoreV1Api),
+    admissionregistrationV1: kc.makeApiClient(AdmissionregistrationV1Api),
+    apiextensionsV1: kc.makeApiClient(ApiextensionsV1Api),
+    appsV1: kc.makeApiClient(AppsV1Api),
+    authorizationV1: kc.makeApiClient(AuthorizationV1Api),
+    discoveryV1: kc.makeApiClient(DiscoveryV1Api),
+    networkingV1: kc.makeApiClient(NetworkingV1Api),
+    rbacV1: kc.makeApiClient(RbacAuthorizationV1Api),
+    autoscalingV2: kc.makeApiClient(AutoscalingV2Api),
+    batchV1: kc.makeApiClient(BatchV1Api),
+    customObjects: kc.makeApiClient(CustomObjectsApi),
+    policyV1: kc.makeApiClient(PolicyV1Api),
+    schedulingV1: kc.makeApiClient(SchedulingV1Api),
+    storageV1: kc.makeApiClient(StorageV1Api),
   }
 }
 
-export function createContextClientsCache(defaultClients: ApiClients): {
+interface ContextEntry {
+  kc: KubeConfig
+  clients: ApiClients | null
+}
+
+/**
+ * One KubeConfig per context, shared by typed clients, watches, streams and
+ * apply — so they share one exec credential cache and one invalidation point.
+ * `defaultClients` must be built from `defaultKc`.
+ */
+export function createContextCache(
+  defaultKc: KubeConfig,
+  defaultClients: ApiClients,
+): {
+  getKubeConfig: GetKubeConfig
   getContextClients: GetContextClients
   invalidateContext: InvalidateContext
 } {
-  const clientCache = new Map<string, ApiClients>()
+  const clearDefaultAuth = installExecAuth(defaultKc)
+  const entries = new Map<string, ContextEntry>()
+
+  function entryFor(contextName: string): ContextEntry {
+    const cached = entries.get(contextName)
+    if (cached) return cached
+    const kc = new KubeConfig()
+    kc.loadFromDefault()
+    kc.setCurrentContext(contextName)
+    installExecAuth(kc)
+    const entry: ContextEntry = { kc, clients: null }
+    entries.set(contextName, entry)
+    return entry
+  }
+
+  function getKubeConfig(contextName?: string | null): KubeConfig {
+    return contextName ? entryFor(contextName).kc : defaultKc
+  }
 
   function getContextClients(contextName?: string | null): ApiClients {
     if (!contextName) return defaultClients
-    if (clientCache.has(contextName)) return clientCache.get(contextName)!
-    const ctxKc = new KubeConfig()
-    ctxKc.loadFromDefault()
-    ctxKc.setCurrentContext(contextName)
-    const clients: ApiClients = {
-      coreV1: ctxKc.makeApiClient(CoreV1Api),
-      admissionregistrationV1: ctxKc.makeApiClient(AdmissionregistrationV1Api),
-      apiextensionsV1: ctxKc.makeApiClient(ApiextensionsV1Api),
-      appsV1: ctxKc.makeApiClient(AppsV1Api),
-      authorizationV1: ctxKc.makeApiClient(AuthorizationV1Api),
-      discoveryV1: ctxKc.makeApiClient(DiscoveryV1Api),
-      networkingV1: ctxKc.makeApiClient(NetworkingV1Api),
-      rbacV1: ctxKc.makeApiClient(RbacAuthorizationV1Api),
-      autoscalingV2: ctxKc.makeApiClient(AutoscalingV2Api),
-      batchV1: ctxKc.makeApiClient(BatchV1Api),
-      customObjects: ctxKc.makeApiClient(CustomObjectsApi),
-      policyV1: ctxKc.makeApiClient(PolicyV1Api),
-      schedulingV1: ctxKc.makeApiClient(SchedulingV1Api),
-      storageV1: ctxKc.makeApiClient(StorageV1Api),
-    }
-    clientCache.set(contextName, clients)
-    return clients
+    const entry = entryFor(contextName)
+    entry.clients ??= makeApiClients(entry.kc)
+    return entry.clients
   }
 
   function invalidateContext(contextName?: string | null): void {
-    // The default clients own a KubeConfig whose exec auth provider refreshes
-    // credentials on its own, so only the per-context cache needs clearing.
-    if (contextName) clientCache.delete(contextName)
+    // The default clients are handed out at startup and can't be swapped, so
+    // only their credentials are dropped. Long-lived holders of a named
+    // context's old KubeConfig (open watches, streams) keep working on their
+    // own early-refreshing credentials.
+    if (contextName) entries.delete(contextName)
+    else clearDefaultAuth()
   }
 
-  return { getContextClients, invalidateContext }
+  return { getKubeConfig, getContextClients, invalidateContext }
 }
