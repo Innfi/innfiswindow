@@ -14,6 +14,7 @@ import {
   V1Service,
 } from "@kubernetes/client-node"
 
+import { toIso } from "./time"
 import {
   EndpointAddress,
   EndpointInfo,
@@ -85,7 +86,7 @@ export function mapService(svc: V1Service): ServiceInfo {
     clusterIP: svc.spec?.clusterIP ?? "",
     externalIP,
     ports,
-    creationTimestamp: svc.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(svc.metadata?.creationTimestamp),
     selector: svc.spec?.selector ?? {},
     labels: svc.metadata?.labels ?? {},
     annotations: svc.metadata?.annotations ?? {},
@@ -108,7 +109,7 @@ function mapIngressSummary(ing: V1Ingress): IngressSummary {
         .join(", ") || "*",
     address: lbIngress[0]?.ip ?? lbIngress[0]?.hostname ?? "",
     ports: hasTLS ? "80, 443" : "80",
-    creationTimestamp: ing.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(ing.metadata?.creationTimestamp),
   }
 }
 
@@ -174,7 +175,7 @@ function mapIngressClass(cls: V1IngressClass): IngressClassInfo {
     controller: cls.spec?.controller ?? "",
     parameters,
     isDefault: annotations[DEFAULT_INGRESS_CLASS_ANNOTATION] === "true",
-    creationTimestamp: cls.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(cls.metadata?.creationTimestamp),
     labels: cls.metadata?.labels ?? {},
     annotations,
   }
@@ -384,7 +385,7 @@ function mapEndpointSummary(ep: V1Endpoints): EndpointSummary {
       0,
     ),
     ports: [...new Set(allPorts)].join(", "),
-    creationTimestamp: ep.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(ep.metadata?.creationTimestamp),
   }
 }
 
@@ -454,7 +455,7 @@ function mapEndpointSliceSummary(slice: V1EndpointSlice): EndpointSliceSummary {
       isSliceEndpointReady(e.conditions?.ready),
     ).length,
     ports: [...new Set(ports)].join(", "),
-    creationTimestamp: slice.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(slice.metadata?.creationTimestamp),
   }
 }
 
@@ -513,7 +514,7 @@ function mapNetworkPolicySummary(np: V1NetworkPolicy): NetworkPolicySummary {
     policyTypes: np.spec?.policyTypes ?? [],
     ingressRuleCount: (np.spec?.ingress ?? []).length,
     egressRuleCount: (np.spec?.egress ?? []).length,
-    creationTimestamp: np.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(np.metadata?.creationTimestamp),
   }
 }
 

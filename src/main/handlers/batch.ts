@@ -7,6 +7,7 @@ import {
   V1JobSpec,
 } from "@kubernetes/client-node"
 
+import { toIso } from "./time"
 import { CronJobInfo, JobInfo, MutationResult } from "./types"
 
 // The generated client defaults patch requests to JSON Patch, which rejects the
@@ -64,8 +65,8 @@ async function waitForGone(
 /** Shared by `listJobs` and the jobs informer, so a watched Jobs view renders
  *  the same rows a polled one does. */
 export function mapJob(job: V1Job): JobInfo {
-  const startTime = job.status?.startTime?.toISOString() ?? ""
-  const completionTime = job.status?.completionTime?.toISOString() ?? ""
+  const startTime = toIso(job.status?.startTime)
+  const completionTime = toIso(job.status?.completionTime)
   let duration = ""
   if (startTime && completionTime) {
     const ms =
@@ -95,7 +96,7 @@ export function mapJob(job: V1Job): JobInfo {
       message: c.message ?? "",
     })),
     selector: job.spec?.selector?.matchLabels ?? {},
-    creationTimestamp: job.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(job.metadata?.creationTimestamp),
     labels: job.metadata?.labels ?? {},
     annotations: job.metadata?.annotations ?? {},
   }
@@ -135,10 +136,10 @@ export function mapCronJob(cj: V1CronJob): CronJobInfo {
     successfulJobsHistoryLimit: cj.spec?.successfulJobsHistoryLimit ?? null,
     failedJobsHistoryLimit: cj.spec?.failedJobsHistoryLimit ?? null,
     startingDeadlineSeconds: cj.spec?.startingDeadlineSeconds ?? null,
-    lastScheduleTime: cj.status?.lastScheduleTime?.toISOString() ?? "",
+    lastScheduleTime: toIso(cj.status?.lastScheduleTime),
     activeCount: activeJobs.length,
     activeJobNames: activeJobs.map((r) => r.name ?? ""),
-    creationTimestamp: cj.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(cj.metadata?.creationTimestamp),
     labels: cj.metadata?.labels ?? {},
     annotations: cj.metadata?.annotations ?? {},
   }

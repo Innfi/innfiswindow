@@ -37,6 +37,8 @@ function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
   const [previewing, setPreviewing] = useState(false)
   const [preview, setPreview] = useState<DryRunResult | null>(null)
   const recordHistory = useRecordHistory()
+  const selectedContext = useAppStore((s) => s.selectedContext)
+  const contextName = selectedContext ?? undefined
 
   // The preview describes the YAML as it was at dry-run time, so editing after
   // previewing has to invalidate it — otherwise Apply would write something the
@@ -56,7 +58,7 @@ function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
     setPreviewing(true)
     setError(null)
     try {
-      setPreview(await window.api.k8s.dryRunResource(yaml))
+      setPreview(await window.api.k8s.dryRunResource({ yaml, contextName }))
     } catch (e) {
       const msg = normalizeIpcError(e)
       setPreview(null)
@@ -89,7 +91,7 @@ function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
     setApplying(true)
     setError(null)
     try {
-      await window.api.k8s.applyResource(yaml)
+      await window.api.k8s.applyResource({ yaml, contextName })
       recordHistory(target, { success: true })
       toast.success("Resource applied successfully")
       onClose()

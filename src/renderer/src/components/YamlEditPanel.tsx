@@ -29,14 +29,16 @@ async function readLive(
   gvk: ResourceGvk | undefined,
   name: string,
   namespace: string,
+  contextName: string | undefined,
 ): Promise<{ text: string; resourceVersion?: string }> {
   const { apiVersion, kind } = resourceGvk(resourceKind, gvk)
-  const { manifest, resourceVersion } = await window.api.k8s.readResource(
+  const { manifest, resourceVersion } = await window.api.k8s.readResource({
     apiVersion,
     kind,
     name,
-    namespace || undefined,
-  )
+    namespace: namespace || undefined,
+    contextName,
+  })
   return { text: dumpYaml(manifest), resourceVersion }
 }
 
@@ -77,7 +79,13 @@ export function YamlEditPanel({
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    readLive(tab.resourceKind, tab.gvk, tab.resourceName, tab.namespace)
+    readLive(
+      tab.resourceKind,
+      tab.gvk,
+      tab.resourceName,
+      tab.namespace,
+      tab.contextName,
+    )
       .then(({ text, resourceVersion }) => {
         if (cancelled) return
         setYaml(text)
@@ -98,7 +106,13 @@ export function YamlEditPanel({
     return () => {
       cancelled = true
     }
-  }, [tab.resourceKind, tab.gvk, tab.resourceName, tab.namespace])
+  }, [
+    tab.resourceKind,
+    tab.gvk,
+    tab.resourceName,
+    tab.namespace,
+    tab.contextName,
+  ])
 
   const hasChanges = yaml !== baseline
   // A review describes the YAML as it was when the dry run ran; once the text
@@ -160,10 +174,11 @@ export function YamlEditPanel({
     setChecking(true)
     setError(null)
     try {
-      const result = await window.api.k8s.dryRunReplaceResource(
-        yamlStr,
-        version,
-      )
+      const result = await window.api.k8s.dryRunReplaceResource({
+        yaml: yamlStr,
+        resourceVersion: version,
+        contextName: tab.contextName,
+      })
       setReview({ yaml, result })
       setShowDiff(false)
     } catch (e) {
@@ -192,6 +207,7 @@ export function YamlEditPanel({
         tab.gvk,
         tab.resourceName,
         tab.namespace,
+        tab.contextName,
       )
       setYaml(text)
       setBaseline(text)
@@ -218,6 +234,7 @@ export function YamlEditPanel({
         tab.gvk,
         tab.resourceName,
         tab.namespace,
+        tab.contextName,
       )
       version = live.resourceVersion
       setBaseline(live.text)
@@ -246,7 +263,11 @@ export function YamlEditPanel({
     setSaving(true)
     setError(null)
     try {
-      await window.api.k8s.replaceResource(yamlStr, baseVersion)
+      await window.api.k8s.replaceResource({
+        yaml: yamlStr,
+        resourceVersion: baseVersion,
+        contextName: tab.contextName,
+      })
       recordHistory(target, { success: true })
       toast.success(`${tab.resourceKind}/${tab.resourceName} saved`)
       onClose()

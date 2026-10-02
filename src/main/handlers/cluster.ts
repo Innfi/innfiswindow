@@ -12,6 +12,7 @@ import {
   validateLabelValue,
   validateTaint,
 } from "../../shared/labels"
+import { toIso } from "./time"
 import {
   ContextInfo,
   DrainOptions,
@@ -42,7 +43,7 @@ export async function listNamespaces(
   return res.items.map((ns) => ({
     name: ns.metadata?.name ?? "",
     status: ns.status?.phase ?? "",
-    creationTimestamp: ns.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(ns.metadata?.creationTimestamp),
     labels: ns.metadata?.labels ?? {},
     annotations: ns.metadata?.annotations ?? {},
   }))
@@ -81,7 +82,7 @@ export function mapNode(node: V1Node): NodeInfo {
     name: node.metadata?.name ?? "",
     status,
     roles: roles.length > 0 ? roles.join(",") : "<none>",
-    creationTimestamp: node.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(node.metadata?.creationTimestamp),
     version: node.status?.nodeInfo?.kubeletVersion ?? "",
     labels,
     annotations: node.metadata?.annotations ?? {},

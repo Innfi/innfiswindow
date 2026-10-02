@@ -1403,8 +1403,14 @@ export interface K8sAPI {
     name: string,
     yaml: string,
   ) => Promise<{ name: string; namespace: string }>
-  applyResource: (yaml: string) => Promise<{ name: string; namespace: string }>
-  dryRunResource: (yaml: string) => Promise<DryRunResult>
+  applyResource: (args: {
+    yaml: string
+    contextName?: string
+  }) => Promise<{ name: string; namespace: string }>
+  dryRunResource: (args: {
+    yaml: string
+    contextName?: string
+  }) => Promise<DryRunResult>
   deleteResource: (args: {
     apiVersion: string
     kind: string
@@ -1416,23 +1422,26 @@ export interface K8sAPI {
   /** Full PUT. Given the `resourceVersion` the manifest was read at, the
    *  write is refused (an `EditConflict:` error) if the object has changed
    *  since; without one it overwrites unconditionally. */
-  replaceResource: (
-    yaml: string,
-    resourceVersion?: string,
-  ) => Promise<{ name: string; namespace: string }>
+  replaceResource: (args: {
+    yaml: string
+    resourceVersion?: string
+    contextName?: string
+  }) => Promise<{ name: string; namespace: string }>
   /** Dry run of `replaceResource`: the diff a Save from the YAML editor would
    *  make to the live object, after the server's defaulting and admission.
    *  Refused the same way `replaceResource` is on a stale `resourceVersion`. */
-  dryRunReplaceResource: (
-    yaml: string,
-    resourceVersion?: string,
-  ) => Promise<DryRunResult>
-  readResource: (
-    apiVersion: string,
-    kind: string,
-    name: string,
-    namespace?: string,
-  ) => Promise<EditableManifest>
+  dryRunReplaceResource: (args: {
+    yaml: string
+    resourceVersion?: string
+    contextName?: string
+  }) => Promise<DryRunResult>
+  readResource: (args: {
+    apiVersion: string
+    kind: string
+    name: string
+    namespace?: string
+    contextName?: string
+  }) => Promise<EditableManifest>
   updateConfigMap: (
     namespace: string,
     name: string,

@@ -25,12 +25,16 @@ export function EditButton({
   className,
 }: EditButtonProps): JSX.Element {
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const selectedContext = useAppStore((s) => s.selectedContext)
 
   function handleEdit(): void {
     const ns = namespace ?? ""
+    // Keyed by context too: the same object in another cluster is a
+    // different edit, not the tab already open.
+    const scope = `${selectedContext ?? ""}:${resourceKind}`
     const tabKey = ns
-      ? `yaml-edit:${resourceKind}:${ns}/${resourceName}`
-      : `yaml-edit:${resourceKind}:${resourceName}`
+      ? `yaml-edit:${scope}:${ns}/${resourceName}`
+      : `yaml-edit:${scope}:${resourceName}`
     openDrawerTab({
       tabKey,
       type: "yaml-edit",
@@ -39,6 +43,7 @@ export function EditButton({
       resourceName,
       namespace: ns,
       initialYaml: dumpYaml(buildYaml()),
+      ...(selectedContext ? { contextName: selectedContext } : {}),
     })
   }
 

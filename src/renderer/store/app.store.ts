@@ -120,6 +120,9 @@ export type DrawerTab =
       resourceName: string
       namespace: string
       initialYaml: string
+      /** The context the object was opened from, so a save after a context
+       *  switch still lands on the same cluster. */
+      contextName?: string
     }
   | {
       id: string
@@ -168,6 +171,9 @@ export type DrawerTabInput =
       resourceName: string
       namespace: string
       initialYaml: string
+      /** The context the object was opened from, so a save after a context
+       *  switch still lands on the same cluster. */
+      contextName?: string
     }
   | {
       tabKey: string

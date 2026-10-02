@@ -192,7 +192,7 @@ export function mapDeploymentSummary(d: V1Deployment): DeploymentSummary {
     updatedReplicas: d.status?.updatedReplicas ?? 0,
     availableReplicas: d.status?.availableReplicas ?? 0,
     paused: d.spec?.paused ?? false,
-    creationTimestamp: d.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(d.metadata?.creationTimestamp),
   }
 }
 
@@ -260,7 +260,7 @@ export function mapReplicaSetSummary(rs: V1ReplicaSet): ReplicaSetSummary {
     desiredReplicas: rs.spec?.replicas ?? 0,
     currentReplicas: rs.status?.replicas ?? 0,
     readyReplicas: rs.status?.readyReplicas ?? 0,
-    creationTimestamp: rs.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(rs.metadata?.creationTimestamp),
   }
 }
 
@@ -315,7 +315,7 @@ export function mapStatefulSetSummary(ss: V1StatefulSet): StatefulSetSummary {
     namespace: ss.metadata?.namespace ?? "",
     replicas: ss.spec?.replicas ?? 0,
     readyReplicas: ss.status?.readyReplicas ?? 0,
-    creationTimestamp: ss.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(ss.metadata?.creationTimestamp),
     serviceName: ss.spec?.serviceName ?? "",
   }
 }
@@ -375,7 +375,7 @@ export function mapDaemonSetSummary(ds: V1DaemonSet): DaemonSetSummary {
     numberReady: ds.status?.numberReady ?? 0,
     updatedNumberScheduled: ds.status?.updatedNumberScheduled ?? 0,
     numberAvailable: ds.status?.numberAvailable ?? 0,
-    creationTimestamp: ds.metadata?.creationTimestamp?.toISOString() ?? "",
+    creationTimestamp: toIso(ds.metadata?.creationTimestamp),
   }
 }
 
@@ -916,7 +916,7 @@ export async function listDeploymentHistory(
         revision,
         changeCause,
         images,
-        creationTimestamp: rs.metadata?.creationTimestamp?.toISOString() ?? "",
+        creationTimestamp: toIso(rs.metadata?.creationTimestamp),
       }
     })
     .filter((r) => r.revision > 0)

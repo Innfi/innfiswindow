@@ -15,26 +15,59 @@ export function registerApplyHandlers(
   ipcMain: IpcMain,
   getKubeConfig: GetKubeConfig,
 ): void {
-  ipcMain.handle("k8s:resource:apply", (_e, yaml: string) =>
-    applyResource(getKubeConfig(), yaml),
+  ipcMain.handle(
+    "k8s:resource:apply",
+    (_e, args: { yaml: string; contextName?: string }) =>
+      applyResource(getKubeConfig(args.contextName), args.yaml),
   )
-  ipcMain.handle("k8s:resource:dryRun", (_e, yaml: string) =>
-    dryRunResource(getKubeConfig(), yaml),
+  ipcMain.handle(
+    "k8s:resource:dryRun",
+    (_e, args: { yaml: string; contextName?: string }) =>
+      dryRunResource(getKubeConfig(args.contextName), args.yaml),
   )
   ipcMain.handle(
     "k8s:resource:replace",
-    (_e, yaml: string, resourceVersion?: string) =>
-      replaceResource(getKubeConfig(), yaml, resourceVersion),
+    (
+      _e,
+      args: { yaml: string; resourceVersion?: string; contextName?: string },
+    ) =>
+      replaceResource(
+        getKubeConfig(args.contextName),
+        args.yaml,
+        args.resourceVersion,
+      ),
   )
   ipcMain.handle(
     "k8s:resource:replace:dryRun",
-    (_e, yaml: string, resourceVersion?: string) =>
-      dryRunReplaceResource(getKubeConfig(), yaml, resourceVersion),
+    (
+      _e,
+      args: { yaml: string; resourceVersion?: string; contextName?: string },
+    ) =>
+      dryRunReplaceResource(
+        getKubeConfig(args.contextName),
+        args.yaml,
+        args.resourceVersion,
+      ),
   )
   ipcMain.handle(
     "k8s:resource:read",
-    (_e, apiVersion: string, kind: string, name: string, namespace?: string) =>
-      readResource(getKubeConfig(), apiVersion, kind, name, namespace),
+    (
+      _e,
+      args: {
+        apiVersion: string
+        kind: string
+        name: string
+        namespace?: string
+        contextName?: string
+      },
+    ) =>
+      readResource(
+        getKubeConfig(args.contextName),
+        args.apiVersion,
+        args.kind,
+        args.name,
+        args.namespace,
+      ),
   )
   ipcMain.handle(
     "k8s:resource:delete",

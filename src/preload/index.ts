@@ -598,10 +598,10 @@ const api = {
       ),
     updateIngress: (namespace: string, name: string, yaml: string) =>
       ipcRenderer.invoke("k8s:ingress:update", namespace, name, yaml),
-    applyResource: (yaml: string) =>
-      ipcRenderer.invoke("k8s:resource:apply", yaml),
-    dryRunResource: (yaml: string) =>
-      ipcRenderer.invoke("k8s:resource:dryRun", yaml),
+    applyResource: (args: { yaml: string; contextName?: string }) =>
+      ipcRenderer.invoke("k8s:resource:apply", args),
+    dryRunResource: (args: { yaml: string; contextName?: string }) =>
+      ipcRenderer.invoke("k8s:resource:dryRun", args),
     deleteResource: (args: {
       apiVersion: string
       kind: string
@@ -613,23 +613,23 @@ const api = {
         gracePeriodSeconds?: number
       }
     }) => ipcRenderer.invoke("k8s:resource:delete", args),
-    replaceResource: (yaml: string, resourceVersion?: string) =>
-      ipcRenderer.invoke("k8s:resource:replace", yaml, resourceVersion),
-    dryRunReplaceResource: (yaml: string, resourceVersion?: string) =>
-      ipcRenderer.invoke("k8s:resource:replace:dryRun", yaml, resourceVersion),
-    readResource: (
-      apiVersion: string,
-      kind: string,
-      name: string,
-      namespace?: string,
-    ) =>
-      ipcRenderer.invoke(
-        "k8s:resource:read",
-        apiVersion,
-        kind,
-        name,
-        namespace,
-      ),
+    replaceResource: (args: {
+      yaml: string
+      resourceVersion?: string
+      contextName?: string
+    }) => ipcRenderer.invoke("k8s:resource:replace", args),
+    dryRunReplaceResource: (args: {
+      yaml: string
+      resourceVersion?: string
+      contextName?: string
+    }) => ipcRenderer.invoke("k8s:resource:replace:dryRun", args),
+    readResource: (args: {
+      apiVersion: string
+      kind: string
+      name: string
+      namespace?: string
+      contextName?: string
+    }) => ipcRenderer.invoke("k8s:resource:read", args),
     updateConfigMap: (namespace: string, name: string, yaml: string) =>
       ipcRenderer.invoke("k8s:configmap:update", namespace, name, yaml),
     updateSecret: (namespace: string, name: string, yaml: string) =>
