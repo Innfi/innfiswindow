@@ -1,5 +1,3 @@
-import { IpcMain } from "electron"
-
 import {
   expandPVC,
   listPVCs,
@@ -11,7 +9,7 @@ import {
 import { GetContextClients } from "./context-clients"
 
 export function registerStorageHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   getContextClients: GetContextClients,
 ): void {
   ipcMain.handle(
@@ -92,3 +90,4 @@ export function registerStorageHandlers(
       ),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

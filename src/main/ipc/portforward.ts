@@ -1,9 +1,8 @@
-import { IpcMain } from "electron"
 import { createServer, Server } from "net"
 import { CoreV1Api, KubeConfig, PortForward } from "@kubernetes/client-node"
 
 export function registerPortForwardHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   kc: KubeConfig,
   coreV1Api: CoreV1Api,
 ): void {
@@ -99,3 +98,4 @@ export function registerPortForwardHandlers(
     },
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

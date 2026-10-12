@@ -1,31 +1,6 @@
 import { AppsV1Api, CoreV1Api } from "@kubernetes/client-node"
 
-interface AlarmRule {
-  id: string
-  name: string
-  severity: "critical" | "warning" | "info"
-  conditionType:
-    | "pod-not-running"
-    | "deployment-unavailable"
-    | "warning-event"
-    | "node-not-ready"
-  context: string
-  namespace?: string
-  resourceNameFilter?: string
-}
-
-interface AlarmEntry {
-  id: string
-  ruleId: string
-  ruleName: string
-  severity: "critical" | "warning" | "info"
-  context: string
-  sourceKind: string
-  sourceName: string
-  namespace: string | null
-  message: string
-  triggeredAt: string
-}
+import type { AlarmEntry, AlarmRule } from "../../shared/ipc"
 
 export async function evaluateAlarmRule(
   rule: AlarmRule,

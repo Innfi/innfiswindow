@@ -1,10 +1,8 @@
-import { IpcMain } from "electron"
-
 import { evaluateAlarmRule } from "../handlers/alarm"
 import { GetContextClients } from "./context-clients"
 
 export function registerAlarmHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   getContextClients: GetContextClients,
 ): void {
   ipcMain.handle(
@@ -34,3 +32,4 @@ export function registerAlarmHandlers(
     },
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

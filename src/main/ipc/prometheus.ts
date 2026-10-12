@@ -1,5 +1,3 @@
-import { IpcMain } from "electron"
-
 import {
   checkPrometheusConnectivity,
   getPodMetrics,
@@ -7,7 +5,7 @@ import {
   setPrometheusConfig,
 } from "../prometheus-handlers"
 
-export function registerPrometheusHandlers(ipcMain: IpcMain): void {
+export function registerPrometheusHandlers(ipcMain: TypedIpcMain): void {
   ipcMain.handle("prometheus:connectivity:check", () =>
     checkPrometheusConnectivity(),
   )
@@ -35,3 +33,4 @@ export function registerPrometheusHandlers(ipcMain: IpcMain): void {
     ) => getPodMetrics(namespace, podName, step, rangeMinutes),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

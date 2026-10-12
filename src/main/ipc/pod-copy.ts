@@ -1,4 +1,4 @@
-import type { BrowserWindow, IpcMain } from "electron"
+import type { BrowserWindow } from "electron"
 import { statSync } from "fs"
 import { basename, dirname } from "path"
 import { PassThrough, Readable, Writable } from "stream"
@@ -255,7 +255,7 @@ export async function copyToPod(
 }
 
 export function registerPodCopyHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   getKubeConfig: GetKubeConfig,
   getMainWindow: () => BrowserWindow | null,
 ): void {
@@ -265,7 +265,7 @@ export function registerPodCopyHandlers(
       const now = Date.now()
       if (now - lastSent < PROGRESS_INTERVAL_MS) return
       lastSent = now
-      getMainWindow()?.webContents.send("k8s:pod:copy:progress", {
+      sendToRenderer(getMainWindow()?.webContents, "k8s:pod:copy:progress", {
         transferId,
         bytes,
       })
@@ -292,3 +292,4 @@ export function registerPodCopyHandlers(
       ),
   )
 }
+import { sendToRenderer, TypedIpcMain } from "./typed-ipc"

@@ -1,5 +1,3 @@
-import { IpcMain } from "electron"
-
 import {
   helmReleaseInstall,
   helmReleaseList,
@@ -9,7 +7,7 @@ import {
   helmRepoList,
 } from "../handlers/helm"
 
-export function registerHelmHandlers(ipcMain: IpcMain): void {
+export function registerHelmHandlers(ipcMain: TypedIpcMain): void {
   ipcMain.handle("helm:repo:add", (_e, args: { name: string; url: string }) =>
     helmRepoAdd(args.name, args.url),
   )
@@ -68,3 +66,4 @@ export function registerHelmHandlers(ipcMain: IpcMain): void {
       helmReleaseUninstall(args.releaseName, args.namespace, args.contextName),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

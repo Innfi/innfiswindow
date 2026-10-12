@@ -1,5 +1,3 @@
-import { IpcMain } from "electron"
-
 import { CustomResourceRef } from "../handlers/types"
 import {
   getCustomResource,
@@ -9,7 +7,7 @@ import {
 import { GetContextClients } from "./context-clients"
 
 export function registerCustomResourceHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   getContextClients: GetContextClients,
 ): void {
   ipcMain.handle(
@@ -61,3 +59,4 @@ export function registerCustomResourceHandlers(
       ),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

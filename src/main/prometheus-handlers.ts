@@ -5,28 +5,20 @@ import { join } from "path"
 import { PrometheusDriver, RangeVector, SampleValue } from "prometheus-query"
 import { CoreV1Api, KubeConfig, PortForward } from "@kubernetes/client-node"
 
-export interface PrometheusConfig {
-  namespace: string
-  service: string
-  port: number
-}
+import type {
+  DataPoint,
+  PodMetricsError,
+  PodMetricsResult,
+  PrometheusConfig,
+  PrometheusDiscoveryResult,
+} from "../shared/ipc"
 
-export interface DataPoint {
-  timestamp: number
-  value: number
-}
-
-export interface PodMetricsResult {
-  cpu: DataPoint[]
-  memory: DataPoint[]
-  networkRx: DataPoint[]
-  networkTx: DataPoint[]
-  diskRead: DataPoint[]
-  diskWrite: DataPoint[]
-}
-
-export interface PodMetricsError {
-  error: string
+export type {
+  DataPoint,
+  PodMetricsError,
+  PodMetricsResult,
+  PrometheusConfig,
+  PrometheusDiscoveryResult,
 }
 
 const DEFAULT_CONFIG: PrometheusConfig = {
@@ -237,12 +229,6 @@ async function queryPrometheus(
     timestamp: sv.time.getTime() / 1000,
     value: sv.value,
   }))
-}
-
-export interface PrometheusDiscoveryResult {
-  ok: boolean
-  endpoint: string
-  error?: string
 }
 
 export async function checkPrometheusConnectivity(): Promise<PrometheusDiscoveryResult> {

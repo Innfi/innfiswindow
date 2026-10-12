@@ -3,13 +3,9 @@ import * as http from "http"
 import { homedir } from "os"
 import { join } from "path"
 
-export interface AwsCredentialResult {
-  valid: boolean
-  type: "env" | "file" | "sso-cache" | "metadata" | "none"
-  hasSessionToken?: boolean
-  expiresAt?: string
-  ssoSession?: string
-}
+import type { AwsCredentialResult } from "../shared/ipc"
+
+export type { AwsCredentialResult }
 
 function checkEnvCredentials(): AwsCredentialResult | null {
   const keyId = process.env["AWS_ACCESS_KEY_ID"]

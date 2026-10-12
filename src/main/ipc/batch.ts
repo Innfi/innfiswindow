@@ -1,5 +1,3 @@
-import { IpcMain } from "electron"
-
 import {
   listCronJobs,
   listJobs,
@@ -11,7 +9,7 @@ import {
 import { GetContextClients } from "./context-clients"
 
 export function registerBatchHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   getContextClients: GetContextClients,
 ): void {
   ipcMain.handle(
@@ -101,3 +99,4 @@ export function registerBatchHandlers(
       ),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

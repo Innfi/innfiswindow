@@ -1,6 +1,7 @@
-﻿import { useCallback, useEffect, useRef, useState } from "react"
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
+import type { NodeMetric } from "../../../shared/k8s"
 import {
   formatMemory,
   parseCpuToNanocores,
@@ -21,35 +22,24 @@ import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
 import { DeleteButton } from "../../components/ui/DeleteButton"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { EditButton } from "../../components/ui/EditButton"
-import { EmptyState } from "../../components/ui/EmptyState"
 import { Input } from "../../components/ui/Input"
 import { Label } from "../../components/ui/Label"
 import { LabelEntries } from "../../components/ui/LabelEntries"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import { NodeLabelsButton } from "../../components/ui/NodeLabelsButton"
 import { NodeTaintsButton } from "../../components/ui/NodeTaintsButton"
-import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/Table"
-import { cn, filterResources, formatAge } from "../../lib/utils"
+  ageColumn,
+  DetailController,
+  ResourceColumn,
+  ResourceListView,
+} from "../../components/ui/ResourceListView"
+import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { useK8sResource } from "../hooks/useK8sResource"
 import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sNode } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
-
-interface NodeMetric {
-  nodeName: string
-  cpuUsage: string
-  memoryUsage: string
-}
 
 /** Drain's seconds-valued inputs. Blank or nonsense becomes undefined so the
  *  handler falls back to its own default rather than receiving a NaN. */
@@ -714,43 +704,16 @@ function DetailPanel({
   )
 }
 
-export function NodesView(): JSX.Element {
-  const selectedItem = useAppStore((s) => s.selectedItem) as K8sNode | null
-  const setSelectedItem = useAppStore((s) => s.setSelectedItem)
+/** metrics-server usage per node, re-read on the refresh interval. Kept apart
+ *  from the node list, which is watch-backed and has no interval of its own. */
+function useNodeMetrics(): {
+  metrics: Map<string, NodeMetric>
+  unavailable: boolean
+} {
   const selectedContext = useAppStore((s) => s.selectedContext)
-  const nameFilter = useAppStore((s) => s.nameFilter)
-  const labelSelector = useAppStore((s) => s.labelSelector)
-  const fieldSelector = useAppStore((s) => s.fieldSelector)
   const refreshInterval = useAppStore((s) => s.refreshInterval)
-
-  // Any write dialog in the detail panel pauses the refresh (watch or poll), so
-  // an edit in progress is not overwritten by a refreshed node.
-  const [dialogOpen, setDialogOpen] = useState(false)
-
-  // Watch-backed: a node going NotReady or being cordoned shows up as it
-  // happens rather than a poll later.
-  const {
-    data: nodes,
-    loading,
-    error,
-    reload,
-    reloadAfterWrite,
-    lastRefreshedAt,
-  } = useK8sResource(
-    (ctx, _ns, sel, fieldSel) =>
-      window.api.k8s.listNodes({
-        contextName: ctx,
-        labelSelector: sel,
-        fieldSelector: fieldSel,
-      }),
-    selectedContext,
-    { paused: dialogOpen, labelSelector, fieldSelector, watch: "nodes" },
-  )
-
-  const [metricsMap, setMetricsMap] = useState<Map<string, NodeMetric>>(
-    new Map(),
-  )
-  const [metricsUnavailable, setMetricsUnavailable] = useState(false)
+  const [metrics, setMetrics] = useState<Map<string, NodeMetric>>(new Map())
+  const [unavailable, setUnavailable] = useState(false)
   const selectedContextRef = useRef(selectedContext)
   selectedContextRef.current = selectedContext
 
@@ -760,11 +723,11 @@ export function NodesView(): JSX.Element {
         contextName: selectedContextRef.current ?? undefined,
       })
       if ("unavailable" in result) {
-        setMetricsUnavailable(true)
+        setUnavailable(true)
         return
       }
-      setMetricsMap(new Map(result.map((m) => [m.nodeName, m])))
-      setMetricsUnavailable(false)
+      setMetrics(new Map(result.map((m) => [m.nodeName, m])))
+      setUnavailable(false)
     } catch {
       // silently fail — metrics are optional
     }
@@ -781,115 +744,56 @@ export function NodesView(): JSX.Element {
     return () => clearInterval(id)
   }, [refreshInterval, fetchMetrics])
 
-  useEffect(() => {
-    if (!selectedItem || nodes.length === 0) return
-    const item = selectedItem as { name: string }
-    const fresh = nodes.find((n) => n.name === item.name)
-    // Compare by content, as ResourceListView does: the kubelet rewrites node
-    // status periodically, and the watch reports each write even when nothing
-    // shown here changed.
-    if (!fresh || JSON.stringify(fresh) === JSON.stringify(selectedItem)) return
-    setSelectedItem(fresh as object)
-  }, [nodes])
+  return { metrics, unavailable }
+}
 
-  const visibleNodes = filterResources(nodes, nameFilter)
+export function NodesView(): JSX.Element {
+  const { metrics, unavailable } = useNodeMetrics()
+
+  const columns = useMemo((): ResourceColumn<K8sNode>[] => {
+    const pct = (node: K8sNode, pick: "cpuPct" | "memPct"): string => {
+      const metric = metrics.get(node.name)
+      if (!metric || unavailable) return "—"
+      return `${computeMetricPcts(metric, node.allocatable)[pick].toFixed(1)}%`
+    }
+    return [
+      { head: "Name", cell: (node) => node.name },
+      { head: "Status", cell: (node) => node.status },
+      { head: "Roles", cell: (node) => node.roles },
+      ageColumn<K8sNode>(),
+      { head: "Version", cell: (node) => node.version },
+      { head: "CPU%", cell: (node) => pct(node, "cpuPct") },
+      { head: "Mem%", cell: (node) => pct(node, "memPct") },
+    ]
+  }, [metrics, unavailable])
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1 overflow-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-lg font-semibold">Nodes</h1>
-          <RefreshBar lastRefreshedAt={lastRefreshedAt} onRefresh={reload} />
-        </div>
-        {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {!loading && !error && visibleNodes.length === 0 && (
-          <EmptyState
-            message={
-              labelSelector
-                ? `No Nodes match ${labelSelector}`
-                : "No Nodes found"
-            }
-          />
-        )}
-        {!loading && !error && visibleNodes.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="whitespace-nowrap">Status</TableHead>
-                  <TableHead className="whitespace-nowrap">Roles</TableHead>
-                  <TableHead className="whitespace-nowrap">Age</TableHead>
-                  <TableHead className="whitespace-nowrap">Version</TableHead>
-                  <TableHead className="whitespace-nowrap">CPU%</TableHead>
-                  <TableHead className="whitespace-nowrap">Mem%</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleNodes.map((node) => {
-                  const metric = metricsMap.get(node.name)
-                  let cpuPct: number | null = null
-                  let memPct: number | null = null
-                  if (metric && !metricsUnavailable) {
-                    const pcts = computeMetricPcts(metric, node.allocatable)
-                    cpuPct = pcts.cpuPct
-                    memPct = pcts.memPct
-                  }
-                  return (
-                    <TableRow
-                      key={node.name}
-                      className={cn(
-                        "cursor-pointer",
-                        selectedItem?.name === node.name && "bg-muted",
-                      )}
-                      onClick={() =>
-                        setSelectedItem(
-                          selectedItem?.name === node.name ? null : node,
-                        )
-                      }
-                    >
-                      <TableCell className="whitespace-nowrap">
-                        {node.name}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {node.status}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {node.roles}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {formatAge(node.creationTimestamp)}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {node.version}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {cpuPct !== null ? `${cpuPct.toFixed(1)}%` : "—"}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {memPct !== null ? `${memPct.toFixed(1)}%` : "—"}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
-
-      {selectedItem && (
+    <ResourceListView<K8sNode>
+      title="Nodes"
+      namespaced={false}
+      // Watch-backed: a node going NotReady or being cordoned shows up as it
+      // happens rather than a poll later.
+      watch="nodes"
+      list={(ctx, _ns, sel, fieldSel) =>
+        window.api.k8s.listNodes({
+          contextName: ctx,
+          labelSelector: sel,
+          fieldSelector: fieldSel,
+        })
+      }
+      detailGuard={(item) => (item as K8sNode).allocatable !== undefined}
+      columns={columns}
+      renderDetail={(node, ctl: DetailController) => (
         <DetailPanel
-          node={selectedItem}
-          metric={metricsMap.get(selectedItem.name)}
-          metricsUnavailable={metricsUnavailable}
-          onClose={() => setSelectedItem(null)}
-          onChanged={reloadAfterWrite}
-          onDeleted={reloadAfterWrite}
-          onDialogChange={setDialogOpen}
+          node={node}
+          metric={metrics.get(node.name)}
+          metricsUnavailable={unavailable}
+          onClose={ctl.onClose}
+          onChanged={ctl.onDeleted}
+          onDeleted={ctl.onDeleted}
+          onDialogChange={ctl.onDeleteDialogChange}
         />
       )}
-    </div>
+    />
   )
 }

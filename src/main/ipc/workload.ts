@@ -1,4 +1,3 @@
-import { IpcMain } from "electron"
 import { AppsV1Api } from "@kubernetes/client-node"
 
 import { DebugContainerRequest } from "../handlers/types"
@@ -36,7 +35,7 @@ import {
 import { GetContextClients } from "./context-clients"
 
 export function registerWorkloadHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   appsV1Api: AppsV1Api,
   getContextClients: GetContextClients,
 ): void {
@@ -408,3 +407,4 @@ export function registerWorkloadHandlers(
       ),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

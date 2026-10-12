@@ -1,5 +1,3 @@
-import { IpcMain } from "electron"
-
 import { WatchStartArgs } from "../../shared/watch"
 import {
   InformerDeps,
@@ -9,7 +7,7 @@ import {
 } from "../informers"
 
 export function registerWatchHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   deps: InformerDeps,
 ): void {
   // Rejects when the watch can't be established; the renderer treats that as
@@ -26,3 +24,4 @@ export function registerWatchHandlers(
     return { success: true }
   })
 }
+import { TypedIpcMain } from "./typed-ipc"

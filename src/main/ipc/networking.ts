@@ -1,4 +1,3 @@
-import { IpcMain } from "electron"
 import { CoreV1Api, NetworkingV1Api } from "@kubernetes/client-node"
 
 import {
@@ -20,7 +19,7 @@ import {
 import { GetContextClients } from "./context-clients"
 
 export function registerNetworkingHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   coreV1Api: CoreV1Api,
   networkingV1Api: NetworkingV1Api,
   getContextClients: GetContextClients,
@@ -205,3 +204,4 @@ export function registerNetworkingHandlers(
       replaceIngressFromYaml(networkingV1Api, namespace, name, yaml),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

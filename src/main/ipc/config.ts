@@ -1,4 +1,3 @@
-import { IpcMain } from "electron"
 import { CoreV1Api } from "@kubernetes/client-node"
 
 import {
@@ -14,7 +13,7 @@ import {
 import { GetContextClients } from "./context-clients"
 
 export function registerConfigHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   coreV1Api: CoreV1Api,
   getContextClients: GetContextClients,
 ): void {
@@ -114,3 +113,4 @@ export function registerConfigHandlers(
       replaceSecretFromYaml(coreV1Api, namespace, name, yaml),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

@@ -1,5 +1,3 @@
-import { IpcMain } from "electron"
-
 import {
   getMutatingWebhookConfiguration,
   getValidatingWebhookConfiguration,
@@ -13,7 +11,7 @@ import {
 import { GetContextClients } from "./context-clients"
 
 export function registerGovernanceHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   getContextClients: GetContextClients,
 ): void {
   ipcMain.handle(
@@ -105,3 +103,4 @@ export function registerGovernanceHandlers(
       ),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

@@ -130,7 +130,8 @@ innfiswindow/
 │   ├── main/
 │   │   ├── index.ts                 # App entry, BrowserWindow setup, IPC registration
 │   │   ├── handlers/                # k8s API logic, split by domain
-│   │   │   ├── workload.ts          #   deployments, pods, statefulsets, daemonsets…
+│   │   │   ├── workload/            #   one module per kind: deployments, replicasets,
+│   │   │   │                        #   statefulsets, daemonsets, pods, pod-debug
 │   │   │   ├── networking.ts        #   services, ingresses, netpols, endpoints
 │   │   │   ├── config.ts            #   configmaps, secrets
 │   │   │   ├── rbac.ts              #   roles, bindings, serviceaccounts
@@ -143,6 +144,7 @@ innfiswindow/
 │   │   │   ├── events.ts, metrics.ts, helm.ts, alarm.ts
 │   │   ├── ipc/                     # ipcMain.handle registration per domain
 │   │   │   ├── context-clients.ts   #   per-context KubeConfig client cache
+│   │   │   ├── typed-ipc.ts         #   ipcMain narrowed to the channel map
 │   │   │   ├── pod-streams.ts       #   log tail + exec stream plumbing
 │   │   │   ├── pod-copy.ts          #   kubectl cp (tar over the exec channel)
 │   │   │   ├── dialog.ts            #   native file/folder picker
@@ -153,8 +155,9 @@ innfiswindow/
 │   │   ├── prometheus-handlers.ts   # Prometheus metrics fetch
 │   │   └── __tests__/               # IPC handler integration tests
 │   ├── preload/
+│   │   ├── api.ts                   # window.api, built from the channel map
 │   │   ├── index.ts                 # contextBridge — exposes window.api
-│   │   └── index.d.ts               # Type declarations for window.api
+│   │   └── index.d.ts               # Declares window.api as typeof api
 │   └── renderer/
 │       ├── index.html
 │       ├── assets/main.css          # Tailwind entry

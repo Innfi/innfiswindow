@@ -1,10 +1,8 @@
-import { IpcMain } from "electron"
-
 import { listEvents, listEventsForResource } from "../k8s-handlers"
 import { GetContextClients } from "./context-clients"
 
 export function registerEventsHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   getContextClients: GetContextClients,
 ): void {
   ipcMain.handle(
@@ -45,3 +43,4 @@ export function registerEventsHandlers(
       ),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

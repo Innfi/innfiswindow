@@ -1,5 +1,3 @@
-import { IpcMain } from "electron"
-
 import { DeleteResourceOptions } from "../handlers/types"
 import {
   applyResource,
@@ -12,7 +10,7 @@ import {
 import { GetKubeConfig } from "./context-clients"
 
 export function registerApplyHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   getKubeConfig: GetKubeConfig,
 ): void {
   ipcMain.handle(
@@ -92,3 +90,4 @@ export function registerApplyHandlers(
       ),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

@@ -1,11 +1,9 @@
-import { IpcMain } from "electron"
-
 import { RelationTarget } from "../handlers/references"
 import { getResourceRelations } from "../k8s-handlers"
 import { GetContextClients, GetKubeConfig } from "./context-clients"
 
 export function registerReferenceHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   getKubeConfig: GetKubeConfig,
   getContextClients: GetContextClients,
 ): void {
@@ -24,3 +22,4 @@ export function registerReferenceHandlers(
       ),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

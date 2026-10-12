@@ -1,8 +1,8 @@
-import { BrowserWindow, IpcMain } from "electron"
+import { BrowserWindow } from "electron"
 import { createConnection, Socket } from "net"
 
 export function registerSocketStreamHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   getMainWindow: () => BrowserWindow | null,
 ): void {
   const activeSocketStreams = new Map<string, Socket>()
@@ -29,7 +29,7 @@ export function registerSocketStreamHandlers(
         const parts = buffer.split("\n")
         buffer = parts.pop() ?? ""
         for (const line of parts) {
-          getMainWindow()?.webContents.send("stream:socket:data", {
+          sendToRenderer(getMainWindow()?.webContents, "stream:socket:data", {
             sessionId,
             line,
           })
@@ -38,7 +38,7 @@ export function registerSocketStreamHandlers(
 
       sock.on("error", (err) => {
         activeSocketStreams.delete(sessionId)
-        getMainWindow()?.webContents.send("stream:socket:end", {
+        sendToRenderer(getMainWindow()?.webContents, "stream:socket:end", {
           sessionId,
           reason: err.message,
         })
@@ -46,7 +46,7 @@ export function registerSocketStreamHandlers(
 
       sock.on("close", () => {
         activeSocketStreams.delete(sessionId)
-        getMainWindow()?.webContents.send("stream:socket:end", {
+        sendToRenderer(getMainWindow()?.webContents, "stream:socket:end", {
           sessionId,
           reason: "",
         })
@@ -68,3 +68,4 @@ export function registerSocketStreamHandlers(
     },
   )
 }
+import { sendToRenderer, TypedIpcMain } from "./typed-ipc"

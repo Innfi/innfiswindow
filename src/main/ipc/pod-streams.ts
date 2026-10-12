@@ -1,29 +1,16 @@
-import { type BrowserWindow, dialog, type IpcMain } from "electron"
+import { type BrowserWindow, dialog } from "electron"
 import { once } from "events"
 import { createWriteStream } from "fs"
 import { rm } from "fs/promises"
 import { PassThrough, Writable } from "stream"
 import { Exec, Log } from "@kubernetes/client-node"
 
+import type { PodLogOptions } from "../../shared/ipc"
 import { GetKubeConfig } from "./context-clients"
 
 type ExecWebSocket = { terminate(): void }
 
-/**
- * The subset of the pod log API the panel drives. `null` for `tailLines`,
- * `sinceSeconds` or `sinceTime` means "no limit": the query parameter is left
- * off, which is how the API server spells "all of it".
- */
-export interface PodLogOptions {
-  follow?: boolean
-  previous?: boolean
-  timestamps?: boolean
-  tailLines?: number | null
-  sinceSeconds?: number | null
-  /** An absolute cutoff, as anything `Date.parse` reads. Wins over
-   *  `sinceSeconds`: the API server takes one or the other, never both. */
-  sinceTime?: string | null
-}
+export type { PodLogOptions }
 
 /** The API server parses `sinceTime` as RFC 3339; this normalises anything
  *  `Date.parse` reads to UTC at whole seconds, and refuses what it can't read
@@ -127,7 +114,7 @@ export function createLineSplitter(emit: (line: string) => void): {
 }
 
 export function registerPodStreamHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   getKubeConfig: GetKubeConfig,
   getMainWindow: () => BrowserWindow | null,
 ): void {
@@ -171,7 +158,7 @@ export function registerPodStreamHandlers(
       const emitKey = storageKey
 
       const emit = (line: string): void => {
-        getMainWindow()?.webContents.send("k8s:pod:log:data", {
+        sendToRenderer(getMainWindow()?.webContents, "k8s:pod:log:data", {
           tabKey: emitKey,
           line,
         })
@@ -185,7 +172,7 @@ export function registerPodStreamHandlers(
       logStream.on("end", () => {
         splitter.flush()
         activeLogRequests.delete(storageKey)
-        getMainWindow()?.webContents.send("k8s:pod:log:end", {
+        sendToRenderer(getMainWindow()?.webContents, "k8s:pod:log:end", {
           tabKey: emitKey,
         })
       })
@@ -311,13 +298,13 @@ export function registerPodStreamHandlers(
       const stderrStream = new PassThrough()
 
       stdoutStream.on("data", (chunk: Buffer) => {
-        getMainWindow()?.webContents.send("k8s:pod:exec:output", {
+        sendToRenderer(getMainWindow()?.webContents, "k8s:pod:exec:output", {
           sessionId,
           data: chunk.toString("binary"),
         })
       })
       stderrStream.on("data", (chunk: Buffer) => {
-        getMainWindow()?.webContents.send("k8s:pod:exec:output", {
+        sendToRenderer(getMainWindow()?.webContents, "k8s:pod:exec:output", {
           sessionId,
           data: chunk.toString("binary"),
         })
@@ -374,3 +361,4 @@ export function registerPodStreamHandlers(
     },
   )
 }
+import { sendToRenderer, TypedIpcMain } from "./typed-ipc"

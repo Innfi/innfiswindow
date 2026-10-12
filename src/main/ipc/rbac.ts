@@ -1,4 +1,3 @@
-import { IpcMain } from "electron"
 import { RbacAuthorizationV1Api } from "@kubernetes/client-node"
 
 import { AccessReviewRequest, AccessSubject } from "../handlers/types"
@@ -21,7 +20,7 @@ import {
 import { GetContextClients } from "./context-clients"
 
 export function registerRbacHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   rbacV1Api: RbacAuthorizationV1Api,
   getContextClients: GetContextClients,
 ): void {
@@ -177,3 +176,4 @@ export function registerRbacHandlers(
       }),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

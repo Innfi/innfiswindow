@@ -46,9 +46,10 @@ import {
   GetContextClients,
   GetKubeConfig,
 } from "./ipc/context-clients"
+import { sendToRenderer } from "./ipc/typed-ipc"
 
-export const WATCH_EVENT_CHANNEL = "k8s:watch:event"
-export const WATCH_CLOSED_CHANNEL = "k8s:watch:closed"
+export const WATCH_EVENT_CHANNEL = "k8s:watch:event" as const
+export const WATCH_CLOSED_CHANNEL = "k8s:watch:closed" as const
 
 export interface InformerDeps {
   getKubeConfig: GetKubeConfig
@@ -300,7 +301,7 @@ function send(entry: Entry, type: WatchEventType, obj: KubernetesObject): void {
       continue
     }
     const message: WatchEventMessage = { subId, type, item }
-    wc.send(WATCH_EVENT_CHANNEL, message)
+    sendToRenderer(wc, WATCH_EVENT_CHANNEL, message)
   }
 }
 
@@ -314,7 +315,7 @@ function closeEntry(entry: Entry, err: unknown): void {
   for (const [subId, wc] of [...entry.subs]) {
     if (wc.isDestroyed()) continue
     const message: WatchClosedMessage = { subId, error }
-    wc.send(WATCH_CLOSED_CHANNEL, message)
+    sendToRenderer(wc, WATCH_CLOSED_CHANNEL, message)
   }
   disposeEntry(entry)
 }

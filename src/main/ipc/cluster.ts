@@ -1,4 +1,3 @@
-import { IpcMain } from "electron"
 import { KubeConfig } from "@kubernetes/client-node"
 
 import { DrainOptions, NodeLabelUpdate, NodeTaint } from "../handlers/types"
@@ -18,7 +17,7 @@ import {
 import { GetContextClients, InvalidateContext } from "./context-clients"
 
 export function registerClusterHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   kc: KubeConfig,
   getContextClients: GetContextClients,
   invalidateContext: InvalidateContext,
@@ -118,3 +117,4 @@ export function registerClusterHandlers(
     },
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

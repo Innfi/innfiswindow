@@ -1,5 +1,3 @@
-import { IpcMain } from "electron"
-
 import { HPAResourceMetricSpec } from "../handlers/types"
 import {
   getHPA,
@@ -10,7 +8,7 @@ import {
 import { GetContextClients } from "./context-clients"
 
 export function registerAutoscalingHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   getContextClients: GetContextClients,
 ): void {
   ipcMain.handle(
@@ -76,3 +74,4 @@ export function registerAutoscalingHandlers(
       ),
   )
 }
+import { TypedIpcMain } from "./typed-ipc"

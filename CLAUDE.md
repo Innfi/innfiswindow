@@ -24,10 +24,11 @@ See `README.md` for the feature set and project structure, and `requirements.md`
 ### File layout
 
 - `src/main/` — Electron main process
-  - `src/main/handlers/` — k8s API logic, one module per domain (`workload`, `networking`, `config`, `rbac`, `storage`, `governance`, `autoscaling`, `batch`, `cluster`, `apply`, `events`, `metrics`, `helm`, `alarm`)
-  - `src/main/ipc/` — `ipcMain.handle` registration, one module per domain
+  - `src/main/handlers/` — k8s API logic, one module per domain (`workload/` — a directory, one file per kind — `networking`, `config`, `rbac`, `storage`, `governance`, `autoscaling`, `batch`, `cluster`, `apply`, `events`, `metrics`, `helm`, `alarm`)
+  - `src/main/ipc/` — `ipcMain.handle` registration, one module per domain; `register*Handlers` take a `TypedIpcMain` (`typed-ipc.ts`)
   - `src/main/k8s-handlers.ts` — barrel re-exporting `handlers/*`; add new domains here
-- `src/preload/` — contextBridge (`index.ts`) + `window.api` type declarations (`index.d.ts`)
+- `src/preload/` — `api.ts` (the `window.api` object, one line per channel), `index.ts` (contextBridge), `index.d.ts` (declares `window.api` as `typeof api` — never edited by hand)
+- `src/shared/ipc.ts` — the IPC contract: every channel's arguments and result. Preload and main are both typed from it
 - `src/renderer/` — React app
   - `src/renderer/components/ui/` — shadcn/ui files and shared presentational components
   - `src/renderer/lib/` — `utils.ts` (`cn`, `filterResources`, `formatAge`), `themes.ts`, `yaml.ts`, `ipc-error.ts`, `resource-gvk.ts`
@@ -48,8 +49,8 @@ Check these before adding anything:
 ### Adding a resource type
 
 1. Add the `K8s*` interface to `src/renderer/src/types/k8s.ts`.
-2. Add handler(s) to the right `src/main/handlers/<domain>.ts`, register IPC in `src/main/ipc/<domain>.ts`.
-3. Expose it in `src/preload/index.ts` + `index.d.ts`.
+2. Add handler(s) to the right `src/main/handlers/<domain>.ts`.
+3. Add the channel to `IpcInvokeMap` in `src/shared/ipc.ts`, register it in `src/main/ipc/<domain>.ts`, and expose it in `src/preload/api.ts` (`call("<channel>")`). A channel missing from the map, or a handler whose arguments or result disagree with it, fails `npm run typecheck`.
 4. Add the type to `RESOURCE_TYPES` in `src/renderer/src/types/resource.ts`.
 5. Write the view in `src/renderer/src/components/<Name>View.tsx`, modeled on a sibling.
 6. Register it in `src/renderer/src/resourceViews.ts` and add it to a tree group in `components/ui/TreeView.tsx`.

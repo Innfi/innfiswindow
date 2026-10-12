@@ -7,6 +7,7 @@ import {
   V1Pod,
 } from "@kubernetes/client-node"
 
+import type { ConnectionStatus } from "../../shared/ipc"
 import {
   validateLabelKey,
   validateLabelValue,
@@ -392,13 +393,6 @@ export function getClusterType(kc: KubeConfig) {
     return "EKS"
   if (server.includes("azmk8s.io") || execCommand === "az") return "AKS"
   return "Local"
-}
-
-export interface ConnectionStatus {
-  connected: boolean
-  /** Why the probe failed; omitted when connected. */
-  reason?: "network" | "auth" | "unknown"
-  error?: string
 }
 
 function classifyConnectionError(err: unknown): ConnectionStatus {

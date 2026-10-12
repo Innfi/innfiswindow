@@ -1,12 +1,9 @@
-import { BrowserWindow, dialog, IpcMain } from "electron"
+import { BrowserWindow, dialog } from "electron"
 
-/** A local path picked in the OS file dialog, or null when it was cancelled. */
-export interface SelectPathResult {
-  path: string | null
-}
+import type { SelectPathResult } from "../../shared/ipc"
 
 export function registerDialogHandlers(
-  ipcMain: IpcMain,
+  ipcMain: TypedIpcMain,
   getMainWindow: () => BrowserWindow | null,
 ): void {
   ipcMain.handle(
@@ -34,3 +31,4 @@ export function registerDialogHandlers(
     },
   )
 }
+import { TypedIpcMain } from "./typed-ipc"
