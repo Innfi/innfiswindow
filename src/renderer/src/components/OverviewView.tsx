@@ -1,6 +1,12 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
-import { triageCluster } from "../../../shared/triage"
+import type { AlertMutes, ClusterAlert } from "../../../shared/triage"
+import {
+  alertsInScope,
+  partitionAlerts,
+  pruneMutes,
+  triageCluster,
+} from "../../../shared/triage"
 import { RefreshBar } from "../../components/ui/RefreshBar"
 import {
   Table,
@@ -38,7 +44,13 @@ interface OverviewData {
   daemonSets: K8sDaemonSetSummary[]
   jobs: K8sJob[]
   pvcs: K8sPVC[]
+  /** What the lists were read for. A context or namespace switch leaves the
+   *  previous read on screen until the next one lands; anything that reasons
+   *  from an object's *absence* has to know which read it is looking at. */
+  readFor: { context: string | null; namespace: string | null } | null
 }
+
+const NO_MUTES: AlertMutes = {}
 
 function isUnhealthyPod(pod: K8sPodSummary): boolean {
   const phase = pod.status
@@ -75,10 +87,16 @@ export function OverviewView(): JSX.Element {
     daemonSets: [],
     jobs: [],
     pvcs: [],
+    readFor: null,
   })
   const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null)
 
   const selectedContext = useAppStore((s) => s.selectedContext)
+  const selectedNamespace = useAppStore((s) => s.selectedNamespace)
+  const mutes = useAppStore(
+    (s) => s.alertMutes[selectedContext ?? ""] ?? NO_MUTES,
+  )
+  const setAlertMutes = useAppStore((s) => s.setAlertMutes)
   const refreshInterval = useAppStore((s) => s.refreshInterval)
   const setSelectedResourceType = useAppStore((s) => s.setSelectedResourceType)
 
@@ -86,6 +104,9 @@ export function OverviewView(): JSX.Element {
     async (silent = false) => {
       try {
         const ctx = { contextName: selectedContext ?? undefined }
+        // The app bar's namespace scope, answered by the API server like it
+        // is for every list view. Nodes are cluster-scoped and read whole.
+        const scoped = { ...ctx, namespace: selectedNamespace ?? undefined }
         const [
           pods,
           nodes,
@@ -96,14 +117,14 @@ export function OverviewView(): JSX.Element {
           jobs,
           pvcs,
         ] = await Promise.all([
-          window.api.k8s.listPods(ctx),
+          window.api.k8s.listPods(scoped),
           window.api.k8s.listNodes(ctx),
-          window.api.k8s.listDeployments(ctx),
-          window.api.listEvents(ctx),
-          window.api.k8s.listStatefulSets(ctx),
-          window.api.k8s.listDaemonSets(ctx),
-          window.api.k8s.listJobs(ctx),
-          window.api.k8s.listPVCs(ctx),
+          window.api.k8s.listDeployments(scoped),
+          window.api.listEvents(scoped),
+          window.api.k8s.listStatefulSets(scoped),
+          window.api.k8s.listDaemonSets(scoped),
+          window.api.k8s.listJobs(scoped),
+          window.api.k8s.listPVCs(scoped),
         ])
         setData({
           pods,
@@ -114,13 +135,14 @@ export function OverviewView(): JSX.Element {
           daemonSets,
           jobs,
           pvcs,
+          readFor: { context: selectedContext, namespace: selectedNamespace },
         })
         setLastRefreshedAt(Date.now())
       } catch (err) {
         if (!silent) handleIpcError(err, "overview")
       }
     },
-    [selectedContext],
+    [selectedContext, selectedNamespace],
   )
 
   useEffect(() => {
@@ -136,7 +158,41 @@ export function OverviewView(): JSX.Element {
 
   // Worst-first list of what is actually broken, from the same objects the
   // cards below count.
-  const alerts = triageCluster(data)
+  const raised = useMemo(() => triageCluster(data), [data])
+  // The lists are already read under the namespace scope; filtering again
+  // keeps the previous namespace's rows off screen while the next read is in
+  // flight.
+  const { active: alerts, muted } = partitionAlerts(
+    alertsInScope(raised, selectedNamespace),
+    mutes,
+  )
+
+  // A mute lasts as long as its problem: once a read of this context no longer
+  // raises the alert, forget it, so a recurrence is shown again. Only a read
+  // made for the context and namespace on screen can say that.
+  useEffect(() => {
+    if (
+      data.readFor === null ||
+      data.readFor.context !== selectedContext ||
+      data.readFor.namespace !== selectedNamespace
+    ) {
+      return
+    }
+    const kept = pruneMutes(mutes, raised, selectedNamespace)
+    if (kept !== mutes) setAlertMutes(selectedContext, kept)
+  }, [data, raised, mutes, selectedContext, selectedNamespace, setAlertMutes])
+
+  const muteAlert = (alert: ClusterAlert, until: number | null): void =>
+    setAlertMutes(selectedContext, {
+      ...mutes,
+      [alert.id]: { until, namespace: alert.namespace },
+    })
+
+  const restoreAlerts = (restored: ClusterAlert[]): void => {
+    const kept = { ...mutes }
+    for (const alert of restored) delete kept[alert.id]
+    setAlertMutes(selectedContext, kept)
+  }
 
   const unhealthyPods = data.pods.filter(isUnhealthyPod)
   const nodePressureCount = data.nodes.filter(isNodeUnderPressure).length
@@ -217,7 +273,14 @@ export function OverviewView(): JSX.Element {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2 border-b px-4 py-2 shrink-0">
-        <h2 className="font-semibold flex-1">Cluster Overview</h2>
+        <h2 className="font-semibold flex-1">
+          Cluster Overview
+          {selectedNamespace && (
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              namespace {selectedNamespace} · nodes are cluster-wide
+            </span>
+          )}
+        </h2>
         <RefreshBar
           lastRefreshedAt={lastRefreshedAt}
           onRefresh={() => fetchAll(false)}
@@ -225,7 +288,14 @@ export function OverviewView(): JSX.Element {
       </div>
 
       <div className="flex-1 overflow-auto p-4 space-y-6">
-        <NeedsAttentionSection alerts={alerts} />
+        <NeedsAttentionSection
+          alerts={alerts}
+          muted={muted}
+          mutes={mutes}
+          namespace={selectedNamespace}
+          onMute={muteAlert}
+          onRestore={restoreAlerts}
+        />
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

@@ -1,7 +1,12 @@
 import { describe, expect, test } from "vitest"
 
-import type { TriageInput } from "../../shared/triage"
-import { triageCluster } from "../../shared/triage"
+import type { AlertMutes, TriageInput } from "../../shared/triage"
+import {
+  alertsInScope,
+  partitionAlerts,
+  pruneMutes,
+  triageCluster,
+} from "../../shared/triage"
 
 // The Overview's "Needs attention" list is only worth having if it is quiet on
 // a healthy cluster: every row that is not actionable trains the reader to
@@ -340,5 +345,88 @@ describe("triageCluster", () => {
       "old-crash",
       "restarter",
     ])
+  })
+})
+
+describe("alertsInScope", () => {
+  const alerts = triageCluster(
+    {
+      ...EMPTY,
+      nodes: [node({ name: "node-9", status: "NotReady" })],
+      pods: [
+        pod({ name: "a", namespace: "shop", status: "Error" }),
+        pod({ name: "b", namespace: "billing", status: "Error" }),
+      ],
+    },
+    NOW,
+  )
+
+  test("no namespace is every alert", () => {
+    expect(alertsInScope(alerts, null)).toHaveLength(3)
+  })
+
+  test("a namespace keeps its own alerts and the cluster-scoped ones", () => {
+    expect(
+      alertsInScope(alerts, "shop")
+        .map((a) => a.name)
+        .sort(),
+    ).toEqual(["a", "node-9"])
+  })
+})
+
+describe("alert mutes", () => {
+  const alerts = triageCluster(
+    {
+      ...EMPTY,
+      pods: [
+        pod({ name: "a", namespace: "shop", status: "Error" }),
+        pod({ name: "b", namespace: "billing", status: "Error" }),
+      ],
+    },
+    NOW,
+  )
+  const A = "pod-status/shop/a"
+  const B = "pod-status/billing/b"
+
+  test("a dismissal and a running snooze hide; an expired snooze does not", () => {
+    const mutes: AlertMutes = {
+      [A]: { until: null, namespace: "shop" },
+      [B]: { until: NOW - 1, namespace: "billing" },
+    }
+    const { active, muted } = partitionAlerts(alerts, mutes, NOW)
+    expect(active.map((a) => a.id)).toEqual([B])
+    expect(muted.map((a) => a.id)).toEqual([A])
+    expect(
+      partitionAlerts(
+        alerts,
+        { [B]: { until: NOW + 1, namespace: "billing" } },
+        NOW,
+      ).muted.map((a) => a.id),
+    ).toEqual([B])
+  })
+
+  test("a mute is dropped once its alert is no longer raised", () => {
+    const mutes: AlertMutes = { [A]: { until: null, namespace: "shop" } }
+    expect(pruneMutes(mutes, [], null, NOW)).toEqual({})
+  })
+
+  test("an expired snooze is dropped even while the alert is raised", () => {
+    const mutes: AlertMutes = { [A]: { until: NOW - 1, namespace: "shop" } }
+    expect(pruneMutes(mutes, alerts, null, NOW)).toEqual({})
+  })
+
+  test("a mute outside the namespace scope is not taken for resolved", () => {
+    const mutes: AlertMutes = {
+      [A]: { until: null, namespace: "shop" },
+      [B]: { until: null, namespace: "billing" },
+    }
+    // Read under "shop", the billing pod is simply not in the lists.
+    const scoped = alertsInScope(alerts, "shop")
+    expect(pruneMutes(mutes, scoped, "shop", NOW)).toBe(mutes)
+  })
+
+  test("nothing to drop hands back the same object", () => {
+    const mutes: AlertMutes = { [A]: { until: null, namespace: "shop" } }
+    expect(pruneMutes(mutes, alerts, null, NOW)).toBe(mutes)
   })
 })

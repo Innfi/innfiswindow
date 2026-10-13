@@ -452,3 +452,90 @@ export function countBySeverity(alerts: ClusterAlert[]): {
     warning: alerts.filter((a) => a.severity === "warning").length,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Namespace scope
+// ---------------------------------------------------------------------------
+
+/**
+ * The alerts the app bar's namespace scope leaves on screen. A cluster-scoped
+ * object (a node) is in every scope: a node that stopped reporting is the
+ * reason for whatever is wrong in the namespace being looked at. `null` is
+ * "all namespaces".
+ */
+export function alertsInScope(
+  alerts: ClusterAlert[],
+  namespace: string | null,
+): ClusterAlert[] {
+  if (!namespace) return alerts
+  return alerts.filter((a) => a.namespace === "" || a.namespace === namespace)
+}
+
+// ---------------------------------------------------------------------------
+// Dismiss / snooze
+// ---------------------------------------------------------------------------
+
+/**
+ * A reader's "I know about this one". A snooze has a deadline and the alert
+ * comes back after it; a dismissal (`until: null`) lasts for as long as the
+ * problem does — once the alert stops being raised the mute is dropped, so the
+ * same object breaking again next week is shown again.
+ */
+export interface AlertMute {
+  /** Epoch ms the alert reappears at; null hides it until it resolves. */
+  until: number | null
+  /** The alert's namespace (`""` when cluster-scoped), kept so a mute is not
+   *  mistaken for resolved while its namespace is scoped out of view. */
+  namespace: string
+}
+
+/** Mutes of one cluster, by `ClusterAlert.id`. */
+export type AlertMutes = Record<string, AlertMute>
+
+const isMuted = (mute: AlertMute | undefined, now: number): boolean =>
+  mute !== undefined && (mute.until === null || mute.until > now)
+
+/** Splits the alerts into the ones to show and the ones muted right now. */
+export function partitionAlerts(
+  alerts: ClusterAlert[],
+  mutes: AlertMutes,
+  now: number = Date.now(),
+): { active: ClusterAlert[]; muted: ClusterAlert[] } {
+  const active: ClusterAlert[] = []
+  const muted: ClusterAlert[] = []
+  for (const alert of alerts) {
+    if (isMuted(mutes[alert.id], now)) muted.push(alert)
+    else active.push(alert)
+  }
+  return { active, muted }
+}
+
+/**
+ * Drops the mutes that no longer hide anything: a snooze past its deadline,
+ * and any mute whose alert is no longer raised. `alerts` must be a triage of
+ * the cluster the mutes belong to, read under `namespace`; a mute for an
+ * object outside that scope is kept, since nothing here can say whether its
+ * problem is still there. Returns `mutes` itself when nothing changed, so a
+ * caller can skip the write.
+ */
+export function pruneMutes(
+  mutes: AlertMutes,
+  alerts: ClusterAlert[],
+  namespace: string | null,
+  now: number = Date.now(),
+): AlertMutes {
+  const raised = new Set(alerts.map((a) => a.id))
+  const kept: AlertMutes = {}
+  let changed = false
+  for (const [id, mute] of Object.entries(mutes)) {
+    const expired = mute.until !== null && mute.until <= now
+    const visible =
+      !namespace || mute.namespace === "" || mute.namespace === namespace
+    if (expired || (visible && !raised.has(id))) {
+      changed = true
+      continue
+    }
+    kept[id] = mute
+  }
+  return changed ? kept : mutes
+}

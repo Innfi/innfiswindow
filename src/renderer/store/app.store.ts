@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware"
 
 import { fieldSelectorFields } from "../../shared/field-selector"
 import type { AccessSubject } from "../../shared/k8s"
+import type { AlertMutes } from "../../shared/triage"
 import type { ResourceGvk, ResourceKind } from "../lib/resource-gvk"
 import type { ResourceType } from "../src/types/resource"
 
@@ -250,6 +251,9 @@ interface AppState {
   /** Detail-panel sections folded away, by the id `CollapsibleSection` is
    *  given. Absent means open, so a new section starts expanded. */
   collapsedSections: Record<string, boolean>
+  /** "Needs attention" rows the reader dismissed or snoozed, per kubeconfig
+   *  context (`""` for the default one) and then by alert id. */
+  alertMutes: Record<string, AlertMutes>
   themeId: string
   refreshInterval: RefreshIntervalValue
   drawerTabs: DrawerTab[]
@@ -280,6 +284,8 @@ interface AppState {
   setLabelSelector: (selector: string) => void
   setFieldSelector: (selector: string) => void
   toggleSectionCollapsed: (id: string) => void
+  /** Replaces one context's mutes; an empty set removes the context's entry. */
+  setAlertMutes: (context: string | null, mutes: AlertMutes) => void
   setThemeId: (id: string) => void
   setRefreshInterval: (interval: RefreshIntervalValue) => void
   openDrawerTab: (tab: DrawerTabInput) => void
@@ -313,6 +319,7 @@ export const useAppStore = create<AppState>()(
       labelSelector: "",
       fieldSelector: "",
       collapsedSections: {},
+      alertMutes: {},
       themeId: "default",
       refreshInterval: 30,
       drawerTabs: [],
@@ -496,6 +503,16 @@ export const useAppStore = create<AppState>()(
           },
         })
       },
+      setAlertMutes: (context, mutes) => {
+        const others = { ...get().alertMutes }
+        delete others[context ?? ""]
+        set({
+          alertMutes:
+            Object.keys(mutes).length > 0
+              ? { ...others, [context ?? ""]: mutes }
+              : others,
+        })
+      },
       setThemeId: (id) => set({ themeId: id }),
       setRefreshInterval: (interval) => set({ refreshInterval: interval }),
       openDrawerTab: (tabData: DrawerTabInput) => {
@@ -521,11 +538,16 @@ export const useAppStore = create<AppState>()(
       },
       setActiveDrawerTab: (id) => set({ activeTabId: id }),
       cleanupContextStates: (activeContextNames) => {
-        const { contextStates, contextNamespaces, contextAliases } = get()
+        const { contextStates, contextNamespaces, contextAliases, alertMutes } =
+          get()
         const cleaned: Record<string, ContextState> = {}
         const cleanedNs: Record<string, string | null> = {}
         const cleanedAliases: Record<string, string> = {}
+        // "" is the default context, which has no name to go stale.
+        const cleanedMutes: Record<string, AlertMutes> = {}
+        if (alertMutes[""]) cleanedMutes[""] = alertMutes[""]
         for (const name of activeContextNames) {
+          if (alertMutes[name]) cleanedMutes[name] = alertMutes[name]
           if (contextStates[name]) cleaned[name] = contextStates[name]
           if (name in contextNamespaces)
             cleanedNs[name] = contextNamespaces[name]
@@ -536,6 +558,7 @@ export const useAppStore = create<AppState>()(
           contextStates: cleaned,
           contextNamespaces: cleanedNs,
           contextAliases: cleanedAliases,
+          alertMutes: cleanedMutes,
         })
       },
       setContextAlias: (contextName, alias) => {
@@ -626,6 +649,7 @@ export const useAppStore = create<AppState>()(
         themeId: state.themeId,
         refreshInterval: state.refreshInterval,
         collapsedSections: state.collapsedSections,
+        alertMutes: state.alertMutes,
         contextStates: state.contextStates,
         contextNamespaces: state.contextNamespaces,
         contextAliases: state.contextAliases,
