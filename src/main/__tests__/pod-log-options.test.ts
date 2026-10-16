@@ -1,8 +1,12 @@
+import { createServer, Server } from "http"
+import { AddressInfo } from "net"
 import { PassThrough, Writable } from "stream"
-import { describe, expect, test } from "vitest"
+import { afterEach, describe, expect, test } from "vitest"
+import { KubeConfig } from "@kubernetes/client-node"
 
 import {
   createLineSplitter,
+  readContainerLog,
   toLogQueryOptions,
   toRfc3339Seconds,
   writeContainerLogs,
@@ -162,5 +166,87 @@ describe("createLineSplitter", () => {
     splitter.flush()
 
     expect(lines).toEqual(["one", "two"])
+  })
+})
+
+// The save used to hang for good when the connection to the API server dropped
+// part-way through a log: the body was `pipe`d into the sink, and `pipe` does
+// not pass an error on. These run the real reader against a local server that
+// misbehaves the two ways a real one can.
+describe("readContainerLog", () => {
+  let server: Server | null = null
+  afterEach(() => {
+    server?.closeAllConnections()
+    server?.close()
+    server = null
+  })
+
+  async function serve(
+    handler: Parameters<typeof createServer>[1],
+  ): Promise<KubeConfig> {
+    server = createServer(handler)
+    await new Promise<void>((resolve) =>
+      server!.listen(0, "127.0.0.1", resolve),
+    )
+    const { port } = server.address() as AddressInfo
+    const kc = new KubeConfig()
+    kc.loadFromOptions({
+      // client-node refuses plain HTTP unless TLS checks are off.
+      clusters: [
+        {
+          name: "c",
+          server: `http://127.0.0.1:${port}`,
+          skipTLSVerify: true,
+        },
+      ],
+      users: [{ name: "u" }],
+      contexts: [{ name: "x", cluster: "c", user: "u" }],
+      currentContext: "x",
+    })
+    return kc
+  }
+
+  const save = (kc: KubeConfig, idleMs?: number): Promise<number> =>
+    writeContainerLogs(
+      ["app"],
+      (container, sink) =>
+        readContainerLog(kc, "default", "web", container, {}, sink, idleMs),
+      new PassThrough(),
+    )
+
+  test("writes a whole log", async () => {
+    const kc = await serve((req, res) => {
+      expect(req.url).toContain("/api/v1/namespaces/default/pods/web/log")
+      expect(req.url).toContain("container=app")
+      res.end("one\ntwo\n")
+    })
+    await expect(save(kc)).resolves.toBe("one\ntwo\n".length)
+  })
+
+  test("fails, rather than waits, when the connection drops mid-read", async () => {
+    const kc = await serve((_req, res) => {
+      res.writeHead(200)
+      res.write("first half\n")
+      setTimeout(() => res.socket?.destroy(), 20)
+    })
+    await expect(save(kc)).rejects.toThrow(
+      "connection closed before the log ended",
+    )
+  })
+
+  test("fails when the server stops sending", async () => {
+    const kc = await serve((_req, res) => {
+      res.writeHead(200)
+      res.write("then nothing\n")
+    })
+    await expect(save(kc, 100)).rejects.toThrow("stopped arriving")
+  })
+
+  test("an error status carries the reason from the Status body", async () => {
+    const kc = await serve((_req, res) => {
+      res.writeHead(400, { "Content-Type": "application/json" })
+      res.end(JSON.stringify({ message: "container app is not valid" }))
+    })
+    await expect(save(kc)).rejects.toThrow("container app is not valid")
   })
 })

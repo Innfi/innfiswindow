@@ -2,8 +2,16 @@ import { type BrowserWindow, dialog } from "electron"
 import { once } from "events"
 import { createWriteStream } from "fs"
 import { rm } from "fs/promises"
-import { PassThrough, Writable } from "stream"
-import { Exec, Log } from "@kubernetes/client-node"
+import http from "http"
+import https from "https"
+import { finished, PassThrough, Writable } from "stream"
+import {
+  AddOptionsToSearchParams,
+  Exec,
+  KubeConfig,
+  Log,
+  LogOptions,
+} from "@kubernetes/client-node"
 
 import type { PodLogOptions } from "../../shared/ipc"
 import { GetKubeConfig } from "./context-clients"
@@ -87,6 +95,101 @@ export async function writeContainerLogs(
   out.end()
   await once(out, "finish")
   return bytes
+}
+
+/** A bulk read that goes this long without a byte has stalled: a non-following
+ *  log read is the server streaming a finished file, never waiting on one. */
+export const LOG_READ_IDLE_MS = 60_000
+
+/**
+ * One container's log read into `sink`, in the shape `writeContainerLogs`
+ * takes: resolves once the body is streaming, rejects on an error status.
+ *
+ * Not `Log.log`: that `pipe`s the response body into the sink, and `pipe` does
+ * not pass an error on, so a connection dropped mid-read left the sink open
+ * and the save waiting on it for good. Here a body that ends any way other
+ * than cleanly destroys the sink with an error saying so — and a read that
+ * stops sending altogether is cut off after `idleMs` the same way.
+ */
+export async function readContainerLog(
+  kc: KubeConfig,
+  namespace: string,
+  podName: string,
+  container: string,
+  query: LogOptions,
+  sink: Writable,
+  idleMs: number = LOG_READ_IDLE_MS,
+): Promise<void> {
+  const cluster = kc.getCurrentCluster()
+  if (!cluster) throw new Error("No active k8s cluster")
+  const url = new URL(
+    `/api/v1/namespaces/${encodeURIComponent(namespace)}/pods/${encodeURIComponent(podName)}/log`,
+    cluster.server,
+  )
+  url.searchParams.set("container", container)
+  AddOptionsToSearchParams(query, url.searchParams)
+
+  const options: https.RequestOptions = { method: "GET" }
+  await kc.applyToHTTPSOptions(options)
+  const transport = url.protocol === "http:" ? http : https
+
+  await new Promise<void>((resolve, reject) => {
+    let body: http.IncomingMessage | null = null
+    const req = transport.request(url, options, (res) => {
+      const status = res.statusCode ?? 0
+      if (status !== 200) {
+        const chunks: Buffer[] = []
+        res.on("data", (chunk: Buffer) => chunks.push(chunk))
+        res.on("end", () =>
+          reject(
+            new Error(
+              `Log of ${container}: ${status} ${statusText(Buffer.concat(chunks).toString("utf8"))}`,
+            ),
+          ),
+        )
+        res.on("error", reject)
+        return
+      }
+      body = res
+      res.pipe(sink)
+      finished(res, (err) => {
+        if (!err) return
+        // A stall names itself below; anything else is the connection going.
+        const cause = err.message.startsWith("Log of")
+          ? err
+          : new Error(
+              `Log of ${container}: the connection closed before the log ended (${err.message})`,
+            )
+        sink.destroy(cause)
+      })
+      resolve()
+    })
+    req.setTimeout(idleMs, () => {
+      const stalled = new Error(
+        `Log of ${container} stopped arriving (nothing for ${Math.round(idleMs / 1000)}s)`,
+      )
+      // Mid-body, the body carries the error to the sink; before it, the
+      // request rejects the read.
+      if (body) body.destroy(stalled)
+      req.destroy(stalled)
+    })
+    req.on("error", (err) => {
+      if (!body) reject(err)
+    })
+    req.end()
+  })
+}
+
+/** The message out of a `metav1.Status` body, or the start of whatever else
+ *  came back. */
+function statusText(body: string): string {
+  try {
+    const parsed = JSON.parse(body) as { message?: unknown }
+    if (typeof parsed.message === "string") return parsed.message
+  } catch {
+    // not JSON
+  }
+  return body.slice(0, 200)
 }
 
 /** Chunk boundaries land mid-line, so the trailing fragment is held back until
@@ -233,13 +336,13 @@ export function registerPodStreamHandlers(
         : await dialog.showSaveDialog(dialogOptions)
       if (picked.canceled || !picked.filePath) return { path: null }
 
-      const log = new Log(getKubeConfig(contextName))
+      const kc = getKubeConfig(contextName)
       const out = createWriteStream(picked.filePath)
       try {
         const bytes = await writeContainerLogs(
           containers,
           (container, sink) =>
-            log.log(namespace, podName, container, sink, query),
+            readContainerLog(kc, namespace, podName, container, query, sink),
           out,
         )
         return { path: picked.filePath, bytes }

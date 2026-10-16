@@ -55,20 +55,14 @@ export function setPrometheusConfig(config: PrometheusConfig): {
   success: boolean
 } {
   saveConfig(config)
-  if (pfTunnel) {
-    pfTunnel.server.close()
-    pfTunnel = null
-  }
-  proxyMode = "apiserver"
+  // A new service address voids every context's tunnel and every fallback
+  // decision made against the old one.
+  for (const route of routes.values()) route.tunnel?.server.close()
+  routes.clear()
   return { success: true }
 }
 
 type ProxyMode = "apiserver" | "portforward"
-
-// Some clusters deny the API server's services/proxy subresource via RBAC.
-// Fall back to a pod-level port-forward tunnel (needs only pods/portforward)
-// once that's detected, and stick with it for subsequent calls.
-let proxyMode: ProxyMode = "apiserver"
 
 interface PortForwardTunnel {
   key: string
@@ -76,7 +70,29 @@ interface PortForwardTunnel {
   localPort: number
 }
 
-let pfTunnel: PortForwardTunnel | null = null
+/**
+ * How one kubeconfig context reaches its Prometheus. Some clusters deny the
+ * API server's services/proxy subresource via RBAC; a context falls back to a
+ * pod-level port-forward tunnel (needs only pods/portforward) once that is
+ * detected, and sticks with it. Kept per context: a tunnel is into one
+ * cluster's pod, and one cluster's RBAC says nothing about another's.
+ */
+interface PrometheusRoute {
+  proxyMode: ProxyMode
+  tunnel: PortForwardTunnel | null
+}
+
+/** Keyed by context name, `""` for the kubeconfig's current context. */
+const routes = new Map<string, PrometheusRoute>()
+
+function routeFor(contextKey: string): PrometheusRoute {
+  let route = routes.get(contextKey)
+  if (!route) {
+    route = { proxyMode: "apiserver", tunnel: null }
+    routes.set(contextKey, route)
+  }
+  return route
+}
 
 function isForbidden(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e)
@@ -110,17 +126,18 @@ async function resolveEndpointPod(
 
 async function getPortForwardEndpoint(
   kc: KubeConfig,
+  route: PrometheusRoute,
   config: PrometheusConfig,
 ): Promise<string> {
   const { namespace, service, port } = config
   const key = `${namespace}/${service}/${port}`
 
-  if (pfTunnel && pfTunnel.key === key) {
-    return `http://127.0.0.1:${pfTunnel.localPort}`
+  if (route.tunnel && route.tunnel.key === key) {
+    return `http://127.0.0.1:${route.tunnel.localPort}`
   }
-  if (pfTunnel) {
-    pfTunnel.server.close()
-    pfTunnel = null
+  if (route.tunnel) {
+    route.tunnel.server.close()
+    route.tunnel = null
   }
 
   const coreV1Api = kc.makeApiClient(CoreV1Api)
@@ -146,16 +163,17 @@ async function getPortForwardEndpoint(
     server.on("error", reject)
   })
 
-  pfTunnel = { key, server, localPort }
+  route.tunnel = { key, server, localPort }
   return `http://127.0.0.1:${localPort}`
 }
 
 async function buildDriver(
   kc: KubeConfig,
+  route: PrometheusRoute,
   config: PrometheusConfig,
 ): Promise<PrometheusDriver> {
-  if (proxyMode === "portforward") {
-    const endpoint = await getPortForwardEndpoint(kc, config)
+  if (route.proxyMode === "portforward") {
+    const endpoint = await getPortForwardEndpoint(kc, route, config)
     return new PrometheusDriver({ endpoint })
   }
 
@@ -187,26 +205,28 @@ async function buildDriver(
 
 async function withProxyFallback<T>(
   kc: KubeConfig,
+  route: PrometheusRoute,
   config: PrometheusConfig,
   fn: (driver: PrometheusDriver) => Promise<T>,
 ): Promise<T> {
-  const driver = await buildDriver(kc, config)
+  const driver = await buildDriver(kc, route, config)
   try {
     return await fn(driver)
   } catch (e) {
-    if (proxyMode !== "apiserver" || !isForbidden(e)) throw e
-    proxyMode = "portforward"
-    const fallbackDriver = await buildDriver(kc, config)
+    if (route.proxyMode !== "apiserver" || !isForbidden(e)) throw e
+    route.proxyMode = "portforward"
+    const fallbackDriver = await buildDriver(kc, route, config)
     return fn(fallbackDriver)
   }
 }
 
 function currentEndpointLabel(
   kc: KubeConfig,
+  route: PrometheusRoute,
   config: PrometheusConfig,
 ): string {
   const { namespace, service, port } = config
-  if (proxyMode === "portforward") {
+  if (route.proxyMode === "portforward") {
     return `portforward://${namespace}/${service}:${port}`
   }
   const cluster = kc.getCurrentCluster()
@@ -231,55 +251,88 @@ async function queryPrometheus(
   }))
 }
 
-export async function checkPrometheusConnectivity(): Promise<PrometheusDiscoveryResult> {
+/** `kc` must be the KubeConfig of `contextName`; the name keys the context's
+ *  proxy-or-tunnel state. */
+export async function checkPrometheusConnectivity(
+  kc: KubeConfig,
+  contextName?: string | null,
+): Promise<PrometheusDiscoveryResult> {
   const config = loadConfig()
-  const kc = new KubeConfig()
-  kc.loadFromDefault()
+  const route = routeFor(contextName ?? "")
 
   try {
-    await withProxyFallback(kc, config, (driver) => driver.instantQuery("1"))
-    return { ok: true, endpoint: currentEndpointLabel(kc, config) }
+    await withProxyFallback(kc, route, config, (driver) =>
+      driver.instantQuery("1"),
+    )
+    return { ok: true, endpoint: currentEndpointLabel(kc, route, config) }
   } catch (e) {
     const error =
       e instanceof Error ? e.message : (JSON.stringify(e) ?? String(e))
-    return { ok: false, endpoint: currentEndpointLabel(kc, config), error }
+    return {
+      ok: false,
+      endpoint: currentEndpointLabel(kc, route, config),
+      error,
+    }
   }
 }
 
+/**
+ * A PromQL string literal holding `value` exactly. Kubernetes names cannot
+ * carry a quote or a backslash today, but this is the one place a name is
+ * spliced into a query language, so it does not rely on that.
+ */
+export function promStringLiteral(value: string): string {
+  return `"${value
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, "\\n")}"`
+}
+
+/** The six range queries behind the pod metrics charts. Both labels are
+ *  exact matches: a namespace is a name, not a pattern. */
+export function podMetricQueries(
+  namespace: string,
+  podName: string,
+): Record<keyof PodMetricsResult, string> {
+  const pod = `namespace=${promStringLiteral(namespace)},pod=${promStringLiteral(podName)}`
+  return {
+    cpu: `sum by (pod) (rate(container_cpu_usage_seconds_total{${pod},container!=""}[5m]))`,
+    memory: `sum by (pod) (container_memory_working_set_bytes{${pod},container!=""})`,
+    networkRx: `sum by (pod) (rate(container_network_receive_bytes_total{${pod}}[5m]))`,
+    networkTx: `sum by (pod) (rate(container_network_transmit_bytes_total{${pod}}[5m]))`,
+    diskRead: `sum by (pod) (rate(container_fs_reads_bytes_total{${pod}}[5m]))`,
+    diskWrite: `sum by (pod) (rate(container_fs_writes_bytes_total{${pod}}[5m]))`,
+  }
+}
+
+/** `kc` must be the KubeConfig of `contextName`, as for the connectivity
+ *  check: the pod is in that cluster, so its metrics are in that cluster's
+ *  Prometheus. */
 export async function getPodMetrics(
+  kc: KubeConfig,
+  contextName: string | null | undefined,
   namespace: string,
   podName: string,
   step = 60,
   rangeMinutes = 30,
 ): Promise<PodMetricsResult | PodMetricsError> {
   const config = loadConfig()
-
-  const kc = new KubeConfig()
-  kc.loadFromDefault()
+  const route = routeFor(contextName ?? "")
 
   const end = Math.floor(Date.now() / 1000)
   const start = end - rangeMinutes * 60
-
-  const ns = namespace
-  const pod = podName
-
-  const cpuQuery = `sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=~"${ns}",pod="${pod}",container!=""}[5m]))`
-  const memQuery = `sum by (pod) (container_memory_working_set_bytes{namespace=~"${ns}",pod="${pod}",container!=""})`
-  const netRxQuery = `sum by (pod) (rate(container_network_receive_bytes_total{namespace=~"${ns}",pod="${pod}"}[5m]))`
-  const netTxQuery = `sum by (pod) (rate(container_network_transmit_bytes_total{namespace=~"${ns}",pod="${pod}"}[5m]))`
-  const diskReadQuery = `sum by (pod) (rate(container_fs_reads_bytes_total{namespace=~"${ns}",pod="${pod}"}[5m]))`
-  const diskWriteQuery = `sum by (pod) (rate(container_fs_writes_bytes_total{namespace=~"${ns}",pod="${pod}"}[5m]))`
+  const q = podMetricQueries(namespace, podName)
 
   try {
     const [cpu, memory, networkRx, networkTx, diskRead, diskWrite] =
-      await withProxyFallback(kc, config, (driver) =>
+      await withProxyFallback(kc, route, config, (driver) =>
         Promise.all([
-          queryPrometheus(driver, cpuQuery, start, end, step),
-          queryPrometheus(driver, memQuery, start, end, step),
-          queryPrometheus(driver, netRxQuery, start, end, step),
-          queryPrometheus(driver, netTxQuery, start, end, step),
-          queryPrometheus(driver, diskReadQuery, start, end, step),
-          queryPrometheus(driver, diskWriteQuery, start, end, step),
+          queryPrometheus(driver, q.cpu, start, end, step),
+          queryPrometheus(driver, q.memory, start, end, step),
+          queryPrometheus(driver, q.networkRx, start, end, step),
+          queryPrometheus(driver, q.networkTx, start, end, step),
+          queryPrometheus(driver, q.diskRead, start, end, step),
+          queryPrometheus(driver, q.diskWrite, start, end, step),
         ]),
       )
 

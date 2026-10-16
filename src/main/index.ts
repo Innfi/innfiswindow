@@ -238,7 +238,7 @@ app.whenReady().then(() => {
   registerAwsHandlers(ipcMain)
   registerAlarmHandlers(k8sIpc, getContextClients)
   registerHelmHandlers(ipcMain)
-  registerPrometheusHandlers(ipcMain)
+  registerPrometheusHandlers(ipcMain, getKubeConfig)
   registerEventsHandlers(k8sIpc, getContextClients)
   registerWatchHandlers(k8sIpc, { getKubeConfig, getContextClients })
   registerPodStreamHandlers(k8sIpc, getKubeConfig, getMainWindow)
@@ -249,7 +249,7 @@ app.whenReady().then(() => {
 
   createWindow()
 
-  checkPrometheusConnectivity().then((result) => {
+  checkPrometheusConnectivity(kc).then((result) => {
     console.log("[prometheus] connectivity check:", JSON.stringify(result))
   })
 

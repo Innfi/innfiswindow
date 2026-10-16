@@ -736,15 +736,20 @@ export interface IpcInvokeMap {
   >
 
   // prometheus, aws, alarms, helm
-  "prometheus:connectivity:check": Call<[], PrometheusDiscoveryResult>
+  "prometheus:connectivity:check": Call<
+    [args?: ContextArgs],
+    PrometheusDiscoveryResult
+  >
   "prometheus:config:get": Call<[], PrometheusConfig>
   "prometheus:config:set": Call<
     [config: PrometheusConfig],
     { success: boolean }
   >
+  /** Read from the Prometheus of `contextName`'s cluster, the one the pod is
+   *  in; omitted, the kubeconfig's current context. */
   "prometheus:pod:metrics": Call<
     [
-      args: {
+      args: ContextArgs & {
         namespace: string
         podName: string
         step?: number

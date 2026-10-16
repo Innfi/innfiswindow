@@ -274,6 +274,9 @@ export function PodMetricsSection({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notConfigured, setNotConfigured] = useState(false)
+  // The pod is in the selected context's cluster, so its series are in that
+  // cluster's Prometheus.
+  const selectedContext = useAppStore((s) => s.selectedContext)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   function clearTimer(): void {
@@ -289,6 +292,7 @@ export function PodMetricsSection({
     setNotConfigured(false)
     try {
       const result = (await window.api.getPrometheusPodMetrics({
+        contextName: selectedContext ?? undefined,
         namespace,
         podName,
       })) as MetricsResult
@@ -318,7 +322,7 @@ export function PodMetricsSection({
     return () => {
       clearTimer()
     }
-  }, [namespace, podName])
+  }, [selectedContext, namespace, podName])
 
   if (loading) {
     return (

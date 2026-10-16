@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import { WatchResource } from "../../../shared/watch"
+import {
+  isPermanentWatchError,
+  WATCH_HEALTHY_MS,
+  WatchResource,
+  watchRetryDelay,
+} from "../../../shared/watch"
 import { normalizeIpcError } from "../../lib/ipc-error"
 import { useAppStore } from "../../store/app.store"
 
@@ -45,7 +50,9 @@ export function useK8sResource<T>(
      * Serve this list from a main-process informer instead of re-listing it on
      * every poll tick. The snapshot and the incremental updates are the same
      * shapes `fetcher` returns, and any failure — a role without the `watch`
-     * verb, a dropped stream — falls back to polling `fetcher`.
+     * verb, a dropped stream — falls back to polling `fetcher`. A dropped or
+     * unreachable watch is tried again on a backoff; one the cluster refused
+     * (403) is not, until the target changes.
      */
     watch?: WatchResource
   },
@@ -75,9 +82,40 @@ export function useK8sResource<T>(
   const fieldSelector = options?.fieldSelector ?? ""
   const watch = options?.watch
 
-  // Sticky for the life of the mount: retrying a watch the cluster has already
-  // refused would stall every later dependency change behind a doomed request.
+  // True while the list is polling in place of a watch that failed or dropped.
+  // A new target clears it; otherwise a timer does, after a backoff — except
+  // when the cluster refused the watch outright, which no retry will change.
   const [watchFailed, setWatchFailed] = useState(false)
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Consecutive failures of this target, for the backoff.
+  const retryAttemptRef = useRef(0)
+
+  const clearRetryTimer = useCallback(() => {
+    if (retryTimerRef.current !== null) clearTimeout(retryTimerRef.current)
+    retryTimerRef.current = null
+  }, [])
+
+  const watchFailedWith = useCallback(
+    (message: string) => {
+      setWatchFailed(true)
+      clearRetryTimer()
+      if (isPermanentWatchError(message)) return
+      const delay = watchRetryDelay(retryAttemptRef.current++)
+      retryTimerRef.current = setTimeout(() => {
+        retryTimerRef.current = null
+        setWatchFailed(false)
+      }, delay)
+    },
+    [clearRetryTimer],
+  )
+
+  // Another context, namespace or selector is another watch, and gets a fresh
+  // attempt whatever happened to the last one.
+  useEffect(() => {
+    retryAttemptRef.current = 0
+    setWatchFailed(false)
+    return clearRetryTimer
+  }, [watch, context, namespace, labelSelector, clearRetryTimer])
 
   // A watch is a background refresh, so "off" turns it off too. Pausing tears
   // the subscription down instead of buffering, so resuming re-lists rather
@@ -202,6 +240,7 @@ export function useK8sResource<T>(
           return
         }
         activeSubId = subId
+        const establishedAt = Date.now()
         setData(items as T[])
         setError(null)
         setLoading(false)
@@ -227,12 +266,17 @@ export function useK8sResource<T>(
 
         offClosed = window.api.onWatchClosed((message) => {
           if (message.subId !== subId) return
+          // A watch that held for a while was healthy; this drop is a new
+          // incident rather than the next step of an old backoff.
+          if (Date.now() - establishedAt >= WATCH_HEALTHY_MS) {
+            retryAttemptRef.current = 0
+          }
           // Rows on screen stay put until the polling fallback replaces them.
-          setWatchFailed(true)
+          watchFailedWith(message.error)
         })
       })
-      .catch(() => {
-        if (!cancelled) setWatchFailed(true)
+      .catch((err) => {
+        if (!cancelled) watchFailedWith(normalizeIpcError(err))
       })
 
     return () => {
@@ -243,7 +287,15 @@ export function useK8sResource<T>(
         window.api.stopWatch({ subId: activeSubId }).catch(() => {})
       }
     }
-  }, [watching, watch, paused, context, namespace, labelSelector])
+  }, [
+    watching,
+    watch,
+    paused,
+    context,
+    namespace,
+    labelSelector,
+    watchFailedWith,
+  ])
 
   return { data, loading, error, reload, reloadAfterWrite, lastRefreshedAt }
 }

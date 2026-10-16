@@ -55,3 +55,36 @@ export interface WatchClosedMessage {
   subId: string
   error: string
 }
+
+// ---------------------------------------------------------------------------
+// Falling back and coming back
+// ---------------------------------------------------------------------------
+
+/** First wait before re-trying a watch that failed or dropped. */
+export const WATCH_RETRY_BASE_MS = 30_000
+
+/** Longest wait between attempts: past this the view polls, and the watch is
+ *  still tried now and then. */
+export const WATCH_RETRY_MAX_MS = 10 * 60_000
+
+/** A watch that stayed up this long counts as healthy, so a later drop starts
+ *  the backoff over instead of continuing it. */
+export const WATCH_HEALTHY_MS = 5 * 60_000
+
+/** How long to poll before the `attempt`-th consecutive retry (0-based):
+ *  doubling from the base, capped. */
+export function watchRetryDelay(attempt: number): number {
+  return Math.min(
+    WATCH_RETRY_BASE_MS * 2 ** Math.max(0, attempt),
+    WATCH_RETRY_MAX_MS,
+  )
+}
+
+/**
+ * Whether a failed watch start is the cluster saying no rather than the network
+ * failing: a role without the `watch` verb gets the same 403 on every attempt,
+ * so the view polls that target for good instead of retrying it.
+ */
+export function isPermanentWatchError(message: string): boolean {
+  return /\b403\b|forbidden/i.test(message)
+}

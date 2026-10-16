@@ -4,10 +4,17 @@ import {
   getPrometheusConfig,
   setPrometheusConfig,
 } from "../prometheus-handlers"
+import { GetKubeConfig } from "./context-clients"
 
-export function registerPrometheusHandlers(ipcMain: TypedIpcMain): void {
-  ipcMain.handle("prometheus:connectivity:check", () =>
-    checkPrometheusConnectivity(),
+export function registerPrometheusHandlers(
+  ipcMain: TypedIpcMain,
+  getKubeConfig: GetKubeConfig,
+): void {
+  ipcMain.handle("prometheus:connectivity:check", (_e, args) =>
+    checkPrometheusConnectivity(
+      getKubeConfig(args?.contextName),
+      args?.contextName,
+    ),
   )
   ipcMain.handle("prometheus:config:get", () => getPrometheusConfig())
   ipcMain.handle(
@@ -20,17 +27,27 @@ export function registerPrometheusHandlers(ipcMain: TypedIpcMain): void {
     (
       _e,
       {
+        contextName,
         namespace,
         podName,
         step,
         rangeMinutes,
       }: {
+        contextName?: string
         namespace: string
         podName: string
         step?: number
         rangeMinutes?: number
       },
-    ) => getPodMetrics(namespace, podName, step, rangeMinutes),
+    ) =>
+      getPodMetrics(
+        getKubeConfig(contextName),
+        contextName,
+        namespace,
+        podName,
+        step,
+        rangeMinutes,
+      ),
   )
 }
 import { TypedIpcMain } from "./typed-ipc"
