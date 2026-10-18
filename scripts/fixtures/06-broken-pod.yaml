@@ -1,0 +1,15 @@
+# A pod that can never start, so the Overview's "Needs attention" list has
+# something to show (ErrImagePull / ImagePullBackOff). Kept in test-ns-2, away
+# from the healthy workloads in test-ns-1 the other tests read, which also
+# makes it the probe for the Overview's namespace scope.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: broken-image
+  namespace: test-ns-2
+  labels:
+    app: broken-image
+spec:
+  containers:
+    - name: app
+      image: registry.invalid/innfiswindow/does-not-exist:0

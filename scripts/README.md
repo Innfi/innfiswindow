@@ -46,6 +46,7 @@ The script is **idempotent** — safe to run multiple times.
 | Deployment (nginx, 2 replicas) | nginx-deploy       | test-ns-1            |
 | StatefulSet (1 replica)        | postgres           | test-ns-1            |
 | DaemonSet (pause:3.9)          | log-collector      | test-ns-1            |
+| Pod (unpullable image)         | broken-image       | test-ns-2            |
 | Node                           | kind-control-plane | — (provided by kind) |
 
 ## Point the app at the kind cluster

@@ -128,7 +128,10 @@ npm run build      # typecheck + production build
 npm run typecheck  # node + web
 npm run lint       # ESLint (--fix)
 npm test           # Vitest IPC integration tests (requires kind cluster)
-npm run test:e2e   # Playwright smoke tests (requires kind cluster)
+npm run test:renderer  # Vitest + jsdom: renderer hooks/components, window.api mocked
+npm run test:e2e   # Playwright smoke + feature tests (requires kind cluster)
 ```
+
+Tests run only when asked for — no build step or git hook starts them. Renderer tests live in `__tests__/` next to the code (`src/renderer/**/__tests__/*.test.tsx`); mock IPC with `installApi()` from `src/renderer/src/test/mock-api.ts`.
 
 `scripts/` holds the `kind` setup/teardown scripts and fixture manifests.
