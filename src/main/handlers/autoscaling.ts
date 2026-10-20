@@ -88,7 +88,7 @@ function toResourceMetrics(
   return out
 }
 
-function toHPAInfo(hpa: V2HorizontalPodAutoscaler): HPAInfo {
+export function toHPAInfo(hpa: V2HorizontalPodAutoscaler): HPAInfo {
   const specMetrics = hpa.spec?.metrics ?? []
   const currentMetrics = hpa.status?.currentMetrics ?? []
   const metrics = specMetrics.map((m) => {

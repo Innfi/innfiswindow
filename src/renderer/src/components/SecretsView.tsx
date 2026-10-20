@@ -205,6 +205,7 @@ export function SecretsView(): JSX.Element {
     <ResourceListView<K8sSecretSummary, K8sSecret>
       batch={{ resourceKind: "Secret" }}
       title="Secrets"
+      watch="secrets"
       list={(ctx, ns, sel, fieldSel) =>
         window.api.k8s.listSecrets({
           contextName: ctx,

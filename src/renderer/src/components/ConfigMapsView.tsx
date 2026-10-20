@@ -185,6 +185,7 @@ export function ConfigMapsView(): JSX.Element {
     <ResourceListView<K8sConfigMapSummary, K8sConfigMap>
       batch={{ resourceKind: "ConfigMap" }}
       title="ConfigMaps"
+      watch="configmaps"
       list={(ctx, ns, sel) =>
         window.api.k8s.listConfigMaps({
           contextName: ctx,

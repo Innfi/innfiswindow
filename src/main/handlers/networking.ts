@@ -95,7 +95,7 @@ export function mapService(svc: V1Service): ServiceInfo {
   }
 }
 
-function mapIngressSummary(ing: V1Ingress): IngressSummary {
+export function mapIngressSummary(ing: V1Ingress): IngressSummary {
   const lbIngress = ing.status?.loadBalancer?.ingress ?? []
   const hasTLS = (ing.spec?.tls ?? []).length > 0
   return {

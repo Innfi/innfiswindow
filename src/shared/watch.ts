@@ -13,6 +13,11 @@ export const WATCH_RESOURCES = [
   "cronjobs",
   "services",
   "nodes",
+  "ingresses",
+  "configmaps",
+  "secrets",
+  "persistentvolumeclaims",
+  "horizontalpodautoscalers",
 ] as const
 
 export type WatchResource = (typeof WATCH_RESOURCES)[number]

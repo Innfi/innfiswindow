@@ -253,6 +253,7 @@ export const api = {
     invoke("portforward:stop", { sessionId }),
   selectLocalPath: call("dialog:path:select"),
 
+  checkPrometheusConnectivity: call("prometheus:connectivity:check"),
   getPrometheusConfig: call("prometheus:config:get"),
   setPrometheusConfig: call("prometheus:config:set"),
   getPrometheusPodMetrics: call("prometheus:pod:metrics"),

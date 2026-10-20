@@ -10,15 +10,20 @@ import {
   makeInformer,
   ObjectCache,
   UPDATE,
+  V1ConfigMap,
   V1CronJob,
   V1DaemonSet,
   V1Deployment,
+  V1Ingress,
   V1Job,
   V1Node,
+  V1PersistentVolumeClaim,
   V1Pod,
   V1ReplicaSet,
+  V1Secret,
   V1Service,
   V1StatefulSet,
+  V2HorizontalPodAutoscaler,
 } from "@kubernetes/client-node"
 
 import {
@@ -29,10 +34,13 @@ import {
   WatchResource,
   WatchStartArgs,
 } from "../shared/watch"
+import { toHPAInfo } from "./handlers/autoscaling"
 import { mapCronJob, mapJob } from "./handlers/batch"
 import { mapNode } from "./handlers/cluster"
+import { mapConfigMapSummary, mapSecretSummary } from "./handlers/config"
 import { mapEvent } from "./handlers/events"
-import { mapService } from "./handlers/networking"
+import { mapIngressSummary, mapService } from "./handlers/networking"
+import { mapPVC, storageClassExpansion } from "./handlers/storage"
 import {
   mapDaemonSetSummary,
   mapDeploymentSummary,
@@ -81,7 +89,7 @@ interface Entry {
  * exactly what the `list*` handler would have returned. Pods aren't here — they
  * also run the ReplicaSet owners watch.
  */
-interface WatchSource {
+type WatchSource = {
   /** One collection for the whole cluster; `startWatch` drops any namespace. */
   clusterScoped?: boolean
   path: (namespace: string | undefined) => string
@@ -90,8 +98,16 @@ interface WatchSource {
     namespace: string | undefined,
     labelSelector: string | undefined,
   ) => Promise<KubernetesListObject<KubernetesObject>>
-  map: (obj: KubernetesObject) => unknown
-}
+} & (
+  | { map: (obj: KubernetesObject) => unknown }
+  /** For a mapper that needs more than the object, read once when the watch
+   *  starts rather than per event. */
+  | {
+      makeMap: (
+        clients: ApiClients,
+      ) => Promise<(obj: KubernetesObject) => unknown>
+    }
+)
 
 const SOURCES: Record<Exclude<WatchResource, "pods">, WatchSource> = {
   events: {
@@ -182,6 +198,71 @@ const SOURCES: Record<Exclude<WatchResource, "pods">, WatchSource> = {
     path: () => "/api/v1/nodes",
     list: (c, _ns, labelSelector) => c.coreV1.listNode({ labelSelector }),
     map: (obj) => mapNode(obj as V1Node),
+  },
+  ingresses: {
+    path: (ns) =>
+      ns
+        ? `/apis/networking.k8s.io/v1/namespaces/${ns}/ingresses`
+        : "/apis/networking.k8s.io/v1/ingresses",
+    list: (c, ns, labelSelector) =>
+      ns
+        ? c.networkingV1.listNamespacedIngress({ namespace: ns, labelSelector })
+        : c.networkingV1.listIngressForAllNamespaces({ labelSelector }),
+    map: (obj) => mapIngressSummary(obj as V1Ingress),
+  },
+  configmaps: {
+    path: (ns) =>
+      ns ? `/api/v1/namespaces/${ns}/configmaps` : "/api/v1/configmaps",
+    list: (c, ns, labelSelector) =>
+      ns
+        ? c.coreV1.listNamespacedConfigMap({ namespace: ns, labelSelector })
+        : c.coreV1.listConfigMapForAllNamespaces({ labelSelector }),
+    map: (obj) => mapConfigMapSummary(obj as V1ConfigMap),
+  },
+  // The informer's cache holds the values, but they stay in the main process:
+  // the summary carries key names only, as `listSecrets` does.
+  secrets: {
+    path: (ns) => (ns ? `/api/v1/namespaces/${ns}/secrets` : "/api/v1/secrets"),
+    list: (c, ns, labelSelector) =>
+      ns
+        ? c.coreV1.listNamespacedSecret({ namespace: ns, labelSelector })
+        : c.coreV1.listSecretForAllNamespaces({ labelSelector }),
+    map: (obj) => mapSecretSummary(obj as V1Secret),
+  },
+  // Which classes allow expansion is read when the watch starts, so a
+  // StorageClass edited afterwards shows up on the next re-subscribe.
+  persistentvolumeclaims: {
+    path: (ns) =>
+      ns
+        ? `/api/v1/namespaces/${ns}/persistentvolumeclaims`
+        : "/api/v1/persistentvolumeclaims",
+    list: (c, ns, labelSelector) =>
+      ns
+        ? c.coreV1.listNamespacedPersistentVolumeClaim({
+            namespace: ns,
+            labelSelector,
+          })
+        : c.coreV1.listPersistentVolumeClaimForAllNamespaces({ labelSelector }),
+    makeMap: async (c) => {
+      const expansion = await storageClassExpansion(c.storageV1)
+      return (obj) => mapPVC(obj as V1PersistentVolumeClaim, expansion)
+    },
+  },
+  horizontalpodautoscalers: {
+    path: (ns) =>
+      ns
+        ? `/apis/autoscaling/v2/namespaces/${ns}/horizontalpodautoscalers`
+        : "/apis/autoscaling/v2/horizontalpodautoscalers",
+    list: (c, ns, labelSelector) =>
+      ns
+        ? c.autoscalingV2.listNamespacedHorizontalPodAutoscaler({
+            namespace: ns,
+            labelSelector,
+          })
+        : c.autoscalingV2.listHorizontalPodAutoscalerForAllNamespaces({
+            labelSelector,
+          }),
+    map: (obj) => toHPAInfo(obj as V2HorizontalPodAutoscaler),
   },
 }
 
@@ -357,7 +438,7 @@ async function createEntry(
       () => source.list(clients, ns, labelSelector),
       labelSelector,
     )
-    map = source.map
+    map = "makeMap" in source ? await source.makeMap(clients) : source.map
   }
 
   const entry: Entry = {

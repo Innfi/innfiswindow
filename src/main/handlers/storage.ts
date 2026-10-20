@@ -5,6 +5,7 @@ import {
   setHeaderOptions,
   StorageV1Api,
   V1PersistentVolume,
+  V1PersistentVolumeClaim,
 } from "@kubernetes/client-node"
 
 import { parseStorageQuantity } from "../../shared/quantity"
@@ -90,7 +91,7 @@ export async function listPVs(
  *  every claim can say up front whether resizing it is even possible. A
  *  cluster that refuses the read (no RBAC on storage.k8s.io) yields an empty
  *  map, and the claims report `null` rather than a wrong `false`. */
-async function storageClassExpansion(
+export async function storageClassExpansion(
   storageApi: StorageV1Api,
 ): Promise<Map<string, boolean>> {
   try {
@@ -121,31 +122,38 @@ export async function listPVCs(
   const expansion = storageApi
     ? await storageClassExpansion(storageApi)
     : new Map<string, boolean>()
-  return res.items.map((pvc) => {
-    const storageClass = pvc.spec?.storageClassName ?? ""
-    const conditions: Condition[] = (pvc.status?.conditions ?? []).map((c) => ({
-      type: c.type ?? "",
-      status: c.status ?? "",
-      reason: c.reason ?? "",
-      message: c.message ?? "",
-    }))
-    return {
-      name: pvc.metadata?.name ?? "",
-      namespace: pvc.metadata?.namespace ?? "",
-      status: pvc.status?.phase ?? "",
-      volumeName: pvc.spec?.volumeName ?? "",
-      capacity: pvc.status?.capacity?.["storage"] ?? "",
-      requestedStorage: pvc.spec?.resources?.requests?.["storage"] ?? "",
-      accessModes: pvc.spec?.accessModes ?? [],
-      storageClass,
-      volumeMode: pvc.spec?.volumeMode ?? "",
-      allowVolumeExpansion: expansion.get(storageClass) ?? null,
-      conditions,
-      creationTimestamp: pvc.metadata?.creationTimestamp?.toISOString() ?? "",
-      labels: pvc.metadata?.labels ?? {},
-      annotations: pvc.metadata?.annotations ?? {},
-    }
-  })
+  return res.items.map((pvc) => mapPVC(pvc, expansion))
+}
+
+/** `expansion` is `storageClassExpansion`'s map: a claim whose class is
+ *  missing from it reports `null`. */
+export function mapPVC(
+  pvc: V1PersistentVolumeClaim,
+  expansion: Map<string, boolean>,
+): PVCInfo {
+  const storageClass = pvc.spec?.storageClassName ?? ""
+  const conditions: Condition[] = (pvc.status?.conditions ?? []).map((c) => ({
+    type: c.type ?? "",
+    status: c.status ?? "",
+    reason: c.reason ?? "",
+    message: c.message ?? "",
+  }))
+  return {
+    name: pvc.metadata?.name ?? "",
+    namespace: pvc.metadata?.namespace ?? "",
+    status: pvc.status?.phase ?? "",
+    volumeName: pvc.spec?.volumeName ?? "",
+    capacity: pvc.status?.capacity?.["storage"] ?? "",
+    requestedStorage: pvc.spec?.resources?.requests?.["storage"] ?? "",
+    accessModes: pvc.spec?.accessModes ?? [],
+    storageClass,
+    volumeMode: pvc.spec?.volumeMode ?? "",
+    allowVolumeExpansion: expansion.get(storageClass) ?? null,
+    conditions,
+    creationTimestamp: pvc.metadata?.creationTimestamp?.toISOString() ?? "",
+    labels: pvc.metadata?.labels ?? {},
+    annotations: pvc.metadata?.annotations ?? {},
+  }
 }
 
 export async function listStorageClasses(

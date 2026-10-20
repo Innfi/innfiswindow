@@ -10,7 +10,7 @@ import {
   ServiceAccountInfo,
 } from "./types"
 
-function mapConfigMapSummary(cm: V1ConfigMap): ConfigMapSummary {
+export function mapConfigMapSummary(cm: V1ConfigMap): ConfigMapSummary {
   return {
     name: cm.metadata?.name ?? "",
     namespace: cm.metadata?.namespace ?? "",
@@ -50,7 +50,7 @@ export async function getConfigMap(
   }
 }
 
-function mapSecretSummary(secret: V1Secret): SecretSummary {
+export function mapSecretSummary(secret: V1Secret): SecretSummary {
   return {
     name: secret.metadata?.name ?? "",
     namespace: secret.metadata?.namespace ?? "",

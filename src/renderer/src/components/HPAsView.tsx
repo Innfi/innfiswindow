@@ -257,6 +257,7 @@ export function HPAsView(): JSX.Element {
     <ResourceListView<K8sHPA>
       batch={{ resourceKind: "HPA" }}
       title="HorizontalPodAutoscalers"
+      watch="horizontalpodautoscalers"
       list={(ctx, ns, sel) =>
         window.api.k8s.listHPAs({
           contextName: ctx,

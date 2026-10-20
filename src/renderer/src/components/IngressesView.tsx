@@ -264,6 +264,7 @@ export function IngressesView(): JSX.Element {
     <ResourceListView<K8sIngressSummary, K8sIngress>
       batch={{ resourceKind: "Ingress" }}
       title="Ingresses"
+      watch="ingresses"
       list={(ctx, ns, sel) =>
         window.api.k8s.listIngresses({
           contextName: ctx,
