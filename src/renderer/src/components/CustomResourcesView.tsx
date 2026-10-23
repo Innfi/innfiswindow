@@ -27,6 +27,7 @@ import {
   K8sCustomResourceDetail,
   K8sCustomResourceRef,
 } from "../types/k8s"
+import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
 /** Columns `kubectl get` prints without `-o wide`. A CRD's own Age column is
@@ -175,6 +176,15 @@ function DetailPanel({
           collapsibleId="customResource.events"
         />
       )}
+
+      <RelatedResourcesSection
+        resourceKind={crd.kind}
+        gvk={gvk}
+        namespace={info.namespace}
+        name={info.name}
+        search={sl}
+        collapsibleId="customResource.related"
+      />
 
       <CollapsibleSection id="customResource.manifest" title="Manifest">
         <pre className="max-h-96 overflow-auto rounded border bg-muted p-2 font-mono text-xs whitespace-pre">
