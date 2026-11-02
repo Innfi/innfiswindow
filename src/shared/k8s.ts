@@ -132,6 +132,9 @@ export interface ContextInfo {
   cluster: string
   user: string
   clusterType: "EKS" | "AKS" | "Local"
+  /** Set only when the kubeconfig cluster name is an EKS ARN. */
+  awsAccountId?: string
+  awsRegion?: string
 }
 
 // ---------------------------------------------------------------------------

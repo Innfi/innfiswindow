@@ -1,5 +1,6 @@
 export * from "./handlers/apply"
 export * from "./handlers/autoscaling"
+export * from "./handlers/aws-inventory"
 export * from "./handlers/batch"
 export * from "./handlers/cluster"
 export * from "./handlers/config"

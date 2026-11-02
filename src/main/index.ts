@@ -19,6 +19,7 @@ import {
   StorageV1Api,
 } from "@kubernetes/client-node"
 
+import { awsInventory } from "./aws-inventory"
 import { stopAllWatches } from "./informers"
 import { registerAlarmHandlers } from "./ipc/alarm"
 import { registerApplyHandlers } from "./ipc/apply"
@@ -268,4 +269,5 @@ app.on("window-all-closed", () => {
 // alive after the last window is gone.
 app.on("before-quit", () => {
   stopAllWatches()
+  awsInventory.stop()
 })

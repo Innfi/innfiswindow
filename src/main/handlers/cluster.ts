@@ -363,6 +363,19 @@ export async function drainNode(
   return result
 }
 
+/**
+ * `aws eks update-kubeconfig` names the cluster entry with its ARN, and
+ * `--alias` renames only the context, so this reads the cluster name.
+ */
+export function parseEksClusterArn(
+  clusterName: string,
+): { awsAccountId: string; awsRegion: string } | null {
+  const match = /^arn:aws[a-z-]*:eks:([a-z0-9-]+):(\d{12}):cluster\/.+$/.exec(
+    clusterName,
+  )
+  return match ? { awsRegion: match[1], awsAccountId: match[2] } : null
+}
+
 export function listContexts(kc: KubeConfig): ContextInfo[] {
   const clusters = kc.getClusters()
   const users = kc.getUsers()
@@ -376,7 +389,13 @@ export function listContexts(kc: KubeConfig): ContextInfo[] {
       clusterType = "EKS"
     else if (server.includes("azmk8s.io") || execCommand === "az")
       clusterType = "AKS"
-    return { name: ctx.name, cluster: ctx.cluster, user: ctx.user, clusterType }
+    return {
+      name: ctx.name,
+      cluster: ctx.cluster,
+      user: ctx.user,
+      clusterType,
+      ...parseEksClusterArn(ctx.cluster),
+    }
   })
 }
 
