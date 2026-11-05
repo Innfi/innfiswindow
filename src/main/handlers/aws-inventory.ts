@@ -1,8 +1,8 @@
-import { spawn } from "child_process"
+import { type ChildProcessWithoutNullStreams, spawn } from "child_process"
 
 import {
   AwsAccount,
-  AWSINV_CONTRACT_VERSION,
+  AWSINV_RPC_CODE,
   AwsInventoryError,
   AwsInventoryErrorCode,
   AwsInventorySnapshot,
@@ -11,7 +11,7 @@ import {
   AwsRow,
   AwsRowByKind,
   AwsRows,
-  AwsScanError,
+  AwsScanFailure,
   AwsScope,
 } from "../../shared/aws"
 
@@ -29,11 +29,22 @@ export class AwsinvError extends Error {
   }
 }
 
+/** A JSON-RPC `error` object from awsinv. */
+export class AwsinvRpcError extends Error {
+  constructor(
+    readonly code: number,
+    message: string,
+  ) {
+    super(message)
+    this.name = "AwsinvRpcError"
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Secret redaction
 // ---------------------------------------------------------------------------
 
-/** stderr can repeat a connection string, and it ends up on screen. */
+/** stderr and `-32603` messages can repeat a connection string. */
 export function redactSecrets(text: string, databaseUrl?: string): string {
   let out = text
   if (databaseUrl) out = out.split(databaseUrl).join("[redacted]")
@@ -44,11 +55,11 @@ export function redactSecrets(text: string, databaseUrl?: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Envelope
+// JSON-RPC results (`api.ScanResult`, `api.AccountsResult`)
 // ---------------------------------------------------------------------------
 
 /** Anything Go can encode as `null`: a nil slice is not an empty array there. */
-interface RawInventory {
+export interface RawInventory {
   VPCs?: Omit<AwsRowByKind["vpcs"], "name" | "displayId">[] | null
   Subnets?: Omit<AwsRowByKind["subnets"], "name" | "displayId">[] | null
   RouteTables?: Omit<AwsRowByKind["routeTables"], "name" | "displayId">[] | null
@@ -65,33 +76,54 @@ interface RawInventory {
   IAM?: Omit<AwsRowByKind["iamPrincipals"], "name" | "displayId">[] | null
 }
 
-export interface AwsinvEnvelope {
-  contractVersion: number
-  scannedAt: string
+export interface AwsinvScanResult {
   incomplete: boolean
-  accounts: AwsAccount[] | null
-  errors: AwsScanError[] | null
   inventory: RawInventory | null
+  failures: AwsScanFailure[] | null
 }
 
-export function parseEnvelope(stdout: string): AwsinvEnvelope {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(stdout)
-  } catch {
-    throw new AwsinvError("scan-failed", "awsinv returned invalid JSON")
-  }
-  if (typeof parsed !== "object" || parsed === null) {
-    throw new AwsinvError("scan-failed", "awsinv returned an invalid result")
-  }
-  const version = (parsed as { contractVersion?: unknown }).contractVersion
-  if (version !== AWSINV_CONTRACT_VERSION) {
+export interface AwsinvAccountsResult {
+  accounts: AwsAccount[] | null
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function isArrayOrNull(value: unknown): boolean {
+  return value === null || value === undefined || Array.isArray(value)
+}
+
+export function parseScanResult(result: unknown): AwsinvScanResult {
+  if (
+    !isObject(result) ||
+    typeof result.incomplete !== "boolean" ||
+    !(result.inventory === null || isObject(result.inventory)) ||
+    !isArrayOrNull(result.failures)
+  ) {
     throw new AwsinvError(
-      "scan-failed",
-      `awsinv output version ${String(version)} is not supported (expected ${AWSINV_CONTRACT_VERSION}); update awsinv`,
+      "awsinv-outdated",
+      "awsinv returned an unexpected scan result; update awsinv",
     )
   }
-  return parsed as AwsinvEnvelope
+  return result as unknown as AwsinvScanResult
+}
+
+/** Field by field: role ARNs and external IDs must never reach the renderer. */
+export function parseAccountsResult(result: unknown): AwsAccount[] {
+  if (!isObject(result) || !isArrayOrNull(result.accounts)) {
+    throw new AwsinvError(
+      "scan-failed",
+      "awsinv returned an unexpected accounts result",
+    )
+  }
+  return ((result.accounts as unknown[] | null) ?? [])
+    .filter(isObject)
+    .map((a) => ({
+      accountId: String(a.accountId ?? ""),
+      name: String(a.name ?? ""),
+      regions: Array.isArray(a.regions) ? a.regions.map(String) : [],
+    }))
 }
 
 function rows<T extends { AccountID: string }>(
@@ -148,18 +180,22 @@ export function mapInventory(raw: RawInventory | null | undefined): AwsRows {
   }
 }
 
-export function toSnapshot(envelope: AwsinvEnvelope): AwsInventorySnapshot {
+export function toSnapshot(
+  scannedAt: string,
+  accounts: AwsAccount[],
+  result: AwsinvScanResult,
+  databaseUrl?: string,
+): AwsInventorySnapshot {
   return {
-    scannedAt: envelope.scannedAt,
-    // Field by field: role ARNs and external IDs must not reach the renderer,
-    // whatever the sidecar sends.
-    accounts: (envelope.accounts ?? []).map((a) => ({
-      accountId: a.accountId,
-      name: a.name,
-      regions: a.regions ?? [],
+    scannedAt,
+    accounts,
+    failures: (result.failures ?? []).map((f) => ({
+      resource: f.resource,
+      accountId: f.accountId,
+      region: f.region,
+      message: redactSecrets(f.message, databaseUrl),
     })),
-    errors: envelope.errors ?? [],
-    rows: mapInventory(envelope.inventory),
+    rows: mapInventory(result.inventory),
   }
 }
 
@@ -179,110 +215,209 @@ export function selectAwsRows<K extends AwsResourceKind>(
 }
 
 // ---------------------------------------------------------------------------
-// Sidecar process
+// JSON-RPC client over the sidecar's stdin/stdout
 // ---------------------------------------------------------------------------
 
 export interface AwsinvCommand {
   command: string
-  /** Placed before `--sidecar`. */
+  /** Placed before `-stdio`. */
   args?: string[]
 }
 
-export interface AwsinvProcess {
-  result: Promise<AwsinvEnvelope>
-  /** Asks the scan to stop, and kills it if it has not exited after a delay. */
-  cancel: () => void
-  kill: () => void
+interface Pending {
+  method: string
+  resolve: (result: unknown) => void
+  reject: (err: Error) => void
 }
 
-export function spawnAwsinv(
-  { command, args = [] }: AwsinvCommand,
-  env: NodeJS.ProcessEnv,
-  extraArgs: string[] = [],
-  killDelayMs = CANCEL_KILL_DELAY_MS,
-): AwsinvProcess {
-  // `execFile` does not fit: scans outlast its timeouts and output limit.
-  const child = spawn(command, [...args, "--sidecar", ...extraArgs], {
-    env,
-    stdio: ["pipe", "pipe", "pipe"],
-    windowsHide: true,
-  })
+/**
+ * One long-lived `awsinv -stdio` child. Requests and responses are one JSON
+ * value per line; stderr is logs, kept only as a tail for error messages.
+ * Closing stdin is the shutdown signal: on Windows `kill()` ends the process
+ * without running any handler, so a signal cannot cancel a scan gracefully.
+ */
+export class AwsinvClient {
+  private readonly child: ChildProcessWithoutNullStreams
+  private readonly pending = new Map<number, Pending>()
+  private nextId = 1
+  private stdoutBuf = ""
+  private stderrTail = ""
+  private spawnError: NodeJS.ErrnoException | undefined
+  private failure: Error | null = null
+  private exitedFlag = false
+  private killTimer: ReturnType<typeof setTimeout> | null = null
+  /** Settles once the process is gone and every pending call has settled. */
+  readonly exited: Promise<void>
 
-  let killTimer: ReturnType<typeof setTimeout> | null = null
-  const clearKillTimer = (): void => {
-    if (killTimer) clearTimeout(killTimer)
-    killTimer = null
-  }
-
-  const result = new Promise<AwsinvEnvelope>((resolve, reject) => {
-    const stdout: Buffer[] = []
-    let stderrTail = ""
-    let spawnError: NodeJS.ErrnoException | undefined
-
-    child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk))
-    child.stderr.on("data", (chunk: Buffer) => {
-      stderrTail = (stderrTail + chunk.toString("utf8")).slice(
-        -STDERR_TAIL_CHARS,
-      )
+  constructor(
+    private readonly cmd: AwsinvCommand,
+    env: NodeJS.ProcessEnv,
+  ) {
+    // `execFile` does not fit: scans outlast its timeout and output limit.
+    this.child = spawn(cmd.command, [...(cmd.args ?? []), "-stdio"], {
+      env,
+      stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true,
     })
-    // Closing stdin of a process that already exited raises EPIPE here, which
-    // would otherwise be an uncaught exception in the main process.
-    child.stdin.on("error", () => {})
 
-    child.on("error", (err: NodeJS.ErrnoException) => {
-      spawnError = err
-      // A process that never started may not emit `close`.
-      if (child.pid === undefined) settle()
+    let markExited: () => void = () => {}
+    this.exited = new Promise((resolve) => (markExited = resolve))
+
+    this.child.stdout.setEncoding("utf8")
+    this.child.stdout.on("data", (chunk: string) => this.onStdout(chunk))
+    this.child.stderr.setEncoding("utf8")
+    this.child.stderr.on("data", (chunk: string) => {
+      this.stderrTail = (this.stderrTail + chunk).slice(-STDERR_TAIL_CHARS)
     })
-    child.on("close", (code) => settle(code))
+    // Writing to or closing the stdin of a process that already exited
+    // raises EPIPE here, which would otherwise crash the main process.
+    this.child.stdin.on("error", () => {})
 
-    let settled = false
-    function settle(code?: number | null): void {
-      if (settled) return
-      settled = true
-      clearKillTimer()
-      if (spawnError) {
-        reject(
-          spawnError.code === "ENOENT"
-            ? new AwsinvError(
-                "binary-missing",
-                `awsinv binary not found: ${command}`,
-              )
-            : new AwsinvError("scan-failed", spawnError.message),
-        )
-        return
-      }
-      if (code !== 0) {
-        const detail = stderrTail.trim()
-        reject(
-          new AwsinvError(
-            "scan-failed",
-            detail || `awsinv exited with code ${String(code)}`,
-          ),
-        )
-        return
-      }
-      try {
-        resolve(parseEnvelope(Buffer.concat(stdout).toString("utf8")))
-      } catch (err) {
-        reject(err)
-      }
+    const onGone = (code?: number | null): void => {
+      if (this.exitedFlag) return
+      this.exitedFlag = true
+      if (this.killTimer) clearTimeout(this.killTimer)
+      this.failAll(this.failure ?? this.exitError(code))
+      markExited()
     }
-  })
-
-  return {
-    result,
-    cancel: () => {
-      // Not a signal: on Windows `kill()` ends the process with no handler run.
-      child.stdin.end()
-      if (killTimer) return
-      killTimer = setTimeout(() => child.kill(), killDelayMs)
-    },
-    kill: () => {
-      clearKillTimer()
-      child.kill()
-    },
+    this.child.on("error", (err: NodeJS.ErrnoException) => {
+      this.spawnError = err
+      // A process that never started may not emit `close`.
+      if (this.child.pid === undefined) onGone()
+    })
+    this.child.on("close", (code) => onGone(code))
   }
+
+  get alive(): boolean {
+    return !this.exitedFlag && this.failure === null
+  }
+
+  call(method: string, params?: unknown): Promise<unknown> {
+    if (!this.alive) {
+      return Promise.reject(this.failure ?? this.exitError(null))
+    }
+    const id = this.nextId++
+    const request =
+      params === undefined
+        ? { jsonrpc: "2.0", id, method }
+        : { jsonrpc: "2.0", id, method, params }
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { method, resolve, reject })
+      this.child.stdin.write(`${JSON.stringify(request)}\n`)
+    })
+  }
+
+  /**
+   * Graceful stop: awsinv cancels a running scan, replies to it and exits.
+   * Kills it if it is still running after `killDelayMs`.
+   */
+  close(killDelayMs = CANCEL_KILL_DELAY_MS): void {
+    this.child.stdin.end()
+    if (this.exitedFlag || this.killTimer) return
+    this.killTimer = setTimeout(() => this.child.kill(), killDelayMs)
+  }
+
+  kill(): void {
+    this.child.kill()
+  }
+
+  private onStdout(chunk: string): void {
+    let start = this.stdoutBuf.length
+    this.stdoutBuf += chunk
+    let nl: number
+    // Search only the new part: a scan result can be one multi-megabyte line.
+    while ((nl = this.stdoutBuf.indexOf("\n", start)) >= 0) {
+      const line = this.stdoutBuf.slice(0, nl).trim()
+      this.stdoutBuf = this.stdoutBuf.slice(nl + 1)
+      start = 0
+      if (line) this.onLine(line)
+    }
+  }
+
+  private onLine(line: string): void {
+    if (this.failure) return
+    let msg: unknown
+    try {
+      msg = JSON.parse(line)
+    } catch {
+      this.protocolError("awsinv sent a line that is not JSON")
+      return
+    }
+    if (!isObject(msg) || msg.jsonrpc !== "2.0") {
+      this.protocolError("awsinv sent a message that is not JSON-RPC 2.0")
+      return
+    }
+    const hasResult = "result" in msg
+    const hasError = "error" in msg
+    if (hasResult === hasError) {
+      this.protocolError(
+        "awsinv sent a response without exactly one of result and error",
+      )
+      return
+    }
+    // id null means awsinv could not read a request: one of ours is broken,
+    // and there is no way to tell which.
+    const pending =
+      typeof msg.id === "number" ? this.pending.get(msg.id) : undefined
+    if (!pending) {
+      this.protocolError(
+        `awsinv sent a response for unknown id ${JSON.stringify(msg.id)}`,
+        hasError ? rpcErrorMessage(msg.error) : undefined,
+      )
+      return
+    }
+    this.pending.delete(msg.id as number)
+    if (hasError) {
+      const err = isObject(msg.error) ? msg.error : {}
+      pending.reject(
+        new AwsinvRpcError(
+          typeof err.code === "number"
+            ? err.code
+            : AWSINV_RPC_CODE.internalError,
+          rpcErrorMessage(msg.error),
+        ),
+      )
+    } else {
+      pending.resolve(msg.result)
+    }
+  }
+
+  /** The stream can no longer be trusted: fail everything and stop the child. */
+  private protocolError(message: string, detail?: string): void {
+    console.error(
+      `[awsinv] protocol error: ${message}${detail ? `: ${detail}` : ""}`,
+    )
+    this.failure = new AwsinvError("scan-failed", message)
+    this.failAll(this.failure)
+    this.child.kill()
+  }
+
+  private failAll(err: Error): void {
+    const pending = [...this.pending.values()]
+    this.pending.clear()
+    for (const p of pending) p.reject(err)
+  }
+
+  private exitError(code: number | null | undefined): AwsinvError {
+    if (this.spawnError) {
+      return this.spawnError.code === "ENOENT"
+        ? new AwsinvError(
+            "binary-missing",
+            `awsinv binary not found: ${this.cmd.command}`,
+          )
+        : new AwsinvError("scan-failed", this.spawnError.message)
+    }
+    const detail = this.stderrTail.trim()
+    return new AwsinvError(
+      "scan-failed",
+      detail || `awsinv exited with code ${String(code)}`,
+    )
+  }
+}
+
+function rpcErrorMessage(error: unknown): string {
+  if (isObject(error) && typeof error.message === "string") return error.message
+  return "awsinv returned an error"
 }
 
 // ---------------------------------------------------------------------------
@@ -299,16 +434,24 @@ export interface AwsInventoryDeps {
   killDelayMs?: number
 }
 
+interface RunningScan {
+  client: AwsinvClient
+  cancelled: boolean
+}
+
 /**
  * Holds the last complete scan. List reads only ever touch this, since
- * `useK8sResource` polls them on every refresh tick. Saving it across restarts
- * is deferred, so each launch starts with no snapshot.
+ * `useK8sResource` polls them on every refresh tick: they never spawn the
+ * sidecar or call it. Saving the snapshot across restarts is deferred, so
+ * each launch starts with no snapshot.
  */
 export class AwsInventory {
   private snapshot: AwsInventorySnapshot | null = null
-  private running: AwsinvProcess | null = null
+  private client: AwsinvClient | null = null
+  /** The URL `client` was started with; a change means a restart. */
+  private clientDatabaseUrl: string | undefined
+  private running: RunningScan | null = null
   private startedAt: string | null = null
-  private cancelled = false
   private lastError: AwsInventoryError | null = null
 
   constructor(private readonly deps: AwsInventoryDeps) {}
@@ -328,40 +471,55 @@ export class AwsInventory {
       return
     }
 
-    let scan: AwsinvProcess
+    let client: AwsinvClient
     try {
-      scan = spawnAwsinv(
-        this.deps.getCommand(),
-        { ...process.env, DATABASE_URL: databaseUrl },
-        [],
-        this.deps.killDelayMs,
-      )
+      client = this.getClient(databaseUrl)
     } catch (err) {
       this.fail(err)
       return
     }
 
+    const scan: RunningScan = { client, cancelled: false }
     this.running = scan
     this.startedAt = new Date().toISOString()
-    this.cancelled = false
     this.lastError = null
     this.deps.onChange()
 
-    void scan.result
-      .then((envelope) => this.finish(envelope))
-      .catch((err: unknown) => this.finishFailed(err))
+    void this.runScan(scan)
+      .catch((err: unknown) => {
+        // A cancelled scan ending badly is what was asked for, not a failure.
+        if (!scan.cancelled) this.lastError = this.toError(err)
+      })
+      .finally(() => {
+        this.running = null
+        this.startedAt = null
+        this.deps.onChange()
+      })
   }
 
   cancelScan(): void {
-    if (!this.running) return
-    this.cancelled = true
-    this.running.cancel()
+    if (!this.running || this.running.cancelled) return
+    this.running.cancelled = true
+    // Closing stdin cancels the scan and ends the child; the next scan
+    // starts a fresh one.
+    this.dropClient(this.running.client)
+    this.running.client.close(this.deps.killDelayMs)
   }
 
   /** For app quit: there is no time left for a graceful stop. */
   stop(): void {
-    this.cancelled = true
-    this.running?.kill()
+    if (this.running) this.running.cancelled = true
+    this.client?.kill()
+    this.running?.client.kill()
+    this.client = null
+  }
+
+  /** Called when the stored URL changes, so an idle child does not keep the old one. */
+  restartIdle(): void {
+    if (this.running || !this.client) return
+    const client = this.client
+    this.client = null
+    client.close(this.deps.killDelayMs)
   }
 
   getStatus(): AwsInventoryStatus {
@@ -370,7 +528,7 @@ export class AwsInventory {
       startedAt: this.startedAt,
       scannedAt: this.snapshot?.scannedAt ?? null,
       accounts: this.snapshot?.accounts ?? [],
-      errors: this.snapshot?.errors ?? [],
+      failures: this.snapshot?.failures ?? [],
       lastError: this.lastError,
       binaryFound: this.deps.binaryExists(),
       databaseConfigured: Boolean(this.deps.getDatabaseUrl()),
@@ -384,35 +542,84 @@ export class AwsInventory {
     return selectAwsRows(this.snapshot, kind, scope)
   }
 
-  private finish(envelope: AwsinvEnvelope): void {
-    // Half a scan would read as deleted resources, so the previous one stays.
-    if (!envelope.incomplete) {
-      const snapshot = toSnapshot(envelope)
-      const secret = this.deps.getDatabaseUrl()
-      snapshot.errors = snapshot.errors.map((e) => ({
-        ...e,
-        message: redactSecrets(e.message, secret),
-      }))
-      this.snapshot = snapshot
-    } else if (!this.cancelled) {
-      this.lastError = {
-        code: "scan-incomplete",
-        message: "The scan timed out; the previous results were kept",
+  private async runScan(scan: RunningScan): Promise<void> {
+    let accounts: AwsAccount[]
+    try {
+      accounts = parseAccountsResult(await scan.client.call("accounts"))
+    } catch (err) {
+      if (
+        err instanceof AwsinvRpcError &&
+        err.code === AWSINV_RPC_CODE.methodNotFound
+      ) {
+        throw new AwsinvError(
+          "awsinv-outdated",
+          "awsinv has no accounts method; update awsinv",
+        )
       }
+      throw err
     }
-    this.settle()
+    if (scan.cancelled) return
+
+    // Data is at least as fresh as the moment the scan was asked for.
+    const scannedAt = new Date().toISOString()
+    let result: AwsinvScanResult
+    try {
+      result = parseScanResult(await scan.client.call("scan"))
+    } catch (err) {
+      if (
+        err instanceof AwsinvRpcError &&
+        err.code === AWSINV_RPC_CODE.shuttingDown
+      ) {
+        if (scan.cancelled) return
+        throw new AwsinvError(
+          "scan-failed",
+          "awsinv shut down before the scan ran",
+        )
+      }
+      throw err
+    }
+
+    // Half a scan would read as deleted resources, so the previous one stays.
+    if (result.incomplete) {
+      if (!scan.cancelled) {
+        throw new AwsinvError(
+          "scan-incomplete",
+          "The scan timed out; the previous results were kept",
+        )
+      }
+      return
+    }
+    this.snapshot = toSnapshot(
+      scannedAt,
+      accounts,
+      result,
+      this.deps.getDatabaseUrl(),
+    )
   }
 
-  private finishFailed(err: unknown): void {
-    // A cancelled scan ending badly is what was asked for, not a failure.
-    if (!this.cancelled) this.lastError = this.toError(err)
-    this.settle()
+  /** Spawns lazily, and again after an exit or a database URL change. */
+  private getClient(databaseUrl: string): AwsinvClient {
+    if (this.client?.alive && this.clientDatabaseUrl === databaseUrl) {
+      return this.client
+    }
+    if (this.client) {
+      const stale = this.client
+      this.client = null
+      stale.close(this.deps.killDelayMs)
+    }
+    // Never in argv: the URL would show in process listings.
+    const client = new AwsinvClient(this.deps.getCommand(), {
+      ...process.env,
+      DATABASE_URL: databaseUrl,
+    })
+    this.client = client
+    this.clientDatabaseUrl = databaseUrl
+    void client.exited.then(() => this.dropClient(client))
+    return client
   }
 
-  private settle(): void {
-    this.running = null
-    this.startedAt = null
-    this.deps.onChange()
+  private dropClient(client: AwsinvClient): void {
+    if (this.client === client) this.client = null
   }
 
   private fail(err: unknown): void {

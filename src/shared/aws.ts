@@ -1,18 +1,28 @@
 /**
- * The awsinv sidecar's output and the shapes main derives from it. Resource
- * fields keep the Go struct spelling (`VpcID`, `AccountID`), since `inventory`
- * has no JSON tags and stays unchanged.
+ * The awsinv sidecar's JSON-RPC results (`../golang/awsinv/api/api.go`) and
+ * the shapes main derives from them. Resource fields keep the Go struct
+ * spelling (`VpcID`, `AccountID`), since `inventory` has no JSON tags.
  */
 
-export const AWSINV_CONTRACT_VERSION = 1
+/** JSON-RPC error codes awsinv sends; see `api.Code*`. */
+export const AWSINV_RPC_CODE = {
+  parseError: -32700,
+  invalidRequest: -32600,
+  methodNotFound: -32601,
+  invalidParams: -32602,
+  internalError: -32603,
+  shuttingDown: -32000,
+} as const
 
+/** `api.AccountInfo`. */
 export interface AwsAccount {
   accountId: string
   name: string
   regions: string[]
 }
 
-export interface AwsScanError {
+/** `api.ScanFailure`: one (resource, account, region) that could not be scanned. */
+export interface AwsScanFailure {
   resource: string
   accountId: string
   region: string
@@ -171,13 +181,15 @@ export type AwsRows = { [K in AwsResourceKind]: AwsRowByKind[K][] }
 export interface AwsInventorySnapshot {
   scannedAt: string
   accounts: AwsAccount[]
-  errors: AwsScanError[]
+  failures: AwsScanFailure[]
   rows: AwsRows
 }
 
 export type AwsInventoryErrorCode =
   | "binary-missing"
   | "not-configured"
+  /** The binary has no `accounts` method (`-32601`). */
+  | "awsinv-outdated"
   | "scan-failed"
   | "scan-incomplete"
 
@@ -191,7 +203,7 @@ export interface AwsInventoryStatus {
   startedAt: string | null
   scannedAt: string | null
   accounts: AwsAccount[]
-  errors: AwsScanError[]
+  failures: AwsScanFailure[]
   /** Why the last scan produced no snapshot. Any earlier snapshot is kept. */
   lastError: AwsInventoryError | null
   binaryFound: boolean

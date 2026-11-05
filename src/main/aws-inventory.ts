@@ -75,6 +75,8 @@ export function setAwsInventoryDatabaseUrl(
     encoding: "utf-8",
     mode: 0o600,
   })
+  // An idle child holds a pool on the old database.
+  awsInventory.restartIdle()
   return getAwsInventoryConfig()
 }
 

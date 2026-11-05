@@ -3,49 +3,74 @@ import { tmpdir } from "os"
 import { join } from "path"
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest"
 
-import { AWSINV_CONTRACT_VERSION } from "../../shared/aws"
 import {
   AwsInventory,
   mapInventory,
-  parseEnvelope,
+  parseAccountsResult,
   redactSecrets,
   toSnapshot,
 } from "../handlers/aws-inventory"
 import { parseEksClusterArn } from "../handlers/cluster"
 
-// No kind cluster here: the sidecar is a Node script standing in for awsinv.
-const envelope = (overrides: object = {}): string =>
+// No kind cluster here: the sidecar is a Node script speaking awsinv's
+// line-delimited JSON-RPC on stdio.
+const scanResult = (overrides: object = {}): string =>
   JSON.stringify({
-    contractVersion: AWSINV_CONTRACT_VERSION,
-    scannedAt: "2026-11-02T10:00:00Z",
     incomplete: false,
-    accounts: [{ accountId: "111111111111", name: "prod", regions: null }],
-    errors: null,
     inventory: {
       VPCs: [{ AccountID: "111111111111", Region: "r1", VpcID: "vpc-1" }],
     },
+    failures: [],
     ...overrides,
   })
 
-const SIDECAR = `
+const SIDECAR = String.raw`
+const readline = require("readline")
 const mode = process.env.FAKE_MODE
-const body = process.env.FAKE_BODY
-if (mode === "fail") {
+const scan = JSON.parse(process.env.FAKE_SCAN)
+const send = (msg) =>
+  process.stdout.write(JSON.stringify({ jsonrpc: "2.0", ...msg }) + "\n")
+if (mode === "setup-fail") {
   console.error("connect failed: " + process.env.DATABASE_URL)
   process.exit(1)
 }
-if (mode === "ok") {
-  process.stdout.write(body)
-} else if (mode === "wait") {
-  process.stdin.resume()
-  process.stdin.on("end", () => {
-    process.stdout.write(body)
-    process.exit(0)
-  })
-} else if (mode === "ignore-cancel") {
-  process.stdin.resume()
-  setInterval(() => {}, 1000)
-}
+let held = null
+const rl = readline.createInterface({ input: process.stdin })
+rl.on("line", (line) => {
+  const req = JSON.parse(line)
+  if (req.method === "accounts") {
+    if (mode === "old") {
+      return send({ id: req.id, error: { code: -32601, message: "method not found: accounts" } })
+    }
+    return send({ id: req.id, result: { accounts: [
+      { accountId: "111111111111", name: "prod", regions: null, RoleARN: "arn:aws:iam::1:role/secret" },
+    ] } })
+  }
+  if (mode === "rpc-error") {
+    return send({ id: req.id, error: { code: Number(process.env.FAKE_CODE), message: "boom " + process.env.DATABASE_URL } })
+  }
+  if (mode === "bad-json") return process.stdout.write("not json\n")
+  if (mode === "wrong-id") return send({ id: 999, result: scan })
+  if (mode === "both") return send({ id: req.id, result: scan, error: { code: 1, message: "x" } })
+  if (mode === "die") {
+    console.error("panic: " + process.env.DATABASE_URL)
+    process.exit(2)
+  }
+  if (["wait", "shutdown", "ignore-cancel", "silent"].includes(mode)) {
+    held = req
+    return
+  }
+  // Split one reply over two writes: the client must buffer to the newline.
+  const text = JSON.stringify({ jsonrpc: "2.0", id: req.id, result: scan })
+  process.stdout.write(text.slice(0, 10))
+  setTimeout(() => process.stdout.write(text.slice(10) + "\n"), 5)
+})
+rl.on("close", () => {
+  if (mode === "ignore-cancel") return setInterval(() => {}, 1000)
+  if (held && mode === "wait") send({ id: held.id, result: { ...scan, incomplete: true } })
+  if (held && mode === "shutdown") send({ id: held.id, error: { code: -32000, message: "server shutting down" } })
+  process.exit(0)
+})
 `
 
 let dir: string
@@ -59,128 +84,191 @@ beforeAll(() => {
 
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
 
+const SECRET_URL = "postgres://user:hunter2@db/inv"
+
 function setup(
   mode: string,
-  body = envelope(),
+  scan = scanResult(),
+  extraEnv: Record<string, string> = {},
 ): {
   inventory: AwsInventory
+  /** Resolves when the current scan finishes: start and finish each notify. */
   finished: () => Promise<void>
 } {
-  process.env.FAKE_MODE = mode
-  process.env.FAKE_BODY = body
+  Object.assign(process.env, { FAKE_MODE: mode, FAKE_SCAN: scan }, extraEnv)
   let changes = 0
+  let target = 2
   let resolveFinished: () => void = () => {}
+  let done = new Promise<void>((resolve) => (resolveFinished = resolve))
   const inventory = new AwsInventory({
     getCommand: () => ({ command: process.execPath, args: [script] }),
     binaryExists: () => true,
-    getDatabaseUrl: () => "postgres://user:hunter2@db/inv",
+    getDatabaseUrl: () => SECRET_URL,
     killDelayMs: 200,
     onChange: () => {
       changes++
-      if (changes === 2) resolveFinished()
+      if (changes !== target) return
+      const resolve = resolveFinished
+      target += 2
+      done = new Promise<void>((r) => (resolveFinished = r))
+      resolve()
     },
   })
-  const done = new Promise<void>((resolve) => (resolveFinished = resolve))
   return { inventory, finished: () => done }
+}
+
+/** `finished()` for the scan just started, taken before anything can settle. */
+function scanOnce(
+  inventory: AwsInventory,
+  finished: () => Promise<void>,
+): Promise<void> {
+  const done = finished()
+  inventory.startScan()
+  return done
 }
 
 describe("AwsInventory scans", () => {
   test("stores a complete scan", async () => {
     const { inventory, finished } = setup("ok")
-    inventory.startScan()
+    const before = new Date().toISOString()
+    const done = scanOnce(inventory, finished)
     expect(inventory.getStatus().running).toBe(true)
-    await finished()
+    await done
     const status = inventory.getStatus()
     expect(status.running).toBe(false)
-    expect(status.scannedAt).toBe("2026-11-02T10:00:00Z")
     expect(status.lastError).toBeNull()
+    expect(status.scannedAt! >= before).toBe(true)
+    expect(status.accounts).toEqual([
+      { accountId: "111111111111", name: "prod", regions: [] },
+    ])
+    expect(JSON.stringify(status)).not.toContain("secret")
     expect(inventory.list("vpcs")[0].name).toBe("vpc-1@111111111111")
+    inventory.stop()
+  })
+
+  test("reuses one child for a second scan", async () => {
+    const { inventory, finished } = setup("ok")
+    await scanOnce(inventory, finished)
+    const first = inventory.getStatus().scannedAt!
+    await scanOnce(inventory, finished)
+    expect(inventory.getStatus().lastError).toBeNull()
+    expect(inventory.getStatus().scannedAt! >= first).toBe(true)
+    inventory.stop()
   })
 
   test("keeps rows that succeeded and reports failed targets", async () => {
-    const errors = [
+    const failures = [
       { resource: "iam", accountId: "2", region: "global", message: "denied" },
     ]
-    const { inventory, finished } = setup("ok", envelope({ errors }))
-    inventory.startScan()
-    await finished()
-    expect(inventory.getStatus().errors).toEqual(errors)
+    const { inventory, finished } = setup("ok", scanResult({ failures }))
+    await scanOnce(inventory, finished)
+    expect(inventory.getStatus().failures).toEqual(failures)
     expect(inventory.list("vpcs")).toHaveLength(1)
+    inventory.stop()
   })
 
-  test("reports a non-zero exit with the secret redacted", async () => {
-    const { inventory, finished } = setup("fail")
-    inventory.startScan()
-    await finished()
+  test("reports a setup exit with the secret redacted", async () => {
+    const { inventory, finished } = setup("setup-fail")
+    await scanOnce(inventory, finished)
     const { lastError } = inventory.getStatus()
     expect(lastError?.code).toBe("scan-failed")
     expect(lastError?.message).toContain("connect failed")
     expect(lastError?.message).not.toContain("hunter2")
   })
 
-  test("reports invalid JSON", async () => {
-    const { inventory, finished } = setup("ok", "not json")
-    inventory.startScan()
-    await finished()
-    expect(inventory.getStatus().lastError?.message).toContain("invalid JSON")
+  test("reports a child that dies mid-call, then respawns", async () => {
+    const { inventory, finished } = setup("die")
+    await scanOnce(inventory, finished)
+    expect(inventory.getStatus().lastError?.message).toContain("panic")
+    expect(inventory.getStatus().lastError?.message).not.toContain("hunter2")
+    process.env.FAKE_MODE = "ok"
+    await scanOnce(inventory, finished)
+    expect(inventory.getStatus().lastError).toBeNull()
+    inventory.stop()
   })
 
-  test("rejects an unknown contract version", async () => {
-    const { inventory, finished } = setup(
-      "ok",
-      envelope({ contractVersion: 999 }),
-    )
-    inventory.startScan()
-    await finished()
-    expect(inventory.getStatus().lastError?.message).toContain("update awsinv")
+  test.each([-32602, -32603, -32600, -32700])(
+    "reports RPC error %i with the secret redacted",
+    async (code) => {
+      const { inventory, finished } = setup("rpc-error", scanResult(), {
+        FAKE_CODE: String(code),
+      })
+      await scanOnce(inventory, finished)
+      const { lastError } = inventory.getStatus()
+      expect(lastError?.code).toBe("scan-failed")
+      expect(lastError?.message).toContain("boom")
+      expect(lastError?.message).not.toContain("hunter2")
+      inventory.stop()
+    },
+  )
+
+  test("reports an old binary without accounts", async () => {
+    const { inventory, finished } = setup("old")
+    await scanOnce(inventory, finished)
+    const { lastError } = inventory.getStatus()
+    expect(lastError?.code).toBe("awsinv-outdated")
+    expect(lastError?.message).toContain("update awsinv")
+    inventory.stop()
   })
+
+  test.each(["bad-json", "wrong-id", "both"])(
+    "fails on protocol error: %s",
+    async (mode) => {
+      const { inventory, finished } = setup(mode)
+      await scanOnce(inventory, finished)
+      expect(inventory.getStatus().lastError?.code).toBe("scan-failed")
+      expect(inventory.getStatus().scannedAt).toBeNull()
+    },
+  )
 
   test("rejects a second scan while one runs", async () => {
     const { inventory, finished } = setup("wait")
-    inventory.startScan()
+    const done = scanOnce(inventory, finished)
     expect(() => inventory.startScan()).toThrow("already running")
     inventory.cancelScan()
-    await finished()
+    await done
   })
 
-  test("discards an incomplete scan on cancel, with no error", async () => {
-    const { inventory, finished } = setup(
-      "wait",
-      envelope({ incomplete: true }),
-    )
-    inventory.startScan()
-    inventory.cancelScan()
-    await finished()
-    const status = inventory.getStatus()
-    expect(status.running).toBe(false)
-    expect(status.scannedAt).toBeNull()
-    expect(status.lastError).toBeNull()
-  })
+  test.each(["wait", "shutdown", "silent", "ignore-cancel"])(
+    "cancel keeps the previous snapshot with no error: %s",
+    async (mode) => {
+      const { inventory, finished } = setup("ok")
+      await scanOnce(inventory, finished)
+      const scannedAt = inventory.getStatus().scannedAt
+
+      process.env.FAKE_MODE = mode
+      inventory.restartIdle() // the next scan gets a child in the new mode
+      const done = scanOnce(inventory, finished)
+      await new Promise((r) => setTimeout(r, 300)) // let `scan` be sent
+      inventory.cancelScan()
+      await done
+      const status = inventory.getStatus()
+      expect(status.running).toBe(false)
+      expect(status.scannedAt).toBe(scannedAt)
+      expect(status.lastError).toBeNull()
+      expect(inventory.list("vpcs")).toHaveLength(1)
+    },
+  )
 
   test("reports an incomplete scan nobody cancelled", async () => {
-    const { inventory, finished } = setup("ok", envelope({ incomplete: true }))
-    inventory.startScan()
-    await finished()
+    const { inventory, finished } = setup(
+      "ok",
+      scanResult({ incomplete: true }),
+    )
+    await scanOnce(inventory, finished)
     const status = inventory.getStatus()
     expect(status.scannedAt).toBeNull()
     expect(status.lastError?.code).toBe("scan-incomplete")
-  })
-
-  test("kills a scan that ignores cancel", async () => {
-    const { inventory, finished } = setup("ignore-cancel")
-    inventory.startScan()
-    inventory.cancelScan()
-    await finished()
-    expect(inventory.getStatus().running).toBe(false)
-    expect(inventory.getStatus().lastError).toBeNull()
+    inventory.stop()
   })
 
   test("stop ends a running scan", async () => {
     const { inventory, finished } = setup("ignore-cancel")
-    inventory.startScan()
+    const done = scanOnce(inventory, finished)
     inventory.stop()
-    await finished()
+    await done
     expect(inventory.getStatus().running).toBe(false)
+    expect(inventory.getStatus().lastError).toBeNull()
   })
 
   test("reports a missing binary", async () => {
@@ -256,22 +344,40 @@ describe("snapshot mapping", () => {
   })
 
   test("drops account fields beyond the renderer's shape", () => {
-    const snapshot = toSnapshot(
-      parseEnvelope(
-        envelope({
-          accounts: [
-            {
-              accountId: "1",
-              name: "prod",
-              regions: ["r1"],
-              RoleARN: "arn:aws:iam::1:role/secret",
-              ExternalID: "secret",
-            },
-          ],
-        }),
-      ),
-    )
+    const accounts = parseAccountsResult({
+      accounts: [
+        {
+          accountId: "1",
+          name: "prod",
+          regions: ["r1"],
+          RoleARN: "arn:aws:iam::1:role/secret",
+          ExternalID: "secret",
+        },
+      ],
+    })
+    const snapshot = toSnapshot("t", accounts, {
+      incomplete: false,
+      inventory: null,
+      failures: null,
+    })
     expect(JSON.stringify(snapshot)).not.toContain("secret")
+    expect(snapshot.failures).toEqual([])
+  })
+
+  test("redacts failure messages", () => {
+    const snapshot = toSnapshot(
+      "t",
+      [],
+      {
+        incomplete: false,
+        inventory: null,
+        failures: [
+          { resource: "vpc", accountId: "1", region: "r", message: "x db://a" },
+        ],
+      },
+      "db://a",
+    )
+    expect(snapshot.failures[0].message).toBe("x [redacted]")
   })
 })
 
@@ -279,7 +385,7 @@ describe("scoped lists", () => {
   async function scanned(): Promise<AwsInventory> {
     const { inventory, finished } = setup(
       "ok",
-      envelope({
+      scanResult({
         inventory: {
           VPCs: [
             { AccountID: "1", Region: "r1", VpcID: "vpc-a" },
@@ -290,8 +396,8 @@ describe("scoped lists", () => {
         },
       }),
     )
-    inventory.startScan()
-    await finished()
+    await scanOnce(inventory, finished)
+    inventory.stop()
     return inventory
   }
 
