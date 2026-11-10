@@ -2,6 +2,8 @@ import { type ChildProcessWithoutNullStreams, spawn } from "child_process"
 
 import {
   AwsAccount,
+  AWSINV_FAILURE_RESOURCE,
+  AWSINV_GLOBAL_REGION,
   AWSINV_RPC_CODE,
   AwsInventoryError,
   AwsInventoryErrorCode,
@@ -180,22 +182,74 @@ export function mapInventory(raw: RawInventory | null | undefined): AwsRows {
   }
 }
 
+function inTarget(
+  row: { AccountID: string },
+  failure: AwsScanFailure,
+): boolean {
+  if (row.AccountID !== failure.accountId) return false
+  // IAM rows have no Region; their target is the account's global scan.
+  if (!("Region" in row)) return failure.region === AWSINV_GLOBAL_REGION
+  return row.Region === failure.region
+}
+
+/**
+ * A failed target has no rows in the new scan, which would read as deleted
+ * resources. Carries that target's rows over from `previous`, marked stale.
+ * Accounts no longer in the scan report no failures, so their rows drop.
+ */
+export function carryOverFailedTargets(
+  rows: AwsRows,
+  failures: AwsScanFailure[],
+  previous: AwsInventorySnapshot | null | undefined,
+): AwsRows {
+  if (!previous) return rows
+  const out = { ...rows }
+  for (const failure of failures) {
+    const kind = AWSINV_FAILURE_RESOURCE[failure.resource]
+    if (!kind) continue
+    carryOverKind(out, kind, failure, previous)
+  }
+  return out
+}
+
+/** Generic over `K` so `rows[K]` stays one row type, not a union. */
+function carryOverKind<K extends AwsResourceKind>(
+  rows: AwsRows,
+  kind: K,
+  failure: AwsScanFailure,
+  previous: AwsInventorySnapshot,
+): void {
+  const current: AwsRowByKind[K][] = rows[kind]
+  const seen = new Set(current.map((r) => r.name))
+  const kept = previous.rows[kind]
+    .filter((r) => inTarget(r, failure) && !seen.has(r.name))
+    .map((r) => ({ ...r, staleSince: r.staleSince ?? previous.scannedAt }))
+  // TS cannot relate a write through the mapped `AwsRows[K]`; same type.
+  if (kept.length) rows[kind] = [...current, ...kept] as AwsRows[K]
+}
+
 export function toSnapshot(
   scannedAt: string,
   accounts: AwsAccount[],
   result: AwsinvScanResult,
   databaseUrl?: string,
+  previous?: AwsInventorySnapshot | null,
 ): AwsInventorySnapshot {
+  const failures = (result.failures ?? []).map((f) => ({
+    resource: f.resource,
+    accountId: f.accountId,
+    region: f.region,
+    message: redactSecrets(f.message, databaseUrl),
+  }))
   return {
     scannedAt,
     accounts,
-    failures: (result.failures ?? []).map((f) => ({
-      resource: f.resource,
-      accountId: f.accountId,
-      region: f.region,
-      message: redactSecrets(f.message, databaseUrl),
-    })),
-    rows: mapInventory(result.inventory),
+    failures,
+    rows: carryOverFailedTargets(
+      mapInventory(result.inventory),
+      failures,
+      previous,
+    ),
   }
 }
 
@@ -463,6 +517,13 @@ export class AwsInventory {
   startScan(): void {
     if (this.running) throw new Error("An AWS scan is already running")
 
+    // Checked before spawning: a missing sidecar affects only AWS views, and
+    // reports as its own state rather than as a failed scan.
+    if (!this.binaryFound()) {
+      this.fail(new AwsinvError("binary-missing", "awsinv binary not found"))
+      return
+    }
+
     const databaseUrl = this.deps.getDatabaseUrl()
     if (!databaseUrl) {
       this.fail(
@@ -530,7 +591,7 @@ export class AwsInventory {
       accounts: this.snapshot?.accounts ?? [],
       failures: this.snapshot?.failures ?? [],
       lastError: this.lastError,
-      binaryFound: this.deps.binaryExists(),
+      binaryFound: this.binaryFound(),
       databaseConfigured: Boolean(this.deps.getDatabaseUrl()),
     }
   }
@@ -594,6 +655,7 @@ export class AwsInventory {
       accounts,
       result,
       this.deps.getDatabaseUrl(),
+      this.snapshot,
     )
   }
 
@@ -620,6 +682,15 @@ export class AwsInventory {
 
   private dropClient(client: AwsinvClient): void {
     if (this.client === client) this.client = null
+  }
+
+  /** A status read must never throw, whatever the path lookup does. */
+  private binaryFound(): boolean {
+    try {
+      return this.deps.binaryExists()
+    } catch {
+      return false
+    }
   }
 
   private fail(err: unknown): void {

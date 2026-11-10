@@ -161,7 +161,15 @@ export interface AwsIamPrincipal {
  * no `namespace`, since `navigateToResourceRef` moves the app-wide namespace
  * scope to whatever namespace it is given.
  */
-export type AwsRow<T> = T & { name: string; displayId: string }
+export type AwsRow<T> = T & {
+  name: string
+  displayId: string
+  /**
+   * Set when the latest scan failed for this row's target, so the row was
+   * carried over from an earlier one: the `scannedAt` it was last seen at.
+   */
+  staleSince?: string
+}
 
 export interface AwsRowByKind {
   vpcs: AwsRow<AwsVpc>
@@ -175,6 +183,24 @@ export interface AwsRowByKind {
 }
 
 export type AwsResourceKind = keyof AwsRowByKind
+
+/**
+ * `api.ScanFailure.resource` values for the kinds main maps. Others (`ec2`,
+ * `rds`, ...) are kinds main does not show yet.
+ */
+export const AWSINV_FAILURE_RESOURCE: Record<string, AwsResourceKind> = {
+  vpc: "vpcs",
+  subnet: "subnets",
+  routetable: "routeTables",
+  natgateway: "natGateways",
+  internetgateway: "internetGateways",
+  egressonlyinternetgateway: "egressOnlyGateways",
+  transitgateway: "transitGateways",
+  iam: "iamPrincipals",
+}
+
+/** `region` of a failure for an account's global (IAM) scan. */
+export const AWSINV_GLOBAL_REGION = "global"
 
 export type AwsRows = { [K in AwsResourceKind]: AwsRowByKind[K][] }
 

@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest"
 
 import {
   AwsInventory,
+  carryOverFailedTargets,
   mapInventory,
   parseAccountsResult,
   redactSecrets,
@@ -300,6 +301,62 @@ describe("AwsInventory scans", () => {
     expect(status.running).toBe(false)
     expect(status.lastError?.code).toBe("not-configured")
   })
+
+  test("does not spawn when the binary is missing", () => {
+    const getCommand = vi.fn(() => ({ command: join(dir, "does-not-exist") }))
+    const inventory = new AwsInventory({
+      getCommand,
+      binaryExists: () => false,
+      getDatabaseUrl: () => SECRET_URL,
+      onChange: () => {},
+    })
+    inventory.startScan()
+    const status = inventory.getStatus()
+    expect(getCommand).not.toHaveBeenCalled()
+    expect(status.running).toBe(false)
+    expect(status.binaryFound).toBe(false)
+    expect(status.lastError?.code).toBe("binary-missing")
+    expect(inventory.list("vpcs")).toEqual([])
+  })
+
+  test("reports a throwing path lookup as a missing binary", () => {
+    const inventory = new AwsInventory({
+      getCommand: () => ({ command: "x" }),
+      binaryExists: () => {
+        throw new Error("no app path")
+      },
+      getDatabaseUrl: () => SECRET_URL,
+      onChange: () => {},
+    })
+    expect(inventory.getStatus().binaryFound).toBe(false)
+  })
+
+  test("carries a failed target's rows over from the previous scan", async () => {
+    const first = setup("ok")
+    await scanOnce(first.inventory, first.finished)
+    const firstScan = first.inventory.getStatus().scannedAt
+    first.inventory.stop()
+
+    // Same inventory object, second scan where r1 failed for VPCs.
+    Object.assign(process.env, {
+      FAKE_SCAN: scanResult({
+        inventory: { VPCs: null },
+        failures: [
+          {
+            resource: "vpc",
+            accountId: "111111111111",
+            region: "r1",
+            message: "AccessDenied",
+          },
+        ],
+      }),
+    })
+    await scanOnce(first.inventory, first.finished)
+    const [vpc] = first.inventory.list("vpcs")
+    expect(vpc.name).toBe("vpc-1@111111111111")
+    expect(vpc.staleSince).toBe(firstScan)
+    first.inventory.stop()
+  })
 })
 
 describe("snapshot mapping", () => {
@@ -378,6 +435,82 @@ describe("snapshot mapping", () => {
       "db://a",
     )
     expect(snapshot.failures[0].message).toBe("x [redacted]")
+  })
+})
+
+describe("carryOverFailedTargets", () => {
+  const vpc = (accountId: string, region: string, id: string) => ({
+    AccountID: accountId,
+    Region: region,
+    VpcID: id,
+  })
+  const previous = toSnapshot("t0", [], {
+    incomplete: false,
+    inventory: {
+      VPCs: [
+        vpc("1", "r1", "vpc-a"),
+        vpc("1", "r2", "vpc-b"),
+        vpc("2", "r1", "vpc-c"),
+      ],
+      IAM: [{ AccountID: "1", ID: "x", ARN: "arn-x" }],
+    } as never,
+    failures: [],
+  })
+  const failure = (resource: string, accountId: string, region: string) => ({
+    resource,
+    accountId,
+    region,
+    message: "AccessDenied",
+  })
+
+  test("keeps only the failed target's rows, marked stale", () => {
+    const next = toSnapshot(
+      "t1",
+      [],
+      {
+        incomplete: false,
+        inventory: { VPCs: [vpc("1", "r2", "vpc-b")] } as never,
+        failures: [failure("vpc", "1", "r1")],
+      },
+      undefined,
+      previous,
+    )
+    expect(next.rows.vpcs.map((v) => [v.displayId, v.staleSince])).toEqual([
+      ["vpc-b", undefined],
+      ["vpc-a", "t0"],
+    ])
+    // Account 2 succeeded with no VPCs: its row is gone, not carried.
+    expect(next.rows.iamPrincipals).toEqual([])
+  })
+
+  test("carries IAM on a global failure and keeps the first stale time", () => {
+    const failed = {
+      incomplete: false,
+      inventory: null,
+      failures: [failure("iam", "1", "global"), failure("vpc", "1", "r1")],
+    }
+    const t1 = toSnapshot("t1", [], failed, undefined, previous)
+    const t2 = toSnapshot("t2", [], failed, undefined, t1)
+    expect(t2.rows.iamPrincipals[0].staleSince).toBe("t0")
+    expect(t2.rows.vpcs.map((v) => v.displayId)).toEqual(["vpc-a"])
+  })
+
+  test("ignores resources main does not map", () => {
+    const rows = carryOverFailedTargets(
+      mapInventory(null),
+      [failure("ec2", "1", "r1")],
+      previous,
+    )
+    expect(rows.vpcs).toEqual([])
+  })
+
+  test("keeps nothing without a previous snapshot", () => {
+    const rows = carryOverFailedTargets(
+      mapInventory(null),
+      [failure("vpc", "1", "r1")],
+      null,
+    )
+    expect(rows.vpcs).toEqual([])
   })
 })
 
