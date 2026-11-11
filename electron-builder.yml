@@ -10,6 +10,17 @@ files:
   - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
   - "!{tsconfig.json,tsconfig.*}"
   - "!vite.config.*"
+  - "!scripts/**"
+  # The awsinv sidecar ships via extraResources, outside the asar.
+  - "!resources/bin/**"
+extraResources:
+  # Only the target's binary. ${platform} is Node's process.platform, matching
+  # binaryPath() in src/main/aws-inventory.ts. A missing directory only
+  # disables the AWS feature.
+  - from: resources/bin/${platform}-${arch}
+    to: bin/${platform}-${arch}
+    filter:
+      - "**/*"
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

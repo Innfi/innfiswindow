@@ -31,6 +31,9 @@ dependency-report.html
 dependency-graph.svg
 dependency-graph-archi.svg
 
+# awsinv sidecar, built by scripts/build-awsinv.mjs
+resources/bin/
+
 # Playwright output
 playwright-report
 test-results
