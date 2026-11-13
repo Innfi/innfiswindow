@@ -190,7 +190,7 @@ innfiswindow/
 │               ├── OverviewView.tsx, HistoryView.tsx, AlarmsView.tsx, HelmView.tsx
 │               ├── PodsView.tsx, DeploymentsView.tsx, … (one View per resource type)
 │               ├── PodMetricsSection.tsx, ResourceEventsSection.tsx, ContainerCard.tsx
-│               └── PrometheusSettings.tsx, AwsCredentialBanner.tsx
+│               └── SettingsDialog.tsx, AwsCredentialBanner.tsx
 ├── e2e/                             # Playwright config + smoke tests
 ├── scripts/                         # kind setup/teardown + fixture manifests
 ├── docs/                            # Architecture notes

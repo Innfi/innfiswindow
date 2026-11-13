@@ -4,6 +4,7 @@
 // main registers its handlers through `TypedIpcMain`
 // (`src/main/ipc/typed-ipc.ts`), so a channel name, an argument shape or a
 // result type that changes on one side stops compiling on the other.
+import type { AwsInventoryConfigState } from "./aws"
 import type {
   AccessReviewRequest,
   AccessReviewResult,
@@ -759,6 +760,14 @@ export interface IpcInvokeMap {
     PodMetricsResult | PodMetricsError
   >
   "aws:credentials:check": Call<[], AwsCredentialResult>
+  /** Whether a `DATABASE_URL` is set, and where from; never the URL itself. */
+  "aws:config:get": Call<[], AwsInventoryConfigState>
+  /** Stores the URL encrypted; an empty string clears the stored one. Throws
+   *  when secure storage is unavailable. */
+  "aws:config:set": Call<
+    [args: { databaseUrl: string }],
+    AwsInventoryConfigState
+  >
   "alarm:evaluate": Call<[args: { rule: AlarmRule }], AlarmEntry[]>
   "helm:repo:add": Call<[args: { name: string; url: string }], MutationResult>
   "helm:repo:list": Call<[], HelmRepo[]>

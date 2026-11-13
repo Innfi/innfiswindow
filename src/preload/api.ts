@@ -258,6 +258,8 @@ export const api = {
   setPrometheusConfig: call("prometheus:config:set"),
   getPrometheusPodMetrics: call("prometheus:pod:metrics"),
   checkAwsCredentials: call("aws:credentials:check"),
+  getAwsConfig: call("aws:config:get"),
+  setAwsConfig: call("aws:config:set"),
 
   alarm: {
     evaluate: (rule: AlarmRule) => invoke("alarm:evaluate", { rule }),

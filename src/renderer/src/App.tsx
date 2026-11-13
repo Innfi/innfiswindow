@@ -21,7 +21,7 @@ import { applyTheme } from "../lib/themes"
 import { useAppStore } from "../store/app.store"
 import { AwsCredentialBanner } from "./components/AwsCredentialBanner"
 import { BottomDrawer } from "./components/BottomDrawer"
-import { PrometheusSettings } from "./components/PrometheusSettings"
+import { SettingsDialog } from "./components/SettingsDialog"
 import { useColorScheme } from "./hooks/useColorScheme"
 import { resourceViews } from "./resourceViews"
 
@@ -294,7 +294,7 @@ function App(): JSX.Element {
         {/* Global footer */}
         <GlobalFooter />
       </div>
-      <PrometheusSettings open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       <Toaster position="bottom-right" duration={5000} />
     </>
   )
