@@ -583,7 +583,37 @@ export class AwsInventory {
     client.close(this.deps.killDelayMs)
   }
 
-  getStatus(): AwsInventoryStatus {
+  /**
+   * `scope` comes from the context named `contextName`; it is omitted when
+   * that context's cluster is not an EKS ARN.
+   */
+  getStatus(context?: {
+    contextName: string
+    scope?: AwsScope
+  }): AwsInventoryStatus {
+    const status = this.baseStatus()
+    if (!context) return status
+    const { contextName, scope } = context
+    if (!scope) return { ...status, scope: { contextName, failures: [] } }
+    return {
+      ...status,
+      scope: {
+        contextName,
+        accountId: scope.accountId,
+        region: scope.region,
+        account: status.accounts.find((a) => a.accountId === scope.accountId),
+        failures: status.failures.filter(
+          (f) =>
+            f.accountId === scope.accountId &&
+            (!scope.region ||
+              f.region === scope.region ||
+              f.region === AWSINV_GLOBAL_REGION),
+        ),
+      },
+    }
+  }
+
+  private baseStatus(): AwsInventoryStatus {
     return {
       running: this.running !== null,
       startedAt: this.startedAt,

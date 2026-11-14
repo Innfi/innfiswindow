@@ -260,6 +260,20 @@ export const api = {
   checkAwsCredentials: call("aws:credentials:check"),
   getAwsConfig: call("aws:config:get"),
   setAwsConfig: call("aws:config:set"),
+  aws: {
+    inventoryStatus: call("aws:inventory:status"),
+    scan: call("aws:inventory:scan"),
+    cancelScan: call("aws:inventory:cancel"),
+    onInventoryChanged: listen("aws:inventory:changed"),
+    listVpcs: call("aws:vpcs:list"),
+    listSubnets: call("aws:subnets:list"),
+    listRouteTables: call("aws:routetables:list"),
+    listNatGateways: call("aws:natgateways:list"),
+    listInternetGateways: call("aws:internetgateways:list"),
+    listEgressOnlyGateways: call("aws:egressonlygateways:list"),
+    listTransitGateways: call("aws:transitgateways:list"),
+    listIamPrincipals: call("aws:iamprincipals:list"),
+  },
 
   alarm: {
     evaluate: (rule: AlarmRule) => invoke("alarm:evaluate", { rule }),

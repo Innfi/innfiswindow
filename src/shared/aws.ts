@@ -234,6 +234,20 @@ export interface AwsInventoryStatus {
   lastError: AwsInventoryError | null
   binaryFound: boolean
   databaseConfigured: boolean
+  /** Set when the status was read for a `contextName`. */
+  scope?: AwsContextScope
+}
+
+/** How a kubeconfig context maps onto the inventory. */
+export interface AwsContextScope {
+  contextName: string
+  /** Both unset when the context's cluster name is not an EKS ARN. */
+  accountId?: string
+  region?: string
+  /** From the last snapshot's `accounts`; unset when the account is not in it. */
+  account?: AwsAccount
+  /** Failed targets in this account, for its region or its global (IAM) scan. */
+  failures: AwsScanFailure[]
 }
 
 /** Never carries the URL: a renderer only learns whether one is set. */

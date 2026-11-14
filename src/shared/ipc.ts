@@ -4,7 +4,11 @@
 // main registers its handlers through `TypedIpcMain`
 // (`src/main/ipc/typed-ipc.ts`), so a channel name, an argument shape or a
 // result type that changes on one side stops compiling on the other.
-import type { AwsInventoryConfigState } from "./aws"
+import type {
+  AwsInventoryConfigState,
+  AwsInventoryStatus,
+  AwsRowByKind,
+} from "./aws"
 import type {
   AccessReviewRequest,
   AccessReviewResult,
@@ -768,6 +772,42 @@ export interface IpcInvokeMap {
     [args: { databaseUrl: string }],
     AwsInventoryConfigState
   >
+  /** Never spawns awsinv. With `contextName`, adds that context's `scope`. */
+  "aws:inventory:status": Call<[args?: ContextArgs], AwsInventoryStatus>
+  /** Starts a scan and returns at once; rejects while one is running. A scan
+   *  that cannot start (no binary, no `DATABASE_URL`) reports `lastError`. */
+  "aws:inventory:scan": Call<[], AwsInventoryStatus>
+  /** No-op when no scan is running. The previous snapshot is kept. */
+  "aws:inventory:cancel": Call<[], AwsInventoryStatus>
+  // Lists read only the last snapshot: they never scan or call awsinv. With
+  // `contextName`, rows are limited to that context's EKS account and region
+  // (account only for IAM); a context with no EKS ARN gets none.
+  "aws:vpcs:list": Call<[args?: ContextArgs], AwsRowByKind["vpcs"][]>
+  "aws:subnets:list": Call<[args?: ContextArgs], AwsRowByKind["subnets"][]>
+  "aws:routetables:list": Call<
+    [args?: ContextArgs],
+    AwsRowByKind["routeTables"][]
+  >
+  "aws:natgateways:list": Call<
+    [args?: ContextArgs],
+    AwsRowByKind["natGateways"][]
+  >
+  "aws:internetgateways:list": Call<
+    [args?: ContextArgs],
+    AwsRowByKind["internetGateways"][]
+  >
+  "aws:egressonlygateways:list": Call<
+    [args?: ContextArgs],
+    AwsRowByKind["egressOnlyGateways"][]
+  >
+  "aws:transitgateways:list": Call<
+    [args?: ContextArgs],
+    AwsRowByKind["transitGateways"][]
+  >
+  "aws:iamprincipals:list": Call<
+    [args?: ContextArgs],
+    AwsRowByKind["iamPrincipals"][]
+  >
   "alarm:evaluate": Call<[args: { rule: AlarmRule }], AlarmEntry[]>
   "helm:repo:add": Call<[args: { name: string; url: string }], MutationResult>
   "helm:repo:list": Call<[], HelmRepo[]>
@@ -813,6 +853,8 @@ export interface IpcEventMap {
   "k8s:watch:closed": WatchClosedMessage
   "stream:socket:data": { sessionId: string; line: string }
   "stream:socket:end": { sessionId: string; reason: string }
+  /** A scan started or finished. Global status, with no `scope`. */
+  "aws:inventory:changed": AwsInventoryStatus
 }
 
 export type IpcEventChannel = keyof IpcEventMap

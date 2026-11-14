@@ -236,7 +236,7 @@ app.whenReady().then(() => {
   registerCustomResourceHandlers(k8sIpc, getContextClients)
   registerDiscoveryHandlers(k8sIpc, getKubeConfig)
   registerApplyHandlers(k8sIpc, getKubeConfig)
-  registerAwsHandlers(ipcMain)
+  registerAwsHandlers(ipcMain, getKubeConfig, getMainWindow)
   registerAlarmHandlers(k8sIpc, getContextClients)
   registerHelmHandlers(ipcMain)
   registerPrometheusHandlers(ipcMain, getKubeConfig)
