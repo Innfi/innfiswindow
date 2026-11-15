@@ -45,6 +45,14 @@ export const RESOURCE_TYPES = [
   "helm-releases",
   "alarm-rules",
   "alarm-active",
+  "aws-vpcs",
+  "aws-subnets",
+  "aws-route-tables",
+  "aws-nat-gateways",
+  "aws-internet-gateways",
+  "aws-egress-only-gateways",
+  "aws-transit-gateways",
+  "aws-iam-principals",
 ] as const
 
 export type ResourceType = (typeof RESOURCE_TYPES)[number]

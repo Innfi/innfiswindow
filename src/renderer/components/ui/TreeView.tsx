@@ -85,6 +85,29 @@ const itemLabels: Partial<Record<ResourceType, string>> = {
   "custom-resources": "Browse objects",
 }
 
+/** The global AWS section, read from the last awsinv scan. */
+const awsGroups: {
+  label: string
+  items: { label: string; type: ResourceType }[]
+}[] = [
+  {
+    label: "Network",
+    items: [
+      { label: "VPCs", type: "aws-vpcs" },
+      { label: "Subnets", type: "aws-subnets" },
+      { label: "Route Tables", type: "aws-route-tables" },
+      { label: "NAT Gateways", type: "aws-nat-gateways" },
+      { label: "Internet Gateways", type: "aws-internet-gateways" },
+      { label: "Egress-Only Gateways", type: "aws-egress-only-gateways" },
+      { label: "Transit Gateways", type: "aws-transit-gateways" },
+    ],
+  },
+  {
+    label: "IAM",
+    items: [{ label: "Principals", type: "aws-iam-principals" }],
+  },
+]
+
 const clusterTypeBadgeClass: Record<string, string> = {
   EKS: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
   AKS: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
@@ -97,6 +120,10 @@ export function TreeView(): JSX.Element {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
   const [helmOpen, setHelmOpen] = useState(true)
   const [alarmsOpen, setAlarmsOpen] = useState(true)
+  const [awsOpen, setAwsOpen] = useState(true)
+  const [awsGroupsOpen, setAwsGroupsOpen] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(awsGroups.map((g) => [g.label, true])),
+  )
 
   const selectedResourceType = useAppStore((s) => s.selectedResourceType)
   const selectedContext = useAppStore((s) => s.selectedContext)
@@ -290,6 +317,65 @@ export function TreeView(): JSX.Element {
             >
               {label}
             </div>
+          ))}
+        </Collapsible.Content>
+      </Collapsible.Root>
+
+      {/* AWS — collapsible section, global (not scoped to a context) */}
+      <Collapsible.Root open={awsOpen} onOpenChange={setAwsOpen}>
+        <Collapsible.Trigger asChild>
+          <button className="flex w-full items-center gap-1 px-3 py-1.5 text-xs font-bold hover:bg-accent">
+            {awsOpen ? (
+              <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+            )}
+            AWS
+          </button>
+        </Collapsible.Trigger>
+        <Collapsible.Content>
+          {awsGroups.map((group) => (
+            <Collapsible.Root
+              key={group.label}
+              open={awsGroupsOpen[group.label]}
+              onOpenChange={() =>
+                setAwsGroupsOpen((prev) => ({
+                  ...prev,
+                  [group.label]: !prev[group.label],
+                }))
+              }
+            >
+              <Collapsible.Trigger asChild>
+                <button className="flex w-full items-center gap-1 pl-6 pr-3 py-1.5 text-sm font-semibold hover:bg-accent">
+                  {awsGroupsOpen[group.label] ? (
+                    <ChevronDown className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 shrink-0" />
+                  )}
+                  {group.label}
+                </button>
+              </Collapsible.Trigger>
+              <Collapsible.Content>
+                {group.items.map(({ label, type }) => (
+                  <div
+                    key={type}
+                    className={cn(
+                      "cursor-pointer py-1.5 pl-12 pr-3 text-sm hover:bg-accent",
+                      // Scoped EKS views reuse these types under a context.
+                      selectedContext === null &&
+                        selectedResourceType === type &&
+                        "bg-accent font-medium",
+                    )}
+                    onClick={() => {
+                      setSelectedContext(null)
+                      setSelectedResourceType(type)
+                    }}
+                  >
+                    {label}
+                  </div>
+                ))}
+              </Collapsible.Content>
+            </Collapsible.Root>
           ))}
         </Collapsible.Content>
       </Collapsible.Root>

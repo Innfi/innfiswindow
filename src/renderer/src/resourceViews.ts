@@ -159,4 +159,30 @@ export const resourceViews: Record<ResourceType, ComponentType> = {
     () => import("./components/AlarmsView"),
     "AlarmActiveView",
   ),
+  "aws-vpcs": named(() => import("./components/AwsView"), "AwsVpcsView"),
+  "aws-subnets": named(() => import("./components/AwsView"), "AwsSubnetsView"),
+  "aws-route-tables": named(
+    () => import("./components/AwsView"),
+    "AwsRouteTablesView",
+  ),
+  "aws-nat-gateways": named(
+    () => import("./components/AwsView"),
+    "AwsNatGatewaysView",
+  ),
+  "aws-internet-gateways": named(
+    () => import("./components/AwsView"),
+    "AwsInternetGatewaysView",
+  ),
+  "aws-egress-only-gateways": named(
+    () => import("./components/AwsView"),
+    "AwsEgressOnlyGatewaysView",
+  ),
+  "aws-transit-gateways": named(
+    () => import("./components/AwsView"),
+    "AwsTransitGatewaysView",
+  ),
+  "aws-iam-principals": named(
+    () => import("./components/AwsView"),
+    "AwsIamPrincipalsView",
+  ),
 }
