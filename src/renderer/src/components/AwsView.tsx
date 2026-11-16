@@ -1,10 +1,13 @@
-import { type ReactNode, useMemo } from "react"
+import { AlertTriangle } from "lucide-react"
+import { type ReactNode, useCallback, useMemo, useState } from "react"
 
-import type {
-  AwsAccount,
-  AwsInventoryStatus,
-  AwsResourceKind,
-  AwsRowByKind,
+import {
+  type AwsAccount,
+  AWSINV_FAILURE_RESOURCE,
+  type AwsInventoryStatus,
+  type AwsResourceKind,
+  type AwsRowByKind,
+  type AwsScanFailure,
 } from "../../../shared/aws"
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
@@ -12,9 +15,15 @@ import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { DetailPanelLayout } from "../../components/ui/DetailPanelLayout"
 import { MetaEntry } from "../../components/ui/MetaEntry"
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../components/ui/Popover"
+import {
   type ResourceColumn,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { useAppStore } from "../../store/app.store"
 import { useAwsInventoryStatus } from "../hooks/useAwsInventoryStatus"
 
 // ── Shared ───────────────────────────────────────────────────────────────────
@@ -30,7 +39,10 @@ type Lister<K extends AwsResourceKind> = (args?: {
 }) => Promise<Row<K>[]>
 
 interface AwsKindConfig<K extends AwsResourceKind> {
+  kind: K
   title: string
+  /** False for account-wide kinds (IAM), which have no region filter. */
+  regional: boolean
   list: Lister<K>
   /**
    * Tells this kind's rows apart from any other selected item, by fields only
@@ -128,6 +140,8 @@ function attachedVpcs(attachments: { VpcID: string }[] | null): string {
 // ── Kinds ────────────────────────────────────────────────────────────────────
 
 const VPCS: AwsKindConfig<"vpcs"> = {
+  kind: "vpcs",
+  regional: true,
   title: "VPCs",
   list: (args) => window.api.aws.listVpcs(args),
   // Subnets also carry VpcID and IsDefault, but no subnet lacks SubnetID.
@@ -150,6 +164,8 @@ const VPCS: AwsKindConfig<"vpcs"> = {
 }
 
 const SUBNETS: AwsKindConfig<"subnets"> = {
+  kind: "subnets",
+  regional: true,
   title: "Subnets",
   list: (args) => window.api.aws.listSubnets(args),
   // NAT gateways carry SubnetID too, but no top-level AvailabilityZone.
@@ -177,6 +193,8 @@ const SUBNETS: AwsKindConfig<"subnets"> = {
 }
 
 const ROUTE_TABLES: AwsKindConfig<"routeTables"> = {
+  kind: "routeTables",
+  regional: true,
   title: "Route Tables",
   list: (args) => window.api.aws.listRouteTables(args),
   detailGuard: (item) => has(item, "RouteTableID"),
@@ -203,6 +221,8 @@ const ROUTE_TABLES: AwsKindConfig<"routeTables"> = {
 }
 
 const NAT_GATEWAYS: AwsKindConfig<"natGateways"> = {
+  kind: "natGateways",
+  regional: true,
   title: "NAT Gateways",
   list: (args) => window.api.aws.listNatGateways(args),
   detailGuard: (item) => has(item, "NATGatewayID"),
@@ -227,6 +247,8 @@ const NAT_GATEWAYS: AwsKindConfig<"natGateways"> = {
 }
 
 const INTERNET_GATEWAYS: AwsKindConfig<"internetGateways"> = {
+  kind: "internetGateways",
+  regional: true,
   title: "Internet Gateways",
   list: (args) => window.api.aws.listInternetGateways(args),
   detailGuard: (item) => has(item, "InternetGatewayID"),
@@ -245,6 +267,8 @@ const INTERNET_GATEWAYS: AwsKindConfig<"internetGateways"> = {
 }
 
 const EGRESS_ONLY_GATEWAYS: AwsKindConfig<"egressOnlyGateways"> = {
+  kind: "egressOnlyGateways",
+  regional: true,
   title: "Egress-Only Gateways",
   list: (args) => window.api.aws.listEgressOnlyGateways(args),
   detailGuard: (item) => has(item, "EgressOnlyInternetGatewayID"),
@@ -259,6 +283,8 @@ const EGRESS_ONLY_GATEWAYS: AwsKindConfig<"egressOnlyGateways"> = {
 }
 
 const TRANSIT_GATEWAYS: AwsKindConfig<"transitGateways"> = {
+  kind: "transitGateways",
+  regional: true,
   title: "Transit Gateways",
   list: (args) => window.api.aws.listTransitGateways(args),
   detailGuard: (item) => has(item, "TransitGatewayID"),
@@ -281,6 +307,8 @@ const TRANSIT_GATEWAYS: AwsKindConfig<"transitGateways"> = {
 }
 
 const IAM_PRINCIPALS: AwsKindConfig<"iamPrincipals"> = {
+  kind: "iamPrincipals",
+  regional: false,
   title: "IAM Principals",
   list: (args) => window.api.aws.listIamPrincipals(args),
   detailGuard: (item) =>
@@ -300,23 +328,123 @@ const IAM_PRINCIPALS: AwsKindConfig<"iamPrincipals"> = {
   ],
 }
 
-// ── Scan strip ───────────────────────────────────────────────────────────────
+// ── Scan header ──────────────────────────────────────────────────────────────
 
-function ScanStrip({
+interface AwsFilters {
+  accountId: string
+  region: string
+  text: string
+}
+
+const NO_FILTERS: AwsFilters = { accountId: "", region: "", text: "" }
+
+/** `failures` for one kind; resources main does not map belong to no view. */
+function failuresOf(
+  status: AwsInventoryStatus | null,
+  kind: AwsResourceKind,
+): AwsScanFailure[] {
+  return (status?.failures ?? []).filter(
+    (f) => AWSINV_FAILURE_RESOURCE[f.resource] === kind,
+  )
+}
+
+/** Matches a row against the header's account, region and text filters. */
+function matchesFilters(row: BaseRow, filters: AwsFilters): boolean {
+  if (filters.accountId && row.AccountID !== filters.accountId) return false
+  if (filters.region && "Region" in row && row.Region !== filters.region) {
+    return false
+  }
+  const text = filters.text.trim().toLowerCase()
+  if (!text) return true
+  const fields = [row.Name, row.displayId, "CIDR" in row ? row.CIDR : ""]
+  return fields.some((v) => (v ?? "").toLowerCase().includes(text))
+}
+
+const selectClass =
+  "h-6 rounded border border-border bg-background px-1.5 text-xs text-foreground"
+
+function FailuresControl({
+  failures,
+  accounts,
+}: {
+  failures: AwsScanFailure[]
+  accounts: AccountNames
+}): JSX.Element | null {
+  if (failures.length === 0) return null
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex items-center gap-1 rounded px-1.5 py-0.5 font-medium text-amber-600 hover:bg-muted dark:text-amber-400"
+          title="Targets the last scan could not read"
+        >
+          <AlertTriangle className="h-3 w-3" />
+          {failures.length}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[28rem] p-0 text-xs">
+        <p className="border-b border-border px-3 py-2 text-muted-foreground">
+          {failures.length} failed target{failures.length === 1 ? "" : "s"}.
+          Rows they had in the previous scan are kept and marked stale.
+        </p>
+        <ul className="max-h-72 overflow-auto">
+          {failures.map((f, i) => (
+            <li
+              key={`${f.resource}/${f.accountId}/${f.region}/${i}`}
+              className="border-b border-border px-3 py-2 last:border-b-0"
+            >
+              <div className="font-medium">
+                {f.resource} · {accounts(f.accountId)} · {f.region}
+              </div>
+              <div className="break-words text-muted-foreground">
+                {f.message}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function AwsScanHeader({
   status,
+  regional,
+  failures,
+  accounts,
+  filters,
+  onFiltersChange,
   onScan,
   onCancel,
 }: {
   status: AwsInventoryStatus | null
+  regional: boolean
+  /** This kind's failed targets. */
+  failures: AwsScanFailure[]
+  accounts: AccountNames
+  filters: AwsFilters
+  onFiltersChange: (filters: AwsFilters) => void
   onScan: () => void
   onCancel: () => void
 }): JSX.Element {
+  const accountList = useMemo(() => status?.accounts ?? [], [status?.accounts])
+  const regions = useMemo(() => {
+    const scoped = filters.accountId
+      ? accountList.filter((a) => a.accountId === filters.accountId)
+      : accountList
+    return [...new Set(scoped.flatMap((a) => listOf(a.regions)))].sort()
+  }, [accountList, filters.accountId])
+  const hasSnapshot = Boolean(status?.scannedAt)
+  const canScan =
+    status !== null && status.binaryFound && status.databaseConfigured
+
   return (
-    <div className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-2 text-xs">
+    <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-2 text-xs">
       <span className="text-muted-foreground">
         Last scan:{" "}
         <span className="text-foreground">
-          {status?.scannedAt ? formatTime(status.scannedAt) : "No scan yet"}
+          {hasSnapshot ? formatTime(status?.scannedAt) : "No scan yet"}
         </span>
       </span>
       {status?.running ? (
@@ -337,20 +465,157 @@ function ScanStrip({
         <Button
           size="sm"
           className="h-6 text-xs"
-          disabled={!status}
+          disabled={!canScan}
           onClick={onScan}
         >
           Scan now
         </Button>
       )}
-      {status?.lastError && !status.running && (
+      <FailuresControl failures={failures} accounts={accounts} />
+      {hasSnapshot && status?.lastError && !status.running && (
         <span
-          className="truncate text-red-500"
+          className="min-w-0 truncate text-red-500"
           title={status.lastError.message}
         >
-          {status.lastError.message}
+          {status.lastError.code === "scan-incomplete"
+            ? "Last scan did not finish; showing the one before"
+            : `Last scan failed; showing the one before: ${status.lastError.message}`}
         </span>
       )}
+      {hasSnapshot && (
+        <div className="ml-auto flex items-center gap-2">
+          <select
+            aria-label="Account"
+            className={selectClass}
+            value={filters.accountId}
+            onChange={(e) =>
+              onFiltersChange({
+                ...filters,
+                accountId: e.target.value,
+                region: "",
+              })
+            }
+          >
+            <option value="">All accounts</option>
+            {accountList.map((a) => (
+              <option key={a.accountId} value={a.accountId}>
+                {a.name || a.accountId}
+              </option>
+            ))}
+          </select>
+          {regional && (
+            <select
+              aria-label="Region"
+              className={selectClass}
+              value={filters.region}
+              onChange={(e) =>
+                onFiltersChange({ ...filters, region: e.target.value })
+              }
+            >
+              <option value="">All regions</option>
+              {regions.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          )}
+          <input
+            type="search"
+            aria-label="Search name, ID or CIDR"
+            placeholder="Name, ID or CIDR"
+            className="h-6 w-44 rounded border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground"
+            value={filters.text}
+            onChange={(e) =>
+              onFiltersChange({ ...filters, text: e.target.value })
+            }
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── States ───────────────────────────────────────────────────────────────────
+
+/**
+ * Stands in for the table while there is no snapshot. Each state stays
+ * distinct: a missing binary, missing config or an old binary must not read
+ * as an empty inventory.
+ */
+function NoSnapshotState({
+  status,
+  onScan,
+}: {
+  status: AwsInventoryStatus | null
+  onScan: () => void
+}): JSX.Element {
+  const setSettingsOpen = useAppStore((s) => s.setSettingsOpen)
+
+  let title: string
+  let detail: ReactNode = null
+  let action: ReactNode = null
+
+  if (status === null) {
+    title = "Loading…"
+  } else if (!status.binaryFound) {
+    title = "awsinv binary missing"
+    detail = (
+      <>
+        This build ships no awsinv sidecar. Run{" "}
+        <code className="font-mono">npm run build:awsinv</code> with the awsinv
+        source present, then restart the app.
+      </>
+    )
+  } else if (!status.databaseConfigured) {
+    title = "DATABASE_URL not configured"
+    detail = "awsinv reads the accounts to scan from Postgres."
+    action = (
+      <Button size="sm" variant="outline" onClick={() => setSettingsOpen(true)}>
+        Open Settings
+      </Button>
+    )
+  } else if (status.running) {
+    title = "Scanning…"
+    detail = `Started ${formatTime(status.startedAt)}. A scan can take minutes.`
+  } else if (status.lastError?.code === "awsinv-outdated") {
+    title = "awsinv too old"
+    detail = (
+      <>
+        The binary has no <code className="font-mono">accounts</code> method.
+        Update awsinv and rebuild it.
+      </>
+    )
+  } else if (status.lastError) {
+    title =
+      status.lastError.code === "scan-incomplete"
+        ? "Scan did not finish"
+        : "Scan failed"
+    detail = (
+      <span className="whitespace-pre-wrap break-words font-mono text-xs">
+        {status.lastError.message}
+      </span>
+    )
+    action = (
+      <Button size="sm" onClick={onScan}>
+        Scan again
+      </Button>
+    )
+  } else {
+    title = "No scan yet"
+    detail = "Views read the last complete scan; nothing has been scanned."
+    action = (
+      <Button size="sm" onClick={onScan}>
+        Scan now
+      </Button>
+    )
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 px-8 py-16 text-center text-sm">
+      <p className="font-medium">{title}</p>
+      {detail && <p className="max-w-xl text-muted-foreground">{detail}</p>}
+      {action}
     </div>
   )
 }
@@ -421,41 +686,67 @@ function AwsResourceView<K extends AwsResourceKind>({
   config: AwsKindConfig<K>
 }): JSX.Element {
   const { status, scan, cancel } = useAwsInventoryStatus()
+  const [filters, setFilters] = useState<AwsFilters>(NO_FILTERS)
   const accounts = useMemo(
     () => accountNamesFrom(status?.accounts ?? []),
     [status?.accounts],
   )
   const columns = useMemo(() => config.columns(accounts), [config, accounts])
+  const failures = useMemo(
+    () => failuresOf(status, config.kind),
+    [status, config.kind],
+  )
+  const rowFilter = useCallback(
+    (row: Row<K>) => matchesFilters(row, filters),
+    [filters],
+  )
+
+  // Zero rows next to failed targets is not "zero resources".
+  const emptyMessage =
+    failures.length > 0
+      ? `No ${config.title} from the targets that scanned; ${failures.length} failed (see ⚠)`
+      : `No ${config.title} in the last scan`
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <ScanStrip status={status} onScan={scan} onCancel={cancel} />
+      <AwsScanHeader
+        status={status}
+        regional={config.regional}
+        failures={failures}
+        accounts={accounts}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onScan={scan}
+        onCancel={cancel}
+      />
       <div className="flex-1 overflow-hidden">
-        <ResourceListView<Row<K>>
-          // A finished scan replaces the snapshot; remounting re-lists at
-          // once, even when the refresh interval is off.
-          key={status?.scannedAt ?? "none"}
-          title={config.title}
-          emptyMessage={
-            status?.scannedAt
-              ? `No ${config.title} in the last scan`
-              : "No scan yet"
-          }
-          namespaced={false}
-          list={(ctx) => config.list(ctx ? { contextName: ctx } : undefined)}
-          rowKey={(row) => row.name}
-          rowClassName={(row) => (row.staleSince ? "opacity-60" : undefined)}
-          columns={columns}
-          detailGuard={config.detailGuard}
-          renderDetail={(row, ctl) => (
-            <DetailPanel
-              config={config}
-              row={row}
-              accounts={accounts}
-              onClose={ctl.onClose}
-            />
-          )}
-        />
+        {status?.scannedAt ? (
+          <ResourceListView<Row<K>>
+            // A finished scan replaces the snapshot; remounting re-lists at
+            // once, even when the refresh interval is off.
+            key={status.scannedAt}
+            title={config.title}
+            emptyMessage={emptyMessage}
+            namespaced={false}
+            usesSelectors={false}
+            list={(ctx) => config.list(ctx ? { contextName: ctx } : undefined)}
+            rowKey={(row) => row.name}
+            rowFilter={rowFilter}
+            rowClassName={(row) => (row.staleSince ? "opacity-60" : undefined)}
+            columns={columns}
+            detailGuard={config.detailGuard}
+            renderDetail={(row, ctl) => (
+              <DetailPanel
+                config={config}
+                row={row}
+                accounts={accounts}
+                onClose={ctl.onClose}
+              />
+            )}
+          />
+        ) : (
+          <NoSnapshotState status={status} onScan={scan} />
+        )}
       </div>
     </div>
   )

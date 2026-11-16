@@ -77,6 +77,8 @@ export function setAwsInventoryDatabaseUrl(
   })
   // An idle child holds a pool on the old database.
   awsInventory.restartIdle()
+  // `databaseConfigured` in the status just changed.
+  notifyChanged()
   return getAwsInventoryConfig()
 }
 

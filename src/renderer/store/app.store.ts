@@ -266,6 +266,9 @@ interface AppState {
   alarmEntries: AlarmEntry[]
   globalErrors: ErrorEntry[]
   unreadErrorCount: number
+  /** Whether the Settings dialog is open. Not persisted. */
+  settingsOpen: boolean
+  setSettingsOpen: (open: boolean) => void
   setSelectedResourceType: (type: ResourceType | null) => void
   setCustomResourceTarget: (target: CustomResourceTarget | null) => void
   browseCustomResource: (target: CustomResourceTarget) => void
@@ -332,6 +335,8 @@ export const useAppStore = create<AppState>()(
       alarmEntries: [],
       globalErrors: [],
       unreadErrorCount: 0,
+      settingsOpen: false,
+      setSettingsOpen: (open) => set({ settingsOpen: open }),
       setSelectedResourceType: (type) =>
         set({
           selectedResourceType: type,

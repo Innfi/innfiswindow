@@ -112,6 +112,17 @@ interface ResourceListViewProps<T extends Namespaced, D> {
    * `batch.actions` adds the kind's own verbs.
    */
   batch?: BatchConfig<T>
+  /**
+   * Narrows the rows on screen after they are fetched, for filters the view
+   * owns. Changing it re-filters without refetching; pass a memoized function
+   * so it changes only when the filter does.
+   */
+  rowFilter?: (item: T) => boolean
+  /**
+   * When false, the list does not take label or field selectors, and the empty
+   * message does not blame them. Defaults to true.
+   */
+  usesSelectors?: boolean
 }
 
 const sameItem = (a: Namespaced | null, b: Namespaced): boolean =>
@@ -133,6 +144,8 @@ export function ResourceListView<T extends Namespaced, D = T>({
   rowClassName,
   watch,
   batch,
+  rowFilter,
+  usesSelectors = true,
 }: ResourceListViewProps<T, D>): JSX.Element {
   const selectedItem = useAppStore((s) => s.selectedItem) as T | null
   const setSelectedItem = useAppStore((s) => s.setSelectedItem)
@@ -157,7 +170,9 @@ export function ResourceListView<T extends Namespaced, D = T>({
 
   // Both selectors are answered by the API server, so an empty list under one
   // says which filter emptied it rather than that the kind has no objects.
-  const activeSelectors = [labelSelector, fieldSelector].filter((s) => s !== "")
+  const activeSelectors = usesSelectors
+    ? [labelSelector, fieldSelector].filter((s) => s !== "")
+    : []
 
   // The active namespace is pushed down to the handler so the API server does
   // the filtering — a cluster-wide list of every pod is a large IPC payload to
@@ -225,9 +240,18 @@ export function ResourceListView<T extends Namespaced, D = T>({
       nameFilter,
       namespaced ? selectedNamespace : undefined,
     )
+    const narrowed = rowFilter ? filtered.filter(rowFilter) : filtered
     const compare = sortOptions?.[sortIndex]?.compare
-    return compare ? [...filtered].sort(compare) : filtered
-  }, [data, nameFilter, namespaced, selectedNamespace, sortOptions, sortIndex])
+    return compare ? [...narrowed].sort(compare) : narrowed
+  }, [
+    data,
+    nameFilter,
+    namespaced,
+    selectedNamespace,
+    rowFilter,
+    sortOptions,
+    sortIndex,
+  ])
   const keyOf =
     rowKey ??
     ((item: T): string =>
@@ -348,7 +372,9 @@ export function ResourceListView<T extends Namespaced, D = T>({
             message={
               activeSelectors.length > 0
                 ? `No ${title} match ${activeSelectors.join(" and ")}`
-                : (emptyMessage ?? `No ${title} found`)
+                : rowFilter && data.length > 0
+                  ? `No ${title} match the filters`
+                  : (emptyMessage ?? `No ${title} found`)
             }
           />
         )}
