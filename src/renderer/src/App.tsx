@@ -138,6 +138,11 @@ function App(): JSX.Element {
     ? resourceViews[selectedResourceType]
     : undefined
 
+  // AWS rows have no namespace, labels or fields. Global AWS views also have
+  // no context: the chips would fall back to the current kube context.
+  const isAwsView = selectedResourceType?.startsWith("aws-") ?? false
+  const showContextChips = !(isAwsView && selectedContext === null)
+
   return (
     <>
       <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -153,25 +158,30 @@ function App(): JSX.Element {
           </button>
           <ThemePicker />
           <GlobalSearch />
-          <select
-            value={selectedNamespace ?? ""}
-            onChange={(e) => setSelectedNamespace(e.target.value || null)}
-            className="rounded border px-2 py-0.5 text-xs mr-2 ml-2 bg-background text-foreground"
-          >
-            <option value="">All Namespaces</option>
-            {namespaces.map((ns) => (
-              <option key={ns} value={ns}>
-                {ns}
-              </option>
-            ))}
-          </select>
+          {!isAwsView && (
+            <select
+              value={selectedNamespace ?? ""}
+              onChange={(e) => setSelectedNamespace(e.target.value || null)}
+              className="rounded border px-2 py-0.5 text-xs mr-2 ml-2 bg-background text-foreground"
+            >
+              <option value="">All Namespaces</option>
+              {namespaces.map((ns) => (
+                <option key={ns} value={ns}>
+                  {ns}
+                </option>
+              ))}
+            </select>
+          )}
           <NameFilterInput />
-          <LabelSelectorInput />
-          <FieldSelectorInput />
-          <span className="rounded border px-2 py-0.5 text-xs mr-2 ml-2">
-            {clusterType}
-          </span>
-          {(selectedContext ?? currentContext) &&
+          {!isAwsView && <LabelSelectorInput />}
+          {!isAwsView && <FieldSelectorInput />}
+          {showContextChips && (
+            <span className="rounded border px-2 py-0.5 text-xs mr-2 ml-2">
+              {clusterType}
+            </span>
+          )}
+          {showContextChips &&
+            (selectedContext ?? currentContext) &&
             (() => {
               const rawCtx = selectedContext ?? currentContext
               const alias = contextAliases[rawCtx]

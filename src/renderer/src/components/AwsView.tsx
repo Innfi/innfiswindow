@@ -3,11 +3,15 @@ import { type ReactNode, useCallback, useMemo, useState } from "react"
 
 import {
   type AwsAccount,
+  type AwsGatewayAttachment,
   AWSINV_FAILURE_RESOURCE,
   type AwsInventoryStatus,
   type AwsResourceKind,
+  type AwsRoute,
+  type AwsRouteTableAssociation,
   type AwsRowByKind,
   type AwsScanFailure,
+  type AwsTransitGateway,
 } from "../../../shared/aws"
 import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
@@ -23,8 +27,10 @@ import {
   type ResourceColumn,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { cn } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useAwsInventoryStatus } from "../hooks/useAwsInventoryStatus"
+import { type ResourceType } from "../types/resource"
 
 // ── Shared ───────────────────────────────────────────────────────────────────
 
@@ -52,6 +58,10 @@ interface AwsKindConfig<K extends AwsResourceKind> {
   columns: (accounts: AccountNames) => ResourceColumn<Row<K>>[]
   /** Detail panel entries, after the ID, account and region. */
   details: (row: Row<K>) => [label: string, value: ReactNode][]
+  /** Warnings shown as badges under the detail panel title. */
+  flags?: (row: Row<K>) => string[]
+  /** Extra detail panel sections, between Details and Tags. */
+  sections?: (row: Row<K>) => ReactNode
 }
 
 type AccountNames = (accountId: string) => string
@@ -137,6 +147,184 @@ function attachedVpcs(attachments: { VpcID: string }[] | null): string {
     .join(", ")
 }
 
+/**
+ * A jump to another AWS row by its ID. Row names are `<id>@<accountId>`, so
+ * the target is looked up in the same account; a target the snapshot lacks
+ * falls through to the list's "No entry named" error.
+ */
+function AwsRef({
+  type,
+  id,
+  accountId,
+}: {
+  type: ResourceType
+  id: string
+  accountId: string
+}): JSX.Element {
+  const navigateToResourceRef = useAppStore((s) => s.navigateToResourceRef)
+  if (!id) return <span>—</span>
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        navigateToResourceRef(type, `${id}@${accountId}`, "")
+      }}
+      title={`Go to ${id}`}
+      className="text-left font-mono text-xs underline decoration-dotted underline-offset-2 hover:text-foreground"
+    >
+      {id}
+    </button>
+  )
+}
+
+const vpcRef = (id: string, accountId: string): JSX.Element => (
+  <AwsRef type="aws-vpcs" id={id} accountId={accountId} />
+)
+
+const subnetRef = (id: string, accountId: string): JSX.Element => (
+  <AwsRef type="aws-subnets" id={id} accountId={accountId} />
+)
+
+function Badge({
+  tone,
+  children,
+}: {
+  tone: "warn" | "danger" | "muted"
+  children: ReactNode
+}): JSX.Element {
+  return (
+    <span
+      className={cn(
+        "rounded px-1.5 py-0.5 text-[10px] font-semibold",
+        tone === "warn" &&
+          "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+        tone === "danger" &&
+          "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+        tone === "muted" && "bg-muted text-muted-foreground",
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
+/** A compact table for a detail panel section. */
+function DetailTable({
+  head,
+  rows,
+}: {
+  head: string[]
+  rows: { key: string; cells: ReactNode[]; className?: string }[]
+}): JSX.Element {
+  if (rows.length === 0) {
+    return <p className="text-xs text-muted-foreground">None</p>
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-border text-left text-muted-foreground">
+            {head.map((h) => (
+              <th key={h} className="py-1 pr-3 font-medium">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr
+              key={r.key}
+              className={cn(
+                "border-b border-border last:border-0",
+                r.className,
+              )}
+            >
+              {r.cells.map((c, i) => (
+                <td key={i} className="py-1 pr-3 align-top">
+                  {c}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+const mono = (value: string): JSX.Element => (
+  <span className="font-mono">{value || "—"}</span>
+)
+
+// ── Kind-specific rules ─────────────────────────────────────────────────────
+
+/** A route whose target is gone: traffic to it is dropped. */
+const isBlackhole = (route: AwsRoute): boolean => route.State === "blackhole"
+
+/** Only `associated` associations are in effect; others are being added or removed. */
+const isInEffect = (a: AwsRouteTableAssociation): boolean =>
+  a.State === "associated"
+
+/** An attachment still connecting its gateway to a VPC. */
+const isAttached = (a: AwsGatewayAttachment): boolean =>
+  a.State !== "detached" && a.State !== "detaching"
+
+/**
+ * A transit gateway another account owns and shares (RAM): every account it is
+ * shared with lists it, so it shows once per account.
+ */
+const isShared = (tgw: AwsTransitGateway): boolean =>
+  Boolean(tgw.OwnerID) && tgw.OwnerID !== tgw.AccountID
+
+const isDetached = (attachments: AwsGatewayAttachment[] | null): boolean =>
+  !listOf(attachments).some(isAttached)
+
+function AttachmentsSection({
+  id,
+  attachments,
+  accountId,
+}: {
+  id: string
+  attachments: AwsGatewayAttachment[] | null
+  accountId: string
+}): JSX.Element {
+  const list = listOf(attachments)
+  return (
+    <CollapsibleSection id={id} title="Attachments" count={list.length}>
+      <DetailTable
+        head={["VPC", "State"]}
+        rows={list.map((a) => ({
+          key: a.VpcID,
+          className: isAttached(a) ? undefined : "opacity-60",
+          cells: [vpcRef(a.VpcID, accountId), a.State || "—"],
+        }))}
+      />
+    </CollapsibleSection>
+  )
+}
+
+function attachedVpcRefs(
+  attachments: AwsGatewayAttachment[] | null,
+  accountId: string,
+): ReactNode {
+  const attached = listOf(attachments).filter(isAttached)
+  if (attached.length === 0) return "None (detached)"
+  return (
+    <span className="flex flex-wrap gap-x-2">
+      {attached.map((a) => (
+        <AwsRef
+          key={a.VpcID}
+          type="aws-vpcs"
+          id={a.VpcID}
+          accountId={accountId}
+        />
+      ))}
+    </span>
+  )
+}
+
 // ── Kinds ────────────────────────────────────────────────────────────────────
 
 const VPCS: AwsKindConfig<"vpcs"> = {
@@ -182,7 +370,7 @@ const SUBNETS: AwsKindConfig<"subnets"> = {
     accountColumn(accounts),
   ],
   details: (r) => [
-    ["VPC ID", r.VpcID],
+    ["VPC ID", vpcRef(r.VpcID, r.AccountID)],
     ["CIDR", r.CIDR],
     ["Availability Zone", r.AvailabilityZone],
     ["Available IPs", r.AvailableIPs.toLocaleString()],
@@ -213,11 +401,86 @@ const ROUTE_TABLES: AwsKindConfig<"routeTables"> = {
     regionColumn(),
   ],
   details: (r) => [
-    ["VPC ID", r.VpcID],
+    ["VPC ID", vpcRef(r.VpcID, r.AccountID)],
     ["Main", yesNo(r.IsMain)],
     ["Routes", listOf(r.Routes).length],
-    ["Associations", listOf(r.Associations).length],
+    [
+      "Associations in effect",
+      `${listOf(r.Associations).filter(isInEffect).length} of ${listOf(r.Associations).length}`,
+    ],
   ],
+  flags: (r) => {
+    const blackholes = listOf(r.Routes).filter(isBlackhole).length
+    return blackholes > 0
+      ? [`${blackholes} blackhole route${blackholes === 1 ? "" : "s"}`]
+      : []
+  },
+  sections: (r) => {
+    const routes = listOf(r.Routes)
+    const associations = listOf(r.Associations)
+    return (
+      <>
+        <CollapsibleSection
+          id="aws.routeTables.routes"
+          title="Routes"
+          count={routes.length}
+        >
+          <DetailTable
+            head={["Destination", "Target", "State", "Origin"]}
+            rows={routes.map((route, i) => ({
+              key: `${route.Destination}/${i}`,
+              className: isBlackhole(route)
+                ? "text-red-600 dark:text-red-400"
+                : undefined,
+              cells: [
+                mono(route.Destination),
+                mono(route.Target),
+                isBlackhole(route) ? (
+                  <Badge tone="danger">blackhole</Badge>
+                ) : (
+                  route.State || "—"
+                ),
+                route.Origin || "—",
+              ],
+            }))}
+          />
+        </CollapsibleSection>
+        <CollapsibleSection
+          id="aws.routeTables.associations"
+          title="Associations"
+          count={associations.length}
+        >
+          <DetailTable
+            head={["Association", "Subnet / Gateway", "State"]}
+            rows={associations.map((a) => ({
+              key: a.AssociationID,
+              className: isInEffect(a) ? undefined : "opacity-60",
+              cells: [
+                mono(a.AssociationID),
+                a.IsMain ? (
+                  <span className="text-muted-foreground">
+                    Main (implicit for unassociated subnets)
+                  </span>
+                ) : a.SubnetID ? (
+                  subnetRef(a.SubnetID, r.AccountID)
+                ) : (
+                  mono(a.GatewayID)
+                ),
+                isInEffect(a) ? (
+                  a.State
+                ) : (
+                  <span className="flex items-center gap-1">
+                    {a.State || "—"}
+                    <Badge tone="muted">not in effect</Badge>
+                  </span>
+                ),
+              ],
+            }))}
+          />
+        </CollapsibleSection>
+      </>
+    )
+  },
 }
 
 const NAT_GATEWAYS: AwsKindConfig<"natGateways"> = {
@@ -237,13 +500,47 @@ const NAT_GATEWAYS: AwsKindConfig<"natGateways"> = {
     regionColumn(),
   ],
   details: (r) => [
-    ["VPC ID", r.VpcID],
-    ["Subnet ID", r.SubnetID],
+    ["VPC ID", vpcRef(r.VpcID, r.AccountID)],
+    ["Subnet ID", subnetRef(r.SubnetID, r.AccountID)],
     ["Type", r.ConnectivityType],
     ["Availability mode", r.AvailabilityMode || "—"],
     ["State", r.State],
-    ["Addresses", listOf(r.Addresses).length],
   ],
+  sections: (r) => {
+    const addresses = listOf(r.Addresses)
+    return (
+      <CollapsibleSection
+        id="aws.natGateways.addresses"
+        title="Addresses"
+        count={addresses.length}
+      >
+        <DetailTable
+          head={[
+            "Public IP",
+            "Private IP",
+            "Allocation",
+            "Interface",
+            "AZ",
+            "Status",
+          ]}
+          rows={addresses.map((a, i) => ({
+            key: `${a.NetworkInterfaceID}/${a.PrivateIP}/${i}`,
+            cells: [
+              <span key="pub" className="flex items-center gap-1">
+                {mono(a.PublicIP)}
+                {a.IsPrimary && <Badge tone="muted">primary</Badge>}
+              </span>,
+              mono(a.PrivateIP),
+              mono(a.AllocationID),
+              mono(a.NetworkInterfaceID),
+              a.AvailabilityZone || "—",
+              a.Status || "—",
+            ],
+          }))}
+        />
+      </CollapsibleSection>
+    )
+  },
 }
 
 const INTERNET_GATEWAYS: AwsKindConfig<"internetGateways"> = {
@@ -261,9 +558,17 @@ const INTERNET_GATEWAYS: AwsKindConfig<"internetGateways"> = {
     regionColumn(),
   ],
   details: (r) => [
-    ["Attached VPCs", attachedVpcs(r.Attachments) || "—"],
+    ["Attached VPCs", attachedVpcRefs(r.Attachments, r.AccountID)],
     ["Owner", r.OwnerID],
   ],
+  flags: (r) => (isDetached(r.Attachments) ? ["detached"] : []),
+  sections: (r) => (
+    <AttachmentsSection
+      id="aws.internetGateways.attachments"
+      attachments={r.Attachments}
+      accountId={r.AccountID}
+    />
+  ),
 }
 
 const EGRESS_ONLY_GATEWAYS: AwsKindConfig<"egressOnlyGateways"> = {
@@ -279,7 +584,17 @@ const EGRESS_ONLY_GATEWAYS: AwsKindConfig<"egressOnlyGateways"> = {
     accountColumn(accounts),
     regionColumn(),
   ],
-  details: (r) => [["Attached VPCs", attachedVpcs(r.Attachments) || "—"]],
+  details: (r) => [
+    ["Attached VPCs", attachedVpcRefs(r.Attachments, r.AccountID)],
+  ],
+  flags: (r) => (isDetached(r.Attachments) ? ["detached"] : []),
+  sections: (r) => (
+    <AttachmentsSection
+      id="aws.egressOnlyGateways.attachments"
+      attachments={r.Attachments}
+      accountId={r.AccountID}
+    />
+  ),
 }
 
 const TRANSIT_GATEWAYS: AwsKindConfig<"transitGateways"> = {
@@ -298,12 +613,16 @@ const TRANSIT_GATEWAYS: AwsKindConfig<"transitGateways"> = {
     regionColumn(),
   ],
   details: (r) => [
-    ["ARN", r.ARN],
-    ["Owner", r.OwnerID],
+    ["ARN", mono(r.ARN)],
+    [
+      "Owner",
+      isShared(r) ? `${r.OwnerID} (shared with this account)` : r.OwnerID,
+    ],
     ["ASN", r.AmazonSideASN],
     ["Description", r.Description || "—"],
     ["State", r.State],
   ],
+  flags: (r) => (isShared(r) ? [`shared from ${r.OwnerID}`] : []),
 }
 
 const IAM_PRINCIPALS: AwsKindConfig<"iamPrincipals"> = {
@@ -322,8 +641,8 @@ const IAM_PRINCIPALS: AwsKindConfig<"iamPrincipals"> = {
   ],
   details: (r) => [
     ["Kind", r.Kind],
-    ["ARN", r.ARN],
-    ["Path", r.Path],
+    ["ARN", mono(r.ARN)],
+    ["Path", mono(r.Path)],
     ["Created", formatTime(r.CreateDate)],
   ],
 }
@@ -633,7 +952,10 @@ function DetailPanel<K extends AwsResourceKind>({
   accounts: AccountNames
   onClose: () => void
 }): JSX.Element {
+  // Tags are plain entries, not `LabelEntries`: those write the app bar's
+  // label selector, which AWS views hide and ignore.
   const tags = "Tags" in row ? Object.entries(row.Tags ?? {}) : []
+  const flags = config.flags?.(row) ?? []
   return (
     <DetailPanelLayout
       header={
@@ -645,6 +967,15 @@ function DetailPanel<K extends AwsResourceKind>({
             <span className="font-mono text-xs text-muted-foreground">
               {row.displayId}
             </span>
+            {flags.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {flags.map((f) => (
+                  <Badge key={f} tone="warn">
+                    {f}
+                  </Badge>
+                ))}
+              </div>
+            )}
             {row.staleSince && (
               <p className="text-xs text-amber-600 dark:text-amber-400">
                 Last seen {formatTime(row.staleSince)}: the latest scan of this
@@ -667,6 +998,7 @@ function DetailPanel<K extends AwsResourceKind>({
           <MetaEntry key={label} label={label} value={value} />
         ))}
       </CollapsibleSection>
+      {config.sections?.(row)}
       {tags.length > 0 && (
         <CollapsibleSection id={`aws.${config.title}.tags`} title="Tags">
           {tags.map(([k, v]) => (
