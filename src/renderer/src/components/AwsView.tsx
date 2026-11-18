@@ -3,6 +3,7 @@ import { type ReactNode, useCallback, useMemo, useState } from "react"
 
 import {
   type AwsAccount,
+  type AwsContextScope,
   type AwsGatewayAttachment,
   AWSINV_FAILURE_RESOURCE,
   type AwsInventoryStatus,
@@ -659,7 +660,7 @@ const NO_FILTERS: AwsFilters = { accountId: "", region: "", text: "" }
 
 /** `failures` for one kind; resources main does not map belong to no view. */
 function failuresOf(
-  status: AwsInventoryStatus | null,
+  status: { failures: AwsScanFailure[] } | null,
   kind: AwsResourceKind,
 ): AwsScanFailure[] {
   return (status?.failures ?? []).filter(
@@ -727,8 +728,15 @@ function FailuresControl({
   )
 }
 
+/** `Account prod · ap-northeast-2`, or `Account-wide` for IAM. */
+function scopeLabel(scope: AwsContextScope, regional: boolean): string {
+  const account = scope.account?.name || scope.accountId || "unknown"
+  return `Account ${account} · ${regional ? (scope.region ?? "—") : "Account-wide"}`
+}
+
 function AwsScanHeader({
   status,
+  scope,
   regional,
   failures,
   accounts,
@@ -738,6 +746,8 @@ function AwsScanHeader({
   onCancel,
 }: {
   status: AwsInventoryStatus | null
+  /** Set on a scoped EKS view: account and region filters give way to it. */
+  scope?: AwsContextScope
   regional: boolean
   /** This kind's failed targets. */
   failures: AwsScanFailure[]
@@ -760,6 +770,18 @@ function AwsScanHeader({
 
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-2 text-xs">
+      {scope?.accountId && (
+        <span
+          className="rounded bg-orange-100 px-1.5 py-0.5 font-medium text-orange-700 dark:bg-orange-900 dark:text-orange-300"
+          title={
+            regional
+              ? "Everything in this account and region, which can include other clusters"
+              : "Everything in this account: IAM is not regional"
+          }
+        >
+          {scopeLabel(scope, regional)}
+        </span>
+      )}
       <span className="text-muted-foreground">
         Last scan:{" "}
         <span className="text-foreground">
@@ -803,26 +825,28 @@ function AwsScanHeader({
       )}
       {hasSnapshot && (
         <div className="ml-auto flex items-center gap-2">
-          <select
-            aria-label="Account"
-            className={selectClass}
-            value={filters.accountId}
-            onChange={(e) =>
-              onFiltersChange({
-                ...filters,
-                accountId: e.target.value,
-                region: "",
-              })
-            }
-          >
-            <option value="">All accounts</option>
-            {accountList.map((a) => (
-              <option key={a.accountId} value={a.accountId}>
-                {a.name || a.accountId}
-              </option>
-            ))}
-          </select>
-          {regional && (
+          {!scope && (
+            <select
+              aria-label="Account"
+              className={selectClass}
+              value={filters.accountId}
+              onChange={(e) =>
+                onFiltersChange({
+                  ...filters,
+                  accountId: e.target.value,
+                  region: "",
+                })
+              }
+            >
+              <option value="">All accounts</option>
+              {accountList.map((a) => (
+                <option key={a.accountId} value={a.accountId}>
+                  {a.name || a.accountId}
+                </option>
+              ))}
+            </select>
+          )}
+          {regional && !scope && (
             <select
               aria-label="Region"
               className={selectClass}
@@ -939,6 +963,91 @@ function NoSnapshotState({
   )
 }
 
+/**
+ * Why a scoped EKS view's context cannot be placed in the inventory; null
+ * when the scope is usable.
+ */
+function scopedProblem(
+  status: AwsInventoryStatus,
+  scope: AwsContextScope,
+): { title: string; detail: ReactNode } | null {
+  let title: string
+  let detail: ReactNode
+  if (!scope.accountId) {
+    title = "No EKS ARN in kubeconfig"
+    detail = (
+      <>
+        The cluster of <span className="font-mono">{scope.contextName}</span> is
+        not named{" "}
+        <code className="font-mono">
+          arn:aws:eks:&lt;region&gt;:&lt;account&gt;:cluster/&lt;name&gt;
+        </code>
+        , so its account and region are unknown. Run{" "}
+        <code className="font-mono">aws eks update-kubeconfig</code> to fix the
+        entry, or browse the global AWS views.
+      </>
+    )
+  } else if (status.scannedAt && !scope.account) {
+    title = "Account not in the inventory"
+    detail = (
+      <>
+        Account <span className="font-mono">{scope.accountId}</span> was not
+        among the accounts the last scan read. Add or enable it in the awsinv
+        accounts table, then scan again.
+      </>
+    )
+  } else {
+    return null
+  }
+  return { title, detail }
+}
+
+/** Stands in for the table while `scopedProblem` holds. */
+function ScopedState({
+  title,
+  detail,
+}: {
+  title: string
+  detail: ReactNode
+}): JSX.Element {
+  const setSelectedContext = useAppStore((s) => s.setSelectedContext)
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 px-8 py-16 text-center text-sm">
+      <p className="font-medium">{title}</p>
+      <p className="max-w-xl text-muted-foreground">{detail}</p>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => setSelectedContext(null)}
+      >
+        Open global AWS
+      </Button>
+    </div>
+  )
+}
+
+/** On a scoped view, the last scan failing for this account is called out. */
+function ScopedFailureBanner({
+  scope,
+  failures,
+}: {
+  scope: AwsContextScope
+  failures: AwsScanFailure[]
+}): JSX.Element | null {
+  if (failures.length === 0) return null
+  const regions = [...new Set(failures.map((f) => f.region))].join(", ")
+  return (
+    <div className="flex shrink-0 items-center gap-2 border-b border-border bg-amber-50 px-4 py-1.5 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+      <AlertTriangle className="h-3 w-3 shrink-0" />
+      <span>
+        The last scan failed for account{" "}
+        {scope.account?.name || scope.accountId} ({regions}). Rows from earlier
+        scans are kept and marked stale; see ⚠ for details.
+      </span>
+    </div>
+  )
+}
+
 // ── Detail panel ─────────────────────────────────────────────────────────────
 
 function DetailPanel<K extends AwsResourceKind>({
@@ -1012,12 +1121,43 @@ function DetailPanel<K extends AwsResourceKind>({
 
 // ── View ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Global under the top-level AWS section; scoped to the selected context's
+ * EKS account and region under a context's AWS group. Keyed by context so
+ * filters do not carry across scopes.
+ */
 function AwsResourceView<K extends AwsResourceKind>({
   config,
 }: {
   config: AwsKindConfig<K>
 }): JSX.Element {
-  const { status, scan, cancel } = useAwsInventoryStatus()
+  const contextName = useAppStore((s) => s.selectedContext)
+  return (
+    <AwsResourceViewIn
+      key={contextName ?? ""}
+      config={config}
+      contextName={contextName}
+    />
+  )
+}
+
+function AwsResourceViewIn<K extends AwsResourceKind>({
+  config,
+  contextName,
+}: {
+  config: AwsKindConfig<K>
+  contextName: string | null
+}): JSX.Element {
+  const read = useAwsInventoryStatus(contextName)
+  const { scan, cancel } = read
+  // Until the scoped read lands, a status without this context's scope is
+  // still loading.
+  const status =
+    contextName && read.status?.scope?.contextName !== contextName
+      ? null
+      : read.status
+  const scope = contextName ? status?.scope : undefined
+  const problem = status && scope ? scopedProblem(status, scope) : null
   const [filters, setFilters] = useState<AwsFilters>(NO_FILTERS)
   const accounts = useMemo(
     () => accountNamesFrom(status?.accounts ?? []),
@@ -1025,8 +1165,11 @@ function AwsResourceView<K extends AwsResourceKind>({
   )
   const columns = useMemo(() => config.columns(accounts), [config, accounts])
   const failures = useMemo(
-    () => failuresOf(status, config.kind),
-    [status, config.kind],
+    () =>
+      scope
+        ? failuresOf({ failures: scope.failures }, config.kind)
+        : failuresOf(status, config.kind),
+    [status, scope, config.kind],
   )
   const rowFilter = useCallback(
     (row: Row<K>) => matchesFilters(row, filters),
@@ -1043,6 +1186,7 @@ function AwsResourceView<K extends AwsResourceKind>({
     <div className="flex h-full flex-col overflow-hidden">
       <AwsScanHeader
         status={status}
+        scope={scope}
         regional={config.regional}
         failures={failures}
         accounts={accounts}
@@ -1051,8 +1195,11 @@ function AwsResourceView<K extends AwsResourceKind>({
         onScan={scan}
         onCancel={cancel}
       />
+      {scope && <ScopedFailureBanner scope={scope} failures={failures} />}
       <div className="flex-1 overflow-hidden">
-        {status?.scannedAt ? (
+        {problem ? (
+          <ScopedState title={problem.title} detail={problem.detail} />
+        ) : status?.scannedAt ? (
           <ResourceListView<Row<K>>
             // A finished scan replaces the snapshot; remounting re-lists at
             // once, even when the refresh interval is off.

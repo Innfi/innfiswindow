@@ -253,6 +253,48 @@ export function TreeView(): JSX.Element {
                 </Collapsible.Root>
               )
             })}
+            {ctx.clusterType === "EKS" &&
+              (() => {
+                // Collapsed by default: absent from `openGroups` reads closed.
+                const awsKey = `${ctx.name}::AWS`
+                return (
+                  <Collapsible.Root
+                    open={openGroups[awsKey] ?? false}
+                    onOpenChange={() => toggleGroup(awsKey)}
+                  >
+                    <Collapsible.Trigger asChild>
+                      <button className="flex w-full items-center gap-1 pl-6 pr-3 py-1.5 text-sm font-semibold hover:bg-accent">
+                        {openGroups[awsKey] ? (
+                          <ChevronDown className="h-4 w-4 shrink-0" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 shrink-0" />
+                        )}
+                        AWS
+                      </button>
+                    </Collapsible.Trigger>
+                    <Collapsible.Content>
+                      {awsGroups
+                        .flatMap((g) => g.items)
+                        .map(({ label, type }) => (
+                          <div
+                            key={type}
+                            className={cn(
+                              "cursor-pointer py-1.5 pl-12 pr-3 text-sm hover:bg-accent",
+                              selectedContext === ctx.name &&
+                                selectedResourceType === type &&
+                                "bg-accent font-medium",
+                            )}
+                            onClick={() => selectLeaf(ctx.name, type)}
+                          >
+                            {type === "aws-iam-principals"
+                              ? "IAM Principals"
+                              : label}
+                          </div>
+                        ))}
+                    </Collapsible.Content>
+                  </Collapsible.Root>
+                )
+              })()}
           </Collapsible.Content>
         </Collapsible.Root>
       ))}
