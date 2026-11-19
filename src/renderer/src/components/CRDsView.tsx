@@ -15,6 +15,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { filterAnnotations, filterEntries } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { K8sCRD, K8sCRDVersion } from "../types/k8s"
 
@@ -89,18 +90,12 @@ function DetailPanel({
   const sl = search.toLowerCase()
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
   const shown =
     crd.versions.find((v) => v.name === version) ?? crd.versions[0] ?? null
 
-  const labelEntries = Object.entries(crd.labels).filter(([k, v]) => kv(k, v))
-  const annotationEntries = Object.entries(crd.annotations)
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const labelEntries = filterEntries(crd.labels, sl)
+  const annotationEntries = filterAnnotations(crd.annotations, sl)
 
   return (
     <DetailPanelLayout

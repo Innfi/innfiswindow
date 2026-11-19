@@ -150,7 +150,15 @@ export function useK8sResource<T>(
   // every time a dialog closes.
   const watchTargetRef = useRef("")
 
+  // Each list request takes a number; only the latest one may land. Without
+  // this a slow response for the old namespace, or an older poll, could
+  // overwrite the rows of a newer one.
+  const loadSeqRef = useRef(0)
+  const inFlightRef = useRef(false)
+
   const load = useCallback((silent = false) => {
+    const seq = ++loadSeqRef.current
+    inFlightRef.current = true
     if (!silent) setLoading(true)
     setError(null)
     fetcherRef
@@ -161,15 +169,25 @@ export function useK8sResource<T>(
         fieldSelectorRef.current || undefined,
       )
       .then((result) => {
+        if (seq !== loadSeqRef.current) return
+        inFlightRef.current = false
         setData(result)
         setLastRefreshedAt(Date.now())
         setLoading(false)
       })
       .catch((err) => {
+        if (seq !== loadSeqRef.current) return
+        inFlightRef.current = false
         setError(normalizeIpcError(err))
         setLoading(false)
       })
   }, [])
+
+  // A background tick while the last list is still out would only pile more
+  // requests onto a slow API server; it waits for the next tick instead.
+  const poll = useCallback(() => {
+    if (!inFlightRef.current) load(true)
+  }, [load])
 
   // Read inside the callbacks below so they stay stable across a watch
   // starting, failing, or being paused.
@@ -201,12 +219,12 @@ export function useK8sResource<T>(
   useEffect(() => {
     if (refreshInterval === "off" || paused || watching) return
     const ms = (refreshInterval as number) * 1000
-    const id = setInterval(() => load(true), ms)
+    const id = setInterval(poll, ms)
     return () => clearInterval(id)
   }, [
     refreshInterval,
     paused,
-    load,
+    poll,
     context,
     namespace,
     labelSelector,
@@ -240,6 +258,9 @@ export function useK8sResource<T>(
           return
         }
         activeSubId = subId
+        // The snapshot supersedes any list still out from before the watch.
+        loadSeqRef.current++
+        inFlightRef.current = false
         const establishedAt = Date.now()
         setData(items as T[])
         setError(null)

@@ -12,6 +12,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sVolumeSnapshot } from "../types/k8s"
 
 function ReadyBadge({ ready }: { ready: boolean | null }): JSX.Element {
@@ -43,16 +44,8 @@ function DetailPanel({
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
-  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
-
-  const labelEntries = Object.entries(snap.labels).filter(([k, v]) => kv(k, v))
-  const annotationEntries = Object.entries(snap.annotations)
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const labelEntries = filterEntries(snap.labels, sl)
+  const annotationEntries = filterAnnotations(snap.annotations, sl)
 
   return (
     <DetailPanelLayout

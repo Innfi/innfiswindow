@@ -12,6 +12,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sVolumeSnapshotClass } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -40,19 +41,9 @@ function DetailPanel({
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
-  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
-
-  const paramEntries = Object.entries(vsc.parameters).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const labelEntries = Object.entries(vsc.labels).filter(([k, v]) => kv(k, v))
-  const annotationEntries = Object.entries(vsc.annotations)
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const paramEntries = filterEntries(vsc.parameters, sl)
+  const labelEntries = filterEntries(vsc.labels, sl)
+  const annotationEntries = filterAnnotations(vsc.annotations, sl)
 
   return (
     <DetailPanelLayout

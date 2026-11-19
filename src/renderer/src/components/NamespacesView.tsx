@@ -13,7 +13,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { cn } from "../../lib/utils"
+import { cn, filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sNamespace } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -31,16 +31,8 @@ function DetailPanel({
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
-  const kv = (k: string, v: string): boolean =>
-    !sl || k.toLowerCase().includes(sl) || v.toLowerCase().includes(sl)
-
-  const labelEntries = Object.entries(ns.labels).filter(([k, v]) => kv(k, v))
-  const annotationEntries = Object.entries(ns.annotations)
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const labelEntries = filterEntries(ns.labels, sl)
+  const annotationEntries = filterAnnotations(ns.annotations, sl)
 
   return (
     <DetailPanelLayout

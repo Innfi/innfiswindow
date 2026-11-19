@@ -17,6 +17,7 @@ import {
 } from "../../components/ui/ResourceListView"
 import { normalizeIpcError } from "../../lib/ipc-error"
 import type { ResourceGvk } from "../../lib/resource-gvk"
+import { filterAnnotations, filterEntries } from "../../lib/utils"
 import { dumpYaml } from "../../lib/yaml"
 import { useAppStore } from "../../store/app.store"
 import {
@@ -62,17 +63,9 @@ function DetailPanel({
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
-  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
-
   const info = detail.info
-  const labelEntries = Object.entries(info.labels).filter(([k, v]) => kv(k, v))
-  const annotationEntries = Object.entries(info.annotations)
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const labelEntries = filterEntries(info.labels, sl)
+  const annotationEntries = filterAnnotations(info.annotations, sl)
 
   // Nothing here knows the kind's schema, so the manifest itself is the detail
   // view — the same thing `kubectl get -o yaml` would print.

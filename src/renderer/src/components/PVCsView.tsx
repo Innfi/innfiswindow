@@ -14,7 +14,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { cn } from "../../lib/utils"
+import { cn, filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sPVC } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -49,15 +49,9 @@ function DetailPanel({
   const sl = search.toLowerCase()
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const labelEntries = Object.entries(pvc.labels).filter(([k, v]) => kv(k, v))
-  const annotationEntries = Object.entries(pvc.annotations)
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const labelEntries = filterEntries(pvc.labels, sl)
+  const annotationEntries = filterAnnotations(pvc.annotations, sl)
 
   return (
     <DetailPanelLayout

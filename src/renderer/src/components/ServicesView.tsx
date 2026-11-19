@@ -15,7 +15,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { cn } from "../../lib/utils"
+import { cn, filterAnnotations, filterEntries } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { K8sEndpoint, K8sService, K8sServicePort } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
@@ -45,7 +45,6 @@ function DetailPanel({
   const [endpoints, setEndpoints] = useState<K8sEndpoint | null>(null)
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
   // A Service's Endpoints object shares its name and namespace.
   useEffect(() => {
@@ -59,16 +58,9 @@ function DetailPanel({
       .catch(() => setEndpoints(null))
   }, [svc.name, svc.namespace, selectedContext])
 
-  const selectorEntries = Object.entries(svc.selector).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const labelEntries = Object.entries(svc.labels).filter(([k, v]) => kv(k, v))
-  const annotationEntries = Object.entries(svc.annotations)
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const selectorEntries = filterEntries(svc.selector, sl)
+  const labelEntries = filterEntries(svc.labels, sl)
+  const annotationEntries = filterAnnotations(svc.annotations, sl)
 
   const allEndpointIPs = endpoints
     ? endpoints.subsets.flatMap((s) =>

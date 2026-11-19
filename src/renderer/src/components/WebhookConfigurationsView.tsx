@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/Table"
+import { filterAnnotations, filterEntries } from "../../lib/utils"
 import {
   K8sWebhook,
   K8sWebhookClientConfig,
@@ -312,18 +313,10 @@ function DetailPanel({
   const sl = search.toLowerCase()
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
   const kind = KIND[config.type]
-  const labelEntries = Object.entries(config.labels).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const annotationEntries = Object.entries(config.annotations)
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const labelEntries = filterEntries(config.labels, sl)
+  const annotationEntries = filterAnnotations(config.annotations, sl)
   const webhooks = config.webhooks.filter((w) => m(webhookText(w)))
   const failCount = config.webhooks.filter(
     (w) => w.failurePolicy === "Fail",

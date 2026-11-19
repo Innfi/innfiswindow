@@ -14,6 +14,7 @@ import {
   V1Service,
 } from "@kubernetes/client-node"
 
+import { toResourceRef } from "./ref"
 import { toIso } from "./time"
 import {
   EndpointAddress,
@@ -214,10 +215,7 @@ export async function createService(
     },
   }
   const res = await api.createNamespacedService({ namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function updateService(
@@ -238,10 +236,7 @@ export async function updateService(
     },
   }
   const res = await api.patchNamespacedService({ name, namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function replaceServiceFromYaml(
@@ -252,10 +247,7 @@ export async function replaceServiceFromYaml(
 ): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedService({ name, namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 function buildIngressSpec(
@@ -318,10 +310,7 @@ export async function createIngress(
     spec: buildIngressSpec(ingressClassName, rules, tls),
   }
   const res = await api.createNamespacedIngress({ namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function updateIngress(
@@ -336,10 +325,7 @@ export async function updateIngress(
     spec: buildIngressSpec(ingressClassName, rules, tls),
   }
   const res = await api.patchNamespacedIngress({ name, namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function replaceIngressFromYaml(
@@ -350,10 +336,7 @@ export async function replaceIngressFromYaml(
 ): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedIngress({ name, namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 function mapEndpointAddresses(

@@ -1,6 +1,7 @@
 import { load as yamlLoad } from "js-yaml"
 import { AppsV1Api, V1StatefulSet } from "@kubernetes/client-node"
 
+import { toResourceRef } from "../ref"
 import { toIso } from "../time"
 import {
   MutationResult,
@@ -96,10 +97,7 @@ export async function createStatefulSet(
     },
   }
   const res = await api.createNamespacedStatefulSet({ namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function updateStatefulSet(
@@ -120,10 +118,7 @@ export async function updateStatefulSet(
     },
   }
   const res = await api.patchNamespacedStatefulSet({ name, namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function replaceStatefulSetFromYaml(
@@ -134,10 +129,7 @@ export async function replaceStatefulSetFromYaml(
 ): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedStatefulSet({ name, namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function restartStatefulSet(

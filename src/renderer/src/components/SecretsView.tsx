@@ -14,6 +14,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sSecret, K8sSecretSummary } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -34,18 +35,10 @@ function DetailPanel({
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set())
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
   const dataEntries = Object.entries(secret.data).filter(([k]) => m(k))
-  const labelEntries = Object.entries(secret.labels).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const annotationEntries = Object.entries(secret.annotations)
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const labelEntries = filterEntries(secret.labels, sl)
+  const annotationEntries = filterAnnotations(secret.annotations, sl)
 
   function toggleReveal(key: string): void {
     setRevealedKeys((prev) => {

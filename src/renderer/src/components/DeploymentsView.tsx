@@ -25,10 +25,15 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { RestartButton } from "../../components/ui/RestartButton"
 import { ScaleButton } from "../../components/ui/ScaleButton"
-import { cn } from "../../lib/utils"
+import {
+  cn,
+  filterAnnotations,
+  filterEntries,
+  matchesSearch,
+} from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
-import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sDeployment, K8sDeploymentSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
@@ -55,34 +60,19 @@ function DetailPanel({
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
   const selectedContext = useAppStore((s) => s.selectedContext)
-  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   const [history, setHistory] = useState<DeploymentRevision[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [rollbackRevision, setRollbackRevision] = useState<number | null>(null)
   const [rolling, setRolling] = useState(false)
-  const [restartOpen, setRestartOpen] = useState(false)
-  const [restarting, setRestarting] = useState(false)
 
-  const matches = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kvMatches = (k: string, v: string): boolean => matches(k) || matches(v)
+  const matches = (s: string): boolean => matchesSearch(s, sl)
 
-  const selectorEntries = Object.entries(deployment.selector).filter(([k, v]) =>
-    kvMatches(k, v),
-  )
-  const labelEntries = Object.entries(deployment.labels ?? {}).filter(
-    ([k, v]) => kvMatches(k, v),
-  )
-  const annotationEntries = Object.entries(deployment.annotations ?? {})
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kvMatches(k, v))
-  const podLabelEntries = Object.entries(
-    deployment.podTemplateLabels ?? {},
-  ).filter(([k, v]) => kvMatches(k, v))
+  const selectorEntries = filterEntries(deployment.selector, sl)
+  const labelEntries = filterEntries(deployment.labels, sl)
+  const annotationEntries = filterAnnotations(deployment.annotations, sl)
+  const podLabelEntries = filterEntries(deployment.podTemplateLabels, sl)
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true)
@@ -137,33 +127,6 @@ function DetailPanel({
     }
   }
 
-  async function handleRestart(): Promise<void> {
-    const target = {
-      action: "restart",
-      resourceKind: "Deployment",
-      resourceName: deployment.name,
-      namespace: deployment.namespace,
-    } as const
-    setRestarting(true)
-    try {
-      await window.api.k8s.restartDeployment({
-        contextName: selectedContext ?? undefined,
-        namespace: deployment.namespace,
-        name: deployment.name,
-      })
-      recordHistory(target, { success: true })
-      toast.success(`Restarting ${deployment.name}`)
-      setRestartOpen(false)
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      toast.error(String(e))
-      useAppStore.getState().addGlobalError(String(e), "Deployment: restart")
-      setRestartOpen(false)
-    } finally {
-      setRestarting(false)
-    }
-  }
-
   return (
     <DetailPanelLayout
       header={
@@ -212,14 +175,12 @@ function DetailPanel({
                 onScaled={onReloaded}
                 onDialogChange={onDeleteDialogChange}
               />
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                onClick={() => setRestartOpen(true)}
-              >
-                Restart
-              </Button>
+              <RestartButton
+                resourceKind="Deployment"
+                resourceName={deployment.name}
+                namespace={deployment.namespace}
+                onDialogChange={onDeleteDialogChange}
+              />
               <PauseRolloutButton
                 resourceKind="Deployment"
                 resourceName={deployment.name}
@@ -471,33 +432,6 @@ function DetailPanel({
           </div>
         )}
       </CollapsibleSection>
-
-      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restart Deployment</AlertDialogTitle>
-            <AlertDialogDescription>
-              Trigger a rolling restart of{" "}
-              <strong>
-                {deployment.namespace}/{deployment.name}
-              </strong>
-              ? All pods will be recreated.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setRestartOpen(false)}
-              disabled={restarting}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleRestart} disabled={restarting}>
-              {restarting ? "Restarting…" : "Restart"}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog
         open={rollbackRevision !== null}

@@ -22,7 +22,7 @@ import {
   ResourceListView,
   SortOption,
 } from "../../components/ui/ResourceListView"
-import { cn } from "../../lib/utils"
+import { cn, filterAnnotations, filterEntries } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { usePodMetrics } from "../hooks/usePodMetrics"
 import { K8sPod, K8sPodMetric, K8sPodSummary } from "../types/k8s"
@@ -124,17 +124,9 @@ function DetailPanel({
   )
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const labelEntries = Object.entries(pod.labels ?? {}).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const annotationEntries = Object.entries(pod.annotations ?? {})
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const labelEntries = filterEntries(pod.labels, sl)
+  const annotationEntries = filterAnnotations(pod.annotations, sl)
 
   return (
     <DetailPanelLayout

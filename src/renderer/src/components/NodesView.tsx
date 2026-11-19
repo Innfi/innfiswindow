@@ -34,7 +34,7 @@ import {
   ResourceColumn,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { cn } from "../../lib/utils"
+import { cn, filterAnnotations, filterEntries } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
 import { K8sNode } from "../types/k8s"
@@ -264,21 +264,11 @@ function DetailPanel({
   }
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const labelEntries = Object.entries(node.labels).filter(([k, v]) => kv(k, v))
-  const annotationEntries = Object.entries(node.annotations ?? {})
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
-  const capacityEntries = Object.entries(node.capacity).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const allocatableEntries = Object.entries(node.allocatable).filter(([k, v]) =>
-    kv(k, v),
-  )
+  const labelEntries = filterEntries(node.labels, sl)
+  const annotationEntries = filterAnnotations(node.annotations, sl)
+  const capacityEntries = filterEntries(node.capacity, sl)
+  const allocatableEntries = filterEntries(node.allocatable, sl)
 
   return (
     <DetailPanelLayout

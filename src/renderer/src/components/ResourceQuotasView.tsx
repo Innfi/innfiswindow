@@ -13,7 +13,12 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { cn, parseResourceValue } from "../../lib/utils"
+import {
+  cn,
+  filterAnnotations,
+  filterEntries,
+  parseResourceValue,
+} from "../../lib/utils"
 import { K8sResourceQuota } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
 
@@ -38,16 +43,8 @@ function DetailPanel({
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
-  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
-
-  const labelEntries = Object.entries(quota.labels).filter(([k, v]) => kv(k, v))
-  const annotationEntries = Object.entries(quota.annotations)
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const labelEntries = filterEntries(quota.labels, sl)
+  const annotationEntries = filterAnnotations(quota.annotations, sl)
 
   const resources = Object.keys(quota.hard).filter(
     (r) => !sl || r.toLowerCase().includes(sl),

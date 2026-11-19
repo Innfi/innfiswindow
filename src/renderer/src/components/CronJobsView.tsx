@@ -1,16 +1,6 @@
 ﻿import { Pause, Play, PlayCircle } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
 
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../../components/ui/AlertDialog"
-import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
@@ -24,10 +14,9 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { RestartButton } from "../../components/ui/RestartButton"
 import { SuspendButton } from "../../components/ui/SuspendButton"
-import { formatAge } from "../../lib/utils"
-import { useAppStore } from "../../store/app.store"
-import { useRecordHistory } from "../hooks/useRecordHistory"
+import { filterAnnotations, filterEntries, formatAge } from "../../lib/utils"
 import { K8sCronJob } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -45,53 +34,13 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-  const [restartOpen, setRestartOpen] = useState(false)
-  const [restarting, setRestarting] = useState(false)
-
-  async function handleRestart(): Promise<void> {
-    const target = {
-      action: "restart",
-      resourceKind: "CronJob",
-      resourceName: cronJob.name,
-      namespace: cronJob.namespace,
-    } as const
-    setRestarting(true)
-    try {
-      await window.api.k8s.restartCronJob({
-        contextName: selectedContext ?? undefined,
-        namespace: cronJob.namespace,
-        name: cronJob.name,
-      })
-      recordHistory(target, { success: true })
-      toast.success(`Triggered a new job run for ${cronJob.name}`)
-      setRestartOpen(false)
-      onReloaded()
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      toast.error(String(e))
-      useAppStore.getState().addGlobalError(String(e), "CronJob: restart")
-      setRestartOpen(false)
-    } finally {
-      setRestarting(false)
-    }
-  }
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const labelEntries = Object.entries(cronJob.labels).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const annotationEntries = Object.entries(cronJob.annotations)
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const labelEntries = filterEntries(cronJob.labels, sl)
+  const annotationEntries = filterAnnotations(cronJob.annotations, sl)
   const activeNames = cronJob.activeJobNames.filter((n) => m(n))
 
   return (
@@ -137,14 +86,13 @@ function DetailPanel({
                 onChanged={onReloaded}
                 onDialogChange={onDeleteDialogChange}
               />
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                onClick={() => setRestartOpen(true)}
-              >
-                Restart
-              </Button>
+              <RestartButton
+                resourceKind="CronJob"
+                resourceName={cronJob.name}
+                namespace={cronJob.namespace}
+                onRestarted={onReloaded}
+                onDialogChange={onDeleteDialogChange}
+              />
               <DeleteButton
                 resourceKind="CronJob"
                 resourceName={cronJob.name}
@@ -260,34 +208,6 @@ function DetailPanel({
         search={sl}
         collapsibleId="cronJob.related"
       />
-
-      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restart CronJob</AlertDialogTitle>
-            <AlertDialogDescription>
-              CronJobs have no restart, so this manually triggers a new job run
-              for{" "}
-              <strong>
-                {cronJob.namespace}/{cronJob.name}
-              </strong>{" "}
-              now, from its job template.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setRestartOpen(false)}
-              disabled={restarting}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleRestart} disabled={restarting}>
-              {restarting ? "Triggering…" : "Restart"}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </DetailPanelLayout>
   )
 }

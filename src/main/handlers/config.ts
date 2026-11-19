@@ -119,10 +119,7 @@ export async function replaceConfigMapFromYaml(
 ): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedConfigMap({ name, namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function replaceSecretFromYaml(
@@ -133,8 +130,6 @@ export async function replaceSecretFromYaml(
 ): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedSecret({ name, namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
+import { toResourceRef } from "./ref"

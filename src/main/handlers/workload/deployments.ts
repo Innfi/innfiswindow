@@ -1,6 +1,7 @@
 import { load as yamlLoad } from "js-yaml"
 import { AppsV1Api, V1Deployment } from "@kubernetes/client-node"
 
+import { toResourceRef } from "../ref"
 import { toIso } from "../time"
 import {
   DeploymentInfo,
@@ -106,10 +107,7 @@ export async function createDeployment(
     },
   }
   const res = await api.createNamespacedDeployment({ namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function updateDeployment(
@@ -134,10 +132,7 @@ export async function updateDeployment(
     namespace,
     body,
   })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function replaceDeploymentFromYaml(
@@ -148,10 +143,7 @@ export async function replaceDeploymentFromYaml(
 ): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedDeployment({ name, namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function listDeploymentHistory(

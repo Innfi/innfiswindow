@@ -14,6 +14,7 @@ import {
   ResourceListView,
 } from "../../components/ui/ResourceListView"
 import { ScaleButton } from "../../components/ui/ScaleButton"
+import { filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sReplicaSet, K8sReplicaSetSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
@@ -36,23 +37,11 @@ function DetailPanel({
   const sl = search.toLowerCase()
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const selectorEntries = Object.entries(rs.selector).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const podTemplateEntries = Object.entries(rs.podTemplateLabels).filter(
-    ([k, v]) => kv(k, v),
-  )
-  const labelEntries = Object.entries(rs.labels ?? {}).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const annotationEntries = Object.entries(rs.annotations ?? {})
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const selectorEntries = filterEntries(rs.selector, sl)
+  const podTemplateEntries = filterEntries(rs.podTemplateLabels, sl)
+  const labelEntries = filterEntries(rs.labels, sl)
+  const annotationEntries = filterAnnotations(rs.annotations, sl)
 
   return (
     <DetailPanelLayout

@@ -15,7 +15,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { cn } from "../../lib/utils"
+import { cn, filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sHPA } from "../types/k8s"
 import { HPAUtilizationSection } from "./HPAUtilizationSection"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
@@ -38,15 +38,9 @@ function DetailPanel({
   const sl = search.toLowerCase()
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const labelEntries = Object.entries(hpa.labels).filter(([k, v]) => kv(k, v))
-  const annotationEntries = Object.entries(hpa.annotations)
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
+  const labelEntries = filterEntries(hpa.labels, sl)
+  const annotationEntries = filterAnnotations(hpa.annotations, sl)
 
   // Resource and ContainerResource metrics are read live by the utilisation
   // section, which pairs each with its current value; these are the rest.

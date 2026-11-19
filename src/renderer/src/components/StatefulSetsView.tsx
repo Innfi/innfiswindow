@@ -1,16 +1,6 @@
 ﻿import { RotateCw } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
 
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../../components/ui/AlertDialog"
-import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
@@ -24,9 +14,9 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { RestartButton } from "../../components/ui/RestartButton"
 import { ScaleButton } from "../../components/ui/ScaleButton"
-import { useAppStore } from "../../store/app.store"
-import { useRecordHistory } from "../hooks/useRecordHistory"
+import { filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sStatefulSet, K8sStatefulSetSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
@@ -45,58 +35,15 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-  const [restartOpen, setRestartOpen] = useState(false)
-  const [restarting, setRestarting] = useState(false)
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const selectorEntries = Object.entries(ss.selector).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const labelEntries = Object.entries(ss.labels ?? {}).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const annotationEntries = Object.entries(ss.annotations ?? {})
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
-  const podLabelEntries = Object.entries(ss.podTemplateLabels ?? {}).filter(
-    ([k, v]) => kv(k, v),
-  )
-
-  async function handleRestart(): Promise<void> {
-    const target = {
-      action: "restart",
-      resourceKind: "StatefulSet",
-      resourceName: ss.name,
-      namespace: ss.namespace,
-    } as const
-    setRestarting(true)
-    try {
-      await window.api.k8s.restartStatefulSet({
-        contextName: selectedContext ?? undefined,
-        namespace: ss.namespace,
-        name: ss.name,
-      })
-      recordHistory(target, { success: true })
-      toast.success(`Restarting ${ss.name}`)
-      setRestartOpen(false)
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      toast.error(String(e))
-      useAppStore.getState().addGlobalError(String(e), "StatefulSet: restart")
-      setRestartOpen(false)
-    } finally {
-      setRestarting(false)
-    }
-  }
+  const selectorEntries = filterEntries(ss.selector, sl)
+  const labelEntries = filterEntries(ss.labels, sl)
+  const annotationEntries = filterAnnotations(ss.annotations, sl)
+  const podLabelEntries = filterEntries(ss.podTemplateLabels, sl)
 
   return (
     <DetailPanelLayout
@@ -143,14 +90,12 @@ function DetailPanel({
                 onScaled={onReloaded}
                 onDialogChange={onDeleteDialogChange}
               />
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                onClick={() => setRestartOpen(true)}
-              >
-                Restart
-              </Button>
+              <RestartButton
+                resourceKind="StatefulSet"
+                resourceName={ss.name}
+                namespace={ss.namespace}
+                onDialogChange={onDeleteDialogChange}
+              />
               <DeleteButton
                 resourceKind="StatefulSet"
                 resourceName={ss.name}
@@ -305,33 +250,6 @@ function DetailPanel({
         search={sl}
         collapsibleId="statefulSet.related"
       />
-
-      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restart StatefulSet</AlertDialogTitle>
-            <AlertDialogDescription>
-              Trigger a rolling restart of{" "}
-              <strong>
-                {ss.namespace}/{ss.name}
-              </strong>
-              ? Pods will be recreated one at a time in order.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setRestartOpen(false)}
-              disabled={restarting}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleRestart} disabled={restarting}>
-              {restarting ? "Restarting…" : "Restart"}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </DetailPanelLayout>
   )
 }

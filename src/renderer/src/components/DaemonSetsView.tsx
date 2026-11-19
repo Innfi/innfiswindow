@@ -1,16 +1,6 @@
 ﻿import { RotateCw } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
 
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../../components/ui/AlertDialog"
-import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
@@ -24,8 +14,8 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
-import { useAppStore } from "../../store/app.store"
-import { useRecordHistory } from "../hooks/useRecordHistory"
+import { RestartButton } from "../../components/ui/RestartButton"
+import { filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sDaemonSet, K8sDaemonSetSummary } from "../types/k8s"
 import { ContainerCard } from "./ContainerCard"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
@@ -42,61 +32,16 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const recordHistory = useRecordHistory()
-  const [restartOpen, setRestartOpen] = useState(false)
-  const [restarting, setRestarting] = useState(false)
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const selectorEntries = Object.entries(ds.selector).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const nodeSelectorEntries = Object.entries(ds.nodeSelector).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const labelEntries = Object.entries(ds.labels ?? {}).filter(([k, v]) =>
-    kv(k, v),
-  )
-  const annotationEntries = Object.entries(ds.annotations ?? {})
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
-  const podLabelEntries = Object.entries(ds.podTemplateLabels ?? {}).filter(
-    ([k, v]) => kv(k, v),
-  )
-
-  async function handleRestart(): Promise<void> {
-    const target = {
-      action: "restart",
-      resourceKind: "DaemonSet",
-      resourceName: ds.name,
-      namespace: ds.namespace,
-    } as const
-    setRestarting(true)
-    try {
-      await window.api.k8s.restartDaemonSet({
-        contextName: selectedContext ?? undefined,
-        namespace: ds.namespace,
-        name: ds.name,
-      })
-      recordHistory(target, { success: true })
-      toast.success(`Restarting ${ds.name}`)
-      setRestartOpen(false)
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      toast.error(String(e))
-      useAppStore.getState().addGlobalError(String(e), "DaemonSet: restart")
-      setRestartOpen(false)
-    } finally {
-      setRestarting(false)
-    }
-  }
+  const selectorEntries = filterEntries(ds.selector, sl)
+  const nodeSelectorEntries = filterEntries(ds.nodeSelector, sl)
+  const labelEntries = filterEntries(ds.labels, sl)
+  const annotationEntries = filterAnnotations(ds.annotations, sl)
+  const podLabelEntries = filterEntries(ds.podTemplateLabels, sl)
 
   return (
     <DetailPanelLayout
@@ -139,14 +84,12 @@ function DetailPanel({
                   },
                 })}
               />
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                onClick={() => setRestartOpen(true)}
-              >
-                Restart
-              </Button>
+              <RestartButton
+                resourceKind="DaemonSet"
+                resourceName={ds.name}
+                namespace={ds.namespace}
+                onDialogChange={onDeleteDialogChange}
+              />
               <DeleteButton
                 resourceKind="DaemonSet"
                 resourceName={ds.name}
@@ -311,33 +254,6 @@ function DetailPanel({
         search={sl}
         collapsibleId="daemonSet.related"
       />
-
-      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restart DaemonSet</AlertDialogTitle>
-            <AlertDialogDescription>
-              Trigger a rolling restart of{" "}
-              <strong>
-                {ds.namespace}/{ds.name}
-              </strong>
-              ? Pods will be recreated on every node.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setRestartOpen(false)}
-              disabled={restarting}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleRestart} disabled={restarting}>
-              {restarting ? "Restarting…" : "Restart"}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </DetailPanelLayout>
   )
 }

@@ -1,6 +1,7 @@
 import { load as yamlLoad } from "js-yaml"
 import { AppsV1Api, V1DaemonSet } from "@kubernetes/client-node"
 
+import { toResourceRef } from "../ref"
 import { toIso } from "../time"
 import {
   DaemonSetInfo,
@@ -96,10 +97,7 @@ export async function createDaemonSet(
     },
   }
   const res = await api.createNamespacedDaemonSet({ namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function updateDaemonSet(
@@ -118,10 +116,7 @@ export async function updateDaemonSet(
     },
   }
   const res = await api.patchNamespacedDaemonSet({ name, namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function replaceDaemonSetFromYaml(
@@ -132,10 +127,7 @@ export async function replaceDaemonSetFromYaml(
 ): Promise<ResourceRef> {
   const body = yamlLoad(yamlStr) as object
   const res = await api.replaceNamespacedDaemonSet({ name, namespace, body })
-  return {
-    name: res.metadata?.name ?? "",
-    namespace: res.metadata?.namespace ?? "",
-  }
+  return toResourceRef(res)
 }
 
 export async function restartDaemonSet(

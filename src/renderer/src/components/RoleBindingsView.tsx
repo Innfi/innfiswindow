@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/Table"
+import { filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sRoleBinding } from "../types/k8s"
 
 function DetailPanel({
@@ -37,8 +38,6 @@ function DetailPanel({
 }): JSX.Element {
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
-  const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
   return (
     <DetailPanelLayout
@@ -164,27 +163,15 @@ function DetailPanel({
 
       {Object.keys(binding.labels).length > 0 && (
         <CollapsibleSection id="roleBinding.labels" title="Labels">
-          <LabelEntries
-            entries={Object.entries(binding.labels).filter(([k, v]) =>
-              kv(k, v),
-            )}
-          />
+          <LabelEntries entries={filterEntries(binding.labels, sl)} />
         </CollapsibleSection>
       )}
 
       {Object.keys(binding.annotations).length > 0 && (
         <CollapsibleSection id="roleBinding.annotations" title="Annotations">
-          {Object.entries(binding.annotations)
-            .filter(
-              ([k]) =>
-                !k.startsWith(
-                  "kubectl.kubernetes.io/last-applied-configuration",
-                ),
-            )
-            .filter(([k, v]) => kv(k, v))
-            .map(([k, v]) => (
-              <MetaEntry key={k} label={k} value={v} />
-            ))}
+          {filterAnnotations(binding.annotations, sl).map(([k, v]) => (
+            <MetaEntry key={k} label={k} value={v} />
+          ))}
         </CollapsibleSection>
       )}
     </DetailPanelLayout>

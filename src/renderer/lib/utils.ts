@@ -17,20 +17,21 @@ export function filterResources<
   )
 }
 
+const MEM_SUFFIXES: [string, number][] = [
+  ["Ki", 1024],
+  ["Mi", 1024 ** 2],
+  ["Gi", 1024 ** 3],
+  ["Ti", 1024 ** 4],
+  ["K", 1000],
+  ["M", 1000 ** 2],
+  ["G", 1000 ** 3],
+  ["T", 1000 ** 4],
+]
+
 export function parseResourceValue(value: string): number {
   if (!value) return 0
   if (value.endsWith("m")) return parseFloat(value)
-  const memSuffixes: [string, number][] = [
-    ["Ki", 1024],
-    ["Mi", 1024 ** 2],
-    ["Gi", 1024 ** 3],
-    ["Ti", 1024 ** 4],
-    ["K", 1000],
-    ["M", 1000 ** 2],
-    ["G", 1000 ** 3],
-    ["T", 1000 ** 4],
-  ]
-  for (const [suffix, mult] of memSuffixes) {
+  for (const [suffix, mult] of MEM_SUFFIXES) {
     if (value.endsWith(suffix)) return parseFloat(value) * mult
   }
   return parseFloat(value) || 0
@@ -55,4 +56,34 @@ export function formatAge(isoTimestamp: string): string {
   if (diffHours < 24) return `${diffHours}h`
   const diffDays = Math.floor(diffHours / 24)
   return `${diffDays}d`
+}
+
+/** kubectl's copy of the whole object, which detail panels never show. */
+const LAST_APPLIED = "kubectl.kubernetes.io/last-applied-configuration"
+
+/** Detail-panel search: `needle` is already lower-cased; "" matches all. */
+export function matchesSearch(text: string, needle: string): boolean {
+  return !needle || text.toLowerCase().includes(needle)
+}
+
+/** A label-style map's entries whose key or value matches the search. */
+export function filterEntries(
+  record: Record<string, string> | null | undefined,
+  needle: string,
+): [string, string][] {
+  const entries = Object.entries(record ?? {})
+  if (!needle) return entries
+  return entries.filter(
+    ([k, v]) => matchesSearch(k, needle) || matchesSearch(v, needle),
+  )
+}
+
+/** Like `filterEntries`, minus kubectl's last-applied-configuration. */
+export function filterAnnotations(
+  record: Record<string, string> | null | undefined,
+  needle: string,
+): [string, string][] {
+  return filterEntries(record, needle).filter(
+    ([k]) => !k.startsWith(LAST_APPLIED),
+  )
 }

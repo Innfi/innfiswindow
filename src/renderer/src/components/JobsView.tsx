@@ -1,16 +1,6 @@
 ﻿import { Pause, Play, RotateCw } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
 
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../../components/ui/AlertDialog"
-import { Button } from "../../components/ui/Button"
 import { ClosePanelButton } from "../../components/ui/ClosePanelButton"
 import { CollapsibleSection } from "../../components/ui/CollapsibleSection"
 import { CopyResourceButton } from "../../components/ui/CopyResourceButton"
@@ -24,10 +14,9 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { RestartButton } from "../../components/ui/RestartButton"
 import { SuspendButton } from "../../components/ui/SuspendButton"
-import { cn } from "../../lib/utils"
-import { useAppStore } from "../../store/app.store"
-import { useRecordHistory } from "../hooks/useRecordHistory"
+import { cn, filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sJob } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -45,8 +34,6 @@ function DetailPanel({
   onDeleted: () => void
   onDeleteDialogChange: (open: boolean) => void
 }): JSX.Element {
-  const selectedContext = useAppStore((s) => s.selectedContext)
-  const recordHistory = useRecordHistory()
   const [search, setSearch] = useState("")
   const sl = search.toLowerCase()
   // A Job that has already finished ignores spec.suspend, so the button that
@@ -55,50 +42,12 @@ function DetailPanel({
     (c) =>
       (c.type === "Complete" || c.type === "Failed") && c.status === "True",
   )
-  const [restartOpen, setRestartOpen] = useState(false)
-  const [restarting, setRestarting] = useState(false)
-
-  async function handleRestart(): Promise<void> {
-    const target = {
-      action: "restart",
-      resourceKind: "Job",
-      resourceName: job.name,
-      namespace: job.namespace,
-    } as const
-    setRestarting(true)
-    try {
-      await window.api.k8s.restartJob({
-        contextName: selectedContext ?? undefined,
-        namespace: job.namespace,
-        name: job.name,
-      })
-      recordHistory(target, { success: true })
-      toast.success(`Restarted ${job.name}`)
-      setRestartOpen(false)
-      onReloaded()
-    } catch (e) {
-      recordHistory(target, { success: false, error: String(e) })
-      toast.error(String(e))
-      useAppStore.getState().addGlobalError(String(e), "Job: restart")
-      setRestartOpen(false)
-    } finally {
-      setRestarting(false)
-    }
-  }
 
   const m = (s: string): boolean => !sl || s.toLowerCase().includes(sl)
-  const kv = (k: string, v: string): boolean => m(k) || m(v)
 
-  const labelEntries = Object.entries(job.labels).filter(([k, v]) => kv(k, v))
-  const annotationEntries = Object.entries(job.annotations)
-    .filter(
-      ([k]) =>
-        !k.startsWith("kubectl.kubernetes.io/last-applied-configuration"),
-    )
-    .filter(([k, v]) => kv(k, v))
-  const selectorEntries = Object.entries(job.selector).filter(([k, v]) =>
-    kv(k, v),
-  )
+  const labelEntries = filterEntries(job.labels, sl)
+  const annotationEntries = filterAnnotations(job.annotations, sl)
+  const selectorEntries = filterEntries(job.selector, sl)
 
   return (
     <DetailPanelLayout
@@ -145,14 +94,13 @@ function DetailPanel({
                   onDialogChange={onDeleteDialogChange}
                 />
               )}
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                onClick={() => setRestartOpen(true)}
-              >
-                Restart
-              </Button>
+              <RestartButton
+                resourceKind="Job"
+                resourceName={job.name}
+                namespace={job.namespace}
+                onRestarted={onReloaded}
+                onDialogChange={onDeleteDialogChange}
+              />
               <DeleteButton
                 resourceKind="Job"
                 resourceName={job.name}
@@ -307,34 +255,6 @@ function DetailPanel({
         search={sl}
         collapsibleId="job.related"
       />
-
-      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restart Job</AlertDialogTitle>
-            <AlertDialogDescription>
-              Jobs are immutable, so{" "}
-              <strong>
-                {job.namespace}/{job.name}
-              </strong>{" "}
-              will be deleted and recreated from its spec to run again. This
-              cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setRestartOpen(false)}
-              disabled={restarting}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleRestart} disabled={restarting}>
-              {restarting ? "Restarting…" : "Restart"}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </DetailPanelLayout>
   )
 }
