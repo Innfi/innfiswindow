@@ -229,6 +229,52 @@ export interface ContextState {
   activeTabId: string | null
 }
 
+/** Everything a view tab owns: the live top-level fields while it is active,
+ *  parked here while another tab is. */
+export interface ViewSnapshot extends ContextState {
+  selectedContext: string | null
+}
+
+export interface ViewTab {
+  id: string
+  /** Null for the active tab, whose state is the live top-level fields. */
+  snapshot: ViewSnapshot | null
+}
+
+function captureView(state: AppState): ViewSnapshot {
+  return {
+    selectedContext: state.selectedContext,
+    selectedResourceType: state.selectedResourceType,
+    customResourceTarget: state.customResourceTarget,
+    accessReviewSubject: state.accessReviewSubject,
+    selectedItem: state.selectedItem,
+    selectedNamespace: state.selectedNamespace,
+    nameFilter: state.nameFilter,
+    labelSelector: state.labelSelector,
+    fieldSelector: state.fieldSelector,
+    drawerTabs: state.drawerTabs,
+    activeTabId: state.activeTabId,
+  }
+}
+
+/** Live fields for a parked snapshot. A pending jump belongs to the view that
+ *  was showing when it was made, so it never survives a tab switch. */
+function restoreView(snapshot: ViewSnapshot): Partial<AppState> {
+  return { ...snapshot, pendingSelection: null }
+}
+
+/** Ids of drawer tabs held by view tabs other than the active one. Their
+ *  panels stay mounted (hidden) so streams survive a tab switch, which means a
+ *  drawer tab id may live in only one view tab at a time. */
+function parkedDrawerTabIds(viewTabs: ViewTab[]): Set<string> {
+  return new Set(
+    viewTabs.flatMap((v) => v.snapshot?.drawerTabs.map((t) => t.id) ?? []),
+  )
+}
+
+let viewTabSeq = 1
+const nextViewTabId = (): string => `view-${++viewTabSeq}`
+
 interface AppState {
   selectedResourceType: ResourceType | null
   customResourceTarget: CustomResourceTarget | null
@@ -258,6 +304,10 @@ interface AppState {
   refreshInterval: RefreshIntervalValue
   drawerTabs: DrawerTab[]
   activeTabId: string | null
+  /** Workspace tabs, each a full view: cluster, resource type, selection,
+   *  filters and its own drawer (logs, shells, YAML). Not persisted. */
+  viewTabs: ViewTab[]
+  activeViewTabId: string
   contextStates: Record<string, ContextState>
   contextNamespaces: Record<string, string | null>
   contextAliases: Record<string, string>
@@ -294,6 +344,14 @@ interface AppState {
   openDrawerTab: (tab: DrawerTabInput) => void
   closeDrawerTab: (id: string) => void
   setActiveDrawerTab: (id: string) => void
+  /** Opens a new view tab and switches to it. Without `init` it duplicates the
+   *  current view (minus selection and drawer). */
+  openViewTab: (init?: {
+    context: string | null
+    resourceType: ResourceType | null
+  }) => void
+  closeViewTab: (id: string) => void
+  setActiveViewTab: (id: string) => void
   cleanupContextStates: (activeContextNames: string[]) => void
   markTabReconnected: (id: string) => void
   setContextAlias: (contextName: string, alias: string) => void
@@ -327,6 +385,8 @@ export const useAppStore = create<AppState>()(
       refreshInterval: 30,
       drawerTabs: [],
       activeTabId: null,
+      viewTabs: [{ id: "view-1", snapshot: null }],
+      activeViewTabId: "view-1",
       contextStates: {},
       contextNamespaces: {},
       contextAliases: {},
@@ -454,8 +514,11 @@ export const useAppStore = create<AppState>()(
             ? contextNamespaces[ctx]
             : null
         if (saved) {
-          // Mark stream tabs as restored so they don't auto-start
-          const restoredTabs = saved.drawerTabs.map((tab) => {
+          // Mark stream tabs as restored so they don't auto-start. Skip any a
+          // parked view tab already holds: it owns that panel now.
+          const parked = parkedDrawerTabIds(state.viewTabs)
+          const kept = saved.drawerTabs.filter((t) => !parked.has(t.id))
+          const restoredTabs = kept.map((tab) => {
             if (tab.type === "pod-log" || tab.type === "pod-shell") {
               return { ...tab, restored: true }
             }
@@ -476,7 +539,9 @@ export const useAppStore = create<AppState>()(
             labelSelector: saved.labelSelector ?? "",
             fieldSelector: saved.fieldSelector ?? "",
             drawerTabs: restoredTabs,
-            activeTabId: saved.activeTabId,
+            activeTabId: restoredTabs.some((t) => t.id === saved.activeTabId)
+              ? saved.activeTabId
+              : (restoredTabs[0]?.id ?? null),
           })
         } else {
           set({
@@ -521,10 +586,23 @@ export const useAppStore = create<AppState>()(
       setThemeId: (id) => set({ themeId: id }),
       setRefreshInterval: (interval) => set({ refreshInterval: interval }),
       openDrawerTab: (tabData: DrawerTabInput) => {
-        const { drawerTabs } = get()
+        const { drawerTabs, viewTabs } = get()
         const existing = drawerTabs.find((t) => t.tabKey === tabData.tabKey)
         if (existing) {
           set({ activeTabId: existing.id })
+          return
+        }
+        // Already open in another view tab: go there rather than start a
+        // second panel on the same stream id.
+        const owner = viewTabs.find((v) =>
+          v.snapshot?.drawerTabs.some((t) => t.tabKey === tabData.tabKey),
+        )
+        const owned = owner?.snapshot?.drawerTabs.find(
+          (t) => t.tabKey === tabData.tabKey,
+        )
+        if (owner && owned) {
+          get().setActiveViewTab(owner.id)
+          set({ activeTabId: owned.id })
           return
         }
         const id = tabData.tabKey
@@ -542,6 +620,77 @@ export const useAppStore = create<AppState>()(
         set({ drawerTabs: remaining, activeTabId: nextActive })
       },
       setActiveDrawerTab: (id) => set({ activeTabId: id }),
+      openViewTab: (init) => {
+        const state = get()
+        const id = nextViewTabId()
+        const context = init ? init.context : state.selectedContext
+        let namespace: string | null = null
+        if (context === state.selectedContext) {
+          namespace = state.selectedNamespace
+        } else if (context !== null) {
+          namespace = state.contextNamespaces[context] ?? null
+        }
+        const fresh: ViewSnapshot = {
+          selectedContext: context,
+          selectedResourceType: init
+            ? init.resourceType
+            : state.selectedResourceType,
+          customResourceTarget: init ? null : state.customResourceTarget,
+          accessReviewSubject: init ? null : state.accessReviewSubject,
+          selectedItem: null,
+          selectedNamespace: namespace,
+          nameFilter: "",
+          labelSelector: init ? "" : state.labelSelector,
+          fieldSelector: "",
+          drawerTabs: [],
+          activeTabId: null,
+        }
+        const viewTabs = state.viewTabs.map((v) =>
+          v.id === state.activeViewTabId
+            ? { ...v, snapshot: captureView(state) }
+            : v,
+        )
+        const idx = viewTabs.findIndex((v) => v.id === state.activeViewTabId)
+        viewTabs.splice(idx + 1, 0, { id, snapshot: null })
+        set({ ...restoreView(fresh), viewTabs, activeViewTabId: id })
+      },
+      setActiveViewTab: (id) => {
+        const state = get()
+        if (id === state.activeViewTabId) return
+        const target = state.viewTabs.find((v) => v.id === id)
+        if (!target?.snapshot) return
+        const current = captureView(state)
+        set({
+          ...restoreView(target.snapshot),
+          viewTabs: state.viewTabs.map((v) => {
+            if (v.id === id) return { ...v, snapshot: null }
+            if (v.id === state.activeViewTabId)
+              return { ...v, snapshot: current }
+            return v
+          }),
+          activeViewTabId: id,
+        })
+      },
+      closeViewTab: (id) => {
+        const state = get()
+        if (state.viewTabs.length <= 1) return
+        const idx = state.viewTabs.findIndex((v) => v.id === id)
+        if (idx < 0) return
+        const remaining = state.viewTabs.filter((v) => v.id !== id)
+        if (id !== state.activeViewTabId) {
+          set({ viewTabs: remaining })
+          return
+        }
+        const next = remaining[idx] ?? remaining[idx - 1]
+        if (!next.snapshot) return
+        set({
+          ...restoreView(next.snapshot),
+          viewTabs: remaining.map((v) =>
+            v.id === next.id ? { ...v, snapshot: null } : v,
+          ),
+          activeViewTabId: next.id,
+        })
+      },
       cleanupContextStates: (activeContextNames) => {
         const { contextStates, contextNamespaces, contextAliases, alertMutes } =
           get()

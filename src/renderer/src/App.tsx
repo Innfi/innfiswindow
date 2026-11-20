@@ -22,6 +22,7 @@ import { useAppStore } from "../store/app.store"
 import { AwsCredentialBanner } from "./components/AwsCredentialBanner"
 import { BottomDrawer } from "./components/BottomDrawer"
 import { SettingsDialog } from "./components/SettingsDialog"
+import { ViewTabBar } from "./components/ViewTabBar"
 import { useColorScheme } from "./hooks/useColorScheme"
 import { resourceViews } from "./resourceViews"
 
@@ -37,7 +38,6 @@ function App(): JSX.Element {
   const selectedNamespace = useAppStore((s) => s.selectedNamespace)
   const setSelectedNamespace = useAppStore((s) => s.setSelectedNamespace)
   const selectedContext = useAppStore((s) => s.selectedContext)
-  const setNameFilter = useAppStore((s) => s.setNameFilter)
   const contextAliases = useAppStore((s) => s.contextAliases)
   const setContextAlias = useAppStore((s) => s.setContextAlias)
   const settingsOpen = useAppStore((s) => s.settingsOpen)
@@ -127,7 +127,8 @@ function App(): JSX.Element {
   useEffect(() => {
     const activeContext = selectedContext ?? currentContext
     if (!activeContext) return
-    setNameFilter("")
+    // The name filter is not reset here: setSelectedContext and view-tab
+    // switches already set it, and a restored tab brings its own.
     window.api.k8s
       .listNamespaces({ contextName: selectedContext ?? undefined })
       .then((nsList) => setNamespaces(nsList.map((n) => n.name)))
@@ -272,6 +273,9 @@ function App(): JSX.Element {
           onRecheck={runAwsCredCheck}
           onReconnect={handleReconnect}
         />
+
+        {/* View tabs: each holds a cluster, resource type and drawer */}
+        <ViewTabBar />
 
         {/* Body */}
         <div className="flex flex-1 flex-col overflow-hidden">

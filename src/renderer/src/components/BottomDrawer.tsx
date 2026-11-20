@@ -156,6 +156,62 @@ function NewResourcePanel({ onClose }: { onClose: () => void }): JSX.Element {
   )
 }
 
+function DrawerPanel({
+  tab,
+  onClose,
+}: {
+  tab: DrawerTab
+  onClose: () => void
+}): JSX.Element {
+  switch (tab.type) {
+    case "pod-log":
+      return (
+        <PodLogPanel
+          tabKey={tab.id}
+          namespace={tab.namespace}
+          podName={tab.podName}
+          containers={tab.containers}
+          contextName={tab.contextName}
+          restored={tab.restored}
+        />
+      )
+    case "new-resource":
+      return <NewResourcePanel onClose={onClose} />
+    case "pod-shell":
+      return (
+        <ShellPanel
+          sessionId={tab.sessionId}
+          namespace={tab.namespace}
+          podName={tab.podName}
+          containerName={tab.containerName}
+          contextName={tab.contextName}
+          restored={tab.restored}
+        />
+      )
+    case "yaml-edit":
+      return <YamlEditPanel tab={tab} onClose={onClose} />
+    case "custom-stream":
+      return (
+        <CustomStreamPanel
+          sessionId={tab.id}
+          socketPath={tab.socketPath}
+          label={tab.label}
+        />
+      )
+    case "port-forward":
+      return (
+        <PortForwardPanel
+          sessionId={tab.id}
+          resourceKind={tab.resourceKind}
+          resourceName={tab.resourceName}
+          namespace={tab.namespace}
+          defaultLocalPort={tab.localPort}
+          defaultTargetPort={tab.targetPort}
+        />
+      )
+  }
+}
+
 function tabLabel(tab: DrawerTab): string {
   switch (tab.type) {
     case "pod-log":
@@ -179,6 +235,7 @@ export function BottomDrawer(): JSX.Element {
   const closeDrawerTab = useAppStore((s) => s.closeDrawerTab)
   const setActiveDrawerTab = useAppStore((s) => s.setActiveDrawerTab)
   const openDrawerTab = useAppStore((s) => s.openDrawerTab)
+  const viewTabs = useAppStore((s) => s.viewTabs)
 
   const [height, setHeight] = useState(DEFAULT_DRAWER_HEIGHT)
   const [collapsed, setCollapsed] = useState(false)
@@ -225,40 +282,62 @@ export function BottomDrawer(): JSX.Element {
     if (isOpen) setCollapsed(false)
   }, [isOpen])
 
-  if (!isOpen) {
-    return (
-      <div
-        className="shrink-0 border-t bg-background flex items-center px-2 gap-2"
-        style={{ height: TABBAR_HEIGHT }}
-      >
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-6 gap-1 text-xs px-2"
-          onClick={() =>
-            openDrawerTab({
-              tabKey: "new-resource:Resource",
-              type: "new-resource",
-              resourceKind: "Resource",
-            })
-          }
+  // Drawer tabs of the view tabs in the background stay mounted, hidden, so
+  // their logs, shells and port-forwards keep running across a tab switch.
+  // Keys are drawer tab ids, unique across view tabs, so a panel moving
+  // between the live list and a snapshot is not remounted.
+  const parkedTabs = viewTabs.flatMap((v) => v.snapshot?.drawerTabs ?? [])
+  const panelHost = (
+    <div
+      className="flex-1 min-h-0"
+      style={{ display: isOpen && !collapsed ? "block" : "none" }}
+    >
+      {[...drawerTabs, ...parkedTabs].map((tab) => (
+        <div
+          key={tab.id}
+          className="w-full h-full"
+          style={{
+            display:
+              tab.id === activeTabId && drawerTabs.includes(tab)
+                ? "block"
+                : "none",
+          }}
         >
-          <Plus className="h-3.5 w-3.5" />
-          New
-        </Button>
-      </div>
-    )
-  }
+          <DrawerPanel tab={tab} onClose={() => closeDrawerTab(tab.id)} />
+        </div>
+      ))}
+    </div>
+  )
 
-  const contentHeight = collapsed ? 0 : height
+  const newResourceButton = (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-6 gap-1 text-xs px-2 shrink-0"
+      onClick={() =>
+        openDrawerTab({
+          tabKey: "new-resource:Resource",
+          type: "new-resource",
+          resourceKind: "Resource",
+        })
+      }
+    >
+      <Plus className="h-3.5 w-3.5" />
+      {!isOpen && "New"}
+    </Button>
+  )
 
+  const showContent = isOpen && !collapsed
+
+  // One element tree for the open and closed states, so `panelHost` keeps its
+  // place and the parked panels inside it are never remounted.
   return (
     <div
       className="shrink-0 border-t bg-background flex flex-col"
-      style={{ height: (collapsed ? 0 : contentHeight) + TABBAR_HEIGHT }}
+      style={{ height: (showContent ? height : 0) + TABBAR_HEIGHT }}
     >
       {/* Resize handle */}
-      {!collapsed && (
+      {showContent && (
         <div
           className="h-1 cursor-ns-resize bg-border hover:bg-primary/40 shrink-0"
           onMouseDown={handleMouseDown}
@@ -267,24 +346,12 @@ export function BottomDrawer(): JSX.Element {
 
       {/* Tab bar */}
       <div
-        className="flex items-center border-b shrink-0 overflow-x-auto"
+        className={`flex items-center shrink-0 overflow-x-auto ${
+          isOpen ? "border-b" : "px-2 gap-2"
+        }`}
         style={{ height: TABBAR_HEIGHT }}
       >
-        {/* New resource button */}
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-6 gap-1 text-xs px-2 shrink-0"
-          onClick={() =>
-            openDrawerTab({
-              tabKey: "new-resource:Resource",
-              type: "new-resource",
-              resourceKind: "Resource",
-            })
-          }
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
+        {newResourceButton}
 
         {/* Tabs */}
         {drawerTabs.map((tab) => {
@@ -324,80 +391,24 @@ export function BottomDrawer(): JSX.Element {
         <div className="flex-1" />
 
         {/* Collapse toggle */}
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-6 px-1.5 shrink-0"
-          onClick={() => setCollapsed((v) => !v)}
-          title={collapsed ? "Expand" : "Collapse"}
-        >
-          {collapsed ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
-        </Button>
+        {isOpen && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-1.5 shrink-0"
+            onClick={() => setCollapsed((v) => !v)}
+            title={collapsed ? "Expand" : "Collapse"}
+          >
+            {collapsed ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        )}
       </div>
 
-      {/* Panel content */}
-      {!collapsed && (
-        <div className="flex-1 min-h-0">
-          {drawerTabs.map((tab) => (
-            <div
-              key={tab.id}
-              className="w-full h-full"
-              style={{ display: tab.id === activeTabId ? "block" : "none" }}
-            >
-              {tab.type === "pod-log" && (
-                <PodLogPanel
-                  tabKey={tab.id}
-                  namespace={tab.namespace}
-                  podName={tab.podName}
-                  containers={tab.containers}
-                  contextName={tab.contextName}
-                  restored={tab.restored}
-                />
-              )}
-              {tab.type === "new-resource" && (
-                <NewResourcePanel onClose={() => closeDrawerTab(tab.id)} />
-              )}
-              {tab.type === "pod-shell" && (
-                <ShellPanel
-                  sessionId={tab.sessionId}
-                  namespace={tab.namespace}
-                  podName={tab.podName}
-                  containerName={tab.containerName}
-                  contextName={tab.contextName}
-                  restored={tab.restored}
-                />
-              )}
-              {tab.type === "yaml-edit" && (
-                <YamlEditPanel
-                  tab={tab}
-                  onClose={() => closeDrawerTab(tab.id)}
-                />
-              )}
-              {tab.type === "custom-stream" && (
-                <CustomStreamPanel
-                  sessionId={tab.id}
-                  socketPath={tab.socketPath}
-                  label={tab.label}
-                />
-              )}
-              {tab.type === "port-forward" && (
-                <PortForwardPanel
-                  sessionId={tab.id}
-                  resourceKind={tab.resourceKind}
-                  resourceName={tab.resourceName}
-                  namespace={tab.namespace}
-                  defaultLocalPort={tab.localPort}
-                  defaultTargetPort={tab.targetPort}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {panelHost}
     </div>
   )
 }

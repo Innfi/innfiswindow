@@ -130,6 +130,7 @@ export function TreeView(): JSX.Element {
   const setSelectedResourceType = useAppStore((s) => s.setSelectedResourceType)
   const setSelectedContext = useAppStore((s) => s.setSelectedContext)
   const cleanupContextStates = useAppStore((s) => s.cleanupContextStates)
+  const openViewTab = useAppStore((s) => s.openViewTab)
   const contextAliases = useAppStore((s) => s.contextAliases)
 
   useEffect(() => {
@@ -164,7 +165,16 @@ export function TreeView(): JSX.Element {
     setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
-  function selectLeaf(contextName: string, resourceType: ResourceType) {
+  function selectLeaf(
+    contextName: string,
+    resourceType: ResourceType,
+    e?: React.MouseEvent,
+  ) {
+    // Ctrl/Cmd-click or middle-click opens the view in a new tab.
+    if (e && (e.ctrlKey || e.metaKey || e.button === 1)) {
+      openViewTab({ context: contextName, resourceType })
+      return
+    }
     setSelectedContext(contextName)
     setSelectedResourceType(resourceType)
   }
@@ -244,7 +254,10 @@ export function TreeView(): JSX.Element {
                             selectedResourceType === item &&
                             "bg-accent font-medium",
                         )}
-                        onClick={() => selectLeaf(ctx.name, item)}
+                        onClick={(e) => selectLeaf(ctx.name, item, e)}
+                        onAuxClick={(e) => {
+                          if (e.button === 1) selectLeaf(ctx.name, item, e)
+                        }}
                       >
                         {itemLabels[item] ?? item}
                       </div>
@@ -284,7 +297,10 @@ export function TreeView(): JSX.Element {
                                 selectedResourceType === type &&
                                 "bg-accent font-medium",
                             )}
-                            onClick={() => selectLeaf(ctx.name, type)}
+                            onClick={(e) => selectLeaf(ctx.name, type, e)}
+                            onAuxClick={(e) => {
+                              if (e.button === 1) selectLeaf(ctx.name, type, e)
+                            }}
                           >
                             {type === "aws-iam-principals"
                               ? "IAM Principals"
