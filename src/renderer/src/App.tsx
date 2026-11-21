@@ -19,10 +19,14 @@ import { TreeView } from "../components/ui/TreeView"
 import { handleIpcError } from "../lib/ipc-error"
 import { applyTheme } from "../lib/themes"
 import { useAppStore } from "../store/app.store"
-import { AwsCredentialBanner } from "./components/AwsCredentialBanner"
 import { BottomDrawer } from "./components/BottomDrawer"
 import { SettingsDialog } from "./components/SettingsDialog"
 import { ViewTabBar } from "./components/ViewTabBar"
+import {
+  type AwsCredentialResult,
+  type ConnectionStatus,
+  useAwsCredentialNotifications,
+} from "./hooks/useAwsCredentialNotifications"
 import { useColorScheme } from "./hooks/useColorScheme"
 import { resourceViews } from "./resourceViews"
 
@@ -45,19 +49,9 @@ function App(): JSX.Element {
   const [aliasPopoverOpen, setAliasPopoverOpen] = useState(false)
   const [aliasInput, setAliasInput] = useState("")
   const aliasInputRef = useRef<HTMLInputElement>(null)
-  const [awsCredResult, setAwsCredResult] = useState<{
-    valid: boolean
-    type: "env" | "file" | "sso-cache" | "metadata" | "none"
-    hasSessionToken?: boolean
-    expiresAt?: string
-    ssoSession?: string
-  } | null>(null)
-  const [connection, setConnection] = useState<{
-    connected: boolean
-    reason?: "network" | "auth" | "unknown"
-    error?: string
-  } | null>(null)
-  const [reconnecting, setReconnecting] = useState(false)
+  const [awsCredResult, setAwsCredResult] =
+    useState<AwsCredentialResult | null>(null)
+  const [connection, setConnection] = useState<ConnectionStatus | null>(null)
 
   const runAwsCredCheck = useCallback((): void => {
     window.api
@@ -82,7 +76,6 @@ function App(): JSX.Element {
   }, [selectedContext])
 
   const handleReconnect = useCallback(async (): Promise<void> => {
-    setReconnecting(true)
     try {
       const status = await window.api.k8s.reconnect({
         contextName: selectedContext ?? undefined,
@@ -91,10 +84,15 @@ function App(): JSX.Element {
       runAwsCredCheck()
     } catch (e) {
       setConnection({ connected: false, reason: "unknown", error: String(e) })
-    } finally {
-      setReconnecting(false)
     }
   }, [selectedContext, runAwsCredCheck])
+
+  useAwsCredentialNotifications({
+    result: awsCredResult,
+    connection,
+    onRecheck: runAwsCredCheck,
+    onReconnect: handleReconnect,
+  })
 
   // Periodically re-check credentials (cheap, local) and the live connection.
   // Re-runs whenever the selected context changes.
@@ -264,15 +262,6 @@ function App(): JSX.Element {
               )
             })()}
         </div>
-
-        {/* AWS credential / cluster connection banner */}
-        <AwsCredentialBanner
-          result={awsCredResult}
-          connection={connection}
-          reconnecting={reconnecting}
-          onRecheck={runAwsCredCheck}
-          onReconnect={handleReconnect}
-        />
 
         {/* View tabs: each holds a cluster, resource type and drawer */}
         <ViewTabBar />
