@@ -209,7 +209,7 @@ export function TreeView(): JSX.Element {
                 <ChevronRight className="h-3.5 w-3.5 shrink-0" />
               )}
               <span
-                className="flex-1 truncate text-left"
+                className="flex-1 truncate text-left font-mono"
                 title={contextAliases[ctx.name] ? ctx.name : undefined}
               >
                 {contextAliases[ctx.name] ?? ctx.name}

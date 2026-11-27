@@ -10,6 +10,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import { useAppStore } from "../../store/app.store"
 import { K8sApiGroupVersionError, K8sApiResource } from "../types/k8s"
 import { ResourceType, resourceTypeForKind } from "../types/resource"
@@ -103,7 +104,7 @@ function DetailPanel({
         <>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-semibold text-base mb-1">{resource.name}</h2>
+              <ResourceTitle name={resource.name} />
               <span className="text-xs text-muted-foreground">
                 {resource.apiVersion} ·{" "}
                 {resource.namespaced ? "namespaced" : "cluster-scoped"}

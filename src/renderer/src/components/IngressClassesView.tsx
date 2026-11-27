@@ -12,6 +12,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import { filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sIngressClass, K8sIngressClassParametersRef } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
@@ -59,10 +60,9 @@ function DetailPanel({
         <>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-semibold text-base mb-1 flex items-center gap-2">
-                {ic.name}
+              <ResourceTitle className="flex items-center gap-2" name={ic.name}>
                 {ic.isDefault && <DefaultBadge />}
-              </h2>
+              </ResourceTitle>
               <span className="text-xs text-muted-foreground">
                 cluster-scoped
               </span>

@@ -13,6 +13,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import { cn, filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sPV } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
@@ -52,9 +53,7 @@ function DetailPanel({
       header={
         <>
           <div className="flex items-start justify-between">
-            <h2 className="font-semibold text-base mb-1 flex-1 truncate pr-2">
-              {pv.name}
-            </h2>
+            <ResourceTitle className="flex-1 truncate pr-2" name={pv.name} />
             <div className="flex items-center gap-1 shrink-0">
               <EditButton
                 resourceKind="PersistentVolume"

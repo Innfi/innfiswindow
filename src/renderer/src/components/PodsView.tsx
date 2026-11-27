@@ -22,6 +22,7 @@ import {
   ResourceListView,
   SortOption,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import { cn, filterAnnotations, filterEntries } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { usePodMetrics } from "../hooks/usePodMetrics"
@@ -134,7 +135,7 @@ function DetailPanel({
         <>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-semibold text-base mb-1">{pod.name}</h2>
+              <ResourceTitle name={pod.name} />
               <span className="text-xs text-muted-foreground">
                 {pod.namespace}
               </span>

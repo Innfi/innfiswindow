@@ -13,6 +13,7 @@ import { useVirtualizer } from "@tanstack/react-virtual"
 
 import { Button } from "../../components/ui/Button"
 import { normalizeIpcError } from "../../lib/ipc-error"
+import { type LogLevel, parseLogLine } from "../../lib/log-format"
 import { formatBytes } from "../../lib/utils"
 
 /** Read-option choices, kept short: these are the ones worth a click. */
@@ -68,6 +69,68 @@ interface K8sPodContainer {
 interface MergedLine {
   containerName: string
   line: string
+}
+
+interface LogPiece {
+  text: string
+  className: string
+}
+
+const TIMESTAMP_CLASS = "text-zinc-500"
+const CONTAINER_CLASS = "text-violet-400"
+const MESSAGE_CLASS = "text-zinc-200"
+const LEVEL_CLASS: Record<LogLevel, string> = {
+  fatal: "text-red-500 font-bold",
+  error: "text-red-400 font-semibold",
+  warn: "text-amber-400 font-semibold",
+  info: "text-emerald-400",
+  debug: "text-sky-400",
+  trace: "text-zinc-400",
+}
+
+/** Renders colored pieces, wrapping filter matches in <mark>. Matches are
+ *  found on the whole line, so one may span pieces (e.g. timestamp + level). */
+function renderPieces(pieces: LogPiece[], re: RegExp | null): ReactNode {
+  const ranges: [number, number][] = []
+  if (re) {
+    const full = pieces.map((p) => p.text).join("")
+    re.lastIndex = 0
+    let m: RegExpExecArray | null
+    while ((m = re.exec(full)) !== null) {
+      if (m[0].length === 0) break
+      ranges.push([m.index, m.index + m[0].length])
+    }
+  }
+  const out: JSX.Element[] = []
+  let offset = 0
+  let r = 0
+  for (const piece of pieces) {
+    const end = offset + piece.text.length
+    let pos = offset
+    while (pos < end) {
+      while (r < ranges.length && ranges[r][1] <= pos) r++
+      const range = ranges[r]
+      if (range && range[0] <= pos) {
+        const stop = Math.min(range[1], end)
+        out.push(
+          <mark key={pos} className="bg-yellow-400 text-zinc-900">
+            {piece.text.slice(pos - offset, stop - offset)}
+          </mark>,
+        )
+        pos = stop
+      } else {
+        const stop = range ? Math.min(range[0], end) : end
+        out.push(
+          <span key={pos} className={piece.className}>
+            {piece.text.slice(pos - offset, stop - offset)}
+          </span>,
+        )
+        pos = stop
+      }
+    }
+    offset = end
+  }
+  return out
 }
 
 /** Appends a batch, trimming to MAX_LOG_LINES and re-stamping the sentinel. */
@@ -186,6 +249,7 @@ export function PodLogPanel({
   const [savingLog, setSavingLog] = useState(false)
   const [previous, setPrevious] = useState(false)
   const [timestamps, setTimestamps] = useState(false)
+  const [colorize, setColorize] = useState(true)
   const [streamError, setStreamError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const stickToBottomRef = useRef(true)
@@ -503,28 +567,29 @@ export function PodLogPanel({
       }
     }, [lines, mergedLines, searchTerm, regexMode])
 
-  function highlightLine(line: string, re: RegExp): JSX.Element {
-    const parts: JSX.Element[] = []
-    let last = 0
-    re.lastIndex = 0
-    let m: RegExpExecArray | null
-    while ((m = re.exec(line)) !== null) {
-      if (m.index > last)
-        parts.push(<span key={last}>{line.slice(last, m.index)}</span>)
-      parts.push(
-        <mark key={m.index} className="bg-yellow-400 text-zinc-900">
-          {m[0]}
-        </mark>,
-      )
-      last = m.index + m[0].length
-      if (m[0].length === 0) {
-        re.lastIndex++
-        break
-      }
+  /** Colored pieces for one line: the merge-mode container prefix, then the
+   *  parsed timestamp / level / message — or the plain line with colors off. */
+  function linePieces(line: string, containerName?: string): LogPiece[] {
+    const pieces: LogPiece[] = []
+    if (containerName !== undefined) {
+      pieces.push({ text: `[${containerName}] `, className: CONTAINER_CLASS })
     }
-    if (last < line.length)
-      parts.push(<span key={last}>{line.slice(last)}</span>)
-    return <>{parts}</>
+    if (!colorize) {
+      pieces.push({ text: line, className: MESSAGE_CLASS })
+      return pieces
+    }
+    for (const seg of parseLogLine(line)) {
+      pieces.push({
+        text: seg.text,
+        className:
+          seg.kind === "timestamp"
+            ? TIMESTAMP_CLASS
+            : seg.kind === "level"
+              ? LEVEL_CLASS[seg.level]
+              : MESSAGE_CLASS,
+      })
+    }
+    return pieces
   }
 
   const displayCount = mergeMode ? filteredMerged.length : filteredLines.length
@@ -569,18 +634,9 @@ export function PodLogPanel({
           </div>
         )
       }
-      const prefix = `[${m.containerName}] `
-      if (matchRegex) {
-        return (
-          <div className="whitespace-pre-wrap break-all text-zinc-200">
-            {highlightLine(prefix + m.line, matchRegex)}
-          </div>
-        )
-      }
       return (
         <div className="whitespace-pre-wrap break-all">
-          <span className="text-zinc-500">{prefix}</span>
-          <span className="text-zinc-200">{m.line}</span>
+          {renderPieces(linePieces(m.line, m.containerName), matchRegex)}
         </div>
       )
     }
@@ -593,8 +649,8 @@ export function PodLogPanel({
       )
     }
     return (
-      <div className="whitespace-pre-wrap break-all text-zinc-200">
-        {matchRegex ? highlightLine(line, matchRegex) : line}
+      <div className="whitespace-pre-wrap break-all">
+        {renderPieces(linePieces(line), matchRegex)}
       </div>
     )
   }
@@ -755,6 +811,13 @@ export function PodLogPanel({
         >
           Timestamps
         </OptionChip>
+        <OptionChip
+          active={colorize}
+          onClick={() => setColorize((v) => !v)}
+          title="Color timestamps and log levels — detected heuristically; turn off if a format is misread"
+        >
+          Colors
+        </OptionChip>
       </div>
 
       {streamError && (
@@ -767,7 +830,7 @@ export function PodLogPanel({
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-2 font-mono text-xs leading-relaxed"
+        className="log-scroll flex-1 overflow-y-auto p-2 font-mono text-xs leading-relaxed"
       >
         {displayCount === 0 ? (
           <span className="text-zinc-500">

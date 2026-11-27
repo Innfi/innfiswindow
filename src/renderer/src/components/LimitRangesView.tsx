@@ -13,6 +13,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import { filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sLimitRange } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -40,9 +41,7 @@ function DetailPanel({
         <>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-semibold text-base mb-1">
-                {limitRange.name}
-              </h2>
+              <ResourceTitle name={limitRange.name} />
               <span className="text-xs text-muted-foreground">
                 {limitRange.namespace}
               </span>

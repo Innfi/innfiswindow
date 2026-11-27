@@ -13,6 +13,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import { filterAnnotations, filterEntries } from "../../lib/utils"
 import {
   K8sNetworkPolicy,
@@ -131,7 +132,7 @@ function DetailPanel({
         <>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-semibold text-lg mb-1">{item.name}</h2>
+              <ResourceTitle name={item.name} />
               <p className="text-xs text-muted-foreground">{item.namespace}</p>
             </div>
             <div className="flex items-center gap-1">

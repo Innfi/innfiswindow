@@ -13,6 +13,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import {
   Table,
   TableBody,
@@ -45,7 +46,7 @@ function DetailPanel({
         <>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-semibold text-base mb-1">{role.name}</h2>
+              <ResourceTitle name={role.name} />
               <span className="text-xs text-muted-foreground">
                 {role.namespace}
               </span>

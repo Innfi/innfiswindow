@@ -15,6 +15,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import { cn, filterAnnotations, filterEntries } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { K8sEndpoint, K8sService, K8sServicePort } from "../types/k8s"
@@ -82,7 +83,7 @@ function DetailPanel({
         <>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-semibold text-base mb-1">{svc.name}</h2>
+              <ResourceTitle name={svc.name} />
               <span className="text-xs text-muted-foreground">
                 {svc.namespace}
               </span>

@@ -34,6 +34,7 @@ import {
   ResourceColumn,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import { cn, filterAnnotations, filterEntries } from "../../lib/utils"
 import { useAppStore } from "../../store/app.store"
 import { useRecordHistory } from "../hooks/useRecordHistory"
@@ -276,7 +277,7 @@ function DetailPanel({
         <>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-semibold text-base mb-1">{node.name}</h2>
+              <ResourceTitle name={node.name} />
               <span
                 className={cn(
                   "inline-block rounded px-2 py-0.5 text-xs font-medium",

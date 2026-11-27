@@ -483,6 +483,7 @@ export function ResourceListView<T extends Namespaced, D = T>({
                           key={col.head}
                           className={cn(
                             "whitespace-nowrap",
+                            col.head === "Name" && "font-mono font-medium",
                             typeof col.className === "function"
                               ? col.className(item)
                               : col.className,

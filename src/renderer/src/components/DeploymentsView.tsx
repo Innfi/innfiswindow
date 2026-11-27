@@ -25,6 +25,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import { RestartButton } from "../../components/ui/RestartButton"
 import { ScaleButton } from "../../components/ui/ScaleButton"
 import {
@@ -133,9 +134,7 @@ function DetailPanel({
         <>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-semibold text-base mb-1">
-                {deployment.name}
-              </h2>
+              <ResourceTitle name={deployment.name} />
               <span className="text-xs text-muted-foreground">
                 {deployment.namespace}
               </span>

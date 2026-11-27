@@ -13,6 +13,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import { filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sServiceAccount } from "../types/k8s"
 import { RelatedResourcesSection } from "./RelatedResourcesSection"
@@ -43,7 +44,7 @@ function DetailPanel({
         <>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-semibold text-base mb-1">{sa.name}</h2>
+              <ResourceTitle name={sa.name} />
               <span className="text-xs text-muted-foreground">
                 {sa.namespace}
               </span>

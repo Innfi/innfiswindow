@@ -15,6 +15,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import { cn, filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sHPA } from "../types/k8s"
 import { HPAUtilizationSection } from "./HPAUtilizationSection"
@@ -54,7 +55,7 @@ function DetailPanel({
         <>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-semibold text-base mb-1">{hpa.name}</h2>
+              <ResourceTitle name={hpa.name} />
               <span className="text-xs text-muted-foreground">
                 {hpa.namespace}
               </span>

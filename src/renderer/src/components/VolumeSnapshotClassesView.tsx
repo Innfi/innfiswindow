@@ -12,6 +12,7 @@ import {
   DetailController,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import { filterAnnotations, filterEntries } from "../../lib/utils"
 import { K8sVolumeSnapshotClass } from "../types/k8s"
 import { ResourceEventsSection } from "./ResourceEventsSection"
@@ -51,10 +52,12 @@ function DetailPanel({
         <>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-semibold text-base mb-1 flex items-center gap-2">
-                {vsc.name}
+              <ResourceTitle
+                className="flex items-center gap-2"
+                name={vsc.name}
+              >
                 {vsc.isDefault && <DefaultBadge />}
-              </h2>
+              </ResourceTitle>
               <span className="text-xs text-muted-foreground">
                 cluster-scoped
               </span>

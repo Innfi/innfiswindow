@@ -15,6 +15,7 @@ import {
   ResourceColumn,
   ResourceListView,
 } from "../../components/ui/ResourceListView"
+import { ResourceTitle } from "../../components/ui/ResourceTitle"
 import { normalizeIpcError } from "../../lib/ipc-error"
 import type { ResourceGvk } from "../../lib/resource-gvk"
 import { filterAnnotations, filterEntries } from "../../lib/utils"
@@ -77,7 +78,7 @@ function DetailPanel({
         <>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="font-semibold text-base mb-1">{info.name}</h2>
+              <ResourceTitle name={info.name} />
               <span className="text-xs text-muted-foreground">
                 {info.namespace ? `${info.namespace} · ` : ""}
                 {info.apiVersion}

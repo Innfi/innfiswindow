@@ -40,6 +40,34 @@
   background: var(--muted-foreground);
 }
 
+/* Log panel: always dark (zinc), and a wider grab target for long logs. The
+   transparent border insets the thumb so it reads slimmer than its hit area. */
+.log-scroll::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+.log-scroll::-webkit-scrollbar-track {
+  background: oklch(0.141 0.005 285.823) /* zinc-950 */;
+}
+
+.log-scroll::-webkit-scrollbar-thumb {
+  background: oklch(0.442 0.017 285.786) /* zinc-600 */;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  min-height: 40px;
+}
+
+.log-scroll::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.705 0.015 286.067) /* zinc-400 */;
+  background-clip: padding-box;
+}
+
+.log-scroll::-webkit-scrollbar-thumb:active {
+  background: oklch(0.871 0.006 286.286) /* zinc-300 */;
+  background-clip: padding-box;
+}
+
 /* Default (light) values so the page has colors before applyTheme() fires. */
 :root {
   --background: oklch(1 0 0);
